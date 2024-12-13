@@ -60,9 +60,9 @@ This workflow outlines the steps to set up the development environment and tools
      FLASK_ENV=development
      MYSQL_HOST=localhost
      MYSQL_USER=root
-     MYSQL_PASSWORD=yourpassword
+     MYSQL_PASSWORD=Mostert51212!
      MYSQL_DB=script_breakdown
-     GEMINI_API_KEY=your_api_key
+     GEMINI_API_KEY=your_gemini_api_key_here
      ```
 
 3. **Database Initialization:**
