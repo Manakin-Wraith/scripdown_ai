@@ -2,9 +2,209 @@ Okay, based on the database schema and the described MVP functionality, here's a
 
 **Assumptions:**
 
-*   You're using a framework like Flask or Django.
-*   You're using JSON for request and response bodies.
-*   You'll implement authentication/authorization middleware to secure these endpoints.
+*   You have a Flask application set up.
+*   You have a database connection established.
+*   You have functions to parse the PDF and interact with the Gemini 2.0 API (we'll assume these exist).
+*   You are using the database structure as previously defined
+*   You have some form of user authentication middleware to make sure users are valid
+
+**Endpoint 1: `/upload_script` (POST)**
+
+This endpoint handles the upload of a PDF script, parses it, interacts with the AI, and stores the results.
+
+```python
+from flask import Flask, request, jsonify
+import os
+from werkzeug.utils import secure_filename
+#Assuming there is a function called "process_script" that handles the script parsing, AI processing and data storage.
+from your_module import process_script
+
+app = Flask(__name__)
+UPLOAD_FOLDER = 'uploads' # Directory to save the uploaded files
+ALLOWED_EXTENSIONS = {'pdf'} # Set the allowed file types
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+#Helper function
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+@app.route('/upload_script', methods=['POST'])
+def upload_script():
+    # Check if the user is authenticated
+    if not user_is_authenticated():
+        return jsonify({'message': 'Unauthorized access'}), 401
+
+
+    # Check if the post request has the file part
+    if 'file' not in request.files:
+        return jsonify({'message': 'No file part'}), 400
+
+    file = request.files['file']
+
+    # Check if file is selected
+    if file.filename == '':
+       return jsonify({'message': 'No file selected'}), 400
+
+    # Check the file extension
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(file_path)
+
+        try:
+            script_id= process_script(file_path) # assuming process_script now also returns a script_id
+            return jsonify({'message': 'Script processed successfully', "script_id": script_id}), 201
+        except Exception as e:
+            return jsonify({'message': f'Error processing script: {str(e)}'}), 500
+    else:
+        return jsonify({'message': 'Invalid file type. Only PDF is allowed'}), 400
+
+#Helper user authentication function
+def user_is_authenticated():
+    #Add your authentication implementation here
+    # This is for example purposes and does not do any real authentication
+    # e.g You might validate a token, session, or some other authentication
+    return True
+
+if __name__ == '__main__':
+    #Create folder if it does not exist
+    if not os.path.exists(UPLOAD_FOLDER):
+        os.makedirs(UPLOAD_FOLDER)
+    app.run(debug=True)
+```
+
+**Explanation:**
+
+1.  **Imports:** Import necessary Flask modules, `os` for file handling, and `secure_filename` for security.
+2.  **Setup:**
+    *   Set the upload folder and allowed file extensions.
+    *   Define `allowed_file` function to validate the file extension.
+3.  **`/upload_script` Route:**
+    *   Handles `POST` requests.
+    *   Validates that a file is present in the request.
+    *   Ensures the file type is PDF.
+    *   Saves the uploaded file securely.
+    *   Calls `process_script()` function which would ideally take the filepath, extract the text, sends the data to Gemini, stores the extracted data in the database, and would return the script\_id
+    *   Returns a success message and the generated `script_id` or an error message.
+4.  **Error Handling:** Includes basic error handling for file uploads and processing.
+5. **Authentication**: Includes a basic authentication middleware
+
+**Endpoint 2: `/get_breakdown_data` (GET)**
+
+This endpoint fetches the breakdown data based on the role provided in the request parameters.
+
+```python
+from flask import Flask, request, jsonify
+import psycopg2  # Or your database connector library
+from your_module import get_database_connection # assuming this will return a database cursor
+app = Flask(__name__)
+# A helper function to determine table name based on the role
+def get_table_name(role):
+    role_table_mapping = {
+        'Director': 'director_notes',
+        'Producer': 'producer_notes',
+        'DoP': 'dop_notes',
+        'Production_Designer': 'production_designer_notes',
+        'Costume_Designer': 'costume_designer_notes',
+        'Casting_Director': 'casting_director_notes',
+        'Location_Manager': 'location_manager_notes',
+        'VFX_Supervisor': 'vfx_supervisor_notes',
+        'Sound_Department': 'sound_department_notes',
+        'Makeup_and_Hair': 'makeup_and_hair_notes',
+        'Script_Writer':'script_writer_notes',
+        'Actor':'actor_notes'
+    }
+    return role_table_mapping.get(role)
+@app.route('/get_breakdown_data', methods=['GET'])
+def get_breakdown_data():
+    # Check if the user is authenticated
+    if not user_is_authenticated():
+        return jsonify({'message': 'Unauthorized access'}), 401
+
+
+    script_id = request.args.get('script_id', type=int)
+    role = request.args.get('role')
+
+
+    if not script_id:
+       return jsonify({'message':'No script id provided'}), 400
+
+    if not role:
+      return jsonify({'message':'No role provided'}), 400
+
+
+    table_name = get_table_name(role)
+    if not table_name:
+       return jsonify({'message': 'Invalid role'}), 400
+
+    conn = None
+    try:
+        conn= get_database_connection() # returns a cursor connection
+        cur = conn.cursor()
+        if table_name in ['script_writer_notes', 'actor_notes']: #if the role is script writer or actor we need to grab data from scenes
+           cur.execute(f'''SELECT scenes.scene_number, scenes.setting, scenes.description, {table_name}.*
+                                FROM scenes
+                                INNER JOIN {table_name} ON scenes.scene_id = {table_name}.scene_id
+                                WHERE scenes.script_id = %s''', (script_id,))
+        else:
+            cur.execute(f'''SELECT scenes.scene_number, scenes.setting, scenes.description, {table_name}.*
+                                FROM scenes
+                                INNER JOIN {table_name} ON scenes.scene_id = {table_name}.scene_id
+                                WHERE scenes.script_id = %s''', (script_id,))
+        results = cur.fetchall()
+
+        if not results:
+            return jsonify({'message': f'No data found for {role} and script_id:{script_id}'}), 404
+
+        # Convert results to a list of dictionaries for easier JSON serialization
+        columns = [col[0] for col in cur.description] #gets the column names
+        data = [dict(zip(columns, row)) for row in results] #converts to a dictionary
+
+        return jsonify(data), 200
+
+    except Exception as e:
+        return jsonify({'message': f'Error fetching breakdown data: {str(e)}'}), 500
+    finally:
+      if conn:
+        cur.close()
+        conn.close()
+
+
+#Helper user authentication function
+def user_is_authenticated():
+    #Add your authentication implementation here
+    # This is for example purposes and does not do any real authentication
+    # e.g You might validate a token, session, or some other authentication
+    return True
+if __name__ == '__main__':
+    app.run(debug=True)
+```
+
+**Explanation:**
+
+1.  **Imports:** Import necessary Flask modules, your database connector, and helper functions.
+2.  **`get_table_name` Function:** Defines a mapping of the HOD role names and their respective tables.
+3.  **`/get_breakdown_data` Route:**
+    *   Handles `GET` requests.
+    *   Retrieves the `script_id` and `role` from the query parameters.
+    *   Validates that both parameters are present.
+    *   Uses the `get_table_name` function to retrieve the correct table name.
+    *   Queries the database for data related to that role, also grabbing the scene number, setting and description from the scenes table.
+    *   Returns the results in JSON format or returns an error if no data is found
+4. **Error handling**: Includes basic error handling for API calls, and data retrieval
+5. **Authentication**: Includes a basic authentication middleware
+
+**Important Notes:**
+
+*   **Database Interaction:** The SQL queries are examples. You should adjust these to match your specific needs and the structure of your database.
+*   **Error Handling:** The error handling is basic. Consider adding more robust logging and error responses for production environments.
+*   **Database Connection:** Assume the function `get_database_connection` exists to connect to your database.
+*  **Authentication:** Add your authentication middleware to make sure users are valid.
+*   **Security:** Implement proper authorization for API access, based on the user's role.
+*   **Helper Functions:** Your application should include the mentioned  `process_script` function, as well as a function that returns a database cursor `get_database_connection` function.
+
+These are the basic building blocks for the API endpoints. You can extend these with additional features, such as pagination, search, more detailed error messages, etc.
+
 
 **API Endpoints:**
 
