@@ -8,7 +8,7 @@ This workflow outlines the steps to set up the development environment and tools
 - **Programming Languages:** Python, JavaScript
 - **Frameworks:** Flask (Python backend), React (JavaScript frontend)
 - **Database:** MySQL
-- **AI Model:** Google Gemini 2.0 (via API)
+- **AI Model:** Google Gemini 2.0 (via API) - "modelVersion": "gemini-2.0-flash-exp"
 - **PDF Processing:** PyPDF2
 - **API Integration:** Gemini 2.0 API keys
 
@@ -137,7 +137,7 @@ This workflow outlines the steps to set up the development environment and tools
      ```
 
 2. **Integration with Gemini API:**
-   - Send parsed text to Gemini 2.0 for analysis:
+   - Send parsed text to Gemini 2.0 for analysis: 
      ```python
      import requests
      import os
