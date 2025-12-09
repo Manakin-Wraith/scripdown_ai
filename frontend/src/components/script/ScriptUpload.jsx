@@ -4,6 +4,7 @@ import axios from 'axios';
 import DropZone from './DropZone';
 import { AlertTriangle, X, CheckCircle, Loader, ArrowRight, Clapperboard, Sparkles, AlertCircle, FileText, Scissors } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
+import { supabase } from '../../lib/supabase';
 import './ScriptUpload.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -41,10 +42,16 @@ const ScriptUpload = () => {
             setUploadProgress(0);
             setProcessingStage('Uploading file...');
 
+            // Get auth token for the request
+            const { data: { session } } = await supabase.auth.getSession();
+            const authHeaders = session?.access_token 
+                ? { 'Authorization': `Bearer ${session.access_token}` }
+                : {};
+
             // Simulate staged progress for better UX
             // Stage 1: Upload (0-40%)
             const uploadResponse = await axios.post(`${API_BASE_URL}/api/upload`, formData, {
-                headers: { 'Content-Type': 'multipart/form-data' },
+                headers: { 'Content-Type': 'multipart/form-data', ...authHeaders },
                 onUploadProgress: (progressEvent) => {
                     // Upload is 0-40% of total progress
                     const uploadPercent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
