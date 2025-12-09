@@ -26,5 +26,8 @@ RUN mkdir -p uploads
 # Expose port
 EXPOSE 5000
 
-# Run with gunicorn - Railway sets PORT env var
-CMD ["sh", "-c", "gunicorn app:app --bind 0.0.0.0:${PORT:-5000}"]
+# Set default PORT if not provided
+ENV PORT=5000
+
+# Run with gunicorn
+CMD gunicorn app:app --bind 0.0.0.0:$PORT
