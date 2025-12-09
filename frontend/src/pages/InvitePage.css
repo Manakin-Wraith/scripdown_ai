@@ -13,13 +13,12 @@
     background: var(--gray-800);
     border: 1px solid var(--border-color);
     border-radius: 20px;
-    padding: 2.5rem;
+    padding: 2.5rem 3rem;
     width: 100%;
-    max-width: 480px;
+    max-width: 520px;
     text-align: center;
     animation: cardFadeIn 0.3s ease;
     position: relative;
-    overflow: hidden;
     box-sizing: border-box;
 }
 
