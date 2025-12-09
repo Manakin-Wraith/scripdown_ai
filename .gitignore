@@ -75,3 +75,5 @@ uploads/
 *.key
 secrets/
 credentials/
+.vercel
+.env*.local
