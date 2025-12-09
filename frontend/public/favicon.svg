@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Clapperboard/Slate icon in neon yellow -->
+  <rect x="2" y="10" width="28" height="20" rx="2" fill="#121212" stroke="#E3FF00" stroke-width="2"/>
+  <rect x="2" y="2" width="28" height="10" rx="2" fill="#E3FF00"/>
+  <!-- Clapper stripes -->
+  <line x1="6" y1="2" x2="10" y2="12" stroke="#121212" stroke-width="2"/>
+  <line x1="14" y1="2" x2="18" y2="12" stroke="#121212" stroke-width="2"/>
+  <line x1="22" y1="2" x2="26" y2="12" stroke="#121212" stroke-width="2"/>
+  <!-- Text lines on slate -->
+  <line x1="6" y1="17" x2="20" y2="17" stroke="#E3FF00" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="6" y1="22" x2="16" y2="22" stroke="#E3FF00" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="6" y1="27" x2="12" y2="27" stroke="#E3FF00" stroke-width="1.5" stroke-linecap="round"/>
+</svg>
