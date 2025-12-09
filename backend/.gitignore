@@ -1,0 +1,22 @@
+# Environment
+.env
+.env.local
+.env*.local
+
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+
+# IDE
+.DS_Store
+.idea/
+.vscode/
+
+# Uploads
+uploads/*
+!uploads/.gitkeep
+
+# Vercel
+.vercel
