@@ -23,8 +23,8 @@ COPY . .
 # Create uploads directory
 RUN mkdir -p uploads
 
-# Expose port (Railway sets PORT dynamically)
-EXPOSE ${PORT:-5000}
+# Expose port
+EXPOSE 5000
 
-# Run with gunicorn - use shell form to expand $PORT
-CMD gunicorn app:app --bind 0.0.0.0:${PORT:-5000}
+# Run with gunicorn - Railway sets PORT env var
+CMD ["sh", "-c", "gunicorn app:app --bind 0.0.0.0:${PORT:-5000}"]
