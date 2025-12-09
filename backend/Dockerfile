@@ -23,11 +23,8 @@ COPY . .
 # Create uploads directory
 RUN mkdir -p uploads
 
-# Expose port
-EXPOSE 5000
+# Railway uses port 8080 by default
+EXPOSE 8080
 
-# Set default PORT if not provided
-ENV PORT=5000
-
-# Run with gunicorn
-CMD gunicorn app:app --bind 0.0.0.0:$PORT
+# Run with gunicorn on port 8080
+CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:8080"]
