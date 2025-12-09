@@ -14,8 +14,11 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app)
 
-# Initialize Database (SQLite - legacy)
-db_connection.init_app(app)
+# Initialize Database (SQLite - legacy, optional in production)
+try:
+    db_connection.init_app(app)
+except Exception as e:
+    print(f"Warning: SQLite DB not initialized: {e}")
 
 # Register Blueprints
 app.register_blueprint(script_bp)  # Legacy SQLite routes
@@ -24,9 +27,12 @@ app.register_blueprint(supabase_bp)  # New Supabase routes at /api/*
 app.register_blueprint(report_bp, url_prefix='/api/reports')  # Report generation routes
 app.register_blueprint(invite_bp)  # Team invite routes
 
-# Start analysis worker on app startup
-from services.analysis_worker import start_worker
-start_worker()
+# Start analysis worker on app startup (only if not in production without SQLite)
+try:
+    from services.analysis_worker import start_worker
+    start_worker()
+except Exception as e:
+    print(f"Warning: Analysis worker not started: {e}")
 
 @app.route('/health')
 def health_check():
