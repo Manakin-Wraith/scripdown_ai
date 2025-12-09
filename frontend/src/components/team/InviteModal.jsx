@@ -19,7 +19,7 @@ import {
 import { useToast } from '../../context/ToastContext';
 import './InviteModal.css';
 
-const API_BASE_URL = 'http://localhost:5000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const ROLES = [
     { value: 'member', label: 'Member', description: 'Can view and add notes' },

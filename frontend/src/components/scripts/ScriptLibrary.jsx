@@ -9,6 +9,8 @@ import { useConfirmDialog } from '../../context/ConfirmDialogContext';
 import { useToast } from '../../context/ToastContext';
 import './ScriptLibrary.css';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 const ScriptLibrary = () => {
     const [scripts, setScripts] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -81,7 +83,7 @@ const ScriptLibrary = () => {
             await reanalyzeScript(scriptId);
 
             // Navigate to streaming analysis (could be better handled in-place, but sticking to proven flow)
-            const eventSource = new EventSource(`http://localhost:5000/analyze_script_stream/${scriptId}`);
+            const eventSource = new EventSource(`${API_BASE_URL}/analyze_script_stream/${scriptId}`);
 
             eventSource.onmessage = (event) => {
                 const data = JSON.parse(event.data);

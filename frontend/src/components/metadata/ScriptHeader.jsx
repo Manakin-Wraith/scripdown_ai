@@ -23,7 +23,7 @@ import TeamDrawer from '../team/TeamDrawer';
 import LockScriptModal from '../scripts/LockScriptModal';
 import './ScriptHeader.css';
 
-const API_BASE_URL = 'http://localhost:5000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const ScriptHeader = ({ metadata, sceneCount = 0 }) => {
     const navigate = useNavigate();
