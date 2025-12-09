@@ -18,6 +18,9 @@
     max-width: 480px;
     text-align: center;
     animation: cardFadeIn 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    box-sizing: border-box;
 }
 
 @keyframes cardFadeIn {
@@ -204,12 +207,15 @@
 /* Actions */
 .invite-actions {
     margin-bottom: 1.5rem;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .auth-status {
     font-size: 0.85rem;
     color: var(--text-secondary);
     margin: 0 0 1rem 0;
+    word-break: break-word;
 }
 
 .auth-prompt {
@@ -305,12 +311,15 @@
 .invite-footer {
     padding-top: 1.5rem;
     border-top: 1px solid var(--border-color);
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .invite-footer p {
     font-size: 0.8rem;
     color: var(--text-secondary);
     margin: 0;
+    word-break: break-word;
 }
 
 /* Spin animation */
