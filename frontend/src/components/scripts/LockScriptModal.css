@@ -1,0 +1,303 @@
+/* ============================================
+   Lock Script Modal Styles
+   ============================================ */
+
+.lock-modal {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    width: 100%;
+    max-width: 500px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+/* Header */
+.lock-modal .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.lock-modal .modal-title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--text-primary);
+}
+
+.lock-modal .modal-title h2 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.lock-modal .modal-title svg {
+    color: var(--primary-500);
+}
+
+.lock-modal .modal-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.lock-modal .modal-close:hover {
+    background: var(--gray-700);
+    color: var(--text-primary);
+}
+
+/* Content */
+.lock-modal .modal-content {
+    padding: 1.5rem;
+    overflow-y: auto;
+    flex: 1;
+}
+
+/* Warning Banner */
+.warning-banner {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem;
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+}
+
+.warning-banner svg {
+    color: #f59e0b;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.warning-banner strong {
+    display: block;
+    color: #f59e0b;
+    margin-bottom: 0.25rem;
+}
+
+.warning-banner p {
+    margin: 0;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+/* Current Status */
+.current-status {
+    background: var(--gray-800);
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.status-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+}
+
+.status-item:not(:last-child) {
+    border-bottom: 1px solid var(--border-color);
+}
+
+.status-item .label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.status-item .value {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.status-item .value.locked {
+    color: #22c55e;
+}
+
+.color-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #1a1a1a;
+}
+
+/* Info Section */
+.info-section {
+    margin-bottom: 1.5rem;
+}
+
+.info-section h3 {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 1rem 0;
+}
+
+.lock-effects {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.lock-effects li {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.lock-effects .check {
+    color: #22c55e;
+    flex-shrink: 0;
+}
+
+/* Color Selector */
+.color-selector {
+    background: var(--gray-800);
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.color-selector label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.color-hint {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin: 0 0 1rem 0;
+}
+
+.color-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.color-option {
+    aspect-ratio: 1;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.color-option:hover {
+    transform: scale(1.05);
+}
+
+.color-option.selected {
+    border-color: var(--primary-500);
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.3);
+}
+
+.color-option svg {
+    color: #1a1a1a;
+}
+
+.selected-color {
+    display: block;
+    text-align: center;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* Footer */
+.lock-modal .modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.btn-cancel,
+.btn-lock,
+.btn-unlock {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-cancel {
+    background: var(--gray-700);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+.btn-cancel:hover:not(:disabled) {
+    background: var(--gray-600);
+}
+
+.btn-lock {
+    background: #22c55e;
+    border: none;
+    color: white;
+}
+
+.btn-lock:hover:not(:disabled) {
+    background: #16a34a;
+}
+
+.btn-unlock {
+    background: #f59e0b;
+    border: none;
+    color: white;
+}
+
+.btn-unlock:hover:not(:disabled) {
+    background: #d97706;
+}
+
+.btn-cancel:disabled,
+.btn-lock:disabled,
+.btn-unlock:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Spin Animation */
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.spin {
+    animation: spin 1s linear infinite;
+}

@@ -2,7 +2,7 @@ MVP Instructions
 
 Overview
 
-This document outlines the steps for building the MVP of a SaaS platform designed to automate the script breakdown process for independent filmmakers. The platform will utilize AI, specifically Google Gemini 2.0, to analyze uploaded PDF scripts and extract key production data. The goal is to create a functional tool that demonstrates the core capabilities of automated script breakdown, pre-production efficiency, and detail capture.
+This document outlines the steps for building the MVP of a SaaS platform designed to automate the script breakdown process for independent filmmakers. The platform will utilize AI, specifically Google Gemini 3.0, to analyze uploaded PDF scripts and extract key production data. The goal is to create a functional tool that demonstrates the core capabilities of automated script breakdown, pre-production efficiency, and detail capture.
 
 Technology Stack
 	•	Programming Languages: Python, JavaScript
@@ -10,7 +10,7 @@ Technology Stack
 	•	Database: PostgreSQL or MySQL
 	•	AI Model: Google Gemini 2.0 (via API)
 	•	PDF Processing: PyPDF2 or similar library
-	•	API Integration: Use your provided Gemini 2.0 API keys for integration
+	•	API Integration: Use your provided Gemini 3.0 API keys for integration
 
 Setup
 	1.	Development Environment:
@@ -25,10 +25,10 @@ Install all necessary libraries and packages for your chosen frameworks and depe
 Backend Development
 	•	Script Upload Parsing:
 Implement functionality to handle PDF uploads. Use the PyPDF2 (or similar) library to extract the text content of the script. The parsed script should be stored as a string for processing.
-	•	API Integration (Gemini 2.0):
-Integrate the Gemini 2.0 API using your provided API keys to send the parsed text. Structure the API call to receive the extracted data from Gemini in a structured format (JSON).
+	•	API Integration (Gemini 3.0):
+Integrate the Gemini 3.0 API using your provided API keys to send the parsed text. Structure the API call to receive the extracted data from Gemini in a structured format (JSON).
 	•	Data Extraction and Processing:
-Use the Gemini 2.0 API to analyze the script text and extract key information:
+Use the Gemini 3.0 API to analyze the script text and extract key information:
 	•	Scene settings (interior/exterior, location descriptions)
 	•	Characters (speaking and non-speaking)
 	•	Props
@@ -83,13 +83,13 @@ MVP Focus
 	•	Core Functionality:
 Focus on:
 	•	Script upload and basic PDF parsing
-	•	Automated breakdown using Gemini 2.0
+	•	Automated breakdown using Gemini 3.0
 	•	Role-specific dashboards for key roles
 	•	Basic collaboration tools (annotations, sharing)
 	•	PDF and Excel export options
 	•	Prioritization:
 Emphasize core functionality over advanced features for the MVP.
-	•	Gemini 2.0 Integration:
+	•	Gemini 3.0 Integration:
 Ensure full integration and testing of the API as the MVP relies on it.
 	•	Testing:
 Perform thorough testing to ensure functionality for core features.

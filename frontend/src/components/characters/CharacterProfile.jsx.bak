@@ -1,0 +1,659 @@
+import React from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { 
+    ArrowLeft, 
+    User, 
+    Clock,
+    Sparkles
+} from 'lucide-react';
+import './CharacterProfile.css';
+
+/**
+ * CharacterProfile - Coming Soon placeholder
+ * 
+ * This feature is temporarily disabled as part of the platform simplification.
+ * Deep character analysis will be available in a future update.
+ */
+const CharacterProfile = () => {
+    const { scriptId, characterName } = useParams();
+    const navigate = useNavigate();
+    const decodedName = decodeURIComponent(characterName);
+
+    return (
+        <div className="character-profile coming-soon-page">
+            {/* Back Navigation */}
+            <div className="profile-nav">
+                <button 
+                    className="back-btn"
+                    onClick={() => navigate(`/scenes/${scriptId}`)}
+                >
+                    <ArrowLeft size={18} />
+                    Back to Scenes
+                </button>
+            </div>
+
+            {/* Coming Soon Content */}
+            <div className="coming-soon-container">
+                <div className="coming-soon-icon">
+                    <User size={64} />
+                    <div className="icon-badge">
+                        <Clock size={24} />
+                    </div>
+                </div>
+                
+                <h1>Character Profiles</h1>
+                <h2 className="character-name-preview">{decodedName}</h2>
+                
+                <div className="coming-soon-badge">
+                    <Sparkles size={16} />
+                    Coming Soon
+                </div>
+                
+                <p className="coming-soon-description">
+                    Deep character analysis with AI-powered insights, emotional arcs, 
+                    and relationship mapping is coming in a future update.
+                </p>
+                
+                <div className="coming-soon-features">
+                    <h3>Planned Features:</h3>
+                    <ul>
+                        <li>Character backstory and motivation analysis</li>
+                        <li>Emotional arc visualization across scenes</li>
+                        <li>Relationship mapping with other characters</li>
+                        <li>Scene-by-scene character breakdown</li>
+                        <li>Costume and appearance tracking</li>
+                    </ul>
+                </div>
+                
+                <div className="coming-soon-actions">
+                    <Link to={`/scenes/${scriptId}`} className="btn-primary">
+                        Return to Scene Breakdown
+                    </Link>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// Keep the old component code commented for future reference
+/*
+const CharacterProfileFull = () => {
+    const { scriptId, characterName } = useParams();
+    const navigate = useNavigate();
+    const decodedName = decodeURIComponent(characterName);
+
+    // Data state
+    const [scenes, setScenes] = useState([]);
+    const [metadata, setMetadata] = useState(null);
+    const [aiAnalysis, setAiAnalysis] = useState(null);
+    const [storyArc, setStoryArc] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    // Edit state
+    const [isEditing, setIsEditing] = useState(false);
+    const [editedNotes, setEditedNotes] = useState('');
+    
+    // Expanded scenes state
+    const [expandedScenes, setExpandedScenes] = useState({});
+    
+    // Analysis state
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+    // Toggle scene expansion
+    const toggleSceneExpansion = (sceneNum) => {
+        setExpandedScenes(prev => ({
+            ...prev,
+            [sceneNum]: !prev[sceneNum]
+        }));
+    };
+
+    // Fetch data on mount - DISABLED
+    /*
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                setLoading(true);
+                
+                // Fetch scenes
+                const sceneData = await getScenes(scriptId);
+                setScenes(sceneData.scenes || []);
+                
+                // Fetch metadata
+                try {
+                    const metadataData = await getScriptMetadata(scriptId);
+                    setMetadata(metadataData);
+                } catch (err) {
+                    console.warn('Failed to load metadata:', err);
+                }
+
+                // Try to fetch from new cached analysis first
+                try {
+                    const [charAnalysis, storyArcData] = await Promise.all([
+                        getCharacterAnalysis(scriptId, decodedName).catch(() => null),
+                        getStoryArcAnalysis(scriptId).catch(() => null)
+                    ]);
+                    
+                    if (charAnalysis?.success && charAnalysis.data) {
+                        // Use new cached data
+                        setAiAnalysis({
+                            characters: { [decodedName]: charAnalysis.data }
+                        });
+                    } else {
+                        // Fallback to old analysis endpoint
+                        const analysis = await analyzeCharacters(scriptId);
+                        setAiAnalysis(analysis);
+                    }
+                    
+                    if (storyArcData?.success && storyArcData.data) {
+                        setStoryArc(storyArcData.data);
+                    }
+                } catch (err) {
+                    console.warn('Failed to load AI analysis:', err);
+                    // Try fallback
+                    try {
+                        const analysis = await analyzeCharacters(scriptId);
+                        setAiAnalysis(analysis);
+                    } catch (fallbackErr) {
+                        console.warn('Fallback analysis also failed:', fallbackErr);
+                    }
+                }
+                
+                setError(null);
+            } catch (err) {
+                setError(err.message || 'Failed to load character data');
+                console.error('Error fetching data:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (scriptId && characterName) {
+            fetchData();
+        }
+    }, [scriptId, characterName]);
+
+    // Poll for analysis completion when analyzing (with timeout)
+    useEffect(() => {
+        if (!isAnalyzing) return;
+        
+        let pollCount = 0;
+        const maxPolls = 30; // Stop after 90 seconds (30 * 3s)
+        
+        const pollInterval = setInterval(async () => {
+            pollCount++;
+            
+            // Stop polling after timeout
+            if (pollCount >= maxPolls) {
+                console.log('Analysis polling timeout reached');
+                setIsAnalyzing(false);
+                clearInterval(pollInterval);
+                return;
+            }
+            
+            try {
+                const charAnalysis = await getCharacterAnalysis(scriptId, decodedName);
+                if (charAnalysis?.success && charAnalysis.data) {
+                    // Check if we have meaningful data (not just fallback)
+                    const hasRealData = charAnalysis.data.backstory || 
+                                       charAnalysis.data.motivation ||
+                                       (charAnalysis.data.scene_breakdown && 
+                                        Object.keys(charAnalysis.data.scene_breakdown).length > 0);
+                    
+                    setAiAnalysis({
+                        characters: { [decodedName]: charAnalysis.data }
+                    });
+                    
+                    if (hasRealData) {
+                        setIsAnalyzing(false);
+                        clearInterval(pollInterval);
+                    }
+                }
+            } catch (err) {
+                // 404 means still analyzing or no data yet
+                if (err.response?.status !== 404) {
+                    console.error('Polling error:', err);
+                }
+            }
+        }, 3000);
+        
+        return () => clearInterval(pollInterval);
+    }, [isAnalyzing, scriptId, decodedName]);
+
+    // Handler for when analysis is started
+    const handleAnalysisStarted = () => {
+        setIsAnalyzing(true);
+    };
+
+    // Get character-specific data
+    const characterData = useMemo(() => {
+        if (!scenes.length) return null;
+
+        // Find scenes where this character appears
+        const characterScenes = scenes.filter(scene => 
+            scene.characters?.includes(decodedName)
+        );
+
+        // Get AI analysis for this character
+        const aiData = aiAnalysis?.characters?.[decodedName] || null;
+
+        // Get co-appearing characters
+        const coAppearing = new Set();
+        characterScenes.forEach(scene => {
+            scene.characters?.forEach(char => {
+                if (char !== decodedName) coAppearing.add(char);
+            });
+        });
+
+        return {
+            name: decodedName,
+            scenes: characterScenes,
+            sceneCount: characterScenes.length,
+            sceneNumbers: characterScenes.map(s => s.scene_number).sort((a, b) => a - b),
+            coAppearing: Array.from(coAppearing),
+            aiData,
+            isLead: characterScenes.length >= Math.ceil(scenes.length * 0.5)
+        };
+    }, [scenes, decodedName, aiAnalysis]);
+
+    // Get story arc data from state or fallback to aiAnalysis
+    const storyArcData = storyArc || aiAnalysis?.story_arc || null;
+
+    if (loading) {
+        return (
+            <div className="character-profile-loading">
+                <div className="spinner"></div>
+                <p>Loading character profile...</p>
+            </div>
+        );
+    }
+
+    if (error || !characterData) {
+        return (
+            <div className="character-profile-error">
+                <AlertCircle size={48} className="error-icon" />
+                <h3>Character Not Found</h3>
+                <p>{error || `Could not find character "${decodedName}"`}</p>
+                <Link to={`/scenes/${scriptId}`} className="btn-primary">
+                    Back to Script
+                </Link>
+            </div>
+        );
+    }
+
+    const { aiData } = characterData;
+
+    return (
+        <div className="character-profile-container">
+            {/* Header */}
+            <div className="profile-header">
+                <div className="header-nav">
+                    <button 
+                        className="back-btn"
+                        onClick={() => navigate(`/scenes/${scriptId}`)}
+                    >
+                        <ArrowLeft size={18} />
+                        <span>Back to Characters</span>
+                    </button>
+                    <span className="script-name">{metadata?.script_name?.replace('.pdf', '') || 'Script'}</span>
+                </div>
+            </div>
+
+            {/* Profile Content */}
+            <div className="profile-content">
+                {/* Hero Section */}
+                <div className="profile-hero">
+                    <div className="hero-avatar">
+                        <div className="avatar-placeholder">
+                            <User size={48} />
+                        </div>
+                        <button className="avatar-upload-btn" title="Upload Photo">
+                            <Camera size={16} />
+                        </button>
+                    </div>
+                    <div className="hero-info">
+                        <div className="hero-title-row">
+                            <h1 className="character-name">{characterData.name}</h1>
+                            <span className={`role-badge ${aiData?.role_type?.toLowerCase() || (characterData.isLead ? 'lead' : 'supporting')}`}>
+                                {aiData?.role_type || (characterData.isLead ? 'Lead' : 'Supporting')}
+                            </span>
+                        </div>
+                        <div className="hero-stats">
+                            <div className="stat">
+                                <Clapperboard size={16} />
+                                <span>{characterData.sceneCount} {characterData.sceneCount === 1 ? 'Scene' : 'Scenes'}</span>
+                            </div>
+                            <div className="stat">
+                                <Users size={16} />
+                                <span>{characterData.coAppearing.length} Connections</span>
+                            </div>
+                        </div>
+                        {aiData?.description && (
+                            <p className="hero-description">{aiData.description}</p>
+                        )}
+                    </div>
+                </div>
+
+                {/* Offline Fallback Notice */}
+                {!aiData && !loading && (
+                    <div className="offline-fallback-notice">
+                        <AlertCircle size={18} />
+                        <div className="fallback-content">
+                            <span className="fallback-title">AI Analysis Unavailable</span>
+                            <span className="fallback-message">Showing basic stats only. Start analysis to see detailed insights.</span>
+                        </div>
+                        <AnalysisStatusBadge 
+                            scriptId={parseInt(scriptId)} 
+                            size="small"
+                        />
+                    </div>
+                )}
+
+                {/* Story Context */}
+                {storyArcData && (
+                    <div className="story-context-section">
+                        <div className="context-header">
+                            <Film size={20} />
+                            <h3>Story Context</h3>
+                        </div>
+                        <div className="context-grid">
+                            {storyArcData.theme && (
+                                <div className="context-item">
+                                    <span className="context-label">Theme</span>
+                                    <span className="context-value">{storyArcData.theme}</span>
+                                </div>
+                            )}
+                            {storyArcData.tone && (
+                                <div className="context-item">
+                                    <span className="context-label">Tone</span>
+                                    <span className="context-value tone-tag">{storyArcData.tone}</span>
+                                </div>
+                            )}
+                            {storyArcData.conflict_type && (
+                                <div className="context-item">
+                                    <span className="context-label">Conflict</span>
+                                    <span className="context-value">{storyArcData.conflict_type.replace(/_/g, ' ')}</span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* AI Analysis Prompt - Show when no AI data */}
+                {!aiData && !isAnalyzing && (
+                    <AnalyzePrompt
+                        type="character"
+                        name={decodedName}
+                        scriptId={scriptId}
+                        sceneCount={characterData.sceneCount}
+                        onAnalysisStarted={handleAnalysisStarted}
+                    />
+                )}
+
+                {/* Analyzing indicator */}
+                {isAnalyzing && (
+                    <div className="analyzing-banner">
+                        <Sparkles size={20} className="spin" />
+                        <span>Analyzing {decodedName}... This page will update automatically.</span>
+                    </div>
+                )}
+
+                {/* Character Overview - 3 Column Layout (only show if AI data exists) */}
+                {aiData && (
+                    <div className="character-overview">
+                        <h3 className="section-title">
+                            <User size={18} />
+                            Character Overview
+                        </h3>
+                        <div className="overview-grid">
+                            {/* Backstory */}
+                            <div className="overview-card">
+                                <div className="overview-icon">
+                                    <BookOpen size={24} />
+                                </div>
+                                <h4>Backstory</h4>
+                                <p>{aiData?.backstory || 'No backstory information available'}</p>
+                            </div>
+
+                            {/* Motivation */}
+                            <div className="overview-card">
+                                <div className="overview-icon">
+                                    <Target size={24} />
+                                </div>
+                                <h4>Motivation</h4>
+                                <p>{aiData?.motivation || 'No motivation information available'}</p>
+                            </div>
+
+                            {/* Character Arc */}
+                            <div className="overview-card">
+                                <div className="overview-icon">
+                                    <TrendingUp size={24} />
+                                </div>
+                                <h4>Character Arc</h4>
+                                <p>{aiData?.arc_summary || 'No arc information available'}</p>
+                            </div>
+                        </div>
+
+                        {/* Traits */}
+                        {aiData?.traits && aiData.traits.length > 0 && (
+                            <div className="traits-section">
+                                <span className="traits-label">Personality Traits</span>
+                                <div className="traits-grid">
+                                    {aiData.traits.map((trait, idx) => (
+                                        <span key={idx} className="trait-pill">{trait}</span>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* Emotional Arc Chart */}
+                {aiData?.scene_breakdown && Object.keys(aiData.scene_breakdown).length > 0 && (
+                    <div className="emotional-arc-section">
+                        <h3 className="section-title">
+                            <Sparkles size={18} />
+                            Emotional Arc
+                        </h3>
+                        <EmotionalArcChart sceneBreakdown={aiData.scene_breakdown} />
+                    </div>
+                )}
+
+                {/* Scene-by-Scene Breakdown */}
+                <div className="scene-breakdown-section">
+                    <h3 className="section-title">
+                        <Clapperboard size={18} />
+                        Scene-by-Scene Breakdown
+                    </h3>
+                    <div className="breakdown-list">
+                        {characterData.scenes.map(scene => {
+                            const sceneNum = scene.scene_number.toString();
+                            const sceneData = aiData?.scene_breakdown?.[sceneNum] || {};
+                            const isExpanded = expandedScenes[sceneNum];
+
+                            return (
+                                <div key={scene.scene_id} className={`breakdown-card ${isExpanded ? 'expanded' : ''}`}>
+                                    <div 
+                                        className="breakdown-header"
+                                        onClick={() => toggleSceneExpansion(sceneNum)}
+                                    >
+                                        <div className="header-left">
+                                            <span className="scene-badge">Scene {scene.scene_number}</span>
+                                            <span className="scene-setting">{scene.setting}</span>
+                                        </div>
+                                        <div className="header-right">
+                                            {sceneData.emotion && (
+                                                <span className={`emotion-pill intensity-${Math.min(10, Math.max(1, sceneData.intensity || 5))}`}>
+                                                    {sceneData.emotion}
+                                                </span>
+                                            )}
+                                            {sceneData.arc_position && (
+                                                <span className="arc-position">{sceneData.arc_position}</span>
+                                            )}
+                                            {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                                        </div>
+                                    </div>
+
+                                    {isExpanded && (
+                                        <div className="breakdown-content">
+                                            {/* Scene Summary */}
+                                            <div className="breakdown-item">
+                                                <div className="item-header">
+                                                    <Film size={14} />
+                                                    <span>Scene Summary</span>
+                                                </div>
+                                                <p>{scene.description || 'No description available'}</p>
+                                            </div>
+
+                                            {/* Emotional State */}
+                                            {sceneData.emotional_description && (
+                                                <div className="breakdown-item emotional">
+                                                    <div className="item-header">
+                                                        <Heart size={14} />
+                                                        <span>Emotional State</span>
+                                                    </div>
+                                                    <div className="emotion-display">
+                                                        <span className={`emotion-tag intensity-${Math.min(10, Math.max(1, sceneData.intensity || 5))}`}>
+                                                            {sceneData.emotion}
+                                                        </span>
+                                                        <div className="intensity-bar">
+                                                            <div 
+                                                                className="intensity-fill" 
+                                                                style={{ width: `${(sceneData.intensity || 5) * 10}%` }}
+                                                            />
+                                                            <span className="intensity-value">{sceneData.intensity}/10</span>
+                                                        </div>
+                                                    </div>
+                                                    <p>{sceneData.emotional_description}</p>
+                                                </div>
+                                            )}
+
+                                            {/* Character Objective */}
+                                            {sceneData.objective && (
+                                                <div className="breakdown-item">
+                                                    <div className="item-header">
+                                                        <Target size={14} />
+                                                        <span>Character Objective</span>
+                                                    </div>
+                                                    <p>{sceneData.objective}</p>
+                                                </div>
+                                            )}
+
+                                            {/* Key Actions */}
+                                            {sceneData.key_actions && sceneData.key_actions.length > 0 && (
+                                                <div className="breakdown-item">
+                                                    <div className="item-header">
+                                                        <Zap size={14} />
+                                                        <span>Key Actions</span>
+                                                    </div>
+                                                    <ul className="actions-list">
+                                                        {sceneData.key_actions.map((action, idx) => (
+                                                            <li key={idx}>{action}</li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )}
+
+                                            {/* Dialogue Notes */}
+                                            {sceneData.dialogue_notes && (
+                                                <div className="breakdown-item">
+                                                    <div className="item-header">
+                                                        <MessageSquare size={14} />
+                                                        <span>Dialogue Notes</span>
+                                                    </div>
+                                                    <p>{sceneData.dialogue_notes}</p>
+                                                </div>
+                                            )}
+
+                                            {/* Characters in Scene */}
+                                            {scene.characters && scene.characters.length > 1 && (
+                                                <div className="breakdown-item">
+                                                    <div className="item-header">
+                                                        <Users size={14} />
+                                                        <span>Characters in Scene</span>
+                                                    </div>
+                                                    <div className="scene-characters">
+                                                        {scene.characters.filter(c => c !== decodedName).map((char, idx) => (
+                                                            <span key={idx} className="char-tag">{char}</span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                {/* Relationships */}
+                {aiData?.relationships && aiData.relationships.length > 0 && (
+                    <div className="relationships-section">
+                        <h3 className="section-title">
+                            <Users size={18} />
+                            Relationships
+                        </h3>
+                        <div className="relationships-grid">
+                            {aiData.relationships.map((rel, idx) => (
+                                <div key={idx} className="relationship-card">
+                                    <div className="rel-avatar">
+                                        <User size={24} />
+                                    </div>
+                                    <div className="rel-info">
+                                        <div className="rel-header">
+                                            <span className="rel-name">{rel.character}</span>
+                                            <span className={`rel-type ${rel.type}`}>{rel.type}</span>
+                                        </div>
+                                        <p className="rel-desc">{rel.description}</p>
+                                        {rel.dynamic && (
+                                            <p className="rel-dynamic">{rel.dynamic}</p>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Notes Section */}
+                <div className="notes-section">
+                    <div className="section-header">
+                        <h3>Notes</h3>
+                        <button 
+                            className="edit-btn"
+                            onClick={() => setIsEditing(!isEditing)}
+                        >
+                            {isEditing ? <X size={16} /> : <Edit3 size={16} />}
+                            <span>{isEditing ? 'Cancel' : 'Edit'}</span>
+                        </button>
+                    </div>
+                    {isEditing ? (
+                        <div className="notes-editor">
+                            <textarea
+                                value={editedNotes}
+                                onChange={(e) => setEditedNotes(e.target.value)}
+                                placeholder="Add your notes about this character..."
+                                rows={4}
+                            />
+                            <button className="save-btn">
+                                <Save size={16} />
+                                <span>Save Notes</span>
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="notes-content">
+                            {editedNotes ? (
+                                <p>{editedNotes}</p>
+                            ) : (
+                                <p className="notes-placeholder">No notes yet. Click Edit to add notes about this character.</p>
+                            )}
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default CharacterProfile;

@@ -1,0 +1,353 @@
+/* ============================================ */
+/* PDF Viewer Panel - Dark Theme */
+/* ============================================ */
+
+.pdf-viewer-panel {
+    display: flex;
+    flex-direction: column;
+    width: 400px;
+    min-width: 320px;
+    max-width: 50vw;
+    height: 100%;
+    background: var(--bg-card);
+    border-left: 1px solid var(--border-color);
+    transition: width 0.3s ease;
+    position: relative;
+}
+
+.pdf-viewer-panel.expanded {
+    width: 600px;
+}
+
+/* Panel Header */
+.pdf-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    background: var(--gray-800);
+    border-bottom: 1px solid var(--border-color);
+    flex-shrink: 0;
+}
+
+.header-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+}
+
+.header-title svg {
+    color: var(--primary-500);
+}
+
+/* Sync Indicator */
+.sync-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 0.5rem;
+    padding: 0.25rem;
+    background: rgba(34, 197, 94, 0.15);
+    border-radius: 4px;
+    animation: syncPulse 2s ease-in-out infinite;
+}
+
+.sync-indicator svg {
+    color: #22c55e;
+}
+
+@keyframes syncPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.panel-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.panel-btn:hover {
+    background: var(--gray-700);
+    color: var(--text-primary);
+}
+
+.panel-btn.close-btn:hover {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+}
+
+/* PDF Content Area */
+.pdf-panel-content {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+    background: var(--gray-900);
+}
+
+.pdf-viewer-container {
+    height: 100%;
+    width: 100%;
+}
+
+/* Loading State */
+.pdf-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 1rem;
+    color: var(--text-secondary);
+}
+
+.pdf-loading .spin {
+    animation: spin 1s linear infinite;
+    color: var(--primary-500);
+}
+
+/* Error State */
+.pdf-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 1rem;
+    color: var(--text-secondary);
+    padding: 2rem;
+    text-align: center;
+}
+
+.pdf-error svg {
+    color: #ef4444;
+}
+
+.retry-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: var(--gray-700);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.retry-btn:hover {
+    background: var(--gray-600);
+    border-color: var(--primary-500);
+}
+
+/* Page Indicator */
+.pdf-page-indicator {
+    padding: 0.5rem 1rem;
+    background: var(--gray-800);
+    border-top: 1px solid var(--border-color);
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    text-align: center;
+    flex-shrink: 0;
+}
+
+/* ============================================ */
+/* Override react-pdf-viewer styles for dark theme */
+/* ============================================ */
+
+/* Main viewer container */
+.rpv-core__viewer {
+    background: var(--gray-900) !important;
+}
+
+/* Toolbar */
+.rpv-default-layout__toolbar {
+    background: var(--gray-800) !important;
+    border-bottom: 1px solid var(--border-color) !important;
+}
+
+/* Custom toolbar layout */
+.pdf-custom-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 0 0.5rem;
+}
+
+.toolbar-left,
+.toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.page-separator {
+    color: var(--text-muted);
+    margin: 0 0.25rem;
+}
+
+/* Toolbar buttons */
+.rpv-core__minimal-button {
+    color: var(--text-secondary) !important;
+}
+
+.rpv-core__minimal-button:hover {
+    background: var(--gray-700) !important;
+    color: var(--text-primary) !important;
+}
+
+/* Page input */
+.rpv-core__textbox {
+    background: var(--gray-700) !important;
+    border: 1px solid var(--border-color) !important;
+    color: var(--text-primary) !important;
+    border-radius: 4px !important;
+}
+
+/* Zoom dropdown */
+.rpv-zoom__popover-target {
+    background: var(--gray-700) !important;
+    border: 1px solid var(--border-color) !important;
+    color: var(--text-primary) !important;
+}
+
+/* Popover menus */
+.rpv-core__popover-body {
+    background: var(--gray-800) !important;
+    border: 1px solid var(--border-color) !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
+}
+
+.rpv-core__menu-item {
+    color: var(--text-primary) !important;
+}
+
+.rpv-core__menu-item:hover {
+    background: var(--gray-700) !important;
+}
+
+/* Page container */
+.rpv-core__page-layer {
+    background: var(--gray-800) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Scrollbar styling */
+.rpv-core__inner-pages::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.rpv-core__inner-pages::-webkit-scrollbar-track {
+    background: var(--gray-800);
+}
+
+.rpv-core__inner-pages::-webkit-scrollbar-thumb {
+    background: var(--gray-600);
+    border-radius: 4px;
+}
+
+.rpv-core__inner-pages::-webkit-scrollbar-thumb:hover {
+    background: var(--gray-500);
+}
+
+/* Hide default sidebar */
+.rpv-default-layout__sidebar {
+    display: none !important;
+}
+
+/* Main body takes full width */
+.rpv-default-layout__body {
+    width: 100% !important;
+}
+
+/* Text layer for selection */
+.rpv-core__text-layer {
+    opacity: 0.2;
+}
+
+.rpv-core__text-layer span::selection {
+    background: rgba(245, 158, 11, 0.3);
+}
+
+/* Annotation layer */
+.rpv-core__annotation-layer {
+    z-index: 10;
+}
+
+/* ============================================ */
+/* Resize Handle */
+/* ============================================ */
+
+.pdf-viewer-panel::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    cursor: ew-resize;
+    background: transparent;
+    transition: background 0.2s;
+    z-index: 10;
+}
+
+.pdf-viewer-panel::before:hover {
+    background: var(--primary-500);
+}
+
+/* ============================================ */
+/* Animations */
+/* ============================================ */
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* ============================================ */
+/* Responsive */
+/* ============================================ */
+
+@media (max-width: 1200px) {
+    .pdf-viewer-panel {
+        width: 350px;
+        min-width: 280px;
+    }
+    
+    .pdf-viewer-panel.expanded {
+        width: 450px;
+    }
+}
+
+@media (max-width: 900px) {
+    .pdf-viewer-panel {
+        position: absolute;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        width: 100%;
+        max-width: 100%;
+        z-index: 100;
+    }
+}

@@ -1,0 +1,151 @@
+.analysis-stepper {
+    width: 100%;
+    max-width: 500px;
+    margin: 0 auto;
+    background-color: var(--bg-card);
+    border-radius: 16px;
+    border: 1px solid var(--border-color);
+    padding: 2rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+}
+
+.file-info-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background-color: var(--gray-50);
+    padding: 1rem;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    margin-bottom: 2rem;
+}
+
+.file-icon-wrapper {
+    width: 40px;
+    height: 40px;
+    background-color: var(--gray-700);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border-color);
+}
+
+.file-icon {
+    color: var(--primary-500);
+}
+
+.file-details {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.file-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 250px;
+}
+
+.file-status {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.progress-ring {
+    font-weight: 700;
+    color: var(--primary-600);
+    font-size: 0.9rem;
+}
+
+/* Steps */
+.steps-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.step-item {
+    display: flex;
+    gap: 1rem;
+    position: relative;
+    padding-bottom: 2rem;
+}
+
+.step-item:last-child {
+    padding-bottom: 0;
+}
+
+.step-indicator {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.step-icon {
+    width: 24px;
+    height: 24px;
+    z-index: 2;
+    background-color: var(--bg-card); /* Mask the line behind it */
+}
+
+.step-icon.completed {
+    color: #10b981; /* green-500 */
+}
+
+.step-icon.spinner {
+    color: var(--primary-600);
+    animation: spin 2s linear infinite;
+}
+
+.step-icon.pending {
+    color: var(--gray-300);
+}
+
+.step-line {
+    position: absolute;
+    top: 24px;
+    left: 11px; /* Centered under the 24px icon */
+    bottom: 0;
+    width: 2px;
+    background-color: var(--gray-600);
+    z-index: 1;
+}
+
+.step-item:last-child .step-line {
+    display: none;
+}
+
+.step-content {
+    padding-top: 2px;
+}
+
+.step-title {
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    margin-bottom: 4px;
+    transition: color 0.2s;
+}
+
+.step-desc {
+    font-size: 0.85rem;
+    color: var(--gray-400);
+}
+
+/* Active State */
+.step-item.active .step-title {
+    color: var(--primary-500);
+}
+
+.step-item.completed .step-title {
+    color: var(--text-primary);
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}

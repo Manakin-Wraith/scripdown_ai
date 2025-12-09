@@ -1,0 +1,27 @@
+/* Protected Route Loading State */
+
+.protected-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    gap: 1rem;
+    color: var(--gray-400, #9CA3AF);
+    background: var(--gray-900, #111827);
+}
+
+.protected-loading p {
+    margin: 0;
+    font-size: 0.95rem;
+}
+
+/* Spin animation */
+.spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}

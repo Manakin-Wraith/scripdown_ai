@@ -1,0 +1,222 @@
+.script-hero {
+    background: linear-gradient(135deg, var(--gray-800) 0%, var(--gray-900) 100%);
+    border-bottom: 1px solid var(--border-color);
+    padding: 1.5rem 2rem;
+}
+
+.hero-container {
+    width: 100%;
+}
+
+/* Header Section */
+.hero-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1.5rem;
+    gap: 2rem;
+}
+
+.title-section {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    flex: 1;
+}
+
+.title-icon {
+    color: var(--primary-500);
+    flex-shrink: 0;
+    margin-top: 4px;
+}
+
+.script-title {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin: 0 0 0.5rem 0;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+}
+
+.writer-name {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+    margin: 0;
+}
+
+.writer-name svg {
+    color: var(--gray-400);
+}
+
+/* Draft Info Pills */
+.draft-info {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    align-items: flex-start;
+}
+
+.draft-badge,
+.date-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.draft-badge {
+    background-color: rgba(245, 158, 11, 0.15);
+    color: var(--primary-500);
+}
+
+.date-badge {
+    background-color: var(--gray-700);
+    color: var(--gray-300);
+}
+
+/* Details Grid - Responsive */
+.hero-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+
+.detail-section {
+    background: var(--bg-card);
+    padding: 1.5rem;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+}
+
+.detail-section.full-width {
+    grid-column: 1 / -1;
+}
+
+.section-title {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--gray-600);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0 0 1rem 0;
+}
+
+/* Contact Information */
+.contact-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.contact-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background-color: var(--gray-700);
+    border-radius: 8px;
+    transition: all 0.2s;
+}
+
+.contact-item:hover {
+    background-color: var(--gray-600);
+}
+
+.contact-icon {
+    color: var(--primary-500);
+    flex-shrink: 0;
+}
+
+.contact-text {
+    flex: 1;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.copy-btn {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    padding: 0.5rem;
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.copy-btn:hover {
+    background-color: rgba(245, 158, 11, 0.15);
+    border-color: var(--primary-600);
+    color: var(--primary-500);
+}
+
+.copy-btn svg {
+    width: 14px;
+    height: 14px;
+}
+
+/* Legal Information */
+.legal-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.legal-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background-color: var(--gray-700);
+    color: var(--gray-300);
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.legal-tag.wga-tag {
+    background-color: rgba(245, 158, 11, 0.15);
+    color: var(--primary-500);
+}
+
+/* Additional Credits */
+.credits-text {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin: 0;
+    font-style: italic;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .hero-header {
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .script-title {
+        font-size: 1.5rem;
+    }
+
+    .hero-details {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .draft-info {
+        width: 100%;
+    }
+}

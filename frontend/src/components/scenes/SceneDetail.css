@@ -1,0 +1,356 @@
+.scene-detail {
+    padding: 2rem 2.5rem;
+    height: 100%;
+    overflow-y: auto;
+    background-color: var(--bg-app);
+}
+
+.scene-detail-empty {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--bg-app);
+    color: var(--text-secondary);
+}
+
+.empty-content {
+    text-align: center;
+}
+
+.empty-icon {
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+/* Header */
+.detail-header {
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+/* Scene header row with number and page badge */
+.scene-header-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+/* Subtle scene number label */
+.scene-number-label {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--gray-400);
+    letter-spacing: 0.02em;
+}
+
+/* Page badge */
+.scene-page-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.6rem;
+    background: rgba(59, 130, 246, 0.15);
+    border: 1px solid rgba(59, 130, 246, 0.25);
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--primary-400, #60a5fa);
+}
+
+.scene-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.inline-icon {
+    color: var(--text-secondary);
+}
+
+.scene-atmosphere {
+    display: flex;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.scene-atmosphere .label {
+    font-weight: 600;
+}
+
+/* Description */
+.description-section {
+    background-color: var(--bg-card);
+    padding: 1.5rem;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    margin-bottom: 2rem;
+    line-height: 1.6;
+    color: var(--text-primary);
+    font-family: 'Courier New', Courier, monospace; /* Script font feel */
+    font-size: 1rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+/* Grid Layout - Responsive with auto-fill */
+.breakdown-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+
+.breakdown-card {
+    background-color: var(--bg-card);
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+}
+
+.card-header {
+    padding: 1rem 1.25rem;
+    background-color: var(--gray-700);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.card-icon {
+    color: var(--text-secondary);
+}
+
+.card-header h3 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.card-content {
+    padding: 1.25rem;
+}
+
+.empty-text {
+    color: var(--text-secondary);
+    font-style: italic;
+    font-size: 0.9rem;
+}
+
+/* Tags */
+.tag-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.tag {
+    padding: 0.35rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.character-tag {
+    background-color: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.prop-tag {
+    background-color: rgba(245, 158, 11, 0.15);
+    color: var(--primary-500);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.fx-tag {
+    background-color: rgba(249, 115, 22, 0.15);
+    color: #fb923c;
+    border: 1px solid rgba(249, 115, 22, 0.3);
+}
+
+.vehicle-tag {
+    background-color: rgba(34, 197, 94, 0.15);
+    color: #4ade80;
+    border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+/* Lists */
+.detail-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.detail-list li {
+    position: relative;
+    padding-left: 1.25rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+}
+
+.detail-list li::before {
+    content: "•";
+    position: absolute;
+    left: 0;
+    color: var(--primary-500);
+    font-weight: bold;
+}
+
+.detail-list li:last-child {
+    margin-bottom: 0;
+}
+
+/* ============================================ */
+/* Analyze Prompt Styles */
+/* ============================================ */
+
+.analyze-prompt {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 3rem 2rem;
+    background: linear-gradient(135deg, var(--gray-800) 0%, var(--gray-700) 100%);
+    border: 2px dashed var(--gray-600);
+    border-radius: 16px;
+    margin-top: 1rem;
+}
+
+.analyze-prompt.analyzing {
+    border-style: solid;
+    border-color: var(--primary-600);
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, var(--gray-800) 100%);
+}
+
+.prompt-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: var(--gray-700);
+    color: var(--gray-400);
+    margin-bottom: 1.5rem;
+}
+
+.analyze-prompt.analyzing .prompt-icon {
+    background: rgba(245, 158, 11, 0.15);
+    color: var(--primary-500);
+}
+
+.analyze-prompt h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.analyze-prompt p {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    max-width: 400px;
+    line-height: 1.5;
+    margin-bottom: 1.5rem;
+}
+
+.analyze-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
+    color: var(--gray-900);
+    border: none;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+}
+
+.analyze-btn:hover {
+    background: linear-gradient(135deg, var(--primary-400), var(--primary-500));
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+}
+
+.analyze-btn:active {
+    transform: translateY(0);
+}
+
+/* Spin animation */
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.spin {
+    animation: spin 1s linear infinite;
+}
+
+/* ============================================ */
+/* Clickable Cards with Note Badges */
+/* ============================================ */
+
+.breakdown-card.clickable {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.breakdown-card.clickable:hover {
+    border-color: var(--primary-500);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.breakdown-card.clickable:active {
+    transform: translateY(0);
+}
+
+/* Note badge in card header */
+.card-header {
+    position: relative;
+}
+
+.card-header .note-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-left: auto;
+    padding: 0.2rem 0.5rem;
+    background: rgba(99, 102, 241, 0.2);
+    color: #818CF8;
+    border-radius: 9999px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+/* Hover hint */
+.breakdown-card.clickable::after {
+    content: 'Click to add notes';
+    position: absolute;
+    bottom: 0.5rem;
+    right: 0.5rem;
+    font-size: 0.7rem;
+    color: var(--gray-500);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.breakdown-card.clickable:hover::after {
+    opacity: 1;
+}
+
+/* Make card position relative for the hint */
+.breakdown-card {
+    position: relative;
+}

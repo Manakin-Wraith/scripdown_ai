@@ -1,0 +1,321 @@
+/* Shared List Container */
+.scene-list {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow-y: auto;
+    padding: 0.5rem 0.75rem 2rem 0.75rem; /* Added horizontal padding */
+}
+
+/* Individual List Items (Shared Base) */
+.scene-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.875rem 1rem;
+    padding-left: 2rem;
+    margin-bottom: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background-color: var(--bg-card);
+}
+
+.scene-item:hover {
+    background-color: var(--gray-700);
+}
+
+.scene-item.selected {
+    background-color: var(--gray-750, rgba(51, 65, 85, 0.5));
+    border-color: var(--gray-600);
+    border-left: 3px solid var(--primary-500);
+}
+
+.scene-item-content {
+    flex: 1;
+    min-width: 0; /* Enable text truncation */
+    margin-right: 0.5rem;
+    overflow: hidden;
+}
+
+/* Arrow Icon */
+.arrow-icon {
+    color: var(--text-secondary);
+    opacity: 0;
+    transition: opacity 0.2s, transform 0.2s;
+}
+
+.scene-item:hover .arrow-icon,
+.scene-item.selected .arrow-icon {
+    opacity: 1;
+}
+
+.scene-item.selected .arrow-icon {
+    color: var(--primary-500);
+}
+
+/* --- Entity Specific Styles (Char/Loc) --- */
+
+.entity-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.25rem;
+}
+
+.entity-badge {
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.char-badge {
+    background-color: rgba(99, 102, 241, 0.15);
+    color: #818cf8;
+}
+
+.loc-badge {
+    background-color: rgba(34, 197, 94, 0.15);
+    color: #4ade80;
+}
+
+.scene-badge {
+    background: var(--gray-700);
+    color: var(--gray-300);
+    border: none;
+    padding: 3px 10px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    min-width: 28px;
+    text-align: center;
+    border-radius: 6px;
+}
+
+/* Scene Number - Top Left Corner */
+.scene-number {
+    position: absolute;
+    top: 0.5rem;
+    left: 0.5rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--gray-400);
+    opacity: 0.8;
+}
+
+.entity-count {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.entity-name {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.entity-meta-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+    flex-wrap: wrap;
+    min-width: 0;
+}
+
+.entity-meta {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+}
+
+.entity-meta.page-info {
+    display: flex;
+    align-items: center;
+    padding: 0.15rem 0.4rem;
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    border-radius: 4px;
+    font-size: 0.65rem;
+    color: var(--primary-400, #60a5fa);
+    font-weight: 500;
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.entity-meta.page-info .page-icon {
+    width: 10px;
+    height: 10px;
+    opacity: 0.8;
+}
+
+.scene-item.selected .entity-meta.page-info {
+    background: rgba(59, 130, 246, 0.2);
+    border-color: rgba(59, 130, 246, 0.3);
+}
+
+.meta-label {
+    color: var(--gray-400);
+}
+
+.meta-value {
+    color: var(--gray-600);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.meta-icon {
+    color: var(--gray-400);
+    flex-shrink: 0;
+}
+
+/* Scene Item Card Variant - inherits from .scene-item */
+
+/* Empty State */
+.list-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 2rem;
+    color: var(--text-secondary);
+    text-align: center;
+}
+
+.empty-icon-small {
+    color: var(--gray-300);
+    margin-bottom: 0.5rem;
+}
+
+/* ============================================ */
+/* Status Indicator Styles */
+/* ============================================ */
+
+.status-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-right: 0.75rem;
+}
+
+.status-indicator.status-complete {
+    background: rgba(34, 197, 94, 0.15);
+    color: #22c55e;
+}
+
+.status-indicator.status-pending {
+    background: var(--gray-700);
+    color: var(--gray-400);
+}
+
+.status-indicator.status-analyzing {
+    background: rgba(245, 158, 11, 0.15);
+    color: var(--primary-500);
+}
+
+/* Scene item status variants */
+.scene-item.status-pending {
+    border-style: dashed;
+    border-color: var(--gray-600);
+}
+
+.scene-item.status-pending:hover {
+    border-color: var(--primary-600);
+    border-style: solid;
+}
+
+.scene-item.status-analyzing {
+    border-color: var(--primary-600);
+    background: rgba(245, 158, 11, 0.1);
+}
+
+/* Pending/Analyzing labels */
+.pending-label .meta-value {
+    color: var(--gray-400);
+    font-style: italic;
+    font-size: 0.75rem;
+}
+
+.analyzing-label .meta-value {
+    color: var(--primary-500);
+    font-weight: 500;
+    font-size: 0.75rem;
+}
+
+/* Spin animation */
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.spin {
+    animation: spin 1s linear infinite;
+}
+
+/* ============================================ */
+/* Fade-out Animation for Completed Status */
+/* ============================================ */
+
+/* Hidden state for completed scenes (after fade-out) */
+.status-indicator.hidden {
+    opacity: 0;
+    width: 0;
+    margin-right: 0;
+    overflow: hidden;
+    transition: opacity 0.3s ease, width 0.3s ease, margin 0.3s ease;
+}
+
+/* Fade-out animation for recently completed scenes */
+.status-indicator.fade-out {
+    animation: fadeOutCheckmark 1.5s ease forwards;
+}
+
+@keyframes fadeOutCheckmark {
+    0% {
+        opacity: 1;
+        width: 24px;
+        margin-right: 0.75rem;
+    }
+    70% {
+        opacity: 1;
+        width: 24px;
+        margin-right: 0.75rem;
+    }
+    100% {
+        opacity: 0;
+        width: 0;
+        margin-right: 0;
+    }
+}
+
+/* ============================================ */
+/* Persistent Green Accent for Analyzed Scenes */
+/* ============================================ */
+
+/* Green left border for completed/analyzed scenes */
+.scene-item.status-complete {
+    border-left: 3px solid #22c55e;
+}
+
+/* Ensure selected state takes precedence with primary color */
+.scene-item.status-complete.selected {
+    border-left: 3px solid var(--primary-500);
+}

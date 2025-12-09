@@ -1,0 +1,123 @@
+/* ScriptSummary.css - Collapsible summary panel styles */
+
+.script-summary {
+    background: var(--gray-800);
+    border: 1px solid var(--border-color);
+    border-top: none;
+    border-radius: 0 0 12px 12px;
+    padding: 1rem 1.25rem;
+}
+
+/* Stats Row */
+.summary-stats-row {
+    display: flex;
+    gap: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 1rem;
+}
+
+.stat-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.stat-icon {
+    color: var(--gray-400, #9ca3af);
+}
+
+.stat-icon.complete {
+    color: var(--success-500, #22c55e);
+}
+
+.stat-icon.pending {
+    color: var(--warning-500, #f59e0b);
+}
+
+.stat-value {
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--text-primary);
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Two Column Layout */
+.summary-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+.summary-column {
+    min-width: 0;
+}
+
+.column-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+    margin-bottom: 0.75rem;
+}
+
+.summary-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.summary-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.375rem 0.5rem;
+    background: var(--gray-700);
+    border-radius: 6px;
+    font-size: 0.8125rem;
+}
+
+.item-name {
+    color: var(--text-primary);
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 70%;
+}
+
+.item-count {
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    flex-shrink: 0;
+}
+
+.empty-text {
+    color: var(--text-muted);
+    font-size: 0.8125rem;
+    font-style: italic;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .summary-columns {
+        grid-template-columns: 1fr;
+    }
+    
+    .summary-stats-row {
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+}

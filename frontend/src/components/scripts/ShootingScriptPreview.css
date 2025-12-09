@@ -1,0 +1,289 @@
+/* ============================================
+   Shooting Script Preview Styles
+   ============================================ */
+
+.shooting-script-preview {
+    min-height: 100vh;
+    background: var(--bg-primary);
+    padding: 1.5rem;
+}
+
+/* Loading & Error States */
+.loading-state,
+.error-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 50vh;
+    gap: 1rem;
+    color: var(--text-secondary);
+}
+
+.error-state svg {
+    color: #ef4444;
+}
+
+.error-state button {
+    padding: 0.5rem 1rem;
+    background: var(--primary-600);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+/* Header */
+.preview-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.back-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: var(--gray-700);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.back-btn:hover {
+    background: var(--gray-600);
+}
+
+.header-title h1 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.header-title .script-title {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.revision-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #1a1a1a;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.header-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.action-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: var(--primary-600);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.action-btn:hover {
+    background: var(--primary-700);
+}
+
+/* Stats */
+.preview-stats {
+    display: flex;
+    gap: 2rem;
+    margin-bottom: 1.5rem;
+}
+
+.preview-stats .stat {
+    display: flex;
+    flex-direction: column;
+}
+
+.preview-stats .stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.preview-stats .stat-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Content */
+.shooting-script-content {
+    background: white;
+    border-radius: 8px;
+    padding: 2rem;
+    max-width: 800px;
+    margin: 0 auto;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* Title Page (Print Only) */
+.title-page {
+    display: none;
+}
+
+/* Scene List */
+.scene-list {
+    font-family: 'Courier New', Courier, monospace;
+}
+
+.shooting-scene {
+    display: flex;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.shooting-scene:last-child {
+    border-bottom: none;
+}
+
+.shooting-scene.omitted {
+    opacity: 0.5;
+}
+
+.scene-number-col {
+    width: 60px;
+    flex-shrink: 0;
+}
+
+.scene-number {
+    font-weight: 700;
+    color: #1a1a1a;
+}
+
+.scene-content-col {
+    flex: 1;
+    padding: 0 1rem;
+}
+
+.scene-header {
+    font-weight: 700;
+    color: #1a1a1a;
+    text-transform: uppercase;
+}
+
+.scene-characters {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin-top: 0.25rem;
+}
+
+.omitted-marker {
+    font-weight: 700;
+    color: #9ca3af;
+    text-transform: uppercase;
+}
+
+.scene-page-col {
+    width: 60px;
+    flex-shrink: 0;
+    text-align: right;
+}
+
+.page-number {
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
+/* Print Styles */
+@media print {
+    .no-print {
+        display: none !important;
+    }
+    
+    .shooting-script-preview {
+        background: white;
+        padding: 0;
+    }
+    
+    .shooting-script-content {
+        box-shadow: none;
+        padding: 0;
+        max-width: none;
+    }
+    
+    .title-page {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        page-break-after: always;
+        text-align: center;
+    }
+    
+    .title-page h1 {
+        font-size: 2rem;
+        margin-bottom: 1rem;
+    }
+    
+    .title-page .writer {
+        font-size: 1rem;
+        margin-bottom: 2rem;
+    }
+    
+    .title-page .revision-info {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .revision-color-block {
+        width: 20px;
+        height: 20px;
+        border: 1px solid #ccc;
+    }
+    
+    .shooting-scene {
+        page-break-inside: avoid;
+    }
+}
+
+/* Spin Animation */
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.spin {
+    animation: spin 1s linear infinite;
+}

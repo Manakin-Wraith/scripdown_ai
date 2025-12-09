@@ -1,0 +1,670 @@
+/* Dashboard Container */
+.dashboard {
+    padding: 2rem 2.5rem;
+    height: 100%;
+    overflow-y: auto;
+    background-color: var(--bg-app);
+}
+
+.dashboard-empty {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--bg-app);
+    color: var(--text-secondary);
+    text-align: center;
+    padding: 2rem;
+}
+
+.dashboard-empty .empty-icon {
+    color: var(--gray-300);
+    margin-bottom: 1rem;
+}
+
+.dashboard-empty h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.dashboard-empty p {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+/* Dashboard Header */
+.dashboard-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.dashboard-title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.dashboard-title .title-icon {
+    color: var(--primary-600);
+}
+
+.dashboard-title h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.dashboard-count {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--primary-500);
+    background-color: rgba(245, 158, 11, 0.15);
+    padding: 0.375rem 0.875rem;
+    border-radius: 99px;
+}
+
+/* Stats Grid */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.25rem;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    transition: all 0.2s;
+}
+
+.stat-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.stat-icon-wrapper {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.stat-icon-wrapper.blue {
+    background-color: rgba(37, 99, 235, 0.15);
+    color: #60a5fa;
+}
+
+.stat-icon-wrapper.indigo {
+    background-color: rgba(79, 70, 229, 0.15);
+    color: #818cf8;
+}
+
+.stat-icon-wrapper.purple {
+    background-color: rgba(147, 51, 234, 0.15);
+    color: #a78bfa;
+}
+
+.stat-icon-wrapper.emerald {
+    background-color: rgba(5, 150, 105, 0.15);
+    color: #34d399;
+}
+
+.stat-icon-wrapper.amber {
+    background-color: rgba(245, 158, 11, 0.15);
+    color: var(--primary-500);
+}
+
+.stat-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1;
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+/* Dashboard Section */
+.dashboard-section {
+    margin-bottom: 2rem;
+}
+
+.section-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 1rem 0;
+}
+
+.section-title svg {
+    color: var(--text-secondary);
+}
+
+.section-count {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background-color: var(--gray-700);
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    margin-left: 0.5rem;
+}
+
+/* Cards Grid */
+.cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+}
+
+/* Entity Card */
+.entity-card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.entity-card:hover {
+    border-color: var(--primary-600);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15);
+}
+
+.entity-card:hover .card-arrow {
+    opacity: 1;
+    transform: translateX(2px);
+}
+
+/* Card Header */
+.card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    padding: 1rem 1.25rem;
+    background-color: var(--gray-700);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.card-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.card-avatar.location-avatar {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+
+.card-avatar.location-avatar.exterior {
+    background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.card-title-section {
+    flex: 1;
+    min-width: 0;
+}
+
+.card-name {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 0.25rem 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.role-badge {
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.role-badge.lead {
+    background-color: rgba(245, 158, 11, 0.15);
+    color: var(--primary-500);
+}
+
+.role-badge.supporting {
+    background-color: var(--gray-700);
+    color: var(--gray-300);
+}
+
+.location-badges {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.type-badge {
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.type-badge.interior {
+    background-color: rgba(37, 99, 235, 0.15);
+    color: #60a5fa;
+}
+
+.type-badge.exterior {
+    background-color: rgba(5, 150, 105, 0.15);
+    color: #34d399;
+}
+
+.time-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.card-arrow {
+    color: var(--gray-400);
+    opacity: 0;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+/* Card Body */
+.card-body {
+    padding: 1rem 1.25rem;
+}
+
+.card-stat {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.75rem;
+}
+
+.card-stat svg {
+    color: var(--gray-400);
+}
+
+.card-scenes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+}
+
+.scene-pill {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--primary-500);
+    background-color: rgba(245, 158, 11, 0.15);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+}
+
+/* Card Footer */
+.card-footer {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    background-color: var(--gray-700);
+    border-top: 1px solid var(--border-color);
+    font-size: 0.8rem;
+}
+
+.footer-label {
+    color: var(--gray-400);
+    font-weight: 500;
+}
+
+.footer-icon {
+    color: var(--gray-400);
+}
+
+.footer-value {
+    color: var(--text-secondary);
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* AI Analysis Styles */
+.ai-status {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    background-color: rgba(245, 158, 11, 0.15);
+    border: 1px solid var(--primary-600);
+    border-radius: 10px;
+    margin-bottom: 1.5rem;
+    font-size: 0.875rem;
+    color: var(--primary-500);
+    font-weight: 500;
+}
+
+.ai-status .spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* AI Insights Section */
+.ai-insights {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(139, 92, 246, 0.1));
+    border: 1px solid var(--primary-600);
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+
+.insights-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.insights-header .sparkle-icon {
+    color: var(--primary-600);
+}
+
+.insights-header h3 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.insights-content {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.insight-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.insight-label {
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.insight-value {
+    color: var(--primary-500);
+    font-weight: 600;
+}
+
+/* AI Description in Cards */
+.ai-description {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    background-color: rgba(245, 158, 11, 0.1);
+    border-radius: 8px;
+    margin-bottom: 0.75rem;
+}
+
+.ai-description .ai-icon {
+    color: var(--primary-500);
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.ai-description p {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin: 0;
+}
+
+/* Traits Container */
+.traits-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+    margin-bottom: 0.75rem;
+}
+
+.trait-tag {
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: var(--primary-500);
+    background-color: rgba(245, 158, 11, 0.15);
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    border: 1px solid var(--primary-600);
+}
+
+/* Mood Tag */
+.mood-tag {
+    margin-bottom: 0.75rem;
+}
+
+.mood-tag span {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #a78bfa;
+    background-color: rgba(139, 92, 246, 0.15);
+    padding: 0.25rem 0.625rem;
+    border-radius: 99px;
+    text-transform: capitalize;
+}
+
+/* Story Arc Section */
+.story-arc-section {
+    background: linear-gradient(135deg, #fef3c7, #fef9c3);
+    border: 1px solid #fcd34d;
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+
+.arc-header h3 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #92400e;
+    margin: 0 0 0.75rem 0;
+}
+
+.arc-content {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.arc-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.arc-label {
+    color: #92400e;
+    font-weight: 500;
+}
+
+.arc-value {
+    color: #78350f;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.arc-value.tone-tag {
+    background-color: #fef3c7;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    border: 1px solid #fcd34d;
+}
+
+/* Character Arc Summary in Cards */
+.arc-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.5rem 0.75rem;
+    background-color: #fef3c7;
+    border-radius: 6px;
+    margin-bottom: 0.75rem;
+    border-left: 3px solid #f59e0b;
+}
+
+.arc-summary .arc-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #92400e;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.arc-summary .arc-text {
+    font-size: 0.8rem;
+    color: #78350f;
+    line-height: 1.4;
+}
+
+/* Emotional Journey */
+.emotional-journey {
+    margin-bottom: 0.75rem;
+}
+
+.journey-label {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.5rem;
+}
+
+.journey-timeline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.journey-point {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.375rem 0.5rem;
+    background-color: var(--gray-700);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    cursor: help;
+}
+
+.journey-point .scene-num {
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.emotion-tag {
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    text-transform: capitalize;
+}
+
+/* Emotion intensity colors (1-10 scale) */
+.emotion-tag.intensity-1,
+.emotion-tag.intensity-2,
+.emotion-tag.intensity-3 {
+    background-color: #d1fae5;
+    color: #065f46;
+}
+
+.emotion-tag.intensity-4,
+.emotion-tag.intensity-5,
+.emotion-tag.intensity-6 {
+    background-color: #fef3c7;
+    color: #92400e;
+}
+
+.emotion-tag.intensity-7,
+.emotion-tag.intensity-8 {
+    background-color: #fed7aa;
+    color: #9a3412;
+}
+
+.emotion-tag.intensity-9,
+.emotion-tag.intensity-10 {
+    background-color: #fecaca;
+    color: #991b1b;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .dashboard {
+        padding: 1.5rem 1rem;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .cards-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .dashboard-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+}

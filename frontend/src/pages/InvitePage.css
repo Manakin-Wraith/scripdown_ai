@@ -1,0 +1,339 @@
+/* Invite Page Styles */
+
+.invite-page {
+    min-height: 100vh;
+    background: linear-gradient(135deg, var(--gray-900) 0%, #0f172a 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+}
+
+.invite-card {
+    background: var(--gray-800);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    padding: 2.5rem;
+    width: 100%;
+    max-width: 480px;
+    text-align: center;
+    animation: cardFadeIn 0.3s ease;
+}
+
+@keyframes cardFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Loading State */
+.invite-card.loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    padding: 3rem;
+}
+
+.invite-card.loading p {
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+/* Error State */
+.invite-card.error {
+    padding: 3rem 2rem;
+}
+
+.error-icon {
+    width: 64px;
+    height: 64px;
+    background: rgba(239, 68, 68, 0.15);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+    color: #ef4444;
+}
+
+.invite-card.error h2 {
+    font-size: 1.25rem;
+    margin: 0 0 0.5rem 0;
+}
+
+.invite-card.error p {
+    color: var(--text-secondary);
+    margin: 0 0 1.5rem 0;
+}
+
+/* Success State */
+.invite-card.success {
+    padding: 3rem 2rem;
+}
+
+.success-icon {
+    width: 64px;
+    height: 64px;
+    background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+    color: var(--gray-900);
+}
+
+.invite-card.success h2 {
+    font-size: 1.25rem;
+    margin: 0 0 0.5rem 0;
+}
+
+.invite-card.success p {
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.redirect-note {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-top: 1rem !important;
+}
+
+/* Logo */
+.invite-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-bottom: 2rem;
+    color: var(--primary-400);
+}
+
+.invite-logo span {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+/* Details */
+.invite-details h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin: 0 0 0.5rem 0;
+    background: linear-gradient(135deg, var(--text-primary), var(--primary-400));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.invite-subtitle {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    margin: 0 0 2rem 0;
+}
+
+.script-info {
+    display: block !important;
+    background: var(--gray-700);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    text-align: left;
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.875rem 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.info-row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.info-row:first-child {
+    padding-top: 0;
+}
+
+.info-row .label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+}
+
+.info-row .value {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    text-align: right;
+}
+
+.department-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.375rem 0.875rem;
+    background: rgba(245, 158, 11, 0.15);
+    color: var(--primary-400);
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.role-badge {
+    display: inline-block;
+    padding: 0.375rem 0.875rem;
+    background: var(--gray-600);
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-transform: capitalize;
+}
+
+/* Actions */
+.invite-actions {
+    margin-bottom: 1.5rem;
+}
+
+.auth-status {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin: 0 0 1rem 0;
+}
+
+.auth-prompt {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin: 0 0 1rem 0;
+}
+
+.auth-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.auth-hint {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin: 0;
+}
+
+.btn-secondary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.875rem 1.5rem;
+    background: var(--gray-700);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+    background: var(--gray-600);
+    border-color: var(--gray-500);
+}
+
+.btn-accept {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 1rem 1.5rem;
+    background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
+    border: none;
+    border-radius: 12px;
+    color: var(--gray-900);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-accept:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(245, 158, 11, 0.3);
+}
+
+.btn-accept:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1.5rem;
+    background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
+    border: none;
+    border-radius: 10px;
+    color: var(--gray-900);
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+/* Footer */
+.invite-footer {
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.invite-footer p {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+/* Spin animation */
+.spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .invite-page {
+        padding: 1rem;
+    }
+    
+    .invite-card {
+        padding: 2rem 1.5rem;
+    }
+    
+    .invite-details h1 {
+        font-size: 1.5rem;
+    }
+}

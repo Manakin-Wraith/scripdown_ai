@@ -1,0 +1,329 @@
+/* SignupSuccess Component Styles */
+
+.signup-success {
+    text-align: center;
+    padding: 1rem 0;
+    animation: fadeIn 0.4s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Success Icon */
+.success-icon-container {
+    margin-bottom: 1.5rem;
+}
+
+.success-icon {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(34, 197, 94, 0.1));
+    border-radius: 50%;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+.check-icon {
+    color: #22c55e;
+    animation: checkDraw 0.5s ease-out 0.2s both;
+}
+
+@keyframes checkDraw {
+    from {
+        stroke-dashoffset: 100;
+        opacity: 0;
+    }
+    to {
+        stroke-dashoffset: 0;
+        opacity: 1;
+    }
+}
+
+.sparkle {
+    position: absolute;
+    color: #fbbf24;
+    animation: sparkle 1.5s ease-in-out infinite;
+}
+
+.sparkle-1 {
+    top: 5px;
+    right: 10px;
+    animation-delay: 0s;
+}
+
+.sparkle-2 {
+    top: 15px;
+    left: 5px;
+    animation-delay: 0.3s;
+}
+
+.sparkle-3 {
+    bottom: 10px;
+    right: 5px;
+    animation-delay: 0.6s;
+}
+
+@keyframes sparkle {
+    0%, 100% { 
+        opacity: 0;
+        transform: scale(0.5) rotate(0deg);
+    }
+    50% { 
+        opacity: 1;
+        transform: scale(1) rotate(180deg);
+    }
+}
+
+/* Title */
+.success-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 1rem 0;
+}
+
+/* Invite Context */
+.invite-context {
+    margin-bottom: 1.5rem;
+}
+
+.context-text {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    margin: 0 0 0.75rem 0;
+}
+
+.context-text strong {
+    color: var(--text-primary);
+}
+
+.invite-context .department-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: rgba(245, 158, 11, 0.15);
+    color: var(--primary-400);
+    border-radius: 20px;
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+/* Verification Card */
+.verification-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    background: var(--gray-700);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+    text-align: left;
+}
+
+.card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    background: rgba(59, 130, 246, 0.15);
+    border-radius: 12px;
+    color: #3b82f6;
+    flex-shrink: 0;
+}
+
+.card-content h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 0.25rem 0;
+}
+
+.email-address {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--primary-400);
+    margin: 0 0 0.5rem 0;
+    word-break: break-all;
+}
+
+.card-hint {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* Quick Actions */
+.quick-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.quick-actions .btn-primary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.875rem 1.5rem;
+    background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
+    border: none;
+    border-radius: 10px;
+    color: var(--gray-900);
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.quick-actions .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(245, 158, 11, 0.3);
+}
+
+.quick-actions .btn-secondary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.875rem 1.5rem;
+    background: var(--gray-700);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.quick-actions .btn-secondary:hover:not(:disabled) {
+    background: var(--gray-600);
+    border-color: var(--gray-500);
+}
+
+.quick-actions .btn-secondary:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.resend-error {
+    font-size: 0.85rem;
+    color: #ef4444;
+    margin: -0.5rem 0 1rem 0;
+}
+
+/* What's Next */
+.whats-next {
+    background: var(--gray-750);
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+    text-align: left;
+}
+
+.whats-next h4 {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin: 0 0 1rem 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.benefits-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.benefits-list li {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+}
+
+.benefits-list li svg {
+    color: var(--primary-400);
+    flex-shrink: 0;
+}
+
+/* Help Text */
+.help-text {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin: 0;
+}
+
+.link-button {
+    background: none;
+    border: none;
+    color: var(--primary-400);
+    font-size: inherit;
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 0;
+}
+
+.link-button:hover:not(:disabled) {
+    color: var(--primary-300);
+}
+
+.link-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Spin animation */
+.spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .verification-card {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .card-icon {
+        margin: 0 auto;
+    }
+    
+    .card-content {
+        text-align: center;
+    }
+}
