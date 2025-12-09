@@ -243,6 +243,7 @@ def get_script_metadata(script_id):
 # ============================================
 
 @supabase_bp.route('/api/upload', methods=['POST'])
+@optional_auth
 def upload_script():
     """
     Upload a script to Supabase.
@@ -316,9 +317,13 @@ def upload_script():
         
         print(f"✓ Extracted metadata: {metadata}")
         
-        # Create script record (user_id is null for dev - no auth yet)
+        # Get user ID from auth token (if authenticated)
+        user_id = get_user_id()
+        
+        # Create script record
         script_data = {
             'id': script_id,
+            'user_id': user_id,  # Will be None if not authenticated
             'title': title,
             'writer_name': writer_name,
             'file_name': filename,
