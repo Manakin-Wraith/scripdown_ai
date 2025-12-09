@@ -6,6 +6,8 @@ import { AlertTriangle, X, CheckCircle, Loader, ArrowRight, Clapperboard, Sparkl
 import { useToast } from '../../context/ToastContext';
 import './ScriptUpload.css';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 /**
  * ScriptUpload - Simplified upload flow
  * 
@@ -41,7 +43,7 @@ const ScriptUpload = () => {
 
             // Simulate staged progress for better UX
             // Stage 1: Upload (0-40%)
-            const uploadResponse = await axios.post('http://localhost:5000/api/upload', formData, {
+            const uploadResponse = await axios.post(`${API_BASE_URL}/api/upload`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
                 onUploadProgress: (progressEvent) => {
                     // Upload is 0-40% of total progress
@@ -120,7 +122,7 @@ const ScriptUpload = () => {
         
         try {
             const response = await axios.post(
-                `http://localhost:5000/scripts/${uploadResult.script_id}/detect-scenes-ai`
+                `${API_BASE_URL}/scripts/${uploadResult.script_id}/detect-scenes-ai`
             );
             
             const newSceneCount = response.data.scenes_detected || 0;
