@@ -13,20 +13,15 @@ load_dotenv()
 
 app = Flask(__name__)
 
-# Configure CORS for production
-CORS(app, resources={
-    r"/api/*": {
-        "origins": [
-            "http://localhost:5173",
-            "http://localhost:3000",
-            "https://app.slateone.studio",
-            "https://*.vercel.app"
-        ],
-        "methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization"],
-        "supports_credentials": True
-    }
-})
+# Configure CORS for production - allow all origins for now
+# Flask-CORS handles preflight OPTIONS requests automatically
+CORS(app, 
+     origins=["http://localhost:5173", "http://localhost:3000", "https://app.slateone.studio"],
+     methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+     allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
+     supports_credentials=True,
+     expose_headers=["Content-Type", "Authorization"]
+)
 
 # Register Blueprints (Supabase-based)
 app.register_blueprint(supabase_bp)  # Main Supabase routes at /api/*
