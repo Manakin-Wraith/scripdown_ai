@@ -367,7 +367,7 @@ const LoginPage = () => {
                                 <Sparkles size={14} />
                                 <span>Beta Access</span>
                             </div>
-                            <p>Get lifetime access to SlateOne for a one-time payment of <strong>R350</strong></p>
+                            <p>Get 6 months access to SlateOne for a one-time payment of <strong>R125</strong></p>
                             <button 
                                 type="button"
                                 className="beta-cta-btn"
