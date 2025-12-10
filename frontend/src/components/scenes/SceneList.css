@@ -144,13 +144,13 @@
 .entity-meta.page-info {
     display: flex;
     align-items: center;
-    padding: 0.15rem 0.4rem;
-    background: rgba(59, 130, 246, 0.1);
-    border: 1px solid rgba(59, 130, 246, 0.2);
+    padding: 0.15rem 0.5rem;
+    background: rgba(245, 158, 11, 0.2);
+    border: 1px solid rgba(245, 158, 11, 0.4);
     border-radius: 4px;
-    font-size: 0.65rem;
-    color: var(--primary-400, #60a5fa);
-    font-weight: 500;
+    font-size: 0.7rem;
+    color: #f59e0b;
+    font-weight: 600;
     flex-shrink: 0;
     white-space: nowrap;
 }
@@ -162,8 +162,8 @@
 }
 
 .scene-item.selected .entity-meta.page-info {
-    background: rgba(59, 130, 246, 0.2);
-    border-color: rgba(59, 130, 246, 0.3);
+    background: rgba(245, 158, 11, 0.25);
+    border-color: rgba(245, 158, 11, 0.5);
 }
 
 .meta-label {
