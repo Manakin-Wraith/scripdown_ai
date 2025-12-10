@@ -22,6 +22,7 @@ import LoginPage from './pages/LoginPage';
 import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
 import InvitePage from './pages/InvitePage';
+import PaymentSuccessPage from './pages/PaymentSuccessPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import './App.css';
 
@@ -76,6 +77,7 @@ function App() {
                   <Route path="invite/:token" element={<InvitePage />} />
                   <Route path="shared/:shareToken" element={<SharedReportView />} />
                   <Route path="reset-password" element={<ResetPasswordPage />} />
+                  <Route path="payment-success" element={<PaymentSuccessPage />} />
                 </Routes>
               </Router>
             </ScriptProvider>

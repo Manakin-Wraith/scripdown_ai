@@ -1,0 +1,221 @@
+.payment-success-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+  padding: 20px;
+}
+
+.payment-success-card {
+  background: #161616;
+  border: 1px solid #2a2a2a;
+  border-radius: 16px;
+  padding: 48px;
+  max-width: 480px;
+  width: 100%;
+  text-align: center;
+}
+
+.logo {
+  margin-bottom: 32px;
+}
+
+.logo-text {
+  font-size: 32px;
+  font-weight: 700;
+  color: #f0f0f0;
+}
+
+.logo-accent {
+  color: #E3FF00;
+}
+
+.status-section {
+  margin: 32px 0;
+}
+
+.status-section h2 {
+  color: #f0f0f0;
+  font-size: 24px;
+  margin: 16px 0 8px;
+}
+
+.status-section p {
+  color: #888;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.spinner {
+  color: #E3FF00;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.success-icon {
+  color: #22c55e;
+}
+
+.error-icon {
+  color: #ef4444;
+}
+
+.mail-icon {
+  color: #E3FF00;
+}
+
+.next-steps {
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 12px;
+  padding: 24px;
+  margin: 24px 0;
+  text-align: left;
+}
+
+.next-steps h3 {
+  color: #E3FF00;
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.next-steps ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.next-steps li {
+  color: #a0a0a0;
+  font-size: 14px;
+  padding: 8px 0;
+  border-bottom: 1px solid #2a2a2a;
+}
+
+.next-steps li:last-child {
+  border-bottom: none;
+}
+
+.btn-primary {
+  display: inline-block;
+  background: #E3FF00;
+  color: #0a0a0a;
+  padding: 14px 32px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 15px;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 16px;
+}
+
+.btn-primary:hover {
+  background: #d4f000;
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  display: inline-block;
+  background: transparent;
+  color: #E3FF00;
+  padding: 14px 32px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 15px;
+  text-decoration: none;
+  border: 1px solid #E3FF00;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 16px;
+}
+
+.btn-secondary:hover {
+  background: rgba(227, 255, 0, 0.1);
+}
+
+.email-form form {
+  margin-top: 24px;
+}
+
+.email-form input {
+  width: 100%;
+  padding: 14px 16px;
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 8px;
+  color: #f0f0f0;
+  font-size: 15px;
+  margin-bottom: 16px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.email-form input:focus {
+  border-color: #E3FF00;
+}
+
+.email-form input::placeholder {
+  color: #666;
+}
+
+.support-info {
+  background: #1a1a1a;
+  border-radius: 8px;
+  padding: 16px;
+  margin: 24px 0;
+}
+
+.support-info p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.support-info a {
+  color: #E3FF00;
+  text-decoration: none;
+}
+
+.support-info a:hover {
+  text-decoration: underline;
+}
+
+.footer-text {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid #2a2a2a;
+}
+
+.footer-text p {
+  color: #666;
+  font-size: 13px;
+  margin: 0;
+}
+
+.footer-text a {
+  color: #E3FF00;
+  text-decoration: none;
+}
+
+.footer-text a:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 520px) {
+  .payment-success-card {
+    padding: 32px 24px;
+  }
+  
+  .status-section h2 {
+    font-size: 20px;
+  }
+}
