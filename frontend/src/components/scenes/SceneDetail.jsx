@@ -129,6 +129,7 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
                     <span className="scene-number-label">Scene {scene.scene_number_original || scene.scene_number}</span>
                     <h2 className="scene-title">
                         <MapPin size={24} className="inline-icon" />
+                        {scene.int_ext && <span className="int-ext-label">{scene.int_ext}.</span>}
                         {scene.setting}
                     </h2>
                 </div>
@@ -161,6 +162,7 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
                     <span className="scene-number-label">Scene {scene.scene_number_original || scene.scene_number}</span>
                     <h2 className="scene-title">
                         <MapPin size={24} className="inline-icon" />
+                        {scene.int_ext && <span className="int-ext-label">{scene.int_ext}.</span>}
                         {scene.setting}
                     </h2>
                 </div>
@@ -187,6 +189,7 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
                 </div>
                 <h2 className="scene-title">
                     <MapPin size={24} className="inline-icon" />
+                    {scene.int_ext && <span className="int-ext-label">{scene.int_ext}.</span>}
                     {scene.setting}
                 </h2>
                 {scene.atmosphere && (

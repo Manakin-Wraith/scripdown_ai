@@ -94,6 +94,7 @@ const SceneList = ({ scenes, selectedId, onSelect, analyzingScenes = new Set(), 
                         <div className="scene-item-content">
                             <div className="entity-header">
                                 <div className="entity-name" title={scene.setting}>
+                                    {scene.int_ext && <span className="int-ext-badge">{scene.int_ext}</span>}
                                     {scene.setting}
                                 </div>
                                 <span className="entity-count">{scene.time_of_day || 'DAY'}</span>
