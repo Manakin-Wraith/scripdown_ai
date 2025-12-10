@@ -11,12 +11,17 @@ const PaymentSuccessPage = () => {
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
 
-  // Try to get email from URL params (Yoco might pass it back)
+  // Try to get email from URL params, localStorage, or ask user
   const emailFromUrl = searchParams.get('email');
+  const emailFromStorage = typeof window !== 'undefined' ? localStorage.getItem('beta_payment_email') : null;
 
   useEffect(() => {
     if (emailFromUrl) {
       processPayment(emailFromUrl);
+    } else if (emailFromStorage) {
+      // Pre-fill from localStorage and show confirmation
+      setEmail(emailFromStorage);
+      setStatus('email_required');
     } else {
       setStatus('email_required');
     }
@@ -44,6 +49,8 @@ const PaymentSuccessPage = () => {
           ? 'Your payment was already recorded. Check your email for login details!'
           : 'Payment confirmed! Check your email for login details within 24 hours.'
         );
+        // Clear stored email after successful processing
+        localStorage.removeItem('beta_payment_email');
       } else {
         setStatus('error');
         setMessage(data.error || 'Something went wrong. Please contact support.');
