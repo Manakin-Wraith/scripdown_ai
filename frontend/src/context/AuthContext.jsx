@@ -101,13 +101,42 @@ export const AuthProvider = ({ children }) => {
                 setUser(session?.user ?? null);
                 
                 if (session?.user) {
-                    // Fetch user data in background, don't block
-                    fetchUserData(session.user.id).catch(console.error);
-                    
-                    // Auto-accept pending invites on sign in (after email verification)
-                    if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+                    // Check if we need to create a profile (after email verification)
+                    if (event === 'SIGNED_IN') {
+                        const pendingName = localStorage.getItem('pending_profile_name');
+                        const pendingEmail = localStorage.getItem('pending_profile_email');
+                        
+                        if (pendingName && pendingEmail === session.user.email) {
+                            // Create profile now that email is verified
+                            supabase
+                                .from('profiles')
+                                .upsert({
+                                    id: session.user.id,
+                                    email: session.user.email,
+                                    full_name: pendingName,
+                                    created_at: new Date().toISOString(),
+                                    updated_at: new Date().toISOString()
+                                })
+                                .then(({ error: profileError }) => {
+                                    if (profileError) {
+                                        console.error('Error creating profile:', profileError);
+                                    } else {
+                                        console.log('Profile created successfully');
+                                        // Clear pending data
+                                        localStorage.removeItem('pending_profile_name');
+                                        localStorage.removeItem('pending_profile_email');
+                                        // Refresh user data to get the new profile
+                                        fetchUserData(session.user.id);
+                                    }
+                                });
+                        }
+                        
+                        // Auto-accept pending invites on sign in (after email verification)
                         autoAcceptInvites(session).catch(console.error);
                     }
+                    
+                    // Fetch user data in background, don't block
+                    fetchUserData(session.user.id).catch(console.error);
                 } else {
                     setProfile(null);
                     setDepartments([]);
@@ -164,23 +193,14 @@ export const AuthProvider = ({ children }) => {
             return { success: false, error: error.message };
         }
 
-        // Create profile after signup
+        // Store full name in localStorage for profile creation after email verification
+        // Profile will be created when user verifies email and signs in
         if (data.user) {
-            const { error: profileError } = await supabase
-                .from('profiles')
-                .upsert({
-                    id: data.user.id,
-                    email: data.user.email,
-                    full_name: fullName,
-                    created_at: new Date().toISOString(),
-                    updated_at: new Date().toISOString()
-                });
-            
-            if (profileError) {
-                console.error('Error creating profile:', profileError);
-            }
+            localStorage.setItem('pending_profile_name', fullName);
+            localStorage.setItem('pending_profile_email', email);
         }
         
+        setLoading(false);
         return { success: true, data };
     };
 

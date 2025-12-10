@@ -19,10 +19,11 @@ import {
     CheckCircle,
     ArrowRight,
     CreditCard,
-    Sparkles
+    Sparkles,
+    RefreshCw
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { resetPassword } from '../lib/supabase';
+import { resetPassword, resendVerificationEmail } from '../lib/supabase';
 import SignupSuccess from '../components/auth/SignupSuccess';
 import './LoginPage.css';
 
@@ -51,6 +52,8 @@ const LoginPage = () => {
     const [success, setSuccess] = useState(null);
     const [signupComplete, setSignupComplete] = useState(false);
     const [inviteContext, setInviteContext] = useState(null);
+    const [resendingVerification, setResendingVerification] = useState(false);
+    const [showEmailNotConfirmed, setShowEmailNotConfirmed] = useState(false);
 
     // Get redirect URL from query params or state
     const getRedirectUrl = () => {
@@ -106,6 +109,10 @@ const LoginPage = () => {
                 if (result.success) {
                     navigate(getRedirectUrl(), { replace: true });
                 } else {
+                    // Check if it's an email not confirmed error
+                    const isEmailNotConfirmed = result.error?.toLowerCase().includes('email not confirmed') ||
+                                                result.error?.toLowerCase().includes('email_not_confirmed');
+                    setShowEmailNotConfirmed(isEmailNotConfirmed);
                     setError(result.error);
                 }
             } else if (mode === 'signup') {
@@ -139,6 +146,31 @@ const LoginPage = () => {
         setMode(newMode);
         setError(null);
         setSuccess(null);
+        setShowEmailNotConfirmed(false);
+    };
+
+    const handleResendVerification = async () => {
+        if (!email) {
+            setError('Please enter your email address first');
+            return;
+        }
+        
+        setResendingVerification(true);
+        setError(null);
+        
+        try {
+            const { error } = await resendVerificationEmail(email);
+            if (error) {
+                setError(error.message);
+            } else {
+                setSuccess('Verification email sent! Please check your inbox.');
+                setShowEmailNotConfirmed(false);
+            }
+        } catch (err) {
+            setError('Failed to resend verification email');
+        } finally {
+            setResendingVerification(false);
+        }
     };
 
     // Show loading while checking auth
@@ -222,7 +254,23 @@ const LoginPage = () => {
                     {error && (
                         <div className="login-message error">
                             <AlertCircle size={18} />
-                            <span>{error}</span>
+                            <div className="error-content">
+                                <span>{error}</span>
+                                {showEmailNotConfirmed && (
+                                    <button 
+                                        type="button"
+                                        className="resend-verification-btn"
+                                        onClick={handleResendVerification}
+                                        disabled={resendingVerification}
+                                    >
+                                        {resendingVerification ? (
+                                            <><RefreshCw size={14} className="spin" /> Sending...</>
+                                        ) : (
+                                            <><RefreshCw size={14} /> Resend verification email</>
+                                        )}
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     )}
                     {success && (
