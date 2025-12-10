@@ -166,6 +166,28 @@
     border-color: rgba(245, 158, 11, 1);
 }
 
+/* INT/EXT badge in scene list */
+.int-ext-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.1rem 0.35rem;
+    background: rgba(99, 102, 241, 0.15);
+    border: 1px solid rgba(99, 102, 241, 0.4);
+    border-radius: 3px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #818cf8;
+    margin-right: 0.35rem;
+    letter-spacing: 0.02em;
+    flex-shrink: 0;
+}
+
+.scene-item.selected .int-ext-badge {
+    background: rgba(99, 102, 241, 0.25);
+    border-color: rgba(99, 102, 241, 0.6);
+    color: #a5b4fc;
+}
+
 .meta-label {
     color: var(--gray-400);
 }
