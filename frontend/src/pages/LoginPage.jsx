@@ -17,7 +17,9 @@ import {
     Film,
     AlertCircle,
     CheckCircle,
-    ArrowRight
+    ArrowRight,
+    CreditCard,
+    Sparkles
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { resetPassword } from '../lib/supabase';
@@ -357,6 +359,27 @@ const LoginPage = () => {
                             </>
                         )}
                     </div>
+
+                    {/* Beta Access CTA */}
+                    {mode === 'signup' && !inviteContext && (
+                        <div className="beta-cta">
+                            <div className="beta-cta-badge">
+                                <Sparkles size={14} />
+                                <span>Beta Access</span>
+                            </div>
+                            <p>Get lifetime access to SlateOne for a one-time payment of <strong>R350</strong></p>
+                            <a 
+                                href="https://pay.yoco.com/r/2JB0rQ" 
+                                className="beta-cta-btn"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                <CreditCard size={18} />
+                                Pay & Get Access
+                            </a>
+                            <span className="beta-cta-note">You'll receive login credentials within 24 hours</span>
+                        </div>
+                    )}
                     </>
                     )}
                 </div>
