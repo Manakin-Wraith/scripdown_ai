@@ -368,23 +368,43 @@ const LoginPage = () => {
                                 <span>Beta Access</span>
                             </div>
                             <p>Get lifetime access to SlateOne for a one-time payment of <strong>R350</strong></p>
-                            <a 
-                                href="https://pay.yoco.com/r/2JB0rQ" 
+                            <button 
+                                type="button"
                                 className="beta-cta-btn"
-                                target="_blank"
-                                rel="noopener noreferrer"
                                 onClick={() => {
                                     // Store email for payment success page
-                                    if (email) {
-                                        localStorage.setItem('beta_payment_email', email);
+                                    const paymentEmail = email || '';
+                                    if (paymentEmail) {
+                                        localStorage.setItem('beta_payment_email', paymentEmail);
                                     }
+                                    
+                                    // Open Yoco in popup window
+                                    const width = 500;
+                                    const height = 700;
+                                    const left = window.screenX + (window.outerWidth - width) / 2;
+                                    const top = window.screenY + (window.outerHeight - height) / 2;
+                                    
+                                    const popup = window.open(
+                                        'https://pay.yoco.com/r/2JB0rQ',
+                                        'YocoPayment',
+                                        `width=${width},height=${height},left=${left},top=${top},scrollbars=yes`
+                                    );
+                                    
+                                    // Poll to detect when popup closes
+                                    const pollTimer = setInterval(() => {
+                                        if (popup && popup.closed) {
+                                            clearInterval(pollTimer);
+                                            // Redirect to payment success page
+                                            navigate('/payment-success');
+                                        }
+                                    }, 500);
                                 }}
                             >
                                 <CreditCard size={18} />
                                 Pay & Get Access
-                            </a>
+                            </button>
                             <span className="beta-cta-note">
-                                {email ? `After payment, confirm with: ${email}` : "You'll receive login credentials within 24 hours"}
+                                {email ? `Payment will be linked to: ${email}` : 'Enter your email above first'}
                             </span>
                         </div>
                     )}
