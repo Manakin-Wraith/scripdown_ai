@@ -145,11 +145,11 @@
     display: flex;
     align-items: center;
     padding: 0.15rem 0.5rem;
-    background: rgba(245, 158, 11, 0.2);
-    border: 1px solid rgba(245, 158, 11, 0.4);
+    background: rgba(245, 158, 11, 0.85);
+    border: 1px solid rgba(245, 158, 11, 1);
     border-radius: 4px;
     font-size: 0.7rem;
-    color: #f59e0b;
+    color: #1e1e1e;
     font-weight: 600;
     flex-shrink: 0;
     white-space: nowrap;
@@ -162,8 +162,8 @@
 }
 
 .scene-item.selected .entity-meta.page-info {
-    background: rgba(245, 158, 11, 0.25);
-    border-color: rgba(245, 158, 11, 0.5);
+    background: rgba(245, 158, 11, 0.95);
+    border-color: rgba(245, 158, 11, 1);
 }
 
 .meta-label {
