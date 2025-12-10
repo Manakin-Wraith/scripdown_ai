@@ -19,9 +19,9 @@ const PaymentSuccessPage = () => {
     if (emailFromUrl) {
       processPayment(emailFromUrl);
     } else if (emailFromStorage) {
-      // Pre-fill from localStorage and show confirmation
+      // Auto-process with stored email (from popup flow)
       setEmail(emailFromStorage);
-      setStatus('email_required');
+      processPayment(emailFromStorage);
     } else {
       setStatus('email_required');
     }
