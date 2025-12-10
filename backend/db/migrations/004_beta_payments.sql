@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS beta_payments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email TEXT NOT NULL,
     payment_reference TEXT,
-    amount DECIMAL(10,2) DEFAULT 350.00,
+    amount DECIMAL(10,2) DEFAULT 125.00,
     currency TEXT DEFAULT 'ZAR',
     status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'completed', 'failed', 'refunded')),
     user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
