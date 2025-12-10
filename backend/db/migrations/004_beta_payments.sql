@@ -27,6 +27,10 @@ CREATE INDEX IF NOT EXISTS idx_beta_payments_user_id ON beta_payments(user_id);
 -- Enable RLS
 ALTER TABLE beta_payments ENABLE ROW LEVEL SECURITY;
 
+-- Drop existing policies if they exist, then recreate
+DROP POLICY IF EXISTS "Service role full access" ON beta_payments;
+DROP POLICY IF EXISTS "Users can view own payment" ON beta_payments;
+
 -- Policy: Service role can do everything (for Edge Functions)
 CREATE POLICY "Service role full access" ON beta_payments
     FOR ALL
