@@ -373,11 +373,19 @@ const LoginPage = () => {
                                 className="beta-cta-btn"
                                 target="_blank"
                                 rel="noopener noreferrer"
+                                onClick={() => {
+                                    // Store email for payment success page
+                                    if (email) {
+                                        localStorage.setItem('beta_payment_email', email);
+                                    }
+                                }}
                             >
                                 <CreditCard size={18} />
                                 Pay & Get Access
                             </a>
-                            <span className="beta-cta-note">You'll receive login credentials within 24 hours</span>
+                            <span className="beta-cta-note">
+                                {email ? `After payment, confirm with: ${email}` : "You'll receive login credentials within 24 hours"}
+                            </span>
                         </div>
                     )}
                     </>
