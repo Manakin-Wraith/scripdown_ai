@@ -51,12 +51,12 @@
     display: inline-flex;
     align-items: center;
     padding: 0.2rem 0.6rem;
-    background: rgba(245, 158, 11, 0.2);
-    border: 1px solid rgba(245, 158, 11, 0.4);
+    background: rgba(245, 158, 11, 0.85);
+    border: 1px solid rgba(245, 158, 11, 1);
     border-radius: 4px;
     font-size: 0.75rem;
     font-weight: 600;
-    color: #f59e0b;
+    color: #1e1e1e;
 }
 
 .scene-title {
