@@ -8,6 +8,7 @@ from routes.supabase_routes import supabase_bp
 from routes.report_routes import report_bp
 from routes.invite_routes import invite_bp
 from routes.analysis_routes import analysis_bp
+from routes.auth_routes import auth_bp
 
 load_dotenv()
 
@@ -28,6 +29,7 @@ app.register_blueprint(supabase_bp)  # Main Supabase routes at /api/*
 app.register_blueprint(report_bp, url_prefix='/api/reports')
 app.register_blueprint(invite_bp)
 app.register_blueprint(analysis_bp)  # Analysis routes at /api/analysis/*
+app.register_blueprint(auth_bp)  # Auth routes at /api/auth/*
 
 @app.route('/health')
 def health_check():

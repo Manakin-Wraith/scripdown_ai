@@ -238,3 +238,150 @@ def send_test_email(to_email: str) -> Dict[str, Any]:
     """
     
     return send_email(to_email, subject, html)
+
+
+# Yoco payment link for beta access
+YOCO_PAYMENT_LINK = "https://pay.yoco.com/r/2JB0rQ"
+
+
+def send_welcome_email(
+    to_email: str,
+    full_name: str,
+    has_paid: bool = False
+) -> Dict[str, Any]:
+    """
+    Send welcome email to new users after signup.
+    
+    Args:
+        to_email: User's email address
+        full_name: User's full name
+        has_paid: Whether user has already paid for beta access
+    """
+    first_name = full_name.split(' ')[0] if full_name else 'there'
+    
+    if has_paid:
+        # User has already paid - welcome them to full access
+        subject = f"🎬 Welcome to {APP_NAME}, {first_name}!"
+        cta_section = f"""
+                                <div style="background: linear-gradient(135deg, #10B981, #059669); border-radius: 12px; padding: 24px; margin-bottom: 24px; text-align: center;">
+                                    <p style="margin: 0 0 8px 0; font-size: 14px; color: rgba(255,255,255,0.8);">✅ BETA ACCESS CONFIRMED</p>
+                                    <p style="margin: 0; font-size: 18px; font-weight: 600; color: #FFFFFF;">You have full access to SlateOne!</p>
+                                </div>
+                                
+                                <a href="{APP_URL}/scripts" style="display: inline-block; background: linear-gradient(135deg, #F59E0B, #D97706); color: #000000; text-decoration: none; padding: 14px 28px; border-radius: 8px; font-weight: 600; font-size: 16px;">
+                                    Start Using {APP_NAME} →
+                                </a>
+        """
+    else:
+        # User hasn't paid - show Yoco payment link
+        subject = f"🎬 Welcome to {APP_NAME}! Complete your beta access"
+        cta_section = f"""
+                                <div style="background-color: #262626; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+                                    <p style="margin: 0 0 8px 0; font-size: 14px; color: #F59E0B; font-weight: 600;">⚡ BETA ACCESS OFFER</p>
+                                    <p style="margin: 0 0 16px 0; font-size: 16px; color: #FFFFFF; line-height: 1.5;">
+                                        Get <strong>6 months of full access</strong> to SlateOne for a one-time payment of <strong style="color: #F59E0B;">R125</strong>.
+                                    </p>
+                                    <ul style="margin: 0 0 16px 0; padding-left: 20px; color: #9CA3AF; font-size: 14px; line-height: 1.8;">
+                                        <li>AI-powered script breakdown</li>
+                                        <li>Unlimited scene analysis</li>
+                                        <li>Team collaboration tools</li>
+                                        <li>Export reports & stripboards</li>
+                                    </ul>
+                                </div>
+                                
+                                <a href="{YOCO_PAYMENT_LINK}" style="display: inline-block; background: linear-gradient(135deg, #F59E0B, #D97706); color: #000000; text-decoration: none; padding: 14px 28px; border-radius: 8px; font-weight: 600; font-size: 16px;">
+                                    💳 Pay R125 & Get Access →
+                                </a>
+                                
+                                <p style="margin: 16px 0 0 0; font-size: 12px; color: #6B7280;">
+                                    Secure payment via Yoco. Your access will be activated immediately.
+                                </p>
+        """
+    
+    html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>{subject}</title>
+    </head>
+    <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #0F0F0F; color: #FFFFFF;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #0F0F0F; padding: 40px 20px;">
+            <tr>
+                <td align="center">
+                    <table width="600" cellpadding="0" cellspacing="0" style="background-color: #1A1A1A; border-radius: 16px; overflow: hidden; border: 1px solid #2A2A2A;">
+                        <!-- Header -->
+                        <tr>
+                            <td style="background: linear-gradient(135deg, #F59E0B, #D97706); padding: 32px; text-align: center;">
+                                <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: #000000;">
+                                    🎬 {APP_NAME}
+                                </h1>
+                            </td>
+                        </tr>
+                        
+                        <!-- Content -->
+                        <tr>
+                            <td style="padding: 40px 32px;">
+                                <h2 style="margin: 0 0 16px 0; font-size: 28px; font-weight: 700; color: #FFFFFF; line-height: 1.3;">
+                                    Welcome, {first_name}! 🎉
+                                </h2>
+                                
+                                <p style="margin: 0 0 24px 0; font-size: 16px; color: #9CA3AF; line-height: 1.6;">
+                                    Thanks for signing up for {APP_NAME} – the AI-powered script breakdown tool for film and television production teams.
+                                </p>
+                                
+                                {cta_section}
+                            </td>
+                        </tr>
+                        
+                        <!-- Features -->
+                        <tr>
+                            <td style="padding: 0 32px 32px 32px;">
+                                <table width="100%" cellpadding="0" cellspacing="0">
+                                    <tr>
+                                        <td style="padding: 16px; background-color: #262626; border-radius: 8px; margin-bottom: 12px;">
+                                            <p style="margin: 0 0 4px 0; font-size: 14px; font-weight: 600; color: #FFFFFF;">📄 Upload Scripts</p>
+                                            <p style="margin: 0; font-size: 13px; color: #9CA3AF;">Drop your PDF and get instant scene detection</p>
+                                        </td>
+                                    </tr>
+                                </table>
+                                <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 12px;">
+                                    <tr>
+                                        <td style="padding: 16px; background-color: #262626; border-radius: 8px;">
+                                            <p style="margin: 0 0 4px 0; font-size: 14px; font-weight: 600; color: #FFFFFF;">🤖 AI Analysis</p>
+                                            <p style="margin: 0; font-size: 13px; color: #9CA3AF;">Extract characters, props, wardrobe & more</p>
+                                        </td>
+                                    </tr>
+                                </table>
+                                <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 12px;">
+                                    <tr>
+                                        <td style="padding: 16px; background-color: #262626; border-radius: 8px;">
+                                            <p style="margin: 0 0 4px 0; font-size: 14px; font-weight: 600; color: #FFFFFF;">👥 Team Collaboration</p>
+                                            <p style="margin: 0; font-size: 13px; color: #9CA3AF;">Invite your crew and work together</p>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                        
+                        <!-- Footer -->
+                        <tr>
+                            <td style="padding: 24px 32px; border-top: 1px solid #2A2A2A; text-align: center;">
+                                <p style="margin: 0 0 8px 0; font-size: 12px; color: #6B7280;">
+                                    Questions? Reply to this email or reach out at support@slateone.studio
+                                </p>
+                                <p style="margin: 0; font-size: 12px; color: #6B7280;">
+                                    © {APP_NAME} • AI-Powered Script Breakdown
+                                </p>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </body>
+    </html>
+    """
+    
+    return send_email(to_email, subject, html)

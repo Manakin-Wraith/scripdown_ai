@@ -198,6 +198,17 @@ export const AuthProvider = ({ children }) => {
         if (data.user) {
             localStorage.setItem('pending_profile_name', fullName);
             localStorage.setItem('pending_profile_email', email);
+            
+            // Send welcome email with Yoco paylink (fire and forget)
+            try {
+                fetch(`${API_BASE_URL}/api/auth/welcome-email`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, full_name: fullName })
+                }).catch(err => console.error('Welcome email error:', err));
+            } catch (err) {
+                console.error('Failed to send welcome email:', err);
+            }
         }
         
         setLoading(false);

@@ -139,9 +139,38 @@ Current link: `https://pay.yoco.com/r/2JB0rQ`
 To update, change in:
 - `frontend/src/pages/LoginPage.jsx` (line ~372)
 
+## Welcome Email with Yoco Paylink
+
+After signup, users automatically receive a welcome email containing:
+- **For unpaid users**: Yoco payment link (R125 for 6 months beta access)
+- **For paid users**: Confirmation of beta access with link to start using the app
+
+### Implementation
+
+**Backend:**
+- `backend/services/email_service.py` - `send_welcome_email()` function
+- `backend/routes/auth_routes.py` - `/api/auth/welcome-email` endpoint
+
+**Frontend:**
+- `frontend/src/context/AuthContext.jsx` - Calls welcome email API after signup
+
+### Flow
+1. User completes signup form
+2. Supabase creates auth user
+3. Frontend calls `/api/auth/welcome-email`
+4. Backend checks `beta_payments` table for payment status
+5. Sends appropriate email variant (paid vs unpaid)
+
+### Email Variants
+
+| User Status | Subject | CTA |
+|-------------|---------|-----|
+| Not Paid | "Welcome! Complete your beta access" | "Pay R125 & Get Access" (Yoco link) |
+| Paid | "Welcome, [Name]!" | "Start Using SlateOne" |
+
 ## Future Enhancements
 
 1. **Webhook Integration**: Add Yoco webhook for real-time payment confirmation
 2. **Auto Account Creation**: Create user account immediately after payment
-3. **Email Notifications**: Send welcome email with credentials
+3. ~~**Email Notifications**: Send welcome email with credentials~~ ✅ IMPLEMENTED
 4. **Subscription Management**: Add renewal/upgrade flows
