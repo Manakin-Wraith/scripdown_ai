@@ -553,11 +553,6 @@ const SceneManager = () => {
                                 )}
                             </div>
                             
-                            {/* Analysis Status Icon */}
-                            <div className="scene-status-indicator">
-                                {getStatusIcon(scene)}
-                            </div>
-                            
                             {/* Scene Content */}
                             <div className="scene-content">
                                 {editingScene === scene.id ? (
