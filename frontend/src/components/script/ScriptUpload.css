@@ -414,3 +414,91 @@
     background: rgba(245, 158, 11, 0.15);
     border-color: var(--primary-500);
 }
+
+/* Upload Blocked State */
+.upload-blocked-container {
+    display: flex;
+    justify-content: center;
+    padding: 2rem 0;
+}
+
+.upload-blocked-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 3rem 2rem;
+    text-align: center;
+    max-width: 400px;
+}
+
+.upload-blocked-icon {
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, #F59E0B, #D97706);
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+    color: #000000;
+}
+
+.upload-blocked-card h3 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 0.75rem 0;
+}
+
+.blocked-message {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    margin: 0 0 1.5rem 0;
+    line-height: 1.5;
+}
+
+.blocked-info {
+    background: var(--bg-tertiary);
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+    text-align: left;
+}
+
+.blocked-info p {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    margin: 0 0 0.5rem 0;
+    line-height: 1.5;
+}
+
+.blocked-info p:last-child {
+    margin-bottom: 0;
+}
+
+.blocked-info strong {
+    color: var(--text-primary);
+}
+
+.btn-upgrade {
+    width: 100%;
+    padding: 1rem;
+    background: linear-gradient(135deg, #F59E0B, #D97706);
+    color: #000000;
+    border: none;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.btn-upgrade:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}

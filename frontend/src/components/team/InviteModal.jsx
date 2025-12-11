@@ -14,9 +14,13 @@ import {
     Check, 
     Loader,
     Send,
-    Link as LinkIcon
+    Link as LinkIcon,
+    Lock,
+    Sparkles
 } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
+import { useSubscription } from '../../hooks/useSubscription';
+import { UpgradeModal } from '../subscription';
 import './InviteModal.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -29,6 +33,7 @@ const ROLES = [
 
 const InviteModal = ({ isOpen, onClose, scriptId, scriptTitle }) => {
     const toast = useToast();
+    const { canAccess, status, daysRemaining } = useSubscription();
     
     const [email, setEmail] = useState('');
     const [department, setDepartment] = useState('');
@@ -37,6 +42,10 @@ const InviteModal = ({ isOpen, onClose, scriptId, scriptTitle }) => {
     const [inviteResult, setInviteResult] = useState(null);
     const [copied, setCopied] = useState(false);
     const [departments, setDepartments] = useState([]);
+    const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+    
+    // Check if user has team collaboration access
+    const hasTeamAccess = canAccess('team_collaboration');
 
     // Fetch departments from API
     useEffect(() => {
@@ -131,6 +140,54 @@ const InviteModal = ({ isOpen, onClose, scriptId, scriptTitle }) => {
     };
 
     if (!isOpen) return null;
+
+    // If no team access, show upgrade prompt
+    if (!hasTeamAccess) {
+        return (
+            <>
+                <div className="invite-modal-overlay" onClick={onClose}>
+                    <div className="invite-modal" onClick={e => e.stopPropagation()}>
+                        <header className="invite-modal-header">
+                            <div className="header-content">
+                                <Users size={24} />
+                                <div>
+                                    <h2>Invite Team Member</h2>
+                                    <p className="script-name">{scriptTitle}</p>
+                                </div>
+                            </div>
+                            <button className="close-btn" onClick={onClose}>
+                                <X size={20} />
+                            </button>
+                        </header>
+
+                        <div className="invite-modal-body invite-locked">
+                            <div className="locked-content">
+                                <div className="locked-icon">
+                                    <Lock size={32} />
+                                </div>
+                                <h3>Team Collaboration Locked</h3>
+                                <p>Upgrade to invite team members and collaborate on your scripts.</p>
+                                <button 
+                                    className="upgrade-btn"
+                                    onClick={() => setShowUpgradeModal(true)}
+                                >
+                                    <Sparkles size={18} />
+                                    Upgrade Now - R125
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <UpgradeModal
+                    isOpen={showUpgradeModal}
+                    onClose={() => setShowUpgradeModal(false)}
+                    feature="team_collaboration"
+                    daysRemaining={daysRemaining}
+                    isExpired={status === 'expired'}
+                />
+            </>
+        );
+    }
 
     return (
         <div className="invite-modal-overlay" onClick={onClose}>

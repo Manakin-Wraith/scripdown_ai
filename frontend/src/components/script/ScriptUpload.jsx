@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import DropZone from './DropZone';
-import { AlertTriangle, X, CheckCircle, Loader, ArrowRight, Clapperboard, Sparkles, AlertCircle, FileText, Scissors } from 'lucide-react';
+import { AlertTriangle, X, CheckCircle, Loader, ArrowRight, Clapperboard, Sparkles, AlertCircle, FileText, Scissors, Lock } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 import { supabase } from '../../lib/supabase';
+import { useSubscription } from '../../hooks/useSubscription';
+import { UpgradeModal } from '../subscription';
 import './ScriptUpload.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -25,10 +27,30 @@ const ScriptUpload = () => {
     const [uploadResult, setUploadResult] = useState(null);
     const [error, setError] = useState(null);
     const [isAiDetecting, setIsAiDetecting] = useState(false);
+    const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+    const [uploadBlocked, setUploadBlocked] = useState(false);
+    const [blockMessage, setBlockMessage] = useState('');
     const navigate = useNavigate();
     const toast = useToast();
+    const { canUploadScript, status, daysRemaining, scriptLimit, scriptCount } = useSubscription();
 
     const [processingStage, setProcessingStage] = useState('');
+
+    // Check upload permission on mount
+    useEffect(() => {
+        checkUploadPermission();
+    }, []);
+
+    const checkUploadPermission = async () => {
+        const result = await canUploadScript();
+        if (!result.canUpload) {
+            setUploadBlocked(true);
+            setBlockMessage(result.message);
+        } else {
+            setUploadBlocked(false);
+            setBlockMessage('');
+        }
+    };
     
     const processFile = async (selectedFile) => {
         setFile(selectedFile);
@@ -177,7 +199,45 @@ const ScriptUpload = () => {
             )}
 
             <div className="upload-content">
-                {!uploading && !uploadResult ? (
+                {/* Upload blocked - show upgrade prompt */}
+                {uploadBlocked ? (
+                    <div className="upload-blocked-container">
+                        <div className="upload-blocked-card">
+                            <div className="upload-blocked-icon">
+                                <Lock size={48} />
+                            </div>
+                            <h3>Script Limit Reached</h3>
+                            <p className="blocked-message">{blockMessage}</p>
+                            
+                            {status === 'trial' && (
+                                <div className="blocked-info">
+                                    <p>
+                                        You've uploaded <strong>{scriptCount}</strong> of <strong>{scriptLimit}</strong> scripts 
+                                        allowed on the trial plan.
+                                    </p>
+                                    <p>
+                                        Upgrade to get <strong>unlimited scripts</strong> and full access to all features.
+                                    </p>
+                                </div>
+                            )}
+                            
+                            <button 
+                                className="btn-upgrade"
+                                onClick={() => setShowUpgradeModal(true)}
+                            >
+                                <Sparkles size={18} />
+                                Upgrade Now - R125
+                            </button>
+                            
+                            <button 
+                                className="btn-secondary"
+                                onClick={() => navigate('/scripts')}
+                            >
+                                View Existing Scripts
+                            </button>
+                        </div>
+                    </div>
+                ) : !uploading && !uploadResult ? (
                     <DropZone onFileSelect={processFile} disabled={false} />
                 ) : uploading ? (
                     <div className="upload-progress-container">
@@ -323,6 +383,14 @@ const ScriptUpload = () => {
                     </div>
                 )}
             </div>
+
+            <UpgradeModal
+                isOpen={showUpgradeModal}
+                onClose={() => setShowUpgradeModal(false)}
+                feature="unlimited_scripts"
+                daysRemaining={daysRemaining}
+                isExpired={status === 'expired'}
+            />
         </div>
     );
 };

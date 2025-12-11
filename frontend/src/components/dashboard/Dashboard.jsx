@@ -4,6 +4,8 @@ import { getStats } from '../../services/apiService';
 import { Plus, FileText, Film, CheckCircle2, Clock } from 'lucide-react';
 import ScriptTable from '../scripts/ScriptTable';
 import EmptyLibrary from '../scripts/EmptyLibrary';
+import { SubscriptionBanner } from '../subscription';
+import { useSubscription } from '../../hooks/useSubscription';
 import './Dashboard.css';
 
 const Dashboard = () => {
@@ -53,6 +55,8 @@ const Dashboard = () => {
 
     return (
         <div className="dashboard-container">
+            <SubscriptionBanner />
+            
             <div className="dashboard-header">
                 <h1>Welcome back! 👋</h1>
                 <p className="dashboard-subtitle">

@@ -1,10 +1,11 @@
 """
 Auth Routes - Authentication-related API endpoints
-Handles welcome emails and other auth-related functionality.
+Handles welcome emails, subscription status, and other auth-related functionality.
 """
 
 from flask import Blueprint, request, jsonify
 from services.email_service import send_welcome_email, is_configured
+from services.subscription_service import get_subscription_status, can_upload_script
 from db.supabase_client import get_supabase_client
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')
@@ -125,4 +126,66 @@ def check_payment_status():
         return jsonify({
             'error': str(e),
             'has_paid': False
+        }), 500
+
+
+@auth_bp.route('/subscription-status', methods=['POST'])
+def get_subscription_status_route():
+    """
+    Get subscription status for a user.
+    
+    Request body:
+        - user_id: User's UUID
+    """
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'error': 'Request body required'}), 400
+        
+        user_id = data.get('user_id')
+        
+        if not user_id:
+            return jsonify({'error': 'user_id is required'}), 400
+        
+        status = get_subscription_status(user_id)
+        return jsonify(status)
+        
+    except Exception as e:
+        print(f"Error getting subscription status: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@auth_bp.route('/can-upload-script', methods=['POST'])
+def can_upload_script_route():
+    """
+    Check if user can upload a new script.
+    
+    Request body:
+        - user_id: User's UUID
+    """
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'error': 'Request body required'}), 400
+        
+        user_id = data.get('user_id')
+        
+        if not user_id:
+            return jsonify({'error': 'user_id is required'}), 400
+        
+        can_upload, message = can_upload_script(user_id)
+        
+        return jsonify({
+            'can_upload': can_upload,
+            'message': message,
+            'upgrade_url': 'https://pay.yoco.com/r/2JB0rQ' if not can_upload else None
+        })
+        
+    except Exception as e:
+        print(f"Error checking upload permission: {e}")
+        return jsonify({
+            'error': str(e),
+            'can_upload': False
         }), 500
