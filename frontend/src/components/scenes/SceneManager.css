@@ -394,8 +394,20 @@
     color: #94a3b8; /* Explicit secondary text */
 }
 
+/* Scene Status Indicator */
+.scene-status-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+}
+
 .status-icon {
     flex-shrink: 0;
+    width: 16px;
+    height: 16px;
 }
 
 .status-icon.complete {
@@ -410,17 +422,32 @@
     color: var(--gray-500);
 }
 
-.page-info {
-    padding: 0.15rem 0.4rem;
-    background: rgba(59, 130, 246, 0.1);
-    border: 1px solid rgba(59, 130, 246, 0.2);
+/* Meta Badges */
+.meta-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.15rem 0.5rem;
     border-radius: 4px;
     font-size: 0.7rem;
-    color: var(--primary-400, #60a5fa);
+    font-weight: 500;
 }
 
-.char-count {
-    color: var(--gray-500);
+.page-badge {
+    background: rgba(59, 130, 246, 0.15);
+    border: 1px solid rgba(59, 130, 246, 0.25);
+    color: #60a5fa;
+}
+
+.char-badge {
+    background: rgba(168, 85, 247, 0.15);
+    border: 1px solid rgba(168, 85, 247, 0.25);
+    color: #a855f7;
+}
+
+.prop-badge {
+    background: rgba(34, 197, 94, 0.15);
+    border: 1px solid rgba(34, 197, 94, 0.25);
+    color: #22c55e;
 }
 
 /* Edit Form */

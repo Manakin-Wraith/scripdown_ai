@@ -354,12 +354,12 @@ const SceneManager = () => {
     
     const getStatusIcon = (scene) => {
         if (scene.analysis_status === 'complete') {
-            return <CheckCircle size={14} className="status-icon complete" />;
+            return <CheckCircle size={16} className="status-icon complete" />;
         }
         if (scene.analysis_status === 'analyzing') {
-            return <Loader size={14} className="status-icon analyzing spin" />;
+            return <Loader size={16} className="status-icon analyzing spin" />;
         }
-        return <Clock size={14} className="status-icon pending" />;
+        return <Clock size={16} className="status-icon pending" />;
     };
     
     const formatSceneHeader = (scene) => {
@@ -553,6 +553,11 @@ const SceneManager = () => {
                                 )}
                             </div>
                             
+                            {/* Analysis Status Icon */}
+                            <div className="scene-status-indicator">
+                                {getStatusIcon(scene)}
+                            </div>
+                            
                             {/* Scene Content */}
                             <div className="scene-content">
                                 {editingScene === scene.id ? (
@@ -613,17 +618,21 @@ const SceneManager = () => {
                                             {formatSceneHeader(scene)}
                                         </div>
                                         <div className="scene-meta">
-                                            {getStatusIcon(scene)}
                                             {scene.page_start && (
-                                                <span className="page-info">
+                                                <span className="meta-badge page-badge">
                                                     p. {scene.page_start}
                                                     {scene.page_end && scene.page_end !== scene.page_start && 
                                                         `-${scene.page_end}`}
                                                 </span>
                                             )}
                                             {scene.character_count > 0 && (
-                                                <span className="char-count">
-                                                    {scene.character_count} chars
+                                                <span className="meta-badge char-badge">
+                                                    {scene.character_count} {scene.character_count === 1 ? 'char' : 'chars'}
+                                                </span>
+                                            )}
+                                            {scene.prop_count > 0 && (
+                                                <span className="meta-badge prop-badge">
+                                                    {scene.prop_count} {scene.prop_count === 1 ? 'prop' : 'props'}
                                                 </span>
                                             )}
                                         </div>
