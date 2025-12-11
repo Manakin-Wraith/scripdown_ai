@@ -1,0 +1,106 @@
+/* SubscriptionGate Styles */
+
+.subscription-gate {
+    position: relative;
+    min-height: 100px;
+}
+
+.subscription-gate-blur {
+    pointer-events: none;
+    user-select: none;
+}
+
+.subscription-gate-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(15, 15, 15, 0.6);
+    backdrop-filter: blur(2px);
+    border-radius: 12px;
+}
+
+.subscription-gate-content {
+    text-align: center;
+    padding: 2rem;
+    max-width: 300px;
+}
+
+.subscription-gate-icon {
+    width: 56px;
+    height: 56px;
+    background: linear-gradient(135deg, #F59E0B, #D97706);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem;
+    color: #000000;
+}
+
+.subscription-gate-message {
+    font-size: 0.95rem;
+    color: #FFFFFF;
+    margin: 0 0 1rem 0;
+    line-height: 1.5;
+}
+
+.subscription-gate-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, #F59E0B, #D97706);
+    color: #000000;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.subscription-gate-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+/* Inline variant for smaller elements */
+.subscription-gate.inline {
+    display: inline-block;
+    min-height: auto;
+}
+
+.subscription-gate.inline .subscription-gate-overlay {
+    border-radius: 8px;
+}
+
+.subscription-gate.inline .subscription-gate-content {
+    padding: 1rem;
+}
+
+.subscription-gate.inline .subscription-gate-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    margin-bottom: 0.75rem;
+}
+
+.subscription-gate.inline .subscription-gate-icon svg {
+    width: 18px;
+    height: 18px;
+}
+
+.subscription-gate.inline .subscription-gate-message {
+    font-size: 0.875rem;
+    margin-bottom: 0.75rem;
+}
+
+.subscription-gate.inline .subscription-gate-btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
+}

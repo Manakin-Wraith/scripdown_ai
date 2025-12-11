@@ -18,6 +18,8 @@ import {
     getScriptMetadata
 } from '../../services/apiService';
 import ShareModal from './ShareModal';
+import { SubscriptionGate } from '../subscription';
+import { useSubscription } from '../../hooks/useSubscription';
 import './ReportBuilder.css';
 
 const REPORT_ICONS = {
@@ -35,6 +37,7 @@ const ReportBuilder = () => {
     const navigate = useNavigate();
     const toast = useToast();
     const { setScript } = useScript();
+    const { canAccess, status, daysRemaining } = useSubscription();
     
     const [reportTypes, setReportTypes] = useState({});
     const [selectedType, setSelectedType] = useState('scene_breakdown');
@@ -153,6 +156,32 @@ const ReportBuilder = () => {
             <div className="report-builder-loading">
                 <Loader className="spin" size={32} />
                 <p>Loading report builder...</p>
+            </div>
+        );
+    }
+
+    // Check if user has access to reports feature
+    const hasReportAccess = canAccess('reports');
+
+    // If no access, show gated preview
+    if (!hasReportAccess) {
+        return (
+            <div className="report-builder">
+                <div className="report-builder-header">
+                    <h1>
+                        <FileText size={24} />
+                        Generate Reports
+                    </h1>
+                </div>
+                <SubscriptionGate 
+                    feature="reports"
+                    showBlur={true}
+                    blurAmount={8}
+                >
+                    <div className="report-builder-preview">
+                        <p>Generate professional reports including scene breakdowns, day-out-of-days, location reports, and more.</p>
+                    </div>
+                </SubscriptionGate>
             </div>
         );
     }

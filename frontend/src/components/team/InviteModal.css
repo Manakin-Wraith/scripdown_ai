@@ -396,3 +396,58 @@
         flex-direction: column;
     }
 }
+
+/* Locked State */
+.invite-locked {
+    padding: 3rem 2rem;
+}
+
+.locked-content {
+    text-align: center;
+}
+
+.locked-icon {
+    width: 72px;
+    height: 72px;
+    background: linear-gradient(135deg, #F59E0B, #D97706);
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+    color: #000000;
+}
+
+.locked-content h3 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 0.75rem 0;
+}
+
+.locked-content p {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    margin: 0 0 1.5rem 0;
+    line-height: 1.5;
+}
+
+.invite-locked .upgrade-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1.5rem;
+    background: linear-gradient(135deg, #F59E0B, #D97706);
+    color: #000000;
+    border: none;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.invite-locked .upgrade-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
