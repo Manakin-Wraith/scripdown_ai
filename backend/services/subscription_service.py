@@ -14,6 +14,9 @@ from db.supabase_client import get_supabase_client
 TRIAL_DURATION_DAYS = 14
 TRIAL_SCRIPT_LIMIT = 1
 
+# Extended trial for early access users
+EARLY_ACCESS_TRIAL_DAYS = 30
+
 # Beta configuration (6 months)
 BETA_DURATION_DAYS = 180
 
@@ -84,8 +87,14 @@ def get_subscription_status(user_id: str) -> Dict[str, Any]:
         script_count = script_result.count or 0
         
         # Calculate trial end date
+        # Use subscription_expires_at if set (for early access users with extended trial)
+        # Otherwise fall back to created_at + default trial days
         trial_ends_at = None
-        if created_at:
+        if expires_at:
+            # Early access or custom trial - use the explicit expiry date
+            trial_ends_at = datetime.fromisoformat(expires_at.replace('Z', '+00:00'))
+        elif created_at:
+            # Default trial - calculate from account creation
             created_date = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
             trial_ends_at = created_date + timedelta(days=TRIAL_DURATION_DAYS)
         
@@ -308,6 +317,93 @@ def get_users_expiring_soon(days: int = 7) -> list:
     except Exception as e:
         print(f"Error getting expiring users: {e}")
         return []
+
+
+def register_early_access_user(email: str) -> Dict[str, Any]:
+    """
+    Register an email as an early access user.
+    Creates an entry in early_access_users table so when they sign up,
+    they get the extended 30-day trial instead of 14 days.
+    
+    Args:
+        email: User's email address
+    
+    Returns:
+        {'success': True} or {'success': False, 'error': str}
+    """
+    try:
+        supabase = get_supabase_client()
+        
+        # Insert or update early access record
+        result = supabase.table('early_access_users') \
+            .upsert({
+                'email': email.lower().strip(),
+                'trial_days': EARLY_ACCESS_TRIAL_DAYS,
+                'invited_at': datetime.now().isoformat(),
+                'status': 'invited'
+            }, on_conflict='email') \
+            .execute()
+        
+        return {'success': True, 'email': email}
+        
+    except Exception as e:
+        print(f"Error registering early access user: {e}")
+        return {'success': False, 'error': str(e)}
+
+
+def get_early_access_trial_days(email: str) -> int:
+    """
+    Check if an email is registered for early access and return their trial days.
+    Returns EARLY_ACCESS_TRIAL_DAYS if found, otherwise TRIAL_DURATION_DAYS.
+    
+    Args:
+        email: User's email address
+    
+    Returns:
+        Number of trial days for this user
+    """
+    try:
+        supabase = get_supabase_client()
+        
+        result = supabase.table('early_access_users') \
+            .select('trial_days') \
+            .eq('email', email.lower().strip()) \
+            .eq('status', 'invited') \
+            .execute()
+        
+        if result.data and len(result.data) > 0:
+            return result.data[0].get('trial_days', EARLY_ACCESS_TRIAL_DAYS)
+        
+        return TRIAL_DURATION_DAYS
+        
+    except Exception as e:
+        print(f"Error checking early access status: {e}")
+        return TRIAL_DURATION_DAYS
+
+
+def mark_early_access_user_signed_up(email: str, user_id: str) -> None:
+    """
+    Mark an early access user as signed up.
+    Called when a user completes registration.
+    
+    Args:
+        email: User's email address
+        user_id: The user's UUID after signup
+    """
+    try:
+        supabase = get_supabase_client()
+        
+        supabase.table('early_access_users') \
+            .update({
+                'status': 'signed_up',
+                'user_id': user_id,
+                'signed_up_at': datetime.now().isoformat()
+            }) \
+            .eq('email', email.lower().strip()) \
+            .execute()
+            
+    except Exception as e:
+        print(f"Error marking early access user as signed up: {e}")
 
 
 def get_trial_users_expiring_soon(days: int = 3) -> list:
