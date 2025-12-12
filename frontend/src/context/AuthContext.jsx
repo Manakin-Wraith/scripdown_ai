@@ -125,6 +125,24 @@ export const AuthProvider = ({ children }) => {
                                         // Clear pending data
                                         localStorage.removeItem('pending_profile_name');
                                         localStorage.removeItem('pending_profile_email');
+                                        
+                                        // Check and apply early access extended trial
+                                        fetch(`${API_BASE_URL}/api/auth/apply-early-access`, {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ 
+                                                email: session.user.email,
+                                                user_id: session.user.id
+                                            })
+                                        })
+                                        .then(res => res.json())
+                                        .then(data => {
+                                            if (data.is_early_access) {
+                                                console.log(`Early access applied: ${data.trial_days} days trial`);
+                                            }
+                                        })
+                                        .catch(err => console.error('Early access check error:', err));
+                                        
                                         // Refresh user data to get the new profile
                                         fetchUserData(session.user.id);
                                     }

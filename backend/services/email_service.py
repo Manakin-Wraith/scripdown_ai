@@ -15,7 +15,7 @@ DEFAULT_FROM_EMAIL = os.getenv('RESEND_FROM_EMAIL', 'onboarding@resend.dev')
 
 # App name for email templates
 APP_NAME = "SlateOne"
-APP_URL = os.getenv('FRONTEND_URL', 'http://localhost:5173')
+APP_URL = os.getenv('FRONTEND_URL', 'https://app.slateone.studio')
 
 
 def is_configured() -> bool:
@@ -385,6 +385,176 @@ def send_welcome_email(
     """
     
     return send_email(to_email, subject, html)
+
+
+# Extended trial duration for early access users
+EARLY_ACCESS_TRIAL_DAYS = 30
+
+
+def send_early_access_invite(
+    to_email: str,
+    first_name: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Send early access invite email to users who requested early access.
+    These users get an extended 30-day trial instead of the standard 14 days.
+    
+    Args:
+        to_email: User's email address
+        first_name: User's first name (optional, will use "there" if not provided)
+    """
+    name = first_name if first_name else 'there'
+    
+    subject = f"🎬 You're in! Early access to {APP_NAME} is here"
+    
+    html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>{subject}</title>
+    </head>
+    <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #0F0F0F; color: #FFFFFF;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #0F0F0F; padding: 40px 20px;">
+            <tr>
+                <td align="center">
+                    <table width="600" cellpadding="0" cellspacing="0" style="background-color: #1A1A1A; border-radius: 16px; overflow: hidden; border: 1px solid #2A2A2A;">
+                        <!-- Header -->
+                        <tr>
+                            <td style="background: linear-gradient(135deg, #F59E0B, #D97706); padding: 32px; text-align: center;">
+                                <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: #000000;">
+                                    🎬 {APP_NAME}
+                                </h1>
+                            </td>
+                        </tr>
+                        
+                        <!-- Early Access Badge -->
+                        <tr>
+                            <td style="background-color: #10B981; padding: 12px; text-align: center;">
+                                <p style="margin: 0; font-size: 14px; font-weight: 700; color: #FFFFFF; text-transform: uppercase; letter-spacing: 1px;">
+                                    ✨ Early Access Invite ✨
+                                </p>
+                            </td>
+                        </tr>
+                        
+                        <!-- Content -->
+                        <tr>
+                            <td style="padding: 40px 32px;">
+                                <h2 style="margin: 0 0 16px 0; font-size: 28px; font-weight: 700; color: #FFFFFF; line-height: 1.3;">
+                                    Hey {name}, you're in! 🎉
+                                </h2>
+                                
+                                <p style="margin: 0 0 24px 0; font-size: 16px; color: #9CA3AF; line-height: 1.6;">
+                                    Thanks for your interest in {APP_NAME}! You've been selected for early access to our AI-powered script breakdown tool.
+                                </p>
+                                
+                                <div style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.2)); border: 1px solid #10B981; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+                                    <p style="margin: 0 0 8px 0; font-size: 14px; color: #10B981; font-weight: 600;">🎁 YOUR EARLY ACCESS PERK</p>
+                                    <p style="margin: 0; font-size: 20px; font-weight: 700; color: #FFFFFF;">
+                                        30 days free trial <span style="color: #6B7280; font-size: 14px; font-weight: 400;">(instead of the usual 14)</span>
+                                    </p>
+                                </div>
+                                
+                                <p style="margin: 0 0 24px 0; font-size: 16px; color: #9CA3AF; line-height: 1.6;">
+                                    Just sign up with this email address and your extended trial will be automatically activated. No credit card required.
+                                </p>
+                                
+                                <a href="{APP_URL}/login" style="display: inline-block; background: linear-gradient(135deg, #F59E0B, #D97706); color: #000000; text-decoration: none; padding: 16px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">
+                                    Get Started →
+                                </a>
+                            </td>
+                        </tr>
+                        
+                        <!-- Trial Features -->
+                        <tr>
+                            <td style="padding: 0 32px 24px 32px;">
+                                <p style="margin: 0 0 12px 0; font-size: 12px; color: #10B981; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">✓ Included in your trial</p>
+                                <table width="100%" cellpadding="0" cellspacing="0">
+                                    <tr>
+                                        <td style="padding: 10px 14px; background-color: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; margin-bottom: 6px;">
+                                            <p style="margin: 0; font-size: 14px; color: #FFFFFF;">📄 Upload 1 script PDF</p>
+                                        </td>
+                                    </tr>
+                                </table>
+                                <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 6px;">
+                                    <tr>
+                                        <td style="padding: 10px 14px; background-color: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px;">
+                                            <p style="margin: 0; font-size: 14px; color: #FFFFFF;">🎬 View all scenes & breakdowns</p>
+                                        </td>
+                                    </tr>
+                                </table>
+                                <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 6px;">
+                                    <tr>
+                                        <td style="padding: 10px 14px; background-color: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px;">
+                                            <p style="margin: 0; font-size: 14px; color: #FFFFFF;">🤖 Basic AI scene analysis</p>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                        
+                        <!-- Beta Features -->
+                        <tr>
+                            <td style="padding: 0 32px 32px 32px;">
+                                <p style="margin: 0 0 12px 0; font-size: 12px; color: #F59E0B; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">🔓 Unlock with Beta (R125)</p>
+                                <table width="100%" cellpadding="0" cellspacing="0">
+                                    <tr>
+                                        <td style="padding: 10px 14px; background-color: #262626; border: 1px solid #3A3A3A; border-radius: 8px; margin-bottom: 6px;">
+                                            <p style="margin: 0; font-size: 14px; color: #9CA3AF;">📄 Unlimited scripts</p>
+                                        </td>
+                                    </tr>
+                                </table>
+                                <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 6px;">
+                                    <tr>
+                                        <td style="padding: 10px 14px; background-color: #262626; border: 1px solid #3A3A3A; border-radius: 8px;">
+                                            <p style="margin: 0; font-size: 14px; color: #9CA3AF;">👥 Team collaboration & invites</p>
+                                        </td>
+                                    </tr>
+                                </table>
+                                <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 6px;">
+                                    <tr>
+                                        <td style="padding: 10px 14px; background-color: #262626; border: 1px solid #3A3A3A; border-radius: 8px;">
+                                            <p style="margin: 0; font-size: 14px; color: #9CA3AF;">📊 Reports, stripboards & PDF export</p>
+                                        </td>
+                                    </tr>
+                                </table>
+                                <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 6px;">
+                                    <tr>
+                                        <td style="padding: 10px 14px; background-color: #262626; border: 1px solid #3A3A3A; border-radius: 8px;">
+                                            <p style="margin: 0; font-size: 14px; color: #9CA3AF;">📝 Department notes & full analysis</p>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                        
+                        <!-- Footer -->
+                        <tr>
+                            <td style="padding: 24px 32px; border-top: 1px solid #2A2A2A; text-align: center;">
+                                <p style="margin: 0 0 8px 0; font-size: 12px; color: #6B7280;">
+                                    Questions? Just reply to this email – we'd love to hear from you!
+                                </p>
+                                <p style="margin: 0; font-size: 12px; color: #6B7280;">
+                                    © {APP_NAME} • AI-Powered Script Breakdown
+                                </p>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </body>
+    </html>
+    """
+    
+    return send_email(
+        to=to_email, 
+        subject=subject, 
+        html=html,
+        from_email="hello@slateone.studio",
+        reply_to="hello@slateone.studio"
+    )
 
 
 def send_expiration_reminder_email(
