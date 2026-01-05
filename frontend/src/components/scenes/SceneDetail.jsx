@@ -11,10 +11,13 @@ import {
     Zap,
     Loader,
     Clock,
-    MessageSquare
+    MessageSquare,
+    Building2,
+    Volume2
 } from 'lucide-react';
 import NoteDrawer from '../notes/NoteDrawer';
 import { getScriptNotes } from '../../services/apiService';
+import { getSceneEighthsDisplay } from '../../utils/sceneUtils';
 import './SceneDetail.css';
 
 // Category to department mapping for counting notes
@@ -24,7 +27,9 @@ const CATEGORY_DEPARTMENTS = {
     wardrobe: ['costume', 'director'],
     makeup_hair: ['makeup_hair', 'director'],
     special_fx: ['vfx', 'director'],
-    vehicles: ['locations', 'director', 'production_design']
+    vehicles: ['locations', 'director', 'production_design'],
+    locations: ['locations', 'production_design', 'director'],
+    sound: ['sound', 'director', 'post_production']
 };
 
 /**
@@ -83,28 +88,8 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
             }).catch(console.error);
         }
     };
-    // Get page info from pageMapping
-    const getPageInfo = () => {
-        if (!scene) return null;
-        if (pageMapping?.scene_pages) {
-            const scenePageData = pageMapping.scene_pages[scene.id] || pageMapping.scene_pages[scene.scene_id];
-            if (scenePageData) {
-                const { page_start, page_end } = scenePageData;
-                if (page_start && page_end && page_end !== page_start) {
-                    return `pp. ${page_start}-${page_end}`;
-                } else if (page_start) {
-                    return `p. ${page_start}`;
-                }
-            }
-        }
-        if (scene.page_start) {
-            return scene.page_end && scene.page_end !== scene.page_start 
-                ? `pp. ${scene.page_start}-${scene.page_end}` 
-                : `p. ${scene.page_start}`;
-        }
-        return null;
-    };
-    const pageInfo = getPageInfo();
+    // Calculate scene length in eighths
+    const eighthsDisplay = scene ? getSceneEighthsDisplay(scene) : null;
     if (!scene) {
         return (
             <div className="scene-detail-empty">
@@ -185,7 +170,7 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
             <div className="detail-header">
                 <div className="scene-header-row">
                     <span className="scene-number-label">Scene {scene.scene_number_original || scene.scene_number}</span>
-                    {pageInfo && <span className="scene-page-badge">{pageInfo}</span>}
+                    {eighthsDisplay && <span className="scene-eighths-badge" title="Scene length in eighths of a page">{eighthsDisplay}</span>}
                 </div>
                 <h2 className="scene-title">
                     <MapPin size={24} className="inline-icon" />
@@ -378,6 +363,64 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
                                 </div>
                             ) : (
                                 <p className="empty-text">No vehicles detected</p>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Locations */}
+                    <div 
+                        className="breakdown-card clickable"
+                        onClick={() => openDrawer('locations', 'Locations')}
+                        title="Click to add notes"
+                    >
+                        <div className="card-header">
+                            <Building2 size={20} className="card-icon" />
+                            <h3>Locations</h3>
+                            {noteCounts.locations > 0 && (
+                                <span className="note-badge">
+                                    <MessageSquare size={12} />
+                                    {noteCounts.locations}
+                                </span>
+                            )}
+                        </div>
+                        <div className="card-content">
+                            {scene.locations && scene.locations.length > 0 ? (
+                                <div className="tag-container">
+                                    {scene.locations.map((loc, idx) => (
+                                        <span key={idx} className="tag location-tag">{loc}</span>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="empty-text">No sub-locations detected</p>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Sound */}
+                    <div 
+                        className="breakdown-card clickable"
+                        onClick={() => openDrawer('sound', 'Sound')}
+                        title="Click to add notes"
+                    >
+                        <div className="card-header">
+                            <Volume2 size={20} className="card-icon" />
+                            <h3>Sound</h3>
+                            {noteCounts.sound > 0 && (
+                                <span className="note-badge">
+                                    <MessageSquare size={12} />
+                                    {noteCounts.sound}
+                                </span>
+                            )}
+                        </div>
+                        <div className="card-content">
+                            {scene.sound && scene.sound.length > 0 ? (
+                                <div className="tag-container">
+                                    {scene.sound.map((s, idx) => (
+                                        <span key={idx} className="tag sound-tag">{s}</span>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="empty-text">No sound cues detected</p>
                             )}
                         </div>
                     </div>

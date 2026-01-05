@@ -1166,4 +1166,32 @@ export const getVersionDetails = async (scriptId, versionId) => {
     }
 };
 
+/**
+ * Download stripboard as PDF
+ * @param {string} scriptId - The script UUID
+ * @param {string} title - The script title for filename
+ * @returns {Promise<void>} Downloads the PDF file
+ */
+export const downloadStripboardPdf = async (scriptId, title = 'Stripboard') => {
+    try {
+        const response = await api.get(`/api/scripts/${scriptId}/stripboard/pdf`, {
+            responseType: 'blob'
+        });
+        
+        // Create download link
+        const blob = new Blob([response.data], { type: 'application/pdf' });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${title.replace(/[^a-zA-Z0-9]/g, '_')}_Stripboard.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error('Error downloading stripboard PDF:', error);
+        throw error;
+    }
+};
+
 export default api;

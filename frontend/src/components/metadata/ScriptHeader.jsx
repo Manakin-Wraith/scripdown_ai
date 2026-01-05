@@ -8,20 +8,15 @@ import {
     Copy,
     Check,
     FileText,
-    Download,
-    Share2,
-    ClipboardList,
     List,
-    Users,
-    Crown,
-    Shield,
-    Settings2,
-    Lock,
-    Unlock
+    Clock
 } from 'lucide-react';
-import TeamDrawer from '../team/TeamDrawer';
-import LockScriptModal from '../scripts/LockScriptModal';
 import './ScriptHeader.css';
+
+// Phase 1: Simplified header - deferred features commented out
+// import TeamDrawer from '../team/TeamDrawer';
+// import LockScriptModal from '../scripts/LockScriptModal';
+// import { Users, Crown, Shield, Settings2, Lock, Unlock, ClipboardList, Download, Share2 } from 'lucide-react';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -30,45 +25,13 @@ const ScriptHeader = ({ metadata, sceneCount = 0 }) => {
     const { scriptId } = useParams();
     const [infoOpen, setInfoOpen] = useState(false);
     const [copiedField, setCopiedField] = useState(null);
-    const [teamDrawerOpen, setTeamDrawerOpen] = useState(false);
-    const [lockModalOpen, setLockModalOpen] = useState(false);
-    const [membership, setMembership] = useState(null);
-    const [currentUserId, setCurrentUserId] = useState(null);
-    const [scriptData, setScriptData] = useState(null);
     const popoverRef = useRef(null);
 
-    // Fetch user's membership for this script
-    useEffect(() => {
-        const fetchMembership = async () => {
-            if (!scriptId) return;
-            
-            try {
-                const { supabase } = await import('../../lib/supabase');
-                const { data: { session } } = await supabase.auth.getSession();
-                
-                if (!session?.access_token) return;
-                
-                // Get current user ID from session
-                const userId = session.user?.id;
-                setCurrentUserId(userId);
-                
-                const response = await fetch(`${API_BASE_URL}/api/scripts/${scriptId}/my-membership`, {
-                    headers: {
-                        'Authorization': `Bearer ${session.access_token}`
-                    }
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    setMembership(data.membership);
-                }
-            } catch (error) {
-                console.error('Error fetching membership:', error);
-            }
-        };
-        
-        fetchMembership();
-    }, [scriptId]);
+    // Phase 1: Membership/team features deferred
+    // const [teamDrawerOpen, setTeamDrawerOpen] = useState(false);
+    // const [lockModalOpen, setLockModalOpen] = useState(false);
+    // const [membership, setMembership] = useState(null);
+    // const [currentUserId, setCurrentUserId] = useState(null);
 
     // Close popover when clicking outside
     useEffect(() => {
@@ -107,30 +70,8 @@ const ScriptHeader = ({ metadata, sceneCount = 0 }) => {
                 </span>
             )}
             <span className="scene-count-badge">{sceneCount} Scenes</span>
-            {/* Department/Role Badge */}
-            {membership && (
-                <span 
-                    className="membership-badge"
-                    style={{ 
-                        '--badge-color': membership.department_color || '#6366F1'
-                    }}
-                >
-                    {membership.is_owner ? (
-                        <>
-                            <Crown size={14} />
-                            <span>Owner</span>
-                        </>
-                    ) : (
-                        <>
-                            <Shield size={14} />
-                            <span>{membership.department}</span>
-                            {membership.role === 'admin' && (
-                                <span className="role-tag">Admin</span>
-                            )}
-                        </>
-                    )}
-                </span>
-            )}
+            
+            {/* Phase 1: Membership badge deferred */}
             
             <div className="header-spacer"></div>
 
@@ -189,44 +130,9 @@ const ScriptHeader = ({ metadata, sceneCount = 0 }) => {
                     </div>
                 )}
 
-                {/* Lock Status Badge */}
-                {metadata?.is_locked && (
-                    <div className="lock-status-badge">
-                        <Lock size={14} />
-                        <span>{metadata.current_revision_color || 'LOCKED'}</span>
-                    </div>
-                )}
-
-                {/* Action Buttons */}
+                {/* Phase 1: Only Stripboard button - other actions deferred */}
                 <button 
-                    className="header-action-btn"
-                    title="Manage Scenes"
-                    onClick={() => navigate(`/scripts/${scriptId}/manage`)}
-                >
-                    <Settings2 size={18} />
-                    <span>Manage</span>
-                </button>
-
-                <button 
-                    className={`header-action-btn ${metadata?.is_locked ? 'locked' : ''}`}
-                    title={metadata?.is_locked ? 'Unlock Script' : 'Lock Script'}
-                    onClick={() => setLockModalOpen(true)}
-                >
-                    {metadata?.is_locked ? <Unlock size={18} /> : <Lock size={18} />}
-                    <span>{metadata?.is_locked ? 'Unlock' : 'Lock'}</span>
-                </button>
-
-                <button 
-                    className="header-action-btn"
-                    title="Manage Team Members"
-                    onClick={() => setTeamDrawerOpen(true)}
-                >
-                    <Users size={18} />
-                    <span>Team</span>
-                </button>
-
-                <button 
-                    className="header-action-btn" 
+                    className="header-action-btn primary" 
                     title="One-Liner / Stripboard"
                     onClick={() => navigate(`/scripts/${scriptId}/stripboard`)}
                 >
@@ -234,49 +140,27 @@ const ScriptHeader = ({ metadata, sceneCount = 0 }) => {
                     <span>Stripboard</span>
                 </button>
 
-                {metadata?.is_locked && (
-                    <button 
-                        className="header-action-btn shooting-script" 
-                        title="View Shooting Script"
-                        onClick={() => navigate(`/scripts/${scriptId}/shooting-script`)}
-                    >
-                        <FileText size={18} />
-                        <span>Shooting Script</span>
-                    </button>
-                )}
-
-                <button 
-                    className="header-action-btn primary" 
-                    title="Generate Reports"
-                    onClick={() => navigate(`/scripts/${scriptId}/reports`)}
-                >
-                    <ClipboardList size={18} />
-                    <span>Reports</span>
-                </button>
+                {/* Phase 2+: Coming Soon buttons - hidden for now, CSS infrastructure preserved
+                <div className="coming-soon-btn-wrapper">
+                    <div className="header-action-btn coming-soon">
+                        <Clock size={16} />
+                        <span>Reports</span>
+                        <span className="soon-badge">SOON</span>
+                    </div>
+                    <div className="coming-soon-tooltip">Coming in Phase 2</div>
+                </div>
+                <div className="coming-soon-btn-wrapper">
+                    <div className="header-action-btn coming-soon">
+                        <Clock size={16} />
+                        <span>Team</span>
+                        <span className="soon-badge">SOON</span>
+                    </div>
+                    <div className="coming-soon-tooltip">Coming in Phase 3</div>
+                </div>
+                */}
             </div>
 
-            {/* Team Drawer */}
-            <TeamDrawer
-                isOpen={teamDrawerOpen}
-                onClose={() => setTeamDrawerOpen(false)}
-                scriptId={scriptId}
-                scriptTitle={scriptName}
-                currentUserId={currentUserId}
-                isOwner={membership?.is_owner || false}
-            />
-            
-            {/* Lock Script Modal */}
-            <LockScriptModal
-                isOpen={lockModalOpen}
-                onClose={() => setLockModalOpen(false)}
-                script={{ 
-                    id: scriptId, 
-                    is_locked: metadata?.is_locked,
-                    current_revision_color: metadata?.current_revision_color,
-                    locked_at: metadata?.locked_at
-                }}
-                onSuccess={() => window.location.reload()}
-            />
+            {/* Phase 1: Team Drawer and Lock Modal deferred */}
         </div>
     );
 };

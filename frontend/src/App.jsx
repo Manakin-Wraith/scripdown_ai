@@ -9,23 +9,25 @@ import MainLayout from './components/layout/MainLayout';
 import ScriptUpload from './components/script/ScriptUpload';
 import SceneViewer from './components/scenes/SceneViewer';
 import ScriptLibrary from './components/scripts/ScriptLibrary';
-import CharacterProfile from './components/characters/CharacterProfile';
-import ScriptEditorPage from './pages/ScriptEditorPage';
-import SceneManager from './components/scenes/SceneManager';
-import ShootingScriptPreview from './components/scripts/ShootingScriptPreview';
-import ReportBuilder from './components/reports/ReportBuilder';
 import Stripboard from './components/reports/Stripboard';
-import SharedReportView from './components/reports/SharedReportView';
-import DepartmentWorkspace from './components/workspace/DepartmentWorkspace';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import LoginPage from './pages/LoginPage';
 import ProfilePage from './pages/ProfilePage';
-import SettingsPage from './pages/SettingsPage';
-import InvitePage from './pages/InvitePage';
-import PaymentSuccessPage from './pages/PaymentSuccessPage';
 import AuthCallbackPage from './pages/AuthCallbackPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import './App.css';
+
+// Phase 2+ imports (deferred)
+// import CharacterProfile from './components/characters/CharacterProfile';
+// import ScriptEditorPage from './pages/ScriptEditorPage';
+// import SceneManager from './components/scenes/SceneManager';
+// import ShootingScriptPreview from './components/scripts/ShootingScriptPreview';
+// import ReportBuilder from './components/reports/ReportBuilder';
+// import SharedReportView from './components/reports/SharedReportView';
+// import DepartmentWorkspace from './components/workspace/DepartmentWorkspace';
+// import SettingsPage from './pages/SettingsPage';
+// import InvitePage from './pages/InvitePage';
+// import PaymentSuccessPage from './pages/PaymentSuccessPage';
 
 function App() {
   return (
@@ -47,18 +49,18 @@ function App() {
                     <Route path="upload" element={<ScriptUpload />} />
                     <Route path="scripts" element={<ScriptLibrary />} />
                     <Route path="scenes/:scriptId" element={<SceneViewer />} />
-                    {/* Department Workspace - accessible from /scenes path */}
-                    <Route path="scenes/:scriptId/workspace/:departmentCode" element={<DepartmentWorkspace />} />
-                    <Route path="scenes/:scriptId/workspace" element={<DepartmentWorkspace />} />
-                    <Route path="scripts/:scriptId/edit" element={<ScriptEditorPage />} />
-                    <Route path="scripts/:scriptId/manage" element={<SceneManager />} />
-                    <Route path="scripts/:scriptId/shooting-script" element={<ShootingScriptPreview />} />
-                    <Route path="scripts/:scriptId/characters/:characterName" element={<CharacterProfile />} />
-                    <Route path="scripts/:scriptId/reports" element={<ReportBuilder />} />
                     <Route path="scripts/:scriptId/stripboard" element={<Stripboard />} />
-                    {/* Department Workspace - accessible from /scripts path */}
-                    <Route path="scripts/:scriptId/workspace/:departmentCode" element={<DepartmentWorkspace />} />
-                    <Route path="scripts/:scriptId/workspace" element={<DepartmentWorkspace />} />
+                    
+                    {/* Phase 2+ routes (deferred - commented out) */}
+                    {/* <Route path="scenes/:scriptId/workspace/:departmentCode" element={<DepartmentWorkspace />} /> */}
+                    {/* <Route path="scenes/:scriptId/workspace" element={<DepartmentWorkspace />} /> */}
+                    {/* <Route path="scripts/:scriptId/edit" element={<ScriptEditorPage />} /> */}
+                    {/* <Route path="scripts/:scriptId/manage" element={<SceneManager />} /> */}
+                    {/* <Route path="scripts/:scriptId/shooting-script" element={<ShootingScriptPreview />} /> */}
+                    {/* <Route path="scripts/:scriptId/characters/:characterName" element={<CharacterProfile />} /> */}
+                    {/* <Route path="scripts/:scriptId/reports" element={<ReportBuilder />} /> */}
+                    {/* <Route path="scripts/:scriptId/workspace/:departmentCode" element={<DepartmentWorkspace />} /> */}
+                    {/* <Route path="scripts/:scriptId/workspace" element={<DepartmentWorkspace />} /> */}
                   </Route>
                   
                   {/* Protected routes outside MainLayout */}
@@ -67,19 +69,19 @@ function App() {
                       <ProfilePage />
                     </ProtectedRoute>
                   } />
-                  <Route path="settings" element={
-                    <ProtectedRoute>
-                      <SettingsPage />
-                    </ProtectedRoute>
-                  } />
+                  
+                  {/* Phase 2+ routes (deferred) */}
+                  {/* <Route path="settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} /> */}
                   
                   {/* Public routes (no authentication required) */}
                   <Route path="login" element={<LoginPage />} />
-                  <Route path="invite/:token" element={<InvitePage />} />
-                  <Route path="shared/:shareToken" element={<SharedReportView />} />
                   <Route path="reset-password" element={<ResetPasswordPage />} />
-                  <Route path="payment-success" element={<PaymentSuccessPage />} />
                   <Route path="auth/callback" element={<AuthCallbackPage />} />
+                  
+                  {/* Phase 2+ public routes (deferred) */}
+                  {/* <Route path="invite/:token" element={<InvitePage />} /> */}
+                  {/* <Route path="shared/:shareToken" element={<SharedReportView />} /> */}
+                  {/* <Route path="payment-success" element={<PaymentSuccessPage />} /> */}
                 </Routes>
               </Router>
             </ScriptProvider>

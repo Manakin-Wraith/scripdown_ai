@@ -24,6 +24,7 @@
     "@supabase/supabase-js": "^2.45.0",
     "axios": "^1.6.0",
     "fountain-js": "^1.2.4",
+    "html2pdf.js": "^0.12.1",
     "lucide-react": "^0.554.0",
     "pdfjs-dist": "^3.11.174",
     "react": "^18.3.1",

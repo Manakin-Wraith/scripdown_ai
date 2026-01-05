@@ -916,5 +916,391 @@ def get_stats():
         return jsonify({'error': str(e)}), 500
 
 
+@script_bp.route('/scripts/<script_id>/stripboard/pdf', methods=['GET'])
+def download_stripboard_pdf(script_id):
+    """
+    Generate and download a Stripboard PDF for a script.
+    Includes script title/metadata header.
+    """
+    try:
+        from db.supabase_client import db
+        
+        # Get script metadata
+        script = db.get_script(script_id)
+        if not script:
+            return jsonify({'error': 'Script not found'}), 404
+        
+        # Get scenes
+        scenes = db.get_scenes(script_id)
+        if not scenes:
+            return jsonify({'error': 'No scenes found'}), 404
+        
+        # Sort scenes by scene_order or scene_number
+        scenes.sort(key=lambda s: s.get('scene_order', 0) or int(s.get('scene_number', '0') or 0))
+        
+        # Generate HTML for PDF
+        title = script.get('title') or script.get('script_name') or 'Untitled Script'
+        writer = script.get('writer_name') or ''
+        draft_version = script.get('draft_version') or ''
+        draft_date = script.get('draft_date') or ''
+        genre = script.get('genre') or ''
+        
+        # Format generation date
+        from datetime import datetime
+        generated_date = datetime.now().strftime('%b %d, %Y')
+        
+        # Calculate stats
+        int_count = sum(1 for s in scenes if s.get('int_ext') == 'INT')
+        ext_count = sum(1 for s in scenes if s.get('int_ext') == 'EXT')
+        day_count = sum(1 for s in scenes if s.get('time_of_day') == 'DAY')
+        night_count = sum(1 for s in scenes if s.get('time_of_day') == 'NIGHT')
+        
+        # Calculate unique characters
+        all_chars = set()
+        for s in scenes:
+            chars = s.get('characters', [])
+            if isinstance(chars, list):
+                all_chars.update(chars)
+        total_characters = len(all_chars)
+        
+        # Calculate total eighths (scene length)
+        def calculate_eighths(scene_text):
+            if not scene_text or not isinstance(scene_text, str):
+                return 1
+            words = scene_text.strip().split()
+            word_count = len(words)
+            eighths = max(1, (word_count + 30) // 31)  # ~31.25 words per eighth
+            return eighths
+        
+        def format_eighths(eighths):
+            pages = eighths // 8
+            remainder = eighths % 8
+            if pages == 0:
+                return f"{remainder}/8"
+            elif remainder == 0:
+                return str(pages)
+            else:
+                return f"{pages} {remainder}/8"
+        
+        total_eighths = sum(calculate_eighths(s.get('scene_text', '')) for s in scenes)
+        total_eighths_display = format_eighths(total_eighths)
+        
+        # Build HTML
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>{title} - Stripboard</title>
+            <style>
+                @page {{
+                    size: A4 landscape;
+                    margin: 1cm;
+                }}
+                body {{
+                    font-family: 'Helvetica Neue', Arial, sans-serif;
+                    font-size: 10pt;
+                    line-height: 1.4;
+                    color: #1a1a1a;
+                    margin: 0;
+                    padding: 0;
+                }}
+                /* Professional Header */
+                .header-container {{
+                    margin-bottom: 15px;
+                    border: 1px solid #e2e8f0;
+                    border-radius: 6px;
+                    overflow: hidden;
+                }}
+                .header-top {{
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 12px 20px;
+                    background: linear-gradient(135deg, #1e1e2e 0%, #2d3748 100%);
+                    color: white;
+                }}
+                .brand {{
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                }}
+                .brand-logo {{
+                    font-size: 16pt;
+                    font-weight: 700;
+                    color: #f59e0b;
+                    letter-spacing: -0.5px;
+                }}
+                .brand-tagline {{
+                    font-size: 8pt;
+                    color: #a0aec0;
+                    text-transform: uppercase;
+                    letter-spacing: 1px;
+                }}
+                .confidential {{
+                    font-size: 8pt;
+                    color: #fc8181;
+                    text-transform: uppercase;
+                    letter-spacing: 1px;
+                    font-weight: 600;
+                    padding: 4px 10px;
+                    border: 1px solid #fc8181;
+                    border-radius: 3px;
+                }}
+                .header-main {{
+                    padding: 15px 20px;
+                    background: #f8fafc;
+                    border-bottom: 1px solid #e2e8f0;
+                }}
+                .title-row {{
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: flex-start;
+                }}
+                .title-section h1 {{
+                    font-size: 20pt;
+                    margin: 0 0 4px 0;
+                    color: #1a202c;
+                    font-weight: 700;
+                }}
+                .title-section .subtitle {{
+                    font-size: 11pt;
+                    color: #718096;
+                    margin: 0;
+                }}
+                .meta-section {{
+                    text-align: right;
+                    font-size: 9pt;
+                    color: #4a5568;
+                }}
+                .meta-section .meta-row {{
+                    margin-bottom: 3px;
+                }}
+                .meta-section .label {{
+                    color: #a0aec0;
+                }}
+                .meta-section .value {{
+                    font-weight: 500;
+                    color: #2d3748;
+                }}
+                .stats {{
+                    display: flex;
+                    justify-content: flex-start;
+                    gap: 20px;
+                    padding: 10px 20px;
+                    background: white;
+                    font-size: 9pt;
+                    color: #555;
+                    flex-wrap: wrap;
+                }}
+                .stats span {{
+                    padding: 4px 12px;
+                    background: #edf2f7;
+                    border-radius: 4px;
+                    border: 1px solid #e2e8f0;
+                }}
+                .stats .highlight {{
+                    background: #fef3c7;
+                    border-color: #f59e0b;
+                    color: #92400e;
+                    font-weight: 600;
+                }}
+                table {{
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-top: 10px;
+                }}
+                th {{
+                    background: #2d3748;
+                    color: white;
+                    padding: 8px 6px;
+                    text-align: left;
+                    font-size: 9pt;
+                    font-weight: 600;
+                }}
+                td {{
+                    padding: 6px;
+                    border-bottom: 1px solid #e2e8f0;
+                    font-size: 9pt;
+                }}
+                tr:nth-child(even) {{
+                    background: #f7fafc;
+                }}
+                .scene-num {{
+                    font-weight: 600;
+                    text-align: center;
+                    width: 40px;
+                }}
+                .ie-badge {{
+                    display: inline-block;
+                    padding: 2px 6px;
+                    border-radius: 3px;
+                    font-size: 8pt;
+                    font-weight: 600;
+                }}
+                .ie-int {{
+                    background: #ebf8ff;
+                    color: #2b6cb0;
+                }}
+                .ie-ext {{
+                    background: #f0fff4;
+                    color: #276749;
+                }}
+                .time-badge {{
+                    display: inline-block;
+                    padding: 2px 6px;
+                    border-radius: 3px;
+                    font-size: 8pt;
+                }}
+                .time-day {{
+                    background: #fefcbf;
+                    color: #975a16;
+                }}
+                .time-night {{
+                    background: #e2e8f0;
+                    color: #4a5568;
+                }}
+                .setting {{
+                    max-width: 200px;
+                }}
+                .cast {{
+                    max-width: 250px;
+                    font-size: 8pt;
+                    color: #666;
+                }}
+                .footer {{
+                    margin-top: 20px;
+                    text-align: center;
+                    font-size: 8pt;
+                    color: #999;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="header-container">
+                <!-- Top Brand Bar -->
+                <div class="header-top">
+                    <div class="brand">
+                        <span class="brand-logo">SlateOne</span>
+                        <span class="brand-tagline">Script Breakdown</span>
+                    </div>
+                    <span class="confidential">Confidential</span>
+                </div>
+                
+                <!-- Main Header -->
+                <div class="header-main">
+                    <div class="title-row">
+                        <div class="title-section">
+                            <h1>{title}</h1>
+                            <p class="subtitle">One-Liner / Stripboard</p>
+                        </div>
+                        <div class="meta-section">
+                            {"<div class='meta-row'><span class='label'>Written by:</span> <span class='value'>" + writer + "</span></div>" if writer else ""}
+                            {"<div class='meta-row'><span class='label'>Genre:</span> <span class='value'>" + genre + "</span></div>" if genre else ""}
+                            {"<div class='meta-row'><span class='label'>Draft:</span> <span class='value'>" + draft_version + "</span></div>" if draft_version else ""}
+                            <div class="meta-row"><span class="label">Generated:</span> <span class="value">{generated_date}</span></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Stats Bar -->
+                <div class="stats">
+                    <span><strong>{len(scenes)}</strong> Scenes</span>
+                    <span><strong>{int_count}</strong> INT</span>
+                    <span><strong>{ext_count}</strong> EXT</span>
+                    <span><strong>{day_count}</strong> DAY</span>
+                    <span><strong>{night_count}</strong> NIGHT</span>
+                    <span><strong>{total_characters}</strong> Cast</span>
+                    <span class="highlight"><strong>{total_eighths_display}</strong> Pages</span>
+                </div>
+            </div>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 40px;">#</th>
+                        <th style="width: 50px;">I/E</th>
+                        <th>Setting</th>
+                        <th style="width: 60px;">D/N</th>
+                        <th>Cast</th>
+                        <th style="width: 50px;">pg</th>
+                    </tr>
+                </thead>
+                <tbody>
+        """
+        
+        for scene in scenes:
+            scene_num = scene.get('scene_number', '-')
+            int_ext = scene.get('int_ext', '-')
+            setting = scene.get('setting', '-')
+            time_of_day = scene.get('time_of_day', '-')
+            characters = scene.get('characters', [])
+            scene_text = scene.get('scene_text', '')
+            
+            # Format characters
+            if isinstance(characters, list):
+                char_display = ', '.join(characters[:4])
+                if len(characters) > 4:
+                    char_display += f' +{len(characters) - 4}'
+            else:
+                char_display = str(characters) if characters else '-'
+            
+            # Calculate eighths for this scene
+            scene_eighths = calculate_eighths(scene_text)
+            eighths_display = format_eighths(scene_eighths)
+            
+            # CSS classes
+            ie_class = 'ie-int' if int_ext == 'INT' else 'ie-ext'
+            time_class = 'time-day' if time_of_day == 'DAY' else 'time-night'
+            
+            html_content += f"""
+                    <tr>
+                        <td class="scene-num">{scene_num}</td>
+                        <td><span class="ie-badge {ie_class}">{int_ext}</span></td>
+                        <td class="setting">{setting}</td>
+                        <td><span class="time-badge {time_class}">{time_of_day}</span></td>
+                        <td class="cast">{char_display}</td>
+                        <td>{eighths_display}</td>
+                    </tr>
+            """
+        
+        html_content += """
+                </tbody>
+            </table>
+            
+            <div class="footer">
+                Generated by SlateOne
+            </div>
+        </body>
+        </html>
+        """
+        
+        # Generate PDF using weasyprint
+        try:
+            from weasyprint import HTML
+            pdf_bytes = HTML(string=html_content).write_pdf()
+        except ImportError:
+            return jsonify({
+                'error': 'PDF generation not available. Install weasyprint.'
+            }), 501
+        
+        # Create filename
+        safe_title = ''.join(c if c.isalnum() or c in ' -_' else '_' for c in title)
+        filename = f"{safe_title}_Stripboard.pdf"
+        
+        return Response(
+            pdf_bytes,
+            mimetype='application/pdf',
+            headers={
+                'Content-Disposition': f'attachment; filename="{filename}"',
+                'Content-Type': 'application/pdf'
+            }
+        )
+        
+    except Exception as e:
+        print(f"Error generating stripboard PDF: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
 
 

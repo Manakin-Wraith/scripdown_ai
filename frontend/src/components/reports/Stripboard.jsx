@@ -1,13 +1,17 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
-    List, Sun, Moon, Home, Building2, Users, 
+    List, Sun, Moon, Home, Building2, Users, MapPin,
     GripVertical, Printer, Download, ArrowLeft,
-    Loader, Filter, SortAsc, SortDesc
+    Loader, Filter, SortAsc, SortDesc,
+    Maximize2, Minimize2, Package, Shirt, Sparkles, Car, Volume2, Cloud,
+    CheckCircle, AlertCircle, Clock, FileText, MessageSquare
 } from 'lucide-react';
+import html2pdf from 'html2pdf.js';
 import { useToast } from '../../context/ToastContext';
 import { useScript } from '../../context/ScriptContext';
-import { getScenes, getScriptMetadata, previewReport } from '../../services/apiService';
+import { getScenes, getScriptMetadata } from '../../services/apiService';
+import { getSceneEighthsDisplay, getSceneEighths, formatEighths } from '../../utils/sceneUtils';
 import './Stripboard.css';
 
 const Stripboard = () => {
@@ -15,14 +19,55 @@ const Stripboard = () => {
     const navigate = useNavigate();
     const toast = useToast();
     const { setScript } = useScript();
+    const pdfContentRef = useRef(null);
     
     const [scenes, setScenes] = useState([]);
     const [metadata, setMetadata] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [downloading, setDownloading] = useState(false);
     const [sortBy, setSortBy] = useState('scene_order');
     const [sortDir, setSortDir] = useState('asc');
     const [filterIntExt, setFilterIntExt] = useState('all');
     const [filterTimeOfDay, setFilterTimeOfDay] = useState('all');
+    const [filterAnalysisStatus, setFilterAnalysisStatus] = useState('all');
+    const [expandedRows, setExpandedRows] = useState(new Set());
+
+    // Helper function to determine scene analysis status
+    const getSceneAnalysisStatus = (scene) => {
+        const hasCharacters = scene.characters && scene.characters.length > 0;
+        const hasProps = scene.props && scene.props.length > 0;
+        const hasWardrobe = scene.wardrobe && scene.wardrobe.length > 0;
+        const hasVehicles = scene.vehicles && scene.vehicles.length > 0;
+        const hasSpecialFx = scene.special_fx && scene.special_fx.length > 0;
+        const hasSound = scene.sound && scene.sound.length > 0;
+        const hasAtmosphere = scene.atmosphere && scene.atmosphere.trim().length > 0;
+        
+        const filledCategories = [hasCharacters, hasProps, hasWardrobe, hasVehicles, hasSpecialFx, hasSound, hasAtmosphere].filter(Boolean).length;
+        
+        if (filledCategories === 0) {
+            return 'pending'; // Not analyzed
+        } else if (filledCategories >= 3) {
+            return 'analyzed'; // Well analyzed (3+ categories)
+        } else {
+            return 'incomplete'; // Partially analyzed
+        }
+    };
+
+    // Helper to get notes for a scene (placeholder - would need API integration)
+    const getSceneNotes = (scene) => {
+        // For now, return empty - this would be populated from scene_notes table
+        return scene.notes || [];
+    };
+
+    // Helper to get notes count by department
+    const getNotesByDepartment = (notes) => {
+        const byDept = {};
+        (notes || []).forEach(note => {
+            const dept = note.department || 'general';
+            byDept[dept] = (byDept[dept] || 0) + 1;
+        });
+        return byDept;
+    };
 
     useEffect(() => {
         const fetchData = async () => {
@@ -66,6 +111,9 @@ const Stripboard = () => {
         if (filterTimeOfDay !== 'all') {
             result = result.filter(s => s.time_of_day === filterTimeOfDay);
         }
+        if (filterAnalysisStatus !== 'all') {
+            result = result.filter(s => getSceneAnalysisStatus(s) === filterAnalysisStatus);
+        }
         
         // Apply sorting
         result.sort((a, b) => {
@@ -98,7 +146,7 @@ const Stripboard = () => {
         });
         
         return result;
-    }, [scenes, filterIntExt, filterTimeOfDay, sortBy, sortDir]);
+    }, [scenes, filterIntExt, filterTimeOfDay, filterAnalysisStatus, sortBy, sortDir]);
 
     // Calculate stats
     const stats = useMemo(() => {
@@ -107,11 +155,89 @@ const Stripboard = () => {
         const dayCount = scenes.filter(s => s.time_of_day === 'DAY').length;
         const nightCount = scenes.filter(s => s.time_of_day === 'NIGHT').length;
         
-        return { intCount, extCount, dayCount, nightCount };
+        // Calculate total eighths
+        const totalEighths = scenes.reduce((sum, scene) => sum + getSceneEighths(scene), 0);
+        const totalEighthsDisplay = formatEighths(totalEighths);
+        
+        // Calculate unique characters count
+        const allChars = new Set();
+        scenes.forEach(scene => {
+            (scene.characters || []).forEach(char => allChars.add(char));
+        });
+        const totalCharacters = allChars.size;
+        
+        // Calculate unique locations count
+        const allLocations = new Set();
+        scenes.forEach(scene => {
+            if (scene.setting) {
+                allLocations.add(scene.setting.toUpperCase().trim());
+            }
+        });
+        const totalLocations = allLocations.size;
+        
+        return { intCount, extCount, dayCount, nightCount, totalEighths, totalEighthsDisplay, totalCharacters, totalLocations };
     }, [scenes]);
 
     const handlePrint = () => {
         window.print();
+    };
+
+    const handleDownloadPdf = async () => {
+        setDownloading(true);
+        try {
+            // Use client-side PDF generation with html2pdf.js
+            const element = pdfContentRef.current;
+            if (!element) {
+                throw new Error('PDF content not found');
+            }
+            
+            // Temporarily show the PDF header for export
+            const pdfHeader = element.querySelector('.pdf-header');
+            if (pdfHeader) {
+                pdfHeader.style.display = 'block';
+            }
+            
+            const title = metadata?.title || 'Stripboard';
+            const safeTitle = title.replace(/[^a-zA-Z0-9]/g, '_');
+            
+            const opt = {
+                margin: [10, 10, 10, 10],
+                filename: `${safeTitle}_Stripboard.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { 
+                    scale: 2,
+                    useCORS: true,
+                    letterRendering: true,
+                    backgroundColor: '#ffffff'
+                },
+                jsPDF: { 
+                    unit: 'mm', 
+                    format: 'a4', 
+                    orientation: 'landscape' 
+                },
+                pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+            };
+            
+            await html2pdf().set(opt).from(element).save();
+            
+            // Hide the PDF header again
+            if (pdfHeader) {
+                pdfHeader.style.display = 'none';
+            }
+            
+            toast.success('Download Complete', 'Your PDF has been downloaded.');
+        } catch (err) {
+            console.error('PDF generation error:', err);
+            // Make sure to hide header on error too
+            const element = pdfContentRef.current;
+            const pdfHeader = element?.querySelector('.pdf-header');
+            if (pdfHeader) {
+                pdfHeader.style.display = 'none';
+            }
+            toast.error('Download Failed', err.message || 'Could not generate PDF.');
+        } finally {
+            setDownloading(false);
+        }
     };
 
     const toggleSort = (field) => {
@@ -123,6 +249,26 @@ const Stripboard = () => {
         }
     };
 
+    const toggleRowExpand = (sceneId) => {
+        setExpandedRows(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(sceneId)) {
+                newSet.delete(sceneId);
+            } else {
+                newSet.add(sceneId);
+            }
+            return newSet;
+        });
+    };
+
+    const expandAll = () => {
+        setExpandedRows(new Set(filteredScenes.map(s => s.id)));
+    };
+
+    const collapseAll = () => {
+        setExpandedRows(new Set());
+    };
+
     if (loading) {
         return (
             <div className="stripboard-loading">
@@ -132,8 +278,66 @@ const Stripboard = () => {
         );
     }
 
+    // Format current date for print header
+    const printDate = new Date().toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric', 
+        year: 'numeric' 
+    });
+
     return (
         <div className="stripboard">
+            {/* Print-only Professional Header */}
+            <div className="print-header">
+                <div className="print-header-top">
+                    <div className="print-brand">
+                        <span className="print-brand-logo">SlateOne</span>
+                        <span className="print-brand-tagline">Script Breakdown</span>
+                    </div>
+                    <span className="print-confidential">Confidential</span>
+                </div>
+                <div className="print-header-main">
+                    <div className="print-title-section">
+                        <h1 className="print-title">{metadata?.title || 'Untitled Script'}</h1>
+                        <p className="print-subtitle">One-Liner / Stripboard</p>
+                    </div>
+                    <div className="print-meta-section">
+                        {metadata?.writer_name && (
+                            <div className="print-meta-row">
+                                <span className="print-meta-label">Written by:</span>
+                                <span className="print-meta-value">{metadata.writer_name}</span>
+                            </div>
+                        )}
+                        {metadata?.genre && (
+                            <div className="print-meta-row">
+                                <span className="print-meta-label">Genre:</span>
+                                <span className="print-meta-value">{metadata.genre}</span>
+                            </div>
+                        )}
+                        {metadata?.draft_version && (
+                            <div className="print-meta-row">
+                                <span className="print-meta-label">Draft:</span>
+                                <span className="print-meta-value">{metadata.draft_version}</span>
+                            </div>
+                        )}
+                        <div className="print-meta-row">
+                            <span className="print-meta-label">Generated:</span>
+                            <span className="print-meta-value">{printDate}</span>
+                        </div>
+                    </div>
+                </div>
+                <div className="print-stats">
+                    <span><strong>{scenes.length}</strong> Scenes</span>
+                    <span><strong>{stats.intCount}</strong> INT</span>
+                    <span><strong>{stats.extCount}</strong> EXT</span>
+                    <span><strong>{stats.dayCount}</strong> DAY</span>
+                    <span><strong>{stats.nightCount}</strong> NIGHT</span>
+                    <span><strong>{stats.totalCharacters}</strong> Cast</span>
+                    <span><strong>{stats.totalLocations}</strong> Locations</span>
+                    <span className="print-stats-highlight"><strong>{stats.totalEighthsDisplay}</strong> Pages</span>
+                </div>
+            </div>
+
             {/* Header */}
             <div className="stripboard-header">
                 <h1>
@@ -141,6 +345,22 @@ const Stripboard = () => {
                     One-Liner / Stripboard
                 </h1>
                 <div className="header-actions">
+                    <button 
+                        className="action-btn secondary"
+                        onClick={expandedRows.size > 0 ? collapseAll : expandAll}
+                        title={expandedRows.size > 0 ? 'Collapse All' : 'Expand All'}
+                    >
+                        {expandedRows.size > 0 ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+                        {expandedRows.size > 0 ? 'Collapse All' : 'Expand All'}
+                    </button>
+                    <button 
+                        className="action-btn" 
+                        onClick={handleDownloadPdf}
+                        disabled={downloading}
+                    >
+                        {downloading ? <Loader size={16} className="spin" /> : <Download size={16} />}
+                        {downloading ? 'Generating...' : 'Download PDF'}
+                    </button>
                     <button className="action-btn" onClick={handlePrint}>
                         <Printer size={16} />
                         Print
@@ -170,6 +390,18 @@ const Stripboard = () => {
                     <Moon size={14} />
                     <span className="stat-value">{stats.nightCount} NIGHT</span>
                 </div>
+                <div className="stat-group">
+                    <Users size={14} />
+                    <span className="stat-value">{stats.totalCharacters} Cast</span>
+                </div>
+                <div className="stat-group">
+                    <MapPin size={14} />
+                    <span className="stat-value">{stats.totalLocations} Locations</span>
+                </div>
+                <div className="stat-group stat-eighths">
+                    <span className="stat-label">Length:</span>
+                    <span className="stat-value eighths-total">{stats.totalEighthsDisplay} pages</span>
+                </div>
             </div>
 
             {/* Filters */}
@@ -198,6 +430,18 @@ const Stripboard = () => {
                     </select>
                 </div>
                 <div className="filter-group">
+                    <FileText size={14} />
+                    <select 
+                        value={filterAnalysisStatus}
+                        onChange={(e) => setFilterAnalysisStatus(e.target.value)}
+                    >
+                        <option value="all">All Status</option>
+                        <option value="analyzed">✓ Analyzed</option>
+                        <option value="incomplete">⚠ Incomplete</option>
+                        <option value="pending">⏳ Pending</option>
+                    </select>
+                </div>
+                <div className="filter-group">
                     <span className="filter-label">Sort:</span>
                     <select 
                         value={sortBy}
@@ -217,8 +461,55 @@ const Stripboard = () => {
                 </div>
             </div>
 
-            {/* Stripboard Table */}
-            <div className="stripboard-table-container">
+            {/* PDF Content Container - includes print header and table */}
+            <div ref={pdfContentRef} className="pdf-content-wrapper">
+                {/* PDF Header (visible in PDF export) */}
+                <div className="pdf-header">
+                    <div className="pdf-header-top">
+                        <div className="pdf-brand">
+                            <span className="pdf-brand-logo">SlateOne</span>
+                            <span className="pdf-brand-tagline">Script Breakdown</span>
+                        </div>
+                        <span className="pdf-confidential">Confidential</span>
+                    </div>
+                    <div className="pdf-header-main">
+                        <div className="pdf-title-section">
+                            <h2 className="pdf-title">{metadata?.title || 'Untitled Script'}</h2>
+                            <p className="pdf-subtitle">One-Liner / Stripboard</p>
+                        </div>
+                        <div className="pdf-meta-section">
+                            {metadata?.writer_name && (
+                                <div className="pdf-meta-row">
+                                    <span className="pdf-meta-label">Written by:</span>
+                                    <span className="pdf-meta-value">{metadata.writer_name}</span>
+                                </div>
+                            )}
+                            {metadata?.genre && (
+                                <div className="pdf-meta-row">
+                                    <span className="pdf-meta-label">Genre:</span>
+                                    <span className="pdf-meta-value">{metadata.genre}</span>
+                                </div>
+                            )}
+                            <div className="pdf-meta-row">
+                                <span className="pdf-meta-label">Generated:</span>
+                                <span className="pdf-meta-value">{printDate}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="pdf-stats">
+                        <span><strong>{scenes.length}</strong> Scenes</span>
+                        <span><strong>{stats.intCount}</strong> INT</span>
+                        <span><strong>{stats.extCount}</strong> EXT</span>
+                        <span><strong>{stats.dayCount}</strong> DAY</span>
+                        <span><strong>{stats.nightCount}</strong> NIGHT</span>
+                        <span><strong>{stats.totalCharacters}</strong> Cast</span>
+                        <span><strong>{stats.totalLocations}</strong> Locations</span>
+                        <span className="pdf-stats-highlight"><strong>{stats.totalEighthsDisplay}</strong> Pages</span>
+                    </div>
+                </div>
+
+                {/* Stripboard Table */}
+                <div className="stripboard-table-container">
                 <table className="stripboard-table">
                     <thead>
                         <tr>
@@ -242,61 +533,268 @@ const Stripboard = () => {
                                     sortDir === 'asc' ? <SortAsc size={12} /> : <SortDesc size={12} />
                                 )}
                             </th>
-                            <th className="col-pages">Pg</th>
+                            <th className="col-pages">pg</th>
                         </tr>
                     </thead>
                     <tbody>
                         {filteredScenes.map((scene, index) => {
+                            const sceneId = scene.id || scene.scene_id;
                             const chars = scene.characters || [];
                             const charDisplay = chars.slice(0, 3).join(', ');
                             const moreChars = chars.length > 3 ? ` +${chars.length - 3}` : '';
                             
-                            const pageInfo = scene.page_start 
-                                ? (scene.page_end && scene.page_end !== scene.page_start
-                                    ? `${scene.page_start}-${scene.page_end}`
-                                    : scene.page_start)
-                                : '-';
+                            // Calculate scene length in eighths
+                            const eighthsDisplay = getSceneEighthsDisplay(scene);
                             
                             const isInt = scene.int_ext === 'INT';
                             const isDay = scene.time_of_day === 'DAY';
+                            const isExpanded = expandedRows.has(sceneId);
+                            
+                            // Full cast list for print (second row)
+                            const fullCast = chars.join(', ');
+                            
+                            // Breakdown data
+                            const props = scene.props || [];
+                            const wardrobe = scene.wardrobe || [];
+                            const vehicles = scene.vehicles || [];
+                            const specialFx = scene.special_fx || [];
+                            const sound = scene.sound || [];
+                            const atmosphere = scene.atmosphere || '';
+                            
+                            // Analysis status
+                            const analysisStatus = getSceneAnalysisStatus(scene);
+                            const notes = getSceneNotes(scene);
+                            const notesByDept = getNotesByDepartment(notes);
+                            const totalNotes = notes.length;
                             
                             return (
-                                <tr 
-                                    key={scene.id || scene.scene_id}
-                                    className={`stripboard-row ${isInt ? 'int' : 'ext'} ${isDay ? 'day' : 'night'}`}
-                                >
-                                    <td className="col-scene">
-                                        <span className="scene-num">{scene.scene_number}</span>
-                                    </td>
-                                    <td className="col-ie">
-                                        <span className={`ie-badge ${isInt ? 'int' : 'ext'}`}>
-                                            {scene.int_ext}
-                                        </span>
-                                    </td>
-                                    <td className="col-setting">
-                                        <span className="setting-text">{scene.setting}</span>
-                                    </td>
-                                    <td className="col-time">
-                                        <span className={`time-badge ${isDay ? 'day' : 'night'}`}>
-                                            {scene.time_of_day}
-                                        </span>
-                                    </td>
-                                    <td className="col-cast">
-                                        <span className="cast-text">
-                                            {charDisplay}{moreChars}
-                                        </span>
-                                        {chars.length > 0 && (
-                                            <span className="cast-count">({chars.length})</span>
-                                        )}
-                                    </td>
-                                    <td className="col-pages">
-                                        <span className="page-num">{pageInfo}</span>
-                                    </td>
-                                </tr>
+                                <React.Fragment key={sceneId}>
+                                    <tr 
+                                        className={`stripboard-row ${isInt ? 'int' : 'ext'} ${isDay ? 'day' : 'night'} ${isExpanded ? 'expanded' : ''} status-${analysisStatus}`}
+                                        onClick={() => toggleRowExpand(sceneId)}
+                                        style={{ cursor: 'pointer' }}
+                                    >
+                                        <td className="col-scene" style={{ display: 'table-cell' }}>
+                                            <span className="scene-num">{scene.scene_number}</span>
+                                            <span className={`status-icon status-${analysisStatus}`} title={
+                                                analysisStatus === 'analyzed' ? 'Analyzed' :
+                                                analysisStatus === 'incomplete' ? 'Incomplete - needs more breakdown' :
+                                                'Pending analysis'
+                                            }>
+                                                {analysisStatus === 'analyzed' && <CheckCircle size={12} />}
+                                                {analysisStatus === 'incomplete' && <AlertCircle size={12} />}
+                                                {analysisStatus === 'pending' && <Clock size={12} />}
+                                            </span>
+                                        </td>
+                                        <td className="col-ie">
+                                            <span className={`ie-badge ${isInt ? 'int' : 'ext'}`}>
+                                                {scene.int_ext}
+                                            </span>
+                                        </td>
+                                        <td className="col-setting">
+                                            <span className="setting-text">{scene.setting}</span>
+                                        </td>
+                                        <td className="col-time">
+                                            <span className={`time-badge ${isDay ? 'day' : 'night'}`}>
+                                                {scene.time_of_day}
+                                            </span>
+                                        </td>
+                                        <td className="col-cast">
+                                            <span className="cast-text">
+                                                {charDisplay}{moreChars}
+                                            </span>
+                                            {chars.length > 0 && (
+                                                <span className="cast-count">({chars.length})</span>
+                                            )}
+                                        </td>
+                                        <td className="col-pages">
+                                            <span className="eighths-num">{eighthsDisplay}</span>
+                                        </td>
+                                    </tr>
+                                    {/* Expanded Breakdown Row */}
+                                    {isExpanded && (
+                                        <tr className="breakdown-row">
+                                            <td colSpan="6">
+                                                <div className="breakdown-content">
+                                                    <div className="breakdown-grid">
+                                                        {/* Cast */}
+                                                        <div className="breakdown-card">
+                                                            <div className="breakdown-card-header">
+                                                                <Users size={14} />
+                                                                <span>Cast ({chars.length})</span>
+                                                                {notesByDept.cast > 0 && (
+                                                                    <span className="note-indicator">
+                                                                        <MessageSquare size={10} />
+                                                                        {notesByDept.cast}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            <div className="breakdown-card-body">
+                                                                {chars.length > 0 ? (
+                                                                    <ul className="breakdown-list">
+                                                                        {chars.map((char, i) => (
+                                                                            <li key={i}>{char}</li>
+                                                                        ))}
+                                                                    </ul>
+                                                                ) : (
+                                                                    <span className="breakdown-empty">None</span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        {/* Props */}
+                                                        <div className="breakdown-card">
+                                                            <div className="breakdown-card-header">
+                                                                <Package size={14} />
+                                                                <span>Props ({props.length})</span>
+                                                                {notesByDept.props > 0 && (
+                                                                    <span className="note-indicator">
+                                                                        <MessageSquare size={10} />
+                                                                        {notesByDept.props}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            <div className="breakdown-card-body">
+                                                                {props.length > 0 ? (
+                                                                    <ul className="breakdown-list">
+                                                                        {props.map((prop, i) => (
+                                                                            <li key={i}>{prop}</li>
+                                                                        ))}
+                                                                    </ul>
+                                                                ) : (
+                                                                    <span className="breakdown-empty">None</span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        {/* Wardrobe */}
+                                                        <div className="breakdown-card">
+                                                            <div className="breakdown-card-header">
+                                                                <Shirt size={14} />
+                                                                <span>Wardrobe ({wardrobe.length})</span>
+                                                                {notesByDept.wardrobe > 0 && (
+                                                                    <span className="note-indicator">
+                                                                        <MessageSquare size={10} />
+                                                                        {notesByDept.wardrobe}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            <div className="breakdown-card-body">
+                                                                {wardrobe.length > 0 ? (
+                                                                    <ul className="breakdown-list">
+                                                                        {wardrobe.map((item, i) => (
+                                                                            <li key={i}>{item}</li>
+                                                                        ))}
+                                                                    </ul>
+                                                                ) : (
+                                                                    <span className="breakdown-empty">None</span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        {/* Vehicles */}
+                                                        <div className="breakdown-card">
+                                                            <div className="breakdown-card-header">
+                                                                <Car size={14} />
+                                                                <span>Vehicles ({vehicles.length})</span>
+                                                                {notesByDept.vehicles > 0 && (
+                                                                    <span className="note-indicator">
+                                                                        <MessageSquare size={10} />
+                                                                        {notesByDept.vehicles}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            <div className="breakdown-card-body">
+                                                                {vehicles.length > 0 ? (
+                                                                    <ul className="breakdown-list">
+                                                                        {vehicles.map((v, i) => (
+                                                                            <li key={i}>{v}</li>
+                                                                        ))}
+                                                                    </ul>
+                                                                ) : (
+                                                                    <span className="breakdown-empty">None</span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        {/* Special FX */}
+                                                        <div className="breakdown-card">
+                                                            <div className="breakdown-card-header">
+                                                                <Sparkles size={14} />
+                                                                <span>Special FX ({specialFx.length})</span>
+                                                                {notesByDept.special_fx > 0 && (
+                                                                    <span className="note-indicator">
+                                                                        <MessageSquare size={10} />
+                                                                        {notesByDept.special_fx}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            <div className="breakdown-card-body">
+                                                                {specialFx.length > 0 ? (
+                                                                    <ul className="breakdown-list">
+                                                                        {specialFx.map((fx, i) => (
+                                                                            <li key={i}>{fx}</li>
+                                                                        ))}
+                                                                    </ul>
+                                                                ) : (
+                                                                    <span className="breakdown-empty">None</span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        {/* Sound */}
+                                                        <div className="breakdown-card">
+                                                            <div className="breakdown-card-header">
+                                                                <Volume2 size={14} />
+                                                                <span>Sound ({sound.length})</span>
+                                                                {notesByDept.sound > 0 && (
+                                                                    <span className="note-indicator">
+                                                                        <MessageSquare size={10} />
+                                                                        {notesByDept.sound}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            <div className="breakdown-card-body">
+                                                                {sound.length > 0 ? (
+                                                                    <ul className="breakdown-list">
+                                                                        {sound.map((s, i) => (
+                                                                            <li key={i}>{s}</li>
+                                                                        ))}
+                                                                    </ul>
+                                                                ) : (
+                                                                    <span className="breakdown-empty">None</span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    {/* Atmosphere */}
+                                                    {atmosphere && (
+                                                        <div className="breakdown-atmosphere">
+                                                            <Cloud size={14} />
+                                                            <span className="atmosphere-label">Atmosphere:</span>
+                                                            <span className="atmosphere-text">{atmosphere}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
+                                    {/* Print-only row for full cast list */}
+                                    {chars.length > 0 && (
+                                        <tr className="print-cast-row">
+                                            <td colSpan="6">
+                                                <span className="print-cast-label">Cast: </span>
+                                                <span className="print-cast-list">{fullCast}</span>
+                                            </td>
+                                        </tr>
+                                    )}
+                                </React.Fragment>
                             );
                         })}
                     </tbody>
                 </table>
+                </div>
             </div>
 
             {filteredScenes.length === 0 && (

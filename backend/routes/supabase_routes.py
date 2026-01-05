@@ -357,8 +357,8 @@ def upload_script():
             }
             supabase.table('script_pages').insert(page_data).execute()
         
-        # Detect scenes using regex
-        scenes_detected = detect_and_create_scenes(script_id, full_text)
+        # Detect scenes using regex (pass pages_data for page number calculation)
+        scenes_detected = detect_and_create_scenes(script_id, full_text, pages_data)
         
         return jsonify({
             'message': 'Script uploaded successfully',
@@ -519,7 +519,7 @@ def extract_writer_name(text):
     return metadata.get('writers')
 
 
-def detect_and_create_scenes(script_id, full_text):
+def detect_and_create_scenes(script_id, full_text, pages_data=None):
     """
     Detect scenes using enhanced regex patterns.
     
@@ -528,8 +528,36 @@ def detect_and_create_scenes(script_id, full_text):
     - No space: INT.LOCATION - DAY
     - Multilingual: INT. LOCATION - DAG (Afrikaans), NUIT (French), NACHT (German)
     - Variations: CONTINUOUS, LATER, SAME TIME, MOMENTS LATER
+    
+    Args:
+        script_id: The script UUID
+        full_text: Complete script text
+        pages_data: Optional list of {'page_number': int, 'text': str} for page calculation
     """
     import re
+    
+    # Build page boundaries for page_start/page_end calculation
+    page_boundaries = []
+    if pages_data:
+        current_pos = 0
+        for page in pages_data:
+            page_text = page['text']
+            page_boundaries.append({
+                'page': page['page_number'],
+                'start': current_pos,
+                'end': current_pos + len(page_text)
+            })
+            current_pos += len(page_text) + 2  # +2 for '\n\n' separator
+    
+    def get_page_for_position(pos):
+        """Find which page a text position falls on."""
+        if not page_boundaries:
+            return None
+        for pb in page_boundaries:
+            if pb['start'] <= pos < pb['end']:
+                return pb['page']
+        # If past all pages, return last page
+        return page_boundaries[-1]['page'] if page_boundaries else None
     
     # Multilingual time of day patterns
     TIME_PATTERNS = r'(DAY|NIGHT|DAG|NAG|AAND|NACHT|TAG|JOUR|NUIT|DAWN|DUSK|MORNING|EVENING|AFTERNOON|CONTINUOUS|CONT\'?D?|LATER|SAME|MOMENTS?\s*LATER|SUNRISE|SUNSET)'
@@ -622,6 +650,10 @@ def detect_and_create_scenes(script_id, full_text):
         
         scene_text = full_text[scene['text_start']:text_end] if scene['text_start'] >= 0 else ''
         
+        # Calculate page numbers from text positions
+        page_start = get_page_for_position(scene['text_start'])
+        page_end = get_page_for_position(text_end - 1) if text_end > 0 else page_start
+        
         scene_data = {
             'script_id': script_id,
             'scene_number': str(idx + 1),
@@ -632,6 +664,8 @@ def detect_and_create_scenes(script_id, full_text):
             'scene_text': scene_text[:5000],  # Limit text length
             'text_start': scene['text_start'],
             'text_end': text_end,
+            'page_start': page_start,
+            'page_end': page_end,
             'is_manual': False,
             'analysis_status': 'pending'
         }
@@ -673,10 +707,16 @@ def get_scenes(script_id):
                 'wardrobe': scene.get('wardrobe', []),
                 'special_fx': scene.get('special_fx', []),
                 'vehicles': scene.get('vehicles', []),
+                'locations': scene.get('locations', []),
+                'sound': scene.get('sound', []),
+                'makeup_hair': scene.get('makeup_hair', []),
+                'atmosphere': scene.get('atmosphere', ''),
                 'analysis_status': scene.get('analysis_status', 'pending'),
                 'is_manual': scene.get('is_manual', False),
                 'text_start': scene.get('text_start'),
-                'text_end': scene.get('text_end')
+                'text_end': scene.get('text_end'),
+                'page_start': scene.get('page_start'),
+                'page_end': scene.get('page_end')
             })
         
         return jsonify({'script_id': script_id, 'scenes': scenes}), 200
@@ -1983,6 +2023,10 @@ def analyze_scene(scene_id):
             'wardrobe': analysis.get('wardrobe', []),
             'special_fx': analysis.get('special_fx', []),
             'vehicles': analysis.get('vehicles', []),
+            'makeup_hair': analysis.get('makeup_hair', []),
+            'locations': analysis.get('locations', []),
+            'sound': analysis.get('sound', []),
+            'atmosphere': analysis.get('atmosphere', ''),
             'description': analysis.get('description', ''),
             'analysis_status': 'complete'
         }
@@ -2032,6 +2076,10 @@ Extract and return ONLY valid JSON in this exact format:
     "wardrobe": ["Character: description of wardrobe"],
     "special_fx": ["effect1", "effect2"],
     "vehicles": ["vehicle1"],
+    "makeup_hair": ["makeup or hair requirement"],
+    "locations": ["sub-location within the setting"],
+    "sound": ["sound effect", "music cue", "ambient sound"],
+    "atmosphere": "Description of mood, lighting, weather",
     "description": "2-3 sentence summary of what happens in this scene"
 }}
 
@@ -2039,6 +2087,8 @@ IMPORTANT:
 - Characters should be in UPPERCASE
 - Be thorough - include ALL props mentioned or implied
 - Include wardrobe only if specifically mentioned
+- Locations are specific areas/rooms within the main setting (e.g., kitchen, backyard)
+- Sound includes sound effects, music cues, ambient sounds mentioned in the scene
 - If a category doesn't apply, use empty array []
 - Return ONLY the JSON, no markdown or extra text
 """
@@ -2067,6 +2117,10 @@ IMPORTANT:
             'wardrobe': [],
             'special_fx': [],
             'vehicles': [],
+            'makeup_hair': [],
+            'locations': [],
+            'sound': [],
+            'atmosphere': '',
             'description': f'Analysis failed: {str(e)}'
         }
 
@@ -2252,6 +2306,10 @@ def analyze_scene_internal(scene_id):
         'wardrobe': analysis.get('wardrobe', []),
         'special_fx': analysis.get('special_fx', []),
         'vehicles': analysis.get('vehicles', []),
+        'makeup_hair': analysis.get('makeup_hair', []),
+        'locations': analysis.get('locations', []),
+        'sound': analysis.get('sound', []),
+        'atmosphere': analysis.get('atmosphere', ''),
         'description': analysis.get('description', ''),
         'analysis_status': 'complete'
     }

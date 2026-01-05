@@ -1,18 +1,33 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { 
-  LayoutDashboard, 
   UploadCloud, 
   Library, 
   Settings, 
   PanelLeftClose,
   PanelLeftOpen,
-  LogOut,
-  Film
+  Film,
+  Users,
+  FileText,
+  Clock
 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 import './Layout.css';
 
 const Sidebar = ({ isCollapsed, toggleSidebar }) => {
+  const { user } = useAuth();
+  
+  // Get user initials for avatar
+  const getInitials = () => {
+    if (!user) return 'U';
+    const name = user.user_metadata?.full_name || user.email || '';
+    if (name.includes('@')) {
+      return name.charAt(0).toUpperCase();
+    }
+    const parts = name.split(' ');
+    return parts.map(p => p.charAt(0).toUpperCase()).slice(0, 2).join('');
+  };
+
   return (
     <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
       <div className="sidebar-header">
@@ -33,15 +48,6 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
         <div className="nav-section">
           {!isCollapsed && <p className="nav-label">MENU</p>}
           <NavLink 
-            to="/" 
-            className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
-            title={isCollapsed ? "Dashboard" : ""}
-            end
-          >
-            <LayoutDashboard size={20} />
-            {!isCollapsed && <span>Dashboard</span>}
-          </NavLink>
-          <NavLink 
             to="/upload" 
             className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
             title={isCollapsed ? "Upload Script" : ""}
@@ -59,25 +65,49 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
           </NavLink>
         </div>
 
-        <div className="nav-section mt-auto">
-          {!isCollapsed && <p className="nav-label">SYSTEM</p>}
-          <a href="#" className="nav-item" title={isCollapsed ? "Settings" : ""}>
+        {/* Coming Soon Section */}
+        <div className="nav-section">
+          {!isCollapsed && <p className="nav-label">COMING SOON</p>}
+          <div className="nav-item disabled" title={isCollapsed ? "Reports (Coming Soon)" : ""}>
+            <FileText size={20} />
+            {!isCollapsed && (
+              <>
+                <span>Reports</span>
+                <span className="coming-soon-badge"><Clock size={12} /></span>
+              </>
+            )}
+          </div>
+          <div className="nav-item disabled" title={isCollapsed ? "Team (Coming Soon)" : ""}>
+            <Users size={20} />
+            {!isCollapsed && (
+              <>
+                <span>Team</span>
+                <span className="coming-soon-badge"><Clock size={12} /></span>
+              </>
+            )}
+          </div>
+          <div className="nav-item disabled" title={isCollapsed ? "Settings (Coming Soon)" : ""}>
             <Settings size={20} />
-            {!isCollapsed && <span>Settings</span>}
-          </a>
+            {!isCollapsed && (
+              <>
+                <span>Settings</span>
+                <span className="coming-soon-badge"><Clock size={12} /></span>
+              </>
+            )}
+          </div>
         </div>
       </nav>
 
       <div className="sidebar-footer">
-        <div className="user-profile">
-          <div className="user-avatar">JD</div>
+        <NavLink to="/profile" className="user-profile">
+          <div className="user-avatar">{getInitials()}</div>
           {!isCollapsed && (
             <div className="user-info">
-              <span className="user-name">John Doe</span>
-              <span className="user-role">Pro Plan</span>
+              <span className="user-name">{user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'}</span>
+              <span className="user-role">Beta Access</span>
             </div>
           )}
-        </div>
+        </NavLink>
       </div>
     </aside>
   );

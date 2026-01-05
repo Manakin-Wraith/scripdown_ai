@@ -141,7 +141,8 @@
     flex-shrink: 0;
 }
 
-.entity-meta.page-info {
+.entity-meta.page-info,
+.entity-meta.eighths-info {
     display: flex;
     align-items: center;
     padding: 0.15rem 0.5rem;
@@ -161,9 +162,15 @@
     opacity: 0.8;
 }
 
-.scene-item.selected .entity-meta.page-info {
+.scene-item.selected .entity-meta.page-info,
+.scene-item.selected .entity-meta.eighths-info {
     background: rgba(245, 158, 11, 0.95);
     border-color: rgba(245, 158, 11, 1);
+}
+
+.eighths-badge {
+    font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+    letter-spacing: -0.02em;
 }
 
 /* INT/EXT badge in scene list */

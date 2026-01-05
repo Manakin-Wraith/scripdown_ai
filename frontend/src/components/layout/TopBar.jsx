@@ -114,6 +114,7 @@ const TopBar = () => {
                   <User size={16} />
                   <span>Profile</span>
                 </button>
+                {/* Phase 2+: Settings button - deferred
                 <button 
                   className="dropdown-item"
                   onClick={() => { navigate('/settings'); setUserMenuOpen(false); }}
@@ -121,6 +122,7 @@ const TopBar = () => {
                   <Settings size={16} />
                   <span>Settings</span>
                 </button>
+                */}
                 <div className="dropdown-divider"></div>
                 <button className="dropdown-item logout" onClick={handleLogout}>
                   <LogOut size={16} />
