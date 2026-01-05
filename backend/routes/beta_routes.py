@@ -4,7 +4,7 @@ Handles sending beta launch invitation emails to users.
 """
 
 from flask import Blueprint, request, jsonify
-from services.email_service import send_beta_launch_email, is_configured
+from services.email_service import send_welcome_email, is_configured
 from services.email_tracking_service import log_email_sent, get_email_analytics, get_recent_emails, check_if_email_sent
 from middleware.auth import optional_auth, get_user_id
 from db.supabase_client import SupabaseDB
@@ -55,10 +55,10 @@ def send_launch_email():
         return jsonify({'error': 'Invalid user_status. Must be: new, trial, or waitlist'}), 400
     
     # Send email
-    result = send_beta_launch_email(
+    result = send_welcome_email(
         to_email=email,
-        user_name=full_name,
-        user_status=user_status
+        full_name=full_name,
+        has_paid=False
     )
     
     # Check for errors
@@ -150,10 +150,10 @@ def send_bulk_launch_emails():
             continue
         
         # Send email
-        result = send_beta_launch_email(
+        result = send_welcome_email(
             to_email=email,
-            user_name=full_name,
-            user_status=user_status
+            full_name=full_name,
+            has_paid=False
         )
         
         if 'error' in result:
