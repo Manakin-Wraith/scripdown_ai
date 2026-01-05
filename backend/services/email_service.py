@@ -10,10 +10,16 @@ from typing import Optional, Dict, Any
 # Initialize Resend with API key
 resend.api_key = os.getenv('RESEND_API_KEY')
 
-# Default from email
-DEFAULT_FROM_EMAIL = os.getenv('RESEND_FROM_EMAIL', 'onboarding@resend.dev')
+# Import email tracking service
+try:
+    from services.email_tracking_service import log_email_sent
+except ImportError:
+    # Fallback if tracking service not available
+    def log_email_sent(*args, **kwargs):
+        return {'success': False, 'error': 'Tracking service not available'}
 
-# App name for email templates
+# Email configuration
+DEFAULT_FROM_EMAIL = os.getenv('RESEND_FROM_EMAIL', 'hello@slateone.studio')
 APP_NAME = "SlateOne"
 APP_URL = os.getenv('FRONTEND_URL', 'https://app.slateone.studio')
 
@@ -528,13 +534,28 @@ def send_early_access_invite(
     </html>
     """
     
-    return send_email(
+    # Send the email
+    result = send_email(
         to=to_email, 
         subject=subject, 
         html=html,
         from_email="hello@slateone.studio",
         reply_to="hello@slateone.studio"
     )
+    
+    # Log to email tracking if email was sent successfully
+    if result and 'error' not in result:
+        resend_email_id = result.get('id')
+        log_email_sent(
+            email_type='early_access_invite',
+            recipient_email=to_email,
+            recipient_name=first_name or 'Early Access User',
+            resend_email_id=resend_email_id,
+            user_status='early_access',
+            metadata={'trial_days': EARLY_ACCESS_TRIAL_DAYS}
+        )
+    
+    return result
 
 
 def send_expiration_reminder_email(
