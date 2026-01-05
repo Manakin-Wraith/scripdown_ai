@@ -397,7 +397,7 @@ def send_early_access_invite(
 ) -> Dict[str, Any]:
     """
     Send early access invite email to users who requested early access.
-    These users get an extended 30-day trial instead of the standard 14 days.
+    These users get a 30-day trial with full access to Phase 1 features.
     
     Args:
         to_email: User's email address
@@ -452,12 +452,12 @@ def send_early_access_invite(
                                 <div style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.2)); border: 1px solid #10B981; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
                                     <p style="margin: 0 0 8px 0; font-size: 14px; color: #10B981; font-weight: 600;">🎁 YOUR EARLY ACCESS PERK</p>
                                     <p style="margin: 0; font-size: 20px; font-weight: 700; color: #FFFFFF;">
-                                        30 days free trial <span style="color: #6B7280; font-size: 14px; font-weight: 400;">(instead of the usual 14)</span>
+                                        30 days free access to all features
                                     </p>
                                 </div>
                                 
                                 <p style="margin: 0 0 24px 0; font-size: 16px; color: #9CA3AF; line-height: 1.6;">
-                                    Just sign up with this email address and your extended trial will be automatically activated. No credit card required.
+                                    Sign up with this email address and start using {APP_NAME} immediately. No credit card required.
                                 </p>
                                 
                                 <a href="{APP_URL}/login" style="display: inline-block; background: linear-gradient(135deg, #F59E0B, #D97706); color: #000000; text-decoration: none; padding: 16px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">
@@ -466,63 +466,43 @@ def send_early_access_invite(
                             </td>
                         </tr>
                         
-                        <!-- Trial Features -->
-                        <tr>
-                            <td style="padding: 0 32px 24px 32px;">
-                                <p style="margin: 0 0 12px 0; font-size: 12px; color: #10B981; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">✓ Included in your trial</p>
-                                <table width="100%" cellpadding="0" cellspacing="0">
-                                    <tr>
-                                        <td style="padding: 10px 14px; background-color: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; margin-bottom: 6px;">
-                                            <p style="margin: 0; font-size: 14px; color: #FFFFFF;">📄 Upload 1 script PDF</p>
-                                        </td>
-                                    </tr>
-                                </table>
-                                <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 6px;">
-                                    <tr>
-                                        <td style="padding: 10px 14px; background-color: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px;">
-                                            <p style="margin: 0; font-size: 14px; color: #FFFFFF;">🎬 View all scenes & breakdowns</p>
-                                        </td>
-                                    </tr>
-                                </table>
-                                <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 6px;">
-                                    <tr>
-                                        <td style="padding: 10px 14px; background-color: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px;">
-                                            <p style="margin: 0; font-size: 14px; color: #FFFFFF;">🤖 Basic AI scene analysis</p>
-                                        </td>
-                                    </tr>
-                                </table>
-                            </td>
-                        </tr>
-                        
-                        <!-- Beta Features -->
+                        <!-- Phase 1 Features -->
                         <tr>
                             <td style="padding: 0 32px 32px 32px;">
-                                <p style="margin: 0 0 12px 0; font-size: 12px; color: #F59E0B; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">🔓 Unlock with Beta (R125)</p>
+                                <p style="margin: 0 0 16px 0; font-size: 14px; color: #10B981; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">✓ What's included</p>
+                                
                                 <table width="100%" cellpadding="0" cellspacing="0">
                                     <tr>
-                                        <td style="padding: 10px 14px; background-color: #262626; border: 1px solid #3A3A3A; border-radius: 8px; margin-bottom: 6px;">
-                                            <p style="margin: 0; font-size: 14px; color: #9CA3AF;">📄 Unlimited scripts</p>
+                                        <td style="padding: 12px 16px; background-color: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; margin-bottom: 8px;">
+                                            <p style="margin: 0 0 4px 0; font-size: 15px; font-weight: 600; color: #FFFFFF;">📄 Script Upload & Library</p>
+                                            <p style="margin: 0; font-size: 13px; color: #9CA3AF;">Upload PDF scripts with automatic scene detection</p>
                                         </td>
                                     </tr>
                                 </table>
-                                <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 6px;">
+                                
+                                <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 8px;">
                                     <tr>
-                                        <td style="padding: 10px 14px; background-color: #262626; border: 1px solid #3A3A3A; border-radius: 8px;">
-                                            <p style="margin: 0; font-size: 14px; color: #9CA3AF;">👥 Team collaboration & invites</p>
+                                        <td style="padding: 12px 16px; background-color: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px;">
+                                            <p style="margin: 0 0 4px 0; font-size: 15px; font-weight: 600; color: #FFFFFF;">🎬 Scene Viewer & Breakdown</p>
+                                            <p style="margin: 0; font-size: 13px; color: #9CA3AF;">Browse scenes with master-detail layout</p>
                                         </td>
                                     </tr>
                                 </table>
-                                <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 6px;">
+                                
+                                <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 8px;">
                                     <tr>
-                                        <td style="padding: 10px 14px; background-color: #262626; border: 1px solid #3A3A3A; border-radius: 8px;">
-                                            <p style="margin: 0; font-size: 14px; color: #9CA3AF;">📊 Reports, stripboards & PDF export</p>
+                                        <td style="padding: 12px 16px; background-color: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px;">
+                                            <p style="margin: 0 0 4px 0; font-size: 15px; font-weight: 600; color: #FFFFFF;">🤖 AI Scene Analysis</p>
+                                            <p style="margin: 0; font-size: 13px; color: #9CA3AF;">On-demand AI breakdown for characters, props & more</p>
                                         </td>
                                     </tr>
                                 </table>
-                                <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 6px;">
+                                
+                                <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 8px;">
                                     <tr>
-                                        <td style="padding: 10px 14px; background-color: #262626; border: 1px solid #3A3A3A; border-radius: 8px;">
-                                            <p style="margin: 0; font-size: 14px; color: #9CA3AF;">📝 Department notes & full analysis</p>
+                                        <td style="padding: 12px 16px; background-color: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px;">
+                                            <p style="margin: 0 0 4px 0; font-size: 15px; font-weight: 600; color: #FFFFFF;">📋 Stripboard & PDF Export</p>
+                                            <p style="margin: 0; font-size: 13px; color: #9CA3AF;">View one-liner stripboard and download as PDF</p>
                                         </td>
                                     </tr>
                                 </table>

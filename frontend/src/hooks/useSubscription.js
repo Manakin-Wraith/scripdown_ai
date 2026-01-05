@@ -8,6 +8,10 @@ import { useAuth } from '../context/AuthContext';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
+// Phase 1: Everyone gets active status (no subscription enforcement)
+// Set to false to enable subscription checks in Phase 4
+const PHASE1_FREE_ACCESS = true;
+
 // Trial configuration (must match backend)
 const TRIAL_DURATION_DAYS = 14;
 const TRIAL_SCRIPT_LIMIT = 1;
@@ -42,8 +46,29 @@ export function useSubscription() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
+    // Phase 1: Return active status immediately without API call
+    const getPhase1Status = useCallback(() => ({
+        status: 'active',
+        is_active: true,
+        days_remaining: null,
+        expires_at: null,
+        trial_ends_at: null,
+        can_upload_script: true,
+        script_count: 0,
+        script_limit: null,
+        features: ACTIVE_FEATURES,
+        message: null
+    }), []);
+
     // Fetch subscription status from backend
     const fetchSubscriptionStatus = useCallback(async () => {
+        // Phase 1: Skip API call, everyone gets active status
+        if (PHASE1_FREE_ACCESS) {
+            setSubscriptionStatus(getPhase1Status());
+            setLoading(false);
+            return;
+        }
+
         if (!user?.id) {
             setSubscriptionStatus(null);
             setLoading(false);
@@ -73,7 +98,7 @@ export function useSubscription() {
         } finally {
             setLoading(false);
         }
-    }, [user?.id]);
+    }, [user?.id, getPhase1Status]);
 
     // Calculate status locally as fallback
     const calculateLocalStatus = useCallback(() => {

@@ -211,6 +211,28 @@
   font-weight: 600;
 }
 
+/* Disabled nav items (Coming Soon) */
+.nav-item.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.nav-item.disabled:hover {
+  background-color: transparent;
+  color: var(--text-secondary);
+}
+
+/* Coming Soon Badge */
+.coming-soon-badge {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gray-400);
+  opacity: 0.7;
+}
+
 .sidebar-footer {
   padding: 1.5rem;
   border-top: 1px solid var(--border-color);
@@ -666,5 +688,29 @@
   
   .topbar-nav-item {
     padding: 0.5rem;
+  }
+}
+
+/* Print Styles - Hide layout elements */
+@media print {
+  .topbar,
+  .sidebar,
+  .main-layout > header,
+  .breadcrumb,
+  .breadcrumbs {
+    display: none !important;
+  }
+  
+  .main-layout {
+    display: block !important;
+  }
+  
+  .main-content {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  
+  body {
+    background: white !important;
   }
 }

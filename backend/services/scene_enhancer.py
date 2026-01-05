@@ -82,8 +82,10 @@ Extract the following (be thorough but accurate - only include what's actually i
 4. VEHICLES: Cars, bikes, boats, or any transportation
 5. SPECIAL_FX: Visual effects, practical effects, stunts, or special requirements
 6. MAKEUP_HAIR: Any specific makeup, hair, or prosthetic requirements
-7. ATMOSPHERE: Lighting, weather, mood, time of day details
-8. DESCRIPTION: 2-3 sentence summary of what happens in this scene
+7. LOCATIONS: Specific areas, rooms, or sub-locations within the main setting (e.g., "kitchen", "backyard", "rooftop")
+8. SOUND: Sound effects, music cues, ambient sounds, or audio requirements mentioned in the scene
+9. ATMOSPHERE: Lighting, weather, mood, time of day details
+10. DESCRIPTION: 2-3 sentence summary of what happens in this scene
 
 Return ONLY valid JSON in this exact format:
 {{
@@ -93,6 +95,8 @@ Return ONLY valid JSON in this exact format:
     "vehicles": ["vehicle1"],
     "special_fx": [],
     "makeup_hair": [],
+    "locations": ["sub-location1", "sub-location2"],
+    "sound": ["sound effect 1", "music cue"],
     "atmosphere": "Description of mood, lighting, weather",
     "description": "What happens in this scene"
 }}
@@ -125,6 +129,8 @@ IMPORTANT:
             'characters': result.get('characters', []),
             'props': result.get('props', []),
             'wardrobe': result.get('wardrobe', []),
+            'locations': result.get('locations', []),
+            'sound': result.get('sound', []),
             'vehicles': result.get('vehicles', []),
             'special_fx': result.get('special_fx', []),
             'makeup_hair': result.get('makeup_hair', []),
@@ -160,6 +166,8 @@ def extract_fallback(scene_text: str) -> Dict:
         'characters': characters[:20],  # Limit to 20
         'props': [],
         'wardrobe': [],
+        'locations': [],
+        'sound': [],
         'vehicles': [],
         'special_fx': [],
         'makeup_hair': [],
@@ -189,9 +197,9 @@ def save_enhanced_scene(script_id: int, candidate: Dict, enhancement: Dict, db_c
             page_start, page_end,
             setting, description,
             characters, props, special_fx, wardrobe,
-            makeup_hair, vehicles, atmosphere, content_hash
+            makeup_hair, vehicles, locations, sound, atmosphere, content_hash
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         script_id,
         candidate['scene_order'],  # Sequential number for ordering
@@ -206,6 +214,8 @@ def save_enhanced_scene(script_id: int, candidate: Dict, enhancement: Dict, db_c
         json.dumps(enhancement.get('wardrobe', [])),
         json.dumps(enhancement.get('makeup_hair', [])),
         json.dumps(enhancement.get('vehicles', [])),
+        json.dumps(enhancement.get('locations', [])),
+        json.dumps(enhancement.get('sound', [])),
         enhancement.get('atmosphere', ''),
         candidate.get('content_hash', '')
     ))

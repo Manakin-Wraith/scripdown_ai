@@ -46,8 +46,8 @@
     letter-spacing: 0.02em;
 }
 
-/* Page badge - matches scene list page badge */
-.scene-page-badge {
+/* Eighths badge - shows scene length in eighths of a page */
+.scene-eighths-badge {
     display: inline-flex;
     align-items: center;
     padding: 0.2rem 0.6rem;
@@ -57,6 +57,8 @@
     font-size: 0.75rem;
     font-weight: 600;
     color: #1e1e1e;
+    font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+    letter-spacing: -0.02em;
 }
 
 .scene-title {
@@ -192,6 +194,18 @@
     background-color: rgba(34, 197, 94, 0.15);
     color: #4ade80;
     border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.location-tag {
+    background-color: rgba(14, 165, 233, 0.15);
+    color: #38bdf8;
+    border: 1px solid rgba(14, 165, 233, 0.3);
+}
+
+.sound-tag {
+    background-color: rgba(168, 85, 247, 0.15);
+    color: #c084fc;
+    border: 1px solid rgba(168, 85, 247, 0.3);
 }
 
 /* Lists */

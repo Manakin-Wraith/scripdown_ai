@@ -10,6 +10,10 @@ from functools import wraps
 from flask import request, jsonify, g
 from db.supabase_client import get_supabase_client
 
+# Phase 1: Everyone gets active status (no subscription enforcement)
+# Set to False to enable subscription checks in Phase 4
+PHASE1_FREE_ACCESS = True
+
 # Trial configuration
 TRIAL_DURATION_DAYS = 14
 TRIAL_SCRIPT_LIMIT = 1
@@ -60,6 +64,21 @@ def get_subscription_status(user_id: str) -> Dict[str, Any]:
             'features': list
         }
     """
+    # Phase 1: Everyone gets full access - no subscription checks
+    if PHASE1_FREE_ACCESS:
+        return {
+            'status': 'active',
+            'is_active': True,
+            'days_remaining': None,
+            'expires_at': None,
+            'trial_ends_at': None,
+            'can_upload_script': True,
+            'script_count': 0,
+            'script_limit': None,  # Unlimited
+            'features': ACTIVE_FEATURES,
+            'message': None
+        }
+    
     try:
         supabase = get_supabase_client()
         

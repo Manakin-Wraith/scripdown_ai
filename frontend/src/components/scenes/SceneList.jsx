@@ -1,5 +1,6 @@
 import React from 'react';
 import { Users, ChevronRight, CheckCircle, Clock, Loader, FileText } from 'lucide-react';
+import { getSceneEighthsDisplay } from '../../utils/sceneUtils';
 import './SceneList.css';
 
 /**
@@ -47,29 +48,8 @@ const SceneList = ({ scenes, selectedId, onSelect, analyzingScenes = new Set(), 
                 // Use original scene number if available, otherwise fall back to sequential
                 const displaySceneNum = scene.scene_number_original || scene.scene_number;
                 
-                // Build page info from pageMapping or scene data
-                const getPageInfo = () => {
-                    // First try pageMapping (most accurate)
-                    if (pageMapping?.scene_pages) {
-                        const scenePageData = pageMapping.scene_pages[scene.id] || pageMapping.scene_pages[scene.scene_id];
-                        if (scenePageData) {
-                            const { page_start, page_end } = scenePageData;
-                            if (page_start && page_end && page_end !== page_start) {
-                                return `pp. ${page_start}-${page_end}`;
-                            } else if (page_start) {
-                                return `p. ${page_start}`;
-                            }
-                        }
-                    }
-                    // Fallback to scene data
-                    if (scene.page_start) {
-                        return scene.page_end && scene.page_end !== scene.page_start 
-                            ? `pp. ${scene.page_start}-${scene.page_end}` 
-                            : `p. ${scene.page_start}`;
-                    }
-                    return null;
-                };
-                const pageInfo = getPageInfo();
+                // Calculate scene length in eighths
+                const eighthsDisplay = getSceneEighthsDisplay(scene);
 
                 // Check if this scene just completed (for fade-out animation)
                 const isRecentlyCompleted = recentlyCompletedScenes.has(scene.scene_id) || 
@@ -117,11 +97,9 @@ const SceneList = ({ scenes, selectedId, onSelect, analyzingScenes = new Set(), 
                                         <span className="meta-value">Analyzing...</span>
                                     </div>
                                 )}
-                                {pageInfo && (
-                                    <div className="entity-meta page-info" title={`PDF ${pageInfo}`}>
-                                        <span className="meta-value">{pageInfo}</span>
-                                    </div>
-                                )}
+                                <div className="entity-meta eighths-info" title={`Scene length: ${eighthsDisplay} page`}>
+                                    <span className="meta-value eighths-badge">{eighthsDisplay}</span>
+                                </div>
                             </div>
                         </div>
                         
