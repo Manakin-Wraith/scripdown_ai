@@ -1,0 +1,82 @@
+.confirm-email-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 20px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9999;
+}
+
+.confirm-email-container {
+    background: white;
+    border-radius: 12px;
+    padding: 48px 32px;
+    max-width: 480px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.confirm-email-container svg {
+    margin: 0 auto 24px;
+}
+
+.confirm-email-container .spin {
+    color: #667eea;
+    animation: spin 1s linear infinite;
+}
+
+.confirm-email-container .success-icon {
+    color: #10b981;
+}
+
+.confirm-email-container .error-icon {
+    color: #ef4444;
+}
+
+.confirm-email-container h2 {
+    margin: 0 0 12px 0;
+    font-size: 24px;
+    font-weight: 600;
+    color: #111827;
+}
+
+.confirm-email-container p {
+    margin: 0 0 8px 0;
+    color: #6b7280;
+    font-size: 16px;
+}
+
+.confirm-email-container .redirect-message {
+    margin-top: 16px;
+    font-size: 14px;
+    color: #9ca3af;
+}
+
+.confirm-email-container .btn-primary {
+    margin-top: 24px;
+    padding: 12px 32px;
+    background: #667eea;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.confirm-email-container .btn-primary:hover {
+    background: #5568d3;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}

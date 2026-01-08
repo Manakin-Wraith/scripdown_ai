@@ -14,6 +14,7 @@ import ResetPasswordPage from './pages/ResetPasswordPage';
 import LoginPage from './pages/LoginPage';
 import ProfilePage from './pages/ProfilePage';
 import AuthCallbackPage from './pages/AuthCallbackPage';
+import ConfirmEmailPage from './pages/ConfirmEmailPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import './App.css';
 
@@ -77,6 +78,7 @@ function App() {
                   <Route path="login" element={<LoginPage />} />
                   <Route path="reset-password" element={<ResetPasswordPage />} />
                   <Route path="auth/callback" element={<AuthCallbackPage />} />
+                  <Route path="auth/confirm" element={<ConfirmEmailPage />} />
                   
                   {/* Phase 2+ public routes (deferred) */}
                   {/* <Route path="invite/:token" element={<InvitePage />} /> */}
