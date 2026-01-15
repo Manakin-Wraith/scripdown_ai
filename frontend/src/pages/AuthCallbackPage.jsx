@@ -1,8 +1,13 @@
 /**
- * AuthCallbackPage - Handles email verification callback
+ * AuthCallbackPage - Handles auth callbacks (email verification, password reset, etc.)
  * 
- * This page is the redirect target after a user clicks the email verification link.
+ * This page is the redirect target after a user clicks email links.
  * Supabase automatically handles the token exchange when the page loads.
+ * 
+ * Supported callback types (via ?type= query param):
+ * - signup: Email verification after signup → user is authenticated → redirects to /scripts
+ * - recovery: Password reset → redirects to /reset-password
+ * - default: Direct login (magic link, etc.) → redirects to /scripts
  */
 
 import React, { useEffect, useState } from 'react';
@@ -16,10 +21,15 @@ const AuthCallbackPage = () => {
     const [searchParams] = useSearchParams();
     const [status, setStatus] = useState('verifying'); // 'verifying' | 'success' | 'error'
     const [error, setError] = useState(null);
+    const [callbackType, setCallbackType] = useState(null);
 
     useEffect(() => {
         const handleCallback = async () => {
             try {
+                // Get callback type from URL
+                const type = searchParams.get('type') || 'default';
+                setCallbackType(type);
+
                 // Check for error in URL params (Supabase puts errors here)
                 const errorParam = searchParams.get('error');
                 const errorDescription = searchParams.get('error_description');
@@ -40,12 +50,25 @@ const AuthCallbackPage = () => {
                 }
 
                 if (session) {
-                    // Email verified successfully, user is now logged in
+                    // Session established successfully
                     setStatus('success');
                     
-                    // Redirect to scripts after a brief success message
+                    // Redirect based on callback type
                     setTimeout(() => {
-                        navigate('/scripts', { replace: true });
+                        switch (type) {
+                            case 'signup':
+                                // Email verified - user is now authenticated, go to scripts
+                                navigate('/scripts', { replace: true });
+                                break;
+                            case 'recovery':
+                                // Password reset - redirect to reset password page
+                                navigate('/reset-password', { replace: true });
+                                break;
+                            default:
+                                // Default - direct login, go to scripts
+                                navigate('/scripts', { replace: true });
+                                break;
+                        }
                     }, 2000);
                 } else {
                     // No session yet, might need to wait for auth state change
@@ -54,9 +77,19 @@ const AuthCallbackPage = () => {
                         if (event === 'SIGNED_IN' && session) {
                             setStatus('success');
                             setTimeout(() => {
-                                navigate('/scripts', { replace: true });
+                                switch (type) {
+                                    case 'signup':
+                                        navigate('/scripts', { replace: true });
+                                        break;
+                                    case 'recovery':
+                                        navigate('/reset-password', { replace: true });
+                                        break;
+                                    default:
+                                        navigate('/scripts', { replace: true });
+                                        break;
+                                }
+                                subscription.unsubscribe();
                             }, 2000);
-                            subscription.unsubscribe();
                         }
                     });
 
@@ -100,8 +133,24 @@ const AuthCallbackPage = () => {
                         <div className="status-icon success">
                             <CheckCircle size={48} />
                         </div>
-                        <h2>Email Verified!</h2>
-                        <p>Your account is now active. Redirecting you to your scripts...</p>
+                        {callbackType === 'signup' && (
+                            <>
+                                <h2>Email Verified!</h2>
+                                <p>Your account is now active. Redirecting you to your scripts...</p>
+                            </>
+                        )}
+                        {callbackType === 'recovery' && (
+                            <>
+                                <h2>Verification Complete!</h2>
+                                <p>Redirecting you to reset your password...</p>
+                            </>
+                        )}
+                        {callbackType !== 'signup' && callbackType !== 'recovery' && (
+                            <>
+                                <h2>Email Verified!</h2>
+                                <p>Your account is now active. Redirecting you to your scripts...</p>
+                            </>
+                        )}
                     </>
                 )}
 
