@@ -32,7 +32,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 const LoginPage = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { login, signup, isAuthenticated, loading: authLoading } = useAuth();
+    const { login, signup, isAuthenticated, loading: authLoading, user, profile } = useAuth();
     
     // Check for mode in query params (for invite flow)
     const getInitialMode = () => {
@@ -63,8 +63,19 @@ const LoginPage = () => {
         return location.state?.from?.pathname || '/scripts';
     };
 
-    // Redirect if already authenticated
+    // Redirect if already authenticated (unless showing signup completion)
     useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        const isVerified = params.get('verified') === 'true';
+        const isSignupMode = params.get('mode') === 'signup';
+        
+        // If user just verified email, show signup completion screen
+        if (isAuthenticated && !authLoading && isVerified && isSignupMode) {
+            setSignupComplete(true);
+            return;
+        }
+        
+        // Otherwise redirect authenticated users
         if (isAuthenticated && !authLoading) {
             navigate(getRedirectUrl(), { replace: true });
         }
@@ -227,9 +238,11 @@ const LoginPage = () => {
                     {/* Signup Success State */}
                     {signupComplete ? (
                         <SignupSuccess 
-                            email={email}
-                            fullName={fullName}
+                            email={user?.email || email}
+                            fullName={profile?.full_name || fullName}
                             inviteContext={inviteContext}
+                            verified={new URLSearchParams(location.search).get('verified') === 'true'}
+                            onContinue={() => navigate('/scripts', { replace: true })}
                         />
                     ) : (
                     <>
