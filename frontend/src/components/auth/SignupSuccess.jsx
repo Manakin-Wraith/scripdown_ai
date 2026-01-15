@@ -23,7 +23,7 @@ import {
 import { resendVerificationEmail } from '../../lib/supabase';
 import './SignupSuccess.css';
 
-const SignupSuccess = ({ email, fullName, inviteContext }) => {
+const SignupSuccess = ({ email, fullName, inviteContext, verified = false, onContinue }) => {
     const [resending, setResending] = useState(false);
     const [resent, setResent] = useState(false);
     const [error, setError] = useState(null);
@@ -76,7 +76,9 @@ const SignupSuccess = ({ email, fullName, inviteContext }) => {
 
             {/* Welcome Message */}
             <h2 className="success-title">
-                {inviteContext ? (
+                {verified ? (
+                    <>Welcome to SlateOne, {firstName}!</>
+                ) : inviteContext ? (
                     <>Almost there, {firstName}!</>
                 ) : (
                     <>Welcome to SlateOne, {firstName}!</>
@@ -87,7 +89,7 @@ const SignupSuccess = ({ email, fullName, inviteContext }) => {
             {inviteContext && (
                 <div className="invite-context">
                     <p className="context-text">
-                        One more step to join <strong>"{inviteContext.scriptTitle}"</strong> as
+                        {verified ? 'You can now access' : 'One more step to join'} <strong>"{inviteContext.scriptTitle}"</strong> as
                     </p>
                     <div className="department-badge">
                         <Users size={16} />
@@ -96,60 +98,90 @@ const SignupSuccess = ({ email, fullName, inviteContext }) => {
                 </div>
             )}
 
-            {/* Email Verification Card */}
-            <div className="verification-card">
-                <div className="card-icon">
-                    <Mail size={24} />
-                </div>
-                <div className="card-content">
-                    <h3>Verify your email</h3>
-                    <p className="email-address">{email}</p>
-                    <p className="card-hint">
-                        We sent a verification link to your inbox. 
-                        Click the link to activate your account.
-                    </p>
-                </div>
-            </div>
+            {/* Verified User - Show Continue Button */}
+            {verified ? (
+                <>
+                    <div className="verification-card success">
+                        <div className="card-icon">
+                            <CheckCircle size={24} />
+                        </div>
+                        <div className="card-content">
+                            <h3>Email Verified!</h3>
+                            <p className="email-address">{email}</p>
+                            <p className="card-hint">
+                                Your account is now active and ready to use.
+                            </p>
+                        </div>
+                    </div>
 
-            {/* Quick Actions */}
-            <div className="quick-actions">
-                {emailProvider && (
-                    <a 
-                        href={emailProvider.url} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="btn-primary"
-                    >
-                        <ExternalLink size={18} />
-                        Open {emailProvider.name}
-                    </a>
-                )}
-                <button 
-                    className="btn-secondary"
-                    onClick={handleResend}
-                    disabled={resending || resent}
-                >
-                    {resending ? (
-                        <>
-                            <RefreshCw size={18} className="spin" />
-                            Sending...
-                        </>
-                    ) : resent ? (
-                        <>
-                            <CheckCircle size={18} />
-                            Email Sent!
-                        </>
-                    ) : (
-                        <>
-                            <RefreshCw size={18} />
-                            Resend Email
-                        </>
+                    <div className="quick-actions">
+                        <button 
+                            className="btn-primary"
+                            onClick={onContinue}
+                        >
+                            Continue to App
+                            <ExternalLink size={18} />
+                        </button>
+                    </div>
+                </>
+            ) : (
+                <>
+                    {/* Email Verification Card */}
+                    <div className="verification-card">
+                        <div className="card-icon">
+                            <Mail size={24} />
+                        </div>
+                        <div className="card-content">
+                            <h3>Verify your email</h3>
+                            <p className="email-address">{email}</p>
+                            <p className="card-hint">
+                                We sent a verification link to your inbox. 
+                                Click the link to activate your account.
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Quick Actions */}
+                    <div className="quick-actions">
+                        {emailProvider && (
+                            <a 
+                                href={emailProvider.url} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="btn-primary"
+                            >
+                                <ExternalLink size={18} />
+                                Open {emailProvider.name}
+                            </a>
+                        )}
+                        <button 
+                            className="btn-secondary"
+                            onClick={handleResend}
+                            disabled={resending || resent}
+                        >
+                            {resending ? (
+                                <>
+                                    <RefreshCw size={18} className="spin" />
+                                    Sending...
+                                </>
+                            ) : resent ? (
+                                <>
+                                    <CheckCircle size={18} />
+                                    Email Sent!
+                                </>
+                            ) : (
+                                <>
+                                    <RefreshCw size={18} />
+                                    Resend Email
+                                </>
+                            )}
+                        </button>
+                    </div>
+
+                    {error && (
+                        <p className="resend-error">{error}</p>
                     )}
-                </button>
-            </div>
-
-            {error && (
-                <p className="resend-error">{error}</p>
+                </>
             )}
 
             {/* What's Next Section */}

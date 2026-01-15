@@ -5,7 +5,7 @@
  * Supabase automatically handles the token exchange when the page loads.
  * 
  * Supported callback types (via ?type= query param):
- * - signup: Email verification after signup → user is authenticated → redirects to /scripts
+ * - signup: Email verification after signup → redirects to /login?mode=signup&verified=true (shows welcome screen)
  * - recovery: Password reset → redirects to /reset-password
  * - default: Direct login (magic link, etc.) → redirects to /scripts
  */
@@ -57,8 +57,8 @@ const AuthCallbackPage = () => {
                     setTimeout(() => {
                         switch (type) {
                             case 'signup':
-                                // Email verified - user is now authenticated, go to scripts
-                                navigate('/scripts', { replace: true });
+                                // Email verified - show signup completion with verified flag
+                                navigate('/login?mode=signup&verified=true', { replace: true });
                                 break;
                             case 'recovery':
                                 // Password reset - redirect to reset password page
@@ -79,7 +79,7 @@ const AuthCallbackPage = () => {
                             setTimeout(() => {
                                 switch (type) {
                                     case 'signup':
-                                        navigate('/scripts', { replace: true });
+                                        navigate('/login?mode=signup&verified=true', { replace: true });
                                         break;
                                     case 'recovery':
                                         navigate('/reset-password', { replace: true });
@@ -136,7 +136,7 @@ const AuthCallbackPage = () => {
                         {callbackType === 'signup' && (
                             <>
                                 <h2>Email Verified!</h2>
-                                <p>Your account is now active. Redirecting you to your scripts...</p>
+                                <p>Your account is now active. Preparing your welcome screen...</p>
                             </>
                         )}
                         {callbackType === 'recovery' && (
