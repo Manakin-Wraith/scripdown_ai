@@ -24,7 +24,7 @@ export const signUp = async (email, password) => {
         email,
         password,
         options: {
-            emailRedirectTo: `${window.location.origin}/auth/callback`
+            emailRedirectTo: `${window.location.origin}/auth/callback?type=signup`
         }
     });
     return { data, error };
@@ -59,7 +59,7 @@ export const onAuthStateChange = (callback) => {
  */
 export const resetPassword = async (email) => {
     const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`
+        redirectTo: `${window.location.origin}/auth/callback?type=recovery`
     });
     return { data, error };
 };
