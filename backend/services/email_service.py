@@ -34,7 +34,8 @@ def send_email(
     subject: str,
     html: str,
     from_email: Optional[str] = None,
-    reply_to: Optional[str] = None
+    reply_to: Optional[str] = None,
+    text: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Send an email using Resend.
@@ -45,6 +46,7 @@ def send_email(
         html: HTML content of the email
         from_email: Sender email (defaults to RESEND_FROM_EMAIL)
         reply_to: Reply-to email address
+        text: Plain text version (improves deliverability)
     
     Returns:
         Response from Resend API
@@ -63,6 +65,9 @@ def send_email(
         
         if reply_to:
             params["reply_to"] = reply_to
+        
+        if text:
+            params["text"] = text
         
         response = resend.Emails.send(params)
         print(f"Email sent successfully to {to}: {response}")
@@ -375,7 +380,7 @@ def send_welcome_email(
                         <tr>
                             <td style="padding: 24px 32px; border-top: 1px solid #2A2A2A; text-align: center;">
                                 <p style="margin: 0 0 8px 0; font-size: 12px; color: #6B7280;">
-                                    Questions? Reply to this email or reach out at support@slateone.studio
+                                    Questions? Reply to this email or reach out at hello@slateone.studio
                                 </p>
                                 <p style="margin: 0; font-size: 12px; color: #6B7280;">
                                     © {APP_NAME} • AI-Powered Script Breakdown
@@ -652,7 +657,7 @@ def send_expiration_reminder_email(
                         <tr>
                             <td style="padding: 24px 32px; border-top: 1px solid #2A2A2A; text-align: center;">
                                 <p style="margin: 0 0 8px 0; font-size: 12px; color: #6B7280;">
-                                    Questions? Reply to this email or reach out at support@slateone.studio
+                                    Questions? Reply to this email or reach out at hello@slateone.studio
                                 </p>
                                 <p style="margin: 0; font-size: 12px; color: #6B7280;">
                                     © {APP_NAME} • AI-Powered Script Breakdown
@@ -668,3 +673,152 @@ def send_expiration_reminder_email(
     """
     
     return send_email(to_email, subject, html)
+
+
+def send_early_access_reminder(
+    to_email: str,
+    first_name: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Send reminder email to early access invitees who haven't signed up yet.
+    IMPROVED VERSION with better deliverability.
+    
+    Args:
+        to_email: User's email address
+        first_name: User's first name (optional, will use "there" if not provided)
+    """
+    name = first_name if first_name else 'there'
+    
+    # DECISION 1 (OPEN): Clear expectation - reader knows what this email is
+    subject = f"SlateOne Early Access: Your testing account is waiting"
+    
+    # DECISION 2 (READ): Point stated in first 3 lines
+    text = f"""Hi {name},
+
+Your SlateOne testing account is active. We need you to upload one script and share feedback.
+
+This matters because you're a working filmmaker. Your input shapes what we build next.
+
+What to do:
+1. Sign up at {APP_URL}/login
+2. Upload one script
+3. Reply with what works and what doesn't
+
+You get 30 days free access. No credit card needed.
+
+The ask: 15 minutes of your time to test the AI breakdown and tell us what you think.
+
+Sign up here: {APP_URL}/login
+
+---
+SlateOne - Script Breakdown
+SlateOne.studio
+Cape Town, South Africa
+
+Questions? Reply to this email: hello@slateone.studio
+Unsubscribe: {APP_URL}/unsubscribe
+"""
+    
+    # HTML version (cleaner, less aggressive styling)
+    html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>{subject}</title>
+    </head>
+    <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #F9FAFB; color: #111827;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #F9FAFB; padding: 40px 20px;">
+            <tr>
+                <td align="center">
+                    <table width="600" cellpadding="0" cellspacing="0" style="background-color: #FFFFFF; border-radius: 8px; overflow: hidden; border: 1px solid #E5E7EB;">
+                        <!-- Header -->
+                        <tr>
+                            <td style="background-color: #F59E0B; padding: 32px; text-align: center;">
+                                <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: #000000;">
+                                    SlateOne
+                                </h1>
+                                <p style="margin: 8px 0 0 0; font-size: 14px; color: #78350F;">AI-Powered Script Breakdown</p>
+                            </td>
+                        </tr>
+                        
+                        <!-- DECISION 2: Point in first 3 lines -->
+                        <tr>
+                            <td style="padding: 32px 32px 24px 32px;">
+                                <p style="margin: 0 0 16px 0; font-size: 16px; color: #111827; line-height: 1.5;">
+                                    Hi {name},
+                                </p>
+                                
+                                <p style="margin: 0 0 8px 0; font-size: 18px; color: #111827; line-height: 1.4; font-weight: 600;">
+                                    Your SlateOne testing account is active.
+                                </p>
+                                
+                                <p style="margin: 0 0 24px 0; font-size: 18px; color: #111827; line-height: 1.4; font-weight: 600;">
+                                    We need you to upload one script and share feedback.
+                                </p>
+                                
+                                <p style="margin: 0 0 24px 0; font-size: 16px; color: #4B5563; line-height: 1.6;">
+                                    This matters because you're a working filmmaker. Your input shapes what we build next.
+                                </p>
+                                
+                                <!-- What to do - scannable -->
+                                <div style="background-color: #F3F4F6; border-radius: 6px; padding: 20px; margin-bottom: 24px;">
+                                    <p style="margin: 0 0 12px 0; font-size: 14px; color: #374151; font-weight: 600;">What to do:</p>
+                                    
+                                    <p style="margin: 0 0 8px 0; font-size: 15px; color: #111827; line-height: 1.6;">
+                                        1. Sign up at SlateOne
+                                    </p>
+                                    <p style="margin: 0 0 8px 0; font-size: 15px; color: #111827; line-height: 1.6;">
+                                        2. Upload one script
+                                    </p>
+                                    <p style="margin: 0; font-size: 15px; color: #111827; line-height: 1.6;">
+                                        3. Reply with what works and what doesn't
+                                    </p>
+                                </div>
+                                
+                                <p style="margin: 0 0 24px 0; font-size: 16px; color: #4B5563; line-height: 1.6;">
+                                    You get 30 days free access. No credit card needed.
+                                </p>
+                                
+                                <p style="margin: 0 0 32px 0; font-size: 16px; color: #111827; line-height: 1.6; font-weight: 600;">
+                                    The ask: 15 minutes of your time to test the AI breakdown and tell us what you think.
+                                </p>
+                                
+                                <!-- DECISION 3: Single primary action -->
+                                <table width="100%" cellpadding="0" cellspacing="0">
+                                    <tr>
+                                        <td align="center">
+                                            <a href="{APP_URL}/login" style="display: inline-block; background-color: #F59E0B; color: #000000; text-decoration: none; padding: 16px 48px; border-radius: 6px; font-weight: 600; font-size: 16px;">
+                                                Sign Up Now
+                                            </a>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                        
+                        <!-- Footer - minimal, no competing links -->
+                        <tr>
+                            <td style="padding: 24px 32px; border-top: 1px solid #E5E7EB; text-align: center;">
+                                <p style="margin: 0 0 16px 0; font-size: 14px; color: #6B7280; line-height: 1.6;">
+                                    Use <strong>{to_email}</strong> to sign up
+                                </p>
+                                
+                                <!-- Company info - small, non-distracting -->
+                                <p style="margin: 0; font-size: 11px; color: #9CA3AF; line-height: 1.6;">
+                                    SlateOne · SlateOne.studio · Cape Town, South Africa<br>
+                                    <a href="mailto:hello@slateone.studio" style="color: #9CA3AF; text-decoration: none;">hello@slateone.studio</a> · 
+                                    <a href="{APP_URL}/unsubscribe" style="color: #9CA3AF; text-decoration: none;">Unsubscribe</a>
+                                </p>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </body>
+    </html>
+    """
+    
+    return send_email(to_email, subject, html, text=text)
