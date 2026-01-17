@@ -1,4 +1,11 @@
--- Database Schema for ScripDown AI
+-- ⚠️ ⚠️ ⚠️ DEPRECATED - DO NOT USE ⚠️ ⚠️ ⚠️
+-- This MySQL schema is NOT used in production
+-- Production uses Supabase (PostgreSQL)
+-- For current schema, see Supabase Dashboard or migrations in backend/db/migrations/
+-- This file is kept for historical reference only
+-- ⚠️ ⚠️ ⚠️ DEPRECATED - DO NOT USE ⚠️ ⚠️ ⚠️
+
+-- Database Schema for ScripDown AI (LEGACY - MySQL)
 
 CREATE DATABASE IF NOT EXISTS script_breakdown;
 USE script_breakdown;

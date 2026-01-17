@@ -15,6 +15,10 @@ from routes.email_analytics_routes import analytics_bp
 
 load_dotenv()
 
+# Validate required environment variables before starting
+from utils.env_validator import validate_required_env
+validate_required_env()
+
 app = Flask(__name__)
 
 # Configure CORS for production - allow all origins for now

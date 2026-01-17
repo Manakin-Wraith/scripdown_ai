@@ -39,7 +39,7 @@ def get_waitlist_users():
     try:
         notel_client = create_client(NOTEL_SUPABASE_URL, NOTEL_SUPABASE_KEY)
         
-        # Fetch waitlist users (adjust query based on your table structure)
+        # Fetch all waitlist users
         response = notel_client.table('waitlist')\
             .select('*')\
             .execute()
@@ -48,6 +48,26 @@ def get_waitlist_users():
     except Exception as e:
         print(f"❌ Error fetching waitlist users: {e}")
         return []
+
+
+def get_existing_emails():
+    """
+    Get all emails already in early_access_users table.
+    Returns set of email addresses for fast lookup.
+    """
+    if not MAIN_SUPABASE_URL or not MAIN_SUPABASE_KEY:
+        return set()
+    
+    try:
+        main_client = create_client(MAIN_SUPABASE_URL, MAIN_SUPABASE_KEY)
+        response = main_client.table('early_access_users')\
+            .select('email')\
+            .execute()
+        
+        return {user['email'].lower() for user in response.data} if response.data else set()
+    except Exception as e:
+        print(f"⚠️  Error fetching existing emails: {e}")
+        return set()
 
 
 def register_in_main_project(email, first_name=None):
@@ -61,23 +81,13 @@ def register_in_main_project(email, first_name=None):
     try:
         main_client = create_client(MAIN_SUPABASE_URL, MAIN_SUPABASE_KEY)
         
-        # Check if already registered
-        existing = main_client.table('early_access_users')\
-            .select('*')\
-            .eq('email', email)\
-            .execute()
-        
-        if existing.data:
-            print(f"  ℹ️  Already registered in main project")
-            return True
-        
-        # Register new user
-        main_client.table('early_access_users').insert({
+        # Register new user (upsert to handle edge cases)
+        main_client.table('early_access_users').upsert({
             'email': email,
             'first_name': first_name,
             'status': 'invited',
             'source': 'waitlist'
-        }).execute()
+        }, on_conflict='email').execute()
         
         print(f"  ✓ Registered in main project")
         return True
@@ -99,15 +109,31 @@ def main():
     # Option 1: Fetch from Notel Supabase (if credentials available)
     if NOTEL_SUPABASE_URL and NOTEL_SUPABASE_KEY:
         print("\n📊 Fetching waitlist users from Notel project...")
-        users = get_waitlist_users()
+        all_waitlist_users = get_waitlist_users()
         
-        if users:
-            print(f"Found {len(users)} waitlist user(s):\n")
-            for i, user in enumerate(users, 1):
-                email = user.get('email', 'N/A')
-                name = user.get('name') or user.get('first_name', 'N/A')
-                created = user.get('created_at', 'N/A')
-                print(f"  {i}. {name} ({email}) - Joined: {created}")
+        if all_waitlist_users:
+            print(f"Found {len(all_waitlist_users)} total waitlist user(s)")
+            
+            # Get existing emails from main project
+            print("\n🔍 Checking for already processed users...")
+            existing_emails = get_existing_emails()
+            print(f"   {len(existing_emails)} user(s) already in early_access_users table")
+            
+            # Filter to only NEW users
+            users = [
+                user for user in all_waitlist_users 
+                if user.get('email', '').lower() not in existing_emails
+            ]
+            
+            print(f"\n✨ Found {len(users)} NEW user(s) to process:\n")
+            if users:
+                for i, user in enumerate(users, 1):
+                    email = user.get('email', 'N/A')
+                    name = user.get('name') or user.get('first_name', 'N/A')
+                    created = user.get('created_at', 'N/A')
+                    print(f"  {i}. {name} ({email}) - Joined: {created}")
+            else:
+                print("  (All waitlist users have already been processed)")
         else:
             print("No users found or error occurred.")
             users = []
