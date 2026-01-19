@@ -700,7 +700,7 @@ Your SlateOne testing account is active. We need you to upload one script and sh
 This matters because you're a working filmmaker. Your input shapes what we build next.
 
 What to do:
-1. Sign up at {APP_URL}/login
+1. Sign up at {APP_URL}/login?mode=signup
 2. Upload one script
 3. Reply with what works and what doesn't
 
@@ -708,7 +708,7 @@ You get 30 days free access. No credit card needed.
 
 The ask: 15 minutes of your time to test the AI breakdown and tell us what you think.
 
-Sign up here: {APP_URL}/login
+Sign up here: {APP_URL}/login?mode=signup
 
 ---
 SlateOne - Script Breakdown
@@ -789,7 +789,7 @@ Unsubscribe: {APP_URL}/unsubscribe
                                 <table width="100%" cellpadding="0" cellspacing="0">
                                     <tr>
                                         <td align="center">
-                                            <a href="{APP_URL}/login" style="display: inline-block; background-color: #F59E0B; color: #000000; text-decoration: none; padding: 16px 48px; border-radius: 6px; font-weight: 600; font-size: 16px;">
+                                            <a href="{APP_URL}/login?mode=signup" style="display: inline-block; background-color: #F59E0B; color: #000000; text-decoration: none; padding: 16px 48px; border-radius: 6px; font-weight: 600; font-size: 16px;">
                                                 Sign Up Now
                                             </a>
                                         </td>
