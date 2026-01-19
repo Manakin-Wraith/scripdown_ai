@@ -29,6 +29,11 @@
     overflow: hidden;
 }
 
+/* Hide branding when showing signup split layout */
+.login-page:has(.signup-split-layout) .login-branding {
+    display: none;
+}
+
 .login-branding::before {
     content: '';
     position: absolute;
@@ -120,9 +125,24 @@
     background: var(--gray-900);
 }
 
+/* When showing signup split layout, take full width and center content */
+.login-page:has(.signup-split-layout) .login-form-panel {
+    flex: 1;
+    max-width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .login-form-container {
     width: 100%;
     max-width: 400px;
+}
+
+/* Signup split layout - wider container */
+.login-form-container.signup-split-layout {
+    max-width: 1100px;
+    width: 100%;
 }
 
 /* Mobile Logo (hidden on desktop) */
@@ -417,6 +437,16 @@
     .login-header {
         text-align: center;
     }
+    
+    /* Stack signup layout vertically on tablet */
+    .signup-split-layout {
+        flex-direction: column;
+    }
+    
+    .signup-beta-panel {
+        flex: 0 0 auto;
+        order: -1;
+    }
 }
 
 /* Mobile */
@@ -438,7 +468,149 @@
     }
 }
 
-/* Beta Access CTA */
+/* Signup Split Layout */
+.signup-split-layout {
+    display: flex;
+    gap: 3rem;
+    align-items: flex-start;
+    justify-content: center;
+}
+
+.signup-beta-panel {
+    flex: 0 0 420px;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(168, 85, 247, 0.15) 100%);
+    border: 2px solid rgba(99, 102, 241, 0.4);
+    border-radius: 16px;
+    padding: 2.5rem 2rem;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 8px 32px rgba(99, 102, 241, 0.2);
+    order: -1;
+}
+
+.signup-form-section {
+    flex: 0 0 450px;
+    min-width: 0;
+}
+
+.beta-panel-content {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.beta-badge-large {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: linear-gradient(135deg, #6366F1 0%, #A855F7 100%);
+    border-radius: 24px;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 1.5rem;
+    align-self: flex-start;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.beta-panel-content h3 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--gray-100);
+    margin: 0 0 1rem 0;
+    line-height: 1.2;
+}
+
+.beta-price {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 12px;
+    border: 1px solid rgba(99, 102, 241, 0.3);
+}
+
+.price-amount {
+    font-size: 3rem;
+    font-weight: 800;
+    color: #A855F7;
+    line-height: 1;
+    margin-bottom: 0.25rem;
+}
+
+.price-period {
+    font-size: 0.875rem;
+    color: var(--gray-400);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.beta-features-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 2rem 0;
+    flex: 1;
+}
+
+.beta-features-list li {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.875rem 0;
+    color: var(--gray-300);
+    font-size: 0.9375rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.beta-features-list li:last-child {
+    border-bottom: none;
+}
+
+.beta-features-list li svg {
+    color: #10B981;
+    flex-shrink: 0;
+}
+
+.beta-panel-cta {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.625rem;
+    width: 100%;
+    padding: 1rem 1.5rem;
+    background: linear-gradient(135deg, #6366F1 0%, #A855F7 100%);
+    border: none;
+    border-radius: 12px;
+    color: white;
+    font-size: 1.0625rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+    margin-top: auto;
+}
+
+.beta-panel-cta:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 28px rgba(99, 102, 241, 0.5);
+}
+
+.beta-panel-cta:active {
+    transform: translateY(0);
+}
+
+.beta-note {
+    text-align: center;
+    margin-top: 0.75rem;
+    font-size: 0.8125rem;
+    color: var(--gray-500);
+}
+
+/* Old Beta CTA (hidden when split layout is active) */
 .beta-cta {
     margin-top: 2rem;
     padding: 1.5rem;
@@ -446,6 +618,7 @@
     border: 1px solid rgba(99, 102, 241, 0.3);
     border-radius: 12px;
     text-align: center;
+    display: none;
 }
 
 .beta-cta-badge {

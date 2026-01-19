@@ -38,7 +38,7 @@ const ACTIVE_FEATURES = [
     'department_notes',
 ];
 
-const YOCO_PAYMENT_LINK = 'https://pay.yoco.com/r/2JB0rQ';
+const YOCO_PAYMENT_LINK = 'https://pay.yoco.com/r/mEDpxp';
 
 export function useSubscription() {
     const { user, profile } = useAuth();

@@ -41,9 +41,10 @@ const ConfirmEmailPage = () => {
 
             try {
                 // Verify OTP with token_hash and type
+                // Supabase sends type='signup' for email confirmations
                 const { data, error } = await supabase.auth.verifyOtp({
                     token_hash,
-                    type: type || 'email'
+                    type: type || 'signup'  // Default to 'signup' for email confirmation
                 });
 
                 console.log('Verification result:', { data, error });

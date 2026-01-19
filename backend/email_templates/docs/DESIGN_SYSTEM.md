@@ -299,7 +299,7 @@ Our emails are designed dark-first, so they look great in both light and dark mo
 
 ### Number Formats
 - Use locale-appropriate separators
-- Currency: R125 (South African Rand)
+- Currency: R249 (South African Rand)
 
 ## Performance
 

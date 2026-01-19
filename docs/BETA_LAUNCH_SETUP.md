@@ -186,7 +186,7 @@ curl -X POST http://localhost:5000/api/beta/send-launch-email \
 
 ### Variant 1: New User
 **Greeting:** "SlateOne is officially in beta — and you're invited to be among the first."  
-**CTA:** "Get Beta Access - R125"
+**CTA:** "Get Beta Access - R249"
 
 ### Variant 2: Trial User
 **Greeting:** "Your trial ends soon — upgrade to beta and keep everything you've built."  
@@ -194,7 +194,7 @@ curl -X POST http://localhost:5000/api/beta/send-launch-email \
 
 ### Variant 3: Waitlist User
 **Greeting:** "You're in! Your early access spot is ready."  
-**CTA:** "Claim Your Beta Access"
+**CTA:** "Welcome! Complete your beta access" | "Pay R249 & Get Access" (Yoco link)
 
 ---
 
@@ -369,7 +369,7 @@ Check `user_status` parameter:
 
 ## Support
 
-- **Email Issues**: Check Resend dashboard or contact Resend support
+- **For unpaid users**: Yoco payment link (R249 for 1 year beta access)
 - **API Issues**: Check backend logs at `backend/logs/`
 - **Questions**: Email beta@slateone.studio
 

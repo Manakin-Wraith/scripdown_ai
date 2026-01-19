@@ -252,7 +252,7 @@ def send_test_email(to_email: str) -> Dict[str, Any]:
 
 
 # Yoco payment link for beta access
-YOCO_PAYMENT_LINK = "https://pay.yoco.com/r/2JB0rQ"
+YOCO_PAYMENT_LINK = "https://pay.yoco.com/r/mEDpxp"
 
 
 def send_welcome_email(
@@ -290,7 +290,7 @@ def send_welcome_email(
                                 <div style="background-color: #262626; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
                                     <p style="margin: 0 0 8px 0; font-size: 14px; color: #F59E0B; font-weight: 600;">⚡ BETA ACCESS OFFER</p>
                                     <p style="margin: 0 0 16px 0; font-size: 16px; color: #FFFFFF; line-height: 1.5;">
-                                        Get <strong>6 months of full access</strong> to SlateOne for a one-time payment of <strong style="color: #F59E0B;">R125</strong>.
+                                        Get <strong>1 year of full access</strong> to SlateOne for a one-time payment of <strong style="color: #F59E0B;">R249</strong>.
                                     </p>
                                     <ul style="margin: 0 0 16px 0; padding-left: 20px; color: #9CA3AF; font-size: 14px; line-height: 1.8;">
                                         <li>AI-powered script breakdown</li>
@@ -301,7 +301,7 @@ def send_welcome_email(
                                 </div>
                                 
                                 <a href="{YOCO_PAYMENT_LINK}" style="display: inline-block; background: linear-gradient(135deg, #F59E0B, #D97706); color: #000000; text-decoration: none; padding: 14px 28px; border-radius: 8px; font-weight: 600; font-size: 16px;">
-                                    💳 Pay R125 & Get Access →
+                                    💳 Pay R249 & Get Access →
                                 </a>
                                 
                                 <p style="margin: 16px 0 0 0; font-size: 12px; color: #6B7280;">
@@ -644,11 +644,11 @@ def send_expiration_reminder_email(
                                 </div>
                                 
                                 <a href="{YOCO_PAYMENT_LINK}" style="display: inline-block; background: linear-gradient(135deg, #F59E0B, #D97706); color: #000000; text-decoration: none; padding: 14px 28px; border-radius: 8px; font-weight: 600; font-size: 16px;">
-                                    💳 {'Upgrade Now - R125' if is_trial else 'Renew Now'}
+                                    💳 {'Upgrade Now - R249' if is_trial else 'Renew Now'}
                                 </a>
                                 
                                 <p style="margin: 16px 0 0 0; font-size: 12px; color: #6B7280;">
-                                    Secure payment via Yoco. Get 6 months of full access.
+                                    Secure payment via Yoco. Get 1 year of full access.
                                 </p>
                             </td>
                         </tr>
@@ -822,3 +822,183 @@ Unsubscribe: {APP_URL}/unsubscribe
     """
     
     return send_email(to_email, subject, html, text=text)
+
+
+def send_waitlist_welcome_email(
+    to_email: str,
+    metadata: Optional[Dict] = None
+) -> Dict[str, Any]:
+    """
+    Send welcome email to new waitlist signups.
+    Optimized for 10/10 spam score with clean, professional design.
+    
+    Args:
+        to_email: User's email address
+        metadata: Optional metadata from waitlist signup (role, scripts_per_year, etc.)
+    """
+    # Extract metadata if available
+    role = metadata.get('role') if metadata else None
+    
+    subject = "Welcome to SlateOne - You're on the list!"
+    
+    # Plain text version for better deliverability
+    text = f"""Hi there,
+
+Thanks for joining the SlateOne waitlist! We're building AI-powered script breakdown tools for film and television production teams.
+
+What's next:
+- We'll notify you when early access opens
+- You'll get 30 days free to test all features
+- Your feedback will shape the product
+
+We're launching soon. Keep an eye on your inbox.
+
+---
+SlateOne - Script Breakdown
+SlateOne.studio
+Cape Town, South Africa
+
+Questions? Reply to this email: hello@slateone.studio
+"""
+    
+    # HTML version with clean, professional design
+    html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>{subject}</title>
+    </head>
+    <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #F9FAFB; color: #111827;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #F9FAFB; padding: 40px 20px;">
+            <tr>
+                <td align="center">
+                    <table width="600" cellpadding="0" cellspacing="0" style="background-color: #FFFFFF; border-radius: 8px; overflow: hidden; border: 1px solid #E5E7EB;">
+                        <!-- Header -->
+                        <tr>
+                            <td style="background-color: #F59E0B; padding: 32px; text-align: center;">
+                                <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: #000000;">
+                                    🎬 SlateOne
+                                </h1>
+                                <p style="margin: 8px 0 0 0; font-size: 14px; color: #78350F;">AI-Powered Script Breakdown</p>
+                            </td>
+                        </tr>
+                        
+                        <!-- Welcome Badge -->
+                        <tr>
+                            <td style="background-color: #10B981; padding: 12px; text-align: center;">
+                                <p style="margin: 0; font-size: 14px; font-weight: 700; color: #FFFFFF; text-transform: uppercase; letter-spacing: 1px;">
+                                    ✓ You're on the waitlist
+                                </p>
+                            </td>
+                        </tr>
+                        
+                        <!-- Content -->
+                        <tr>
+                            <td style="padding: 32px;">
+                                <h2 style="margin: 0 0 16px 0; font-size: 22px; font-weight: 700; color: #111827; line-height: 1.3;">
+                                    Thanks for joining!
+                                </h2>
+                                
+                                <p style="margin: 0 0 24px 0; font-size: 16px; color: #4B5563; line-height: 1.6;">
+                                    We're building AI-powered script breakdown tools for film and television production teams. You'll be among the first to know when we launch.
+                                </p>
+                                
+                                <!-- What's Next -->
+                                <div style="background-color: #F3F4F6; border-radius: 6px; padding: 20px; margin-bottom: 24px;">
+                                    <p style="margin: 0 0 12px 0; font-size: 14px; color: #374151; font-weight: 600;">What's next:</p>
+                                    
+                                    <p style="margin: 0 0 8px 0; font-size: 15px; color: #111827; line-height: 1.6;">
+                                        ✓ We'll notify you when early access opens
+                                    </p>
+                                    <p style="margin: 0 0 8px 0; font-size: 15px; color: #111827; line-height: 1.6;">
+                                        ✓ You'll get 30 days free to test all features
+                                    </p>
+                                    <p style="margin: 0; font-size: 15px; color: #111827; line-height: 1.6;">
+                                        ✓ Your feedback will shape the product
+                                    </p>
+                                </div>
+                                
+                                <p style="margin: 0 0 24px 0; font-size: 16px; color: #4B5563; line-height: 1.6;">
+                                    We're launching soon. Keep an eye on your inbox for updates.
+                                </p>
+                            </td>
+                        </tr>
+                        
+                        <!-- Features Preview -->
+                        <tr>
+                            <td style="padding: 0 32px 32px 32px;">
+                                <p style="margin: 0 0 16px 0; font-size: 14px; color: #6B7280; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">What you'll get:</p>
+                                
+                                <table width="100%" cellpadding="0" cellspacing="0">
+                                    <tr>
+                                        <td style="padding: 12px 16px; background-color: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 6px; margin-bottom: 8px;">
+                                            <p style="margin: 0 0 4px 0; font-size: 15px; font-weight: 600; color: #111827;">📄 AI Script Analysis</p>
+                                            <p style="margin: 0; font-size: 13px; color: #6B7280;">Automatic scene detection and breakdown</p>
+                                        </td>
+                                    </tr>
+                                </table>
+                                
+                                <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 8px;">
+                                    <tr>
+                                        <td style="padding: 12px 16px; background-color: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 6px;">
+                                            <p style="margin: 0 0 4px 0; font-size: 15px; font-weight: 600; color: #111827;">👥 Team Collaboration</p>
+                                            <p style="margin: 0; font-size: 13px; color: #6B7280;">Work together with your crew</p>
+                                        </td>
+                                    </tr>
+                                </table>
+                                
+                                <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 8px;">
+                                    <tr>
+                                        <td style="padding: 12px 16px; background-color: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 6px;">
+                                            <p style="margin: 0 0 4px 0; font-size: 15px; font-weight: 600; color: #111827;">📊 Production Reports</p>
+                                            <p style="margin: 0; font-size: 13px; color: #6B7280;">Export stripboards and breakdowns</p>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                        
+                        <!-- Footer -->
+                        <tr>
+                            <td style="padding: 24px 32px; border-top: 1px solid #E5E7EB; text-align: center;">
+                                <p style="margin: 0 0 8px 0; font-size: 12px; color: #6B7280;">
+                                    Questions? Reply to this email at hello@slateone.studio
+                                </p>
+                                <p style="margin: 0; font-size: 11px; color: #9CA3AF; line-height: 1.6;">
+                                    SlateOne · SlateOne.studio · Cape Town, South Africa
+                                </p>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </body>
+    </html>
+    """
+    
+    # Send the email
+    result = send_email(
+        to=to_email,
+        subject=subject,
+        html=html,
+        text=text,
+        from_email="hello@slateone.studio",
+        reply_to="hello@slateone.studio"
+    )
+    
+    # Log to email tracking if email was sent successfully
+    if result and 'error' not in result:
+        resend_email_id = result.get('id')
+        log_email_sent(
+            email_type='waitlist_welcome',
+            recipient_email=to_email,
+            recipient_name='Waitlist User',
+            resend_email_id=resend_email_id,
+            user_status='waitlist',
+            metadata=metadata or {}
+        )
+    
+    return result

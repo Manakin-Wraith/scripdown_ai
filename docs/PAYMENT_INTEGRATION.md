@@ -134,7 +134,7 @@ The Edge Function uses these Supabase environment variables (automatically avail
 
 ## Yoco Payment Link
 
-Current link: `https://pay.yoco.com/r/2JB0rQ`
+Current link: `https://pay.yoco.com/r/mEDpxp`
 
 To update, change in:
 - `frontend/src/pages/LoginPage.jsx` (line ~372)
@@ -142,7 +142,7 @@ To update, change in:
 ## Welcome Email with Yoco Paylink
 
 After signup, users automatically receive a welcome email containing:
-- **For unpaid users**: Yoco payment link (R125 for 6 months beta access)
+- **For unpaid users**: Yoco payment link (R249 for 1 year beta access)
 - **For paid users**: Confirmation of beta access with link to start using the app
 
 ### Implementation
@@ -165,7 +165,7 @@ After signup, users automatically receive a welcome email containing:
 
 | User Status | Subject | CTA |
 |-------------|---------|-----|
-| Not Paid | "Welcome! Complete your beta access" | "Pay R125 & Get Access" (Yoco link) |
+| Not Paid | "Welcome! Complete your beta access" | "Pay R249 & Get Access" (Yoco link) |
 | Paid | "Welcome, [Name]!" | "Start Using SlateOne" |
 
 ## Future Enhancements
