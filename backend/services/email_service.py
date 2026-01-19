@@ -821,7 +821,24 @@ Unsubscribe: {APP_URL}/unsubscribe
     </html>
     """
     
-    return send_email(to_email, subject, html, text=text)
+    result = send_email(to_email, subject, html, text=text)
+    
+    # Log to email tracking if email was sent successfully
+    if result and 'error' not in result:
+        resend_email_id = result.get('id')
+        log_email_sent(
+            email_type='beta_unlock',
+            recipient_email=to_email,
+            recipient_name=first_name or 'Beta User',
+            user_status='early_access',
+            resend_email_id=resend_email_id,
+            metadata={
+                'subject': subject,
+                'campaign': 'beta_unlock_reminder'
+            }
+        )
+    
+    return result
 
 
 def send_waitlist_welcome_email(
