@@ -186,7 +186,7 @@ def can_upload_script_route():
         return jsonify({
             'can_upload': can_upload,
             'message': message,
-            'upgrade_url': 'https://pay.yoco.com/r/2JB0rQ' if not can_upload else None
+            'upgrade_url': 'https://pay.yoco.com/r/mEDpxp' if not can_upload else None
         })
         
     except Exception as e:

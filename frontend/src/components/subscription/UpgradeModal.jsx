@@ -7,7 +7,7 @@ import React from 'react';
 import { X, Sparkles, Check, CreditCard, Clock } from 'lucide-react';
 import './UpgradeModal.css';
 
-const YOCO_PAYMENT_LINK = 'https://pay.yoco.com/r/2JB0rQ';
+const YOCO_PAYMENT_LINK = 'https://pay.yoco.com/r/mEDpxp';
 
 const UpgradeModal = ({ 
     isOpen, 
@@ -35,7 +35,7 @@ const UpgradeModal = ({
         if (message) return message;
         if (isExpired) return 'Renew your subscription to continue using SlateOne and keep all your scripts.';
         if (feature) return `This feature requires an active subscription. Upgrade now to unlock ${formatFeature(feature)} and all other premium features.`;
-        return 'Get 6 months of full access to SlateOne for a one-time payment of R125.';
+        return 'Get 1 year of full access to SlateOne for a one-time payment of R249.';
     };
 
     const formatFeature = (feat) => {
@@ -96,8 +96,8 @@ const UpgradeModal = ({
 
                 <div className="upgrade-modal-pricing">
                     <div className="upgrade-modal-price">
-                        <span className="price-amount">R125</span>
-                        <span className="price-period">for 6 months</span>
+                        <span className="price-amount">R249</span>
+                        <span className="price-period">for 1 year</span>
                     </div>
                     <p className="price-note">One-time payment • No recurring charges</p>
                 </div>

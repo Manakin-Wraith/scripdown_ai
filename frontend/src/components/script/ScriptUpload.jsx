@@ -226,7 +226,7 @@ const ScriptUpload = () => {
                                 onClick={() => setShowUpgradeModal(true)}
                             >
                                 <Sparkles size={18} />
-                                Upgrade Now - R125
+                                Upgrade Now - R249
                             </button>
                             
                             <button 

@@ -84,7 +84,7 @@ Login/Signup → Upload PDF → View Script Library → Select Script
 
 | Feature | Priority | Description |
 |---------|----------|-------------|
-| **Subscription Tiers** | High | Trial (14 days, 1 script) → Beta (R125, 6 months) |
+| **Subscription Tiers** | High | Trial (14 days, 1 script) → Beta (R249, 1 year) |
 | **Reports** | High | Scene breakdown, Day-out-of-Days, Location reports |
 | **Scene Manager** | Medium | Split, merge, reorder scenes |
 | **Script Locking** | Medium | Lock script for production with revision colors |

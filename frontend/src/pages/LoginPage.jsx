@@ -226,7 +226,7 @@ const LoginPage = () => {
 
             {/* Right Panel - Form */}
             <div className="login-form-panel">
-                <div className="login-form-container">
+                <div className={`login-form-container ${mode === 'signup' && !inviteContext ? 'signup-split-layout' : ''}`}>
                     {/* Mobile Logo */}
                     <div className="mobile-logo">
                         <Link to="/" className="brand-logo">
@@ -246,22 +246,84 @@ const LoginPage = () => {
                         />
                     ) : (
                     <>
-                    {/* Header */}
-                    <div className="login-header">
-                        <h2>
-                            {mode === 'login' && 'Welcome back'}
-                            {mode === 'signup' && 'Create your account'}
-                            {mode === 'forgot' && 'Reset password'}
-                        </h2>
-                        <p>
-                            {mode === 'login' && 'Sign in to access your scripts and breakdowns'}
-                            {mode === 'signup' && (inviteContext 
-                                ? `Join "${inviteContext.scriptTitle}" as ${inviteContext.department}`
-                                : 'Join your production team on SlateOne'
-                            )}
-                            {mode === 'forgot' && 'Enter your email to receive a reset link'}
-                        </p>
-                    </div>
+                    {/* Beta Access Panel - Only for Signup */}
+                    {mode === 'signup' && !inviteContext && (
+                        <div className="signup-beta-panel">
+                            <div className="beta-panel-content">
+                                <div className="beta-badge-large">
+                                    <Sparkles size={24} />
+                                    <span>Beta Access</span>
+                                </div>
+                                <h3>Get 1 Year of Full Access</h3>
+                                <div className="beta-price">
+                                    <span className="price-amount">R249</span>
+                                    <span className="price-period">one-time payment</span>
+                                </div>
+                                <ul className="beta-features-list">
+                                    <li>
+                                        <CheckCircle size={18} />
+                                        <span>AI-powered script breakdown</span>
+                                    </li>
+                                    <li>
+                                        <CheckCircle size={18} />
+                                        <span>Unlimited scene analysis</span>
+                                    </li>
+                                    <li>
+                                        <CheckCircle size={18} />
+                                        <span>Team collaboration tools</span>
+                                    </li>
+                                    <li>
+                                        <CheckCircle size={18} />
+                                        <span>Export reports & stripboards</span>
+                                    </li>
+                                </ul>
+                                <button 
+                                    type="button"
+                                    className="beta-panel-cta"
+                                    onClick={() => {
+                                        const paymentEmail = email || '';
+                                        if (paymentEmail) {
+                                            localStorage.setItem('beta_payment_email', paymentEmail);
+                                        }
+                                        
+                                        const width = 500;
+                                        const height = 700;
+                                        const left = window.screenX + (window.outerWidth - width) / 2;
+                                        const top = window.screenY + (window.outerHeight - height) / 2;
+                                        
+                                        window.open(
+                                            'https://pay.yoco.com/r/mEDpxp',
+                                            'yoco-payment',
+                                            `width=${width},height=${height},left=${left},top=${top}`
+                                        );
+                                    }}
+                                >
+                                    <CreditCard size={20} />
+                                    Pay & Get Access
+                                </button>
+                                <p className="beta-note">Enter your email above first</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Form Section */}
+                    <div className="signup-form-section">
+                        {/* Header */}
+                        <div className="login-header">
+                            <h2>
+                                {mode === 'login' && 'Welcome back'}
+                                {mode === 'signup' && 'Create your account'}
+                                {mode === 'forgot' && 'Reset password'}
+                            </h2>
+                            <p>
+                                {mode === 'login' && 'Sign in to access your scripts and breakdowns'}
+                                {mode === 'signup' && (inviteContext 
+                                    ? `Join "${inviteContext.scriptTitle}" as ${inviteContext.department}`
+                                    : 'Join your production team on SlateOne'
+                                )}
+                                {mode === 'forgot' && 'Enter your email to receive a reset link'}
+                            </p>
+                        </div>
 
                     {/* Messages */}
                     {error && (
@@ -420,55 +482,7 @@ const LoginPage = () => {
                             </>
                         )}
                     </div>
-
-                    {/* Beta Access CTA */}
-                    {mode === 'signup' && !inviteContext && (
-                        <div className="beta-cta">
-                            <div className="beta-cta-badge">
-                                <Sparkles size={14} />
-                                <span>Beta Access</span>
-                            </div>
-                            <p>Get 6 months access to SlateOne for a one-time payment of <strong>R125</strong></p>
-                            <button 
-                                type="button"
-                                className="beta-cta-btn"
-                                onClick={() => {
-                                    // Store email for payment success page
-                                    const paymentEmail = email || '';
-                                    if (paymentEmail) {
-                                        localStorage.setItem('beta_payment_email', paymentEmail);
-                                    }
-                                    
-                                    // Open Yoco in popup window
-                                    const width = 500;
-                                    const height = 700;
-                                    const left = window.screenX + (window.outerWidth - width) / 2;
-                                    const top = window.screenY + (window.outerHeight - height) / 2;
-                                    
-                                    const popup = window.open(
-                                        'https://pay.yoco.com/r/2JB0rQ',
-                                        'YocoPayment',
-                                        `width=${width},height=${height},left=${left},top=${top},scrollbars=yes`
-                                    );
-                                    
-                                    // Poll to detect when popup closes
-                                    const pollTimer = setInterval(() => {
-                                        if (popup && popup.closed) {
-                                            clearInterval(pollTimer);
-                                            // Redirect to payment success page
-                                            navigate('/payment-success');
-                                        }
-                                    }, 500);
-                                }}
-                            >
-                                <CreditCard size={18} />
-                                Pay & Get Access
-                            </button>
-                            <span className="beta-cta-note">
-                                {email ? `Payment will be linked to: ${email}` : 'Enter your email above first'}
-                            </span>
-                        </div>
-                    )}
+                    </div>
                     </>
                     )}
                 </div>

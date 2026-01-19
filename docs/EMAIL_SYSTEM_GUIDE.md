@@ -48,7 +48,7 @@ This is the foundational function that all other email functions use.
 - **Trigger**: After user signup
 - **Variants**: 
   - Paid users: Confirms beta access
-  - Unpaid users: Shows Yoco payment link (R125 for 6 months)
+  - Unpaid users: Shows Yoco payment link (R249 for 1 year)
 - **Parameters**: `to_email`, `full_name`, `has_paid`
 - **Called From**: `backend/routes/auth_routes.py` → `/api/auth/welcome-email`
 
@@ -87,7 +87,7 @@ This is the foundational function that all other email functions use.
   - Timeline-agnostic roadmap (no specific dates)
   - Links to slateone.studio landing page
   - Manual referral incentive (email beta@slateone.studio)
-  - R125 for 6 months offer
+  - R249 for 1 year offer
   - 30-day money-back guarantee
 
 ---
