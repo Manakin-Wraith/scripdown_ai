@@ -247,6 +247,7 @@ const LoginPage = () => {
                     ) : (
                     <>
                     {/* Beta Access Panel - Only for Signup */}
+                    {/* COMMENTED OUT - Can be restored later
                     {mode === 'signup' && !inviteContext && (
                         <div className="signup-beta-panel">
                             <div className="beta-panel-content">
@@ -305,6 +306,7 @@ const LoginPage = () => {
                             </div>
                         </div>
                     )}
+                    */}
 
                     {/* Form Section */}
                     <div className="signup-form-section">
