@@ -238,7 +238,7 @@ const ScriptUpload = () => {
                                         You have <strong>0 credits</strong> remaining.
                                     </p>
                                     <p>
-                                        Each script upload costs <strong>1 credit</strong>. Purchase credits to continue uploading.
+                                        Each script upload costs <strong>1 credit</strong>. Click the <strong>pulsing credit icon</strong> in the top menu or buy now below.
                                     </p>
                                 </div>
                             ) : status === 'trial' && (
