@@ -12,7 +12,7 @@ from db.supabase_client import get_supabase_client
 
 # Phase 1: Everyone gets active status (no subscription enforcement)
 # Set to False to enable subscription checks in Phase 4
-PHASE1_FREE_ACCESS = True
+PHASE1_FREE_ACCESS = False
 
 # Trial configuration
 TRIAL_DURATION_DAYS = 14

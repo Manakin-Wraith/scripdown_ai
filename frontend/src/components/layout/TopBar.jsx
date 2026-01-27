@@ -8,11 +8,13 @@ import {
   User,
   Loader,
   Film,
-  LogIn
+  LogIn,
+  Shield
 } from 'lucide-react';
 import { useAnalysis } from '../../context/AnalysisContext';
 import { useAuth } from '../../context/AuthContext';
 import NotificationBell from '../notifications/NotificationBell';
+import { CreditBalance, CreditPurchaseModal } from '../credits';
 import './Layout.css';
 
 const TopBar = () => {
@@ -20,7 +22,11 @@ const TopBar = () => {
   const { globalStatus, hasActiveAnalysis } = useAnalysis();
   const { user, profile, isAuthenticated, logout, loading: authLoading } = useAuth();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [showCreditPurchaseModal, setShowCreditPurchaseModal] = useState(false);
   const menuRef = useRef(null);
+  
+  // Check if user is superuser (from profile table)
+  const isSuperuser = profile?.is_superuser === true;
 
   // Get user initials
   const getInitials = () => {
@@ -66,6 +72,27 @@ const TopBar = () => {
             <Library size={18} />
             <span>My Scripts</span>
           </NavLink>
+          
+          {/* Admin Button - only show for superusers */}
+          {isSuperuser && (
+            <NavLink 
+              to="/admin" 
+              className={({ isActive }) => `topbar-nav-item ${isActive ? 'active' : ''}`}
+            >
+              <Shield size={18} />
+              <span>Admin</span>
+            </NavLink>
+          )}
+          
+          {/* Credit Balance - only show when authenticated */}
+          {isAuthenticated && (
+            <div className="topbar-credits">
+              <CreditBalance 
+                compact={true}
+                onClick={() => setShowCreditPurchaseModal(true)}
+              />
+            </div>
+          )}
         </nav>
       </div>
 
@@ -141,6 +168,11 @@ const TopBar = () => {
           </button>
         )}
       </div>
+      
+      <CreditPurchaseModal
+        isOpen={showCreditPurchaseModal}
+        onClose={() => setShowCreditPurchaseModal(false)}
+      />
     </header>
   );
 };

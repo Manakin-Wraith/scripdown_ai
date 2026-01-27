@@ -5,6 +5,7 @@ import { Plus, FileText, Film, CheckCircle2, Clock } from 'lucide-react';
 import ScriptTable from '../scripts/ScriptTable';
 import EmptyLibrary from '../scripts/EmptyLibrary';
 import { SubscriptionBanner } from '../subscription';
+import { CreditBalance, CreditPurchaseModal } from '../credits';
 import { useSubscription } from '../../hooks/useSubscription';
 import './Dashboard.css';
 
@@ -12,6 +13,7 @@ const Dashboard = () => {
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [showCreditPurchaseModal, setShowCreditPurchaseModal] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -74,6 +76,14 @@ const Dashboard = () => {
                     <div className="stats-section">
                         <h2 className="section-title">📊 Quick Stats</h2>
                         <div className="stats-grid">
+                            {/* Credit Balance Card */}
+                            <div className="stat-card credit-card">
+                                <CreditBalance 
+                                    compact={false}
+                                    onClick={() => setShowCreditPurchaseModal(true)}
+                                />
+                            </div>
+
                             <div className="stat-card">
                                 <div className="stat-icon"><FileText size={24} /></div>
                                 <div className="stat-value">{stats.total_scripts}</div>
@@ -147,8 +157,13 @@ const Dashboard = () => {
                     </div>
                 </>
             ) : (
-                <EmptyLibrary />
+                <EmptyLibrary onUpload={() => navigate('/upload')} />
             )}
+            
+            <CreditPurchaseModal
+                isOpen={showCreditPurchaseModal}
+                onClose={() => setShowCreditPurchaseModal(false)}
+            />
         </div>
     );
 };

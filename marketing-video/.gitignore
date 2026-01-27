@@ -1,0 +1,9 @@
+node_modules
+dist
+out
+.remotion
+*.mp4
+*.mov
+*.avi
+*.gif
+.DS_Store

@@ -202,3 +202,45 @@ def optional_auth(f):
         return f(*args, **kwargs)
     
     return decorated_function
+
+
+def require_superuser(f):
+    """
+    Decorator to require superuser privileges for a route.
+    Must be used with @require_auth.
+    
+    Usage:
+        @app.route('/api/admin/analytics')
+        @require_auth
+        @require_superuser
+        def admin_route():
+            return jsonify({'message': 'Admin access granted'})
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        from db.supabase_client import get_supabase_client
+        
+        user = get_current_user()
+        if not user:
+            return jsonify({'error': 'Authentication required'}), 401
+        
+        user_id = user.get('sub') or user.get('id')
+        
+        # In dev mode, allow superuser access
+        if DEV_MODE:
+            return f(*args, **kwargs)
+        
+        try:
+            # Check if user has superuser flag
+            supabase = get_supabase_client()
+            result = supabase.table('profiles').select('is_superuser').eq('id', user_id).single().execute()
+            
+            if not result.data or not result.data.get('is_superuser'):
+                return jsonify({'error': 'Superuser access required'}), 403
+            
+            return f(*args, **kwargs)
+            
+        except Exception as e:
+            return jsonify({'error': f'Authorization check failed: {str(e)}'}), 500
+    
+    return decorated_function

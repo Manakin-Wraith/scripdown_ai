@@ -39,21 +39,34 @@
 }
 
 .stat-card {
-    background: var(--bg-card);
+    background: var(--gray-800);
     border: 1px solid var(--border-color);
-    border-radius: 12px;
+    border-radius: 16px;
     padding: 24px;
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
+    gap: 12px;
     transition: all 0.2s ease;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .stat-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
     border-color: var(--primary-600);
+}
+
+/* Credit card in stats grid */
+.stat-card.credit-card {
+    padding: 0;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.stat-card.credit-card:hover {
+    border-color: var(--primary-500);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(99, 102, 241, 0.15);
 }
 
 .stat-icon {

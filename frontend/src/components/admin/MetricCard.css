@@ -1,0 +1,171 @@
+.metric-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 1.5rem;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(10px);
+}
+
+.metric-card:hover {
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transform: translateY(-2px);
+}
+
+/* Clickable Cards */
+.metric-card--clickable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.metric-card--clickable:hover {
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  transform: translateY(-4px);
+}
+
+.metric-card--clickable:active {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.metric-card--clickable:focus {
+  outline: 2px solid rgba(251, 146, 60, 0.5);
+  outline-offset: 2px;
+}
+
+/* Header */
+.metric-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.metric-card__title {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.metric-card__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  transition: all 0.2s;
+}
+
+/* Value */
+.metric-card__value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 0.5rem;
+  line-height: 1;
+}
+
+/* Trend */
+.metric-card__trend {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.6);
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* Color Variants */
+.metric-card--blue .metric-card__icon {
+  background: rgba(59, 130, 246, 0.1);
+  color: rgb(59, 130, 246);
+}
+
+.metric-card--blue:hover {
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.metric-card--indigo .metric-card__icon {
+  background: rgba(79, 70, 229, 0.1);
+  color: rgb(79, 70, 229);
+}
+
+.metric-card--indigo:hover {
+  border-color: rgba(79, 70, 229, 0.3);
+}
+
+.metric-card--purple .metric-card__icon {
+  background: rgba(139, 92, 246, 0.1);
+  color: rgb(139, 92, 246);
+}
+
+.metric-card--purple:hover {
+  border-color: rgba(139, 92, 246, 0.3);
+}
+
+.metric-card--green .metric-card__icon {
+  background: rgba(34, 197, 94, 0.1);
+  color: rgb(34, 197, 94);
+}
+
+.metric-card--green:hover {
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+.metric-card--emerald .metric-card__icon {
+  background: rgba(16, 185, 129, 0.1);
+  color: rgb(16, 185, 129);
+}
+
+.metric-card--emerald:hover {
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.metric-card--yellow .metric-card__icon {
+  background: rgba(234, 179, 8, 0.1);
+  color: rgb(234, 179, 8);
+}
+
+.metric-card--yellow:hover {
+  border-color: rgba(234, 179, 8, 0.3);
+}
+
+.metric-card--orange .metric-card__icon {
+  background: rgba(249, 115, 22, 0.1);
+  color: rgb(249, 115, 22);
+}
+
+.metric-card--orange:hover {
+  border-color: rgba(249, 115, 22, 0.3);
+}
+
+.metric-card--red .metric-card__icon {
+  background: rgba(239, 68, 68, 0.1);
+  color: rgb(239, 68, 68);
+}
+
+.metric-card--red:hover {
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .metric-card {
+    padding: 1.25rem;
+  }
+
+  .metric-card__value {
+    font-size: 1.75rem;
+  }
+
+  .metric-card__icon {
+    width: 40px;
+    height: 40px;
+  }
+}

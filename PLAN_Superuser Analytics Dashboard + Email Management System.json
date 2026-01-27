@@ -1,0 +1,176 @@
+{
+  "ticket_id": "ADMIN-001",
+  "project_name": "Superuser Analytics & Email Management",
+  "subtasks": [
+    {
+      "id": 1,
+      "description": "Add superuser flag to database schema and create migration",
+      "agent": "Backend Architect",
+      "dependencies": [],
+      "effort": "1 hour",
+      "deliverables": [
+        "Migration file: 010_add_superuser_flag.sql",
+        "Add is_superuser column to profiles table"
+      ]
+    },
+    {
+      "id": 2,
+      "description": "Create email management database schema (templates, campaigns, logs)",
+      "agent": "Backend Architect",
+      "dependencies": [],
+      "effort": "2 hours",
+      "deliverables": [
+        "Migration file: 011_email_management_system.sql",
+        "Tables: email_templates, email_campaigns, email_logs"
+      ]
+    },
+    {
+      "id": 3,
+      "description": "Implement superuser auth middleware and route protection",
+      "agent": "Coder",
+      "dependencies": [1],
+      "effort": "2 hours",
+      "deliverables": [
+        "backend/middleware/auth.py - @require_superuser decorator",
+        "Frontend: AdminRoute.jsx component"
+      ]
+    },
+    {
+      "id": 4,
+      "description": "Build analytics data aggregation service",
+      "agent": "Coder",
+      "dependencies": [1],
+      "effort": "4 hours",
+      "deliverables": [
+        "backend/services/analytics_service.py",
+        "Methods: get_global_stats(), get_user_activity(), get_script_stats(), get_performance_metrics()"
+      ]
+    },
+    {
+      "id": 5,
+      "description": "Create analytics API endpoints",
+      "agent": "Coder",
+      "dependencies": [3, 4],
+      "effort": "2 hours",
+      "deliverables": [
+        "backend/routes/admin_routes.py",
+        "Endpoints: /api/admin/analytics/*, /api/admin/users/*, /api/admin/scripts/*"
+      ]
+    },
+    {
+      "id": 6,
+      "description": "Design and implement analytics dashboard UI",
+      "agent": "UX + Coder",
+      "dependencies": [5],
+      "effort": "6 hours",
+      "deliverables": [
+        "frontend/src/pages/Admin/AnalyticsDashboard.jsx",
+        "Components: MetricCard, UserActivityTable, ScriptStatsChart, PerformanceMetrics",
+        "Route: /admin/analytics"
+      ]
+    },
+    {
+      "id": 7,
+      "description": "Build email template management system (backend)",
+      "agent": "Coder",
+      "dependencies": [2, 3],
+      "effort": "4 hours",
+      "deliverables": [
+        "backend/services/email_template_service.py",
+        "backend/routes/email_routes.py",
+        "CRUD endpoints for templates, variable rendering system"
+      ]
+    },
+    {
+      "id": 8,
+      "description": "Create email template editor UI with rich text and variables",
+      "agent": "Coder",
+      "dependencies": [7],
+      "effort": "6 hours",
+      "deliverables": [
+        "frontend/src/pages/Admin/EmailTemplates/TemplateEditor.jsx",
+        "Components: RichTextEditor, VariableInserter, TemplatePreview",
+        "Integration with TinyMCE or Quill"
+      ]
+    },
+    {
+      "id": 9,
+      "description": "Implement email campaign service with audience filtering",
+      "agent": "Coder",
+      "dependencies": [2, 7],
+      "effort": "5 hours",
+      "deliverables": [
+        "backend/services/email_campaign_service.py",
+        "Methods: create_campaign(), get_recipients(), send_campaign(), schedule_campaign()",
+        "Audience filter logic"
+      ]
+    },
+    {
+      "id": 10,
+      "description": "Build campaign creation wizard and management UI",
+      "agent": "Coder",
+      "dependencies": [8, 9],
+      "effort": "6 hours",
+      "deliverables": [
+        "frontend/src/pages/Admin/EmailCampaigns/CampaignWizard.jsx",
+        "Components: AudienceBuilder, RecipientPreview, CampaignScheduler",
+        "Campaign list and stats views"
+      ]
+    },
+    {
+      "id": 11,
+      "description": "Implement email tracking webhooks and analytics",
+      "agent": "Coder",
+      "dependencies": [9],
+      "effort": "4 hours",
+      "deliverables": [
+        "backend/routes/webhook_routes.py - Resend webhook handler",
+        "backend/services/email_tracking_service.py",
+        "Track opens, clicks, bounces, deliveries"
+      ]
+    },
+    {
+      "id": 12,
+      "description": "Create email analytics dashboard",
+      "agent": "Coder",
+      "dependencies": [11],
+      "effort": "4 hours",
+      "deliverables": [
+        "frontend/src/pages/Admin/EmailAnalytics/AnalyticsOverview.jsx",
+        "Components: CampaignPerformance, EmailLogsTable",
+        "Charts for open rates, click rates, trends"
+      ]
+    },
+    {
+      "id": 13,
+      "description": "Test full workflow: analytics viewing, template creation, campaign sending",
+      "agent": "Tester",
+      "dependencies": [6, 10, 12],
+      "effort": "3 hours",
+      "deliverables": [
+        "Test superuser access control",
+        "Test analytics data accuracy",
+        "Test email template rendering",
+        "Test campaign sending and tracking"
+      ]
+    },
+    {
+      "id": 14,
+      "description": "Documentation and deployment",
+      "agent": "Coder",
+      "dependencies": [13],
+      "effort": "2 hours",
+      "deliverables": [
+        "docs/ADMIN_SYSTEM.md - Admin features guide",
+        "Update ROADMAP.md with Phase 5: Admin Tools",
+        "Environment variables documentation"
+      ]
+    }
+  ],
+  "total_estimated_effort": "51 hours (~6-7 days)",
+  "critical_path": [1, 3, 5, 6],
+  "parallel_tracks": {
+    "analytics": [1, 3, 4, 5, 6],
+    "email_system": [2, 7, 8, 9, 10, 11, 12]
+  }
+}
