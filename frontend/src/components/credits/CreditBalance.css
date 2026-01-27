@@ -33,11 +33,13 @@
 .credit-balance.empty {
     background-color: rgba(239, 68, 68, 0.1);
     border-color: rgba(239, 68, 68, 0.2);
+    animation: pulse-alert 2s ease-in-out infinite;
 }
 
 .credit-balance.empty:hover {
     background-color: rgba(239, 68, 68, 0.15);
     border-color: rgba(239, 68, 68, 0.3);
+    animation: none;
 }
 
 .credit-balance-icon {
@@ -128,4 +130,15 @@
 
 @keyframes spin {
     to { transform: rotate(360deg); }
+}
+
+@keyframes pulse-alert {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+        transform: scale(1);
+    }
+    50% {
+        box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+        transform: scale(1.02);
+    }
 }
