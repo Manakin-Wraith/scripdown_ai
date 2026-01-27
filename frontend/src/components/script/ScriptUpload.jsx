@@ -6,7 +6,9 @@ import { AlertTriangle, X, CheckCircle, Loader, ArrowRight, Clapperboard, Sparkl
 import { useToast } from '../../context/ToastContext';
 import { supabase } from '../../lib/supabase';
 import { useSubscription } from '../../hooks/useSubscription';
+import { useCredits } from '../../hooks/useCredits';
 import { UpgradeModal } from '../subscription';
+import { CreditPurchaseModal } from '../credits';
 import './ScriptUpload.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -28,11 +30,13 @@ const ScriptUpload = () => {
     const [error, setError] = useState(null);
     const [isAiDetecting, setIsAiDetecting] = useState(false);
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+    const [showCreditPurchaseModal, setShowCreditPurchaseModal] = useState(false);
     const [uploadBlocked, setUploadBlocked] = useState(false);
     const [blockMessage, setBlockMessage] = useState('');
     const navigate = useNavigate();
     const toast = useToast();
     const { canUploadScript, status, daysRemaining, scriptLimit, scriptCount } = useSubscription();
+    const { credits, canUpload: canUploadWithCredits, deductCredit, fetchBalance } = useCredits();
 
     const [processingStage, setProcessingStage] = useState('');
 
@@ -42,10 +46,19 @@ const ScriptUpload = () => {
     }, []);
 
     const checkUploadPermission = async () => {
-        const result = await canUploadScript();
-        if (!result.canUpload) {
+        // First check subscription status
+        const subscriptionResult = await canUploadScript();
+        if (!subscriptionResult.canUpload) {
             setUploadBlocked(true);
-            setBlockMessage(result.message);
+            setBlockMessage(subscriptionResult.message);
+            return;
+        }
+        
+        // Then check credit balance
+        const creditResult = await canUploadWithCredits();
+        if (!creditResult.canUpload) {
+            setUploadBlocked(true);
+            setBlockMessage(creditResult.message || 'You need credits to upload scripts. Each upload costs 1 credit.');
         } else {
             setUploadBlocked(false);
             setBlockMessage('');
@@ -109,6 +122,16 @@ const ScriptUpload = () => {
             setProcessingStage('Complete!');
             
             const result = uploadResponse.data;
+            
+            // Deduct credit after successful upload
+            try {
+                await deductCredit(result.script_id, result.title || selectedFile.name);
+                await fetchBalance(); // Refresh credit balance
+            } catch (creditErr) {
+                console.error('Failed to deduct credit:', creditErr);
+                // Don't block the upload flow, just log the error
+            }
+            
             setUploadResult(result);
             setUploading(false);
             
@@ -206,10 +229,19 @@ const ScriptUpload = () => {
                             <div className="upload-blocked-icon">
                                 <Lock size={48} />
                             </div>
-                            <h3>Script Limit Reached</h3>
+                            <h3>{credits === 0 ? 'Out of Credits' : 'Script Limit Reached'}</h3>
                             <p className="blocked-message">{blockMessage}</p>
                             
-                            {status === 'trial' && (
+                            {credits === 0 ? (
+                                <div className="blocked-info">
+                                    <p>
+                                        You have <strong>0 credits</strong> remaining.
+                                    </p>
+                                    <p>
+                                        Each script upload costs <strong>1 credit</strong>. Purchase credits to continue uploading.
+                                    </p>
+                                </div>
+                            ) : status === 'trial' && (
                                 <div className="blocked-info">
                                     <p>
                                         You've uploaded <strong>{scriptCount}</strong> of <strong>{scriptLimit}</strong> scripts 
@@ -221,13 +253,23 @@ const ScriptUpload = () => {
                                 </div>
                             )}
                             
-                            <button 
-                                className="btn-upgrade"
-                                onClick={() => setShowUpgradeModal(true)}
-                            >
-                                <Sparkles size={18} />
-                                Upgrade Now - R249
-                            </button>
+                            {credits === 0 ? (
+                                <button 
+                                    className="btn-upgrade"
+                                    onClick={() => setShowCreditPurchaseModal(true)}
+                                >
+                                    <Sparkles size={18} />
+                                    Buy Credits - From R49
+                                </button>
+                            ) : (
+                                <button 
+                                    className="btn-upgrade"
+                                    onClick={() => setShowUpgradeModal(true)}
+                                >
+                                    <Sparkles size={18} />
+                                    Upgrade Now - R249
+                                </button>
+                            )}
                             
                             <button 
                                 className="btn-secondary"
@@ -390,6 +432,14 @@ const ScriptUpload = () => {
                 feature="unlimited_scripts"
                 daysRemaining={daysRemaining}
                 isExpired={status === 'expired'}
+            />
+            
+            <CreditPurchaseModal
+                isOpen={showCreditPurchaseModal}
+                onClose={() => {
+                    setShowCreditPurchaseModal(false);
+                    checkUploadPermission(); // Recheck after modal closes
+                }}
             />
         </div>
     );

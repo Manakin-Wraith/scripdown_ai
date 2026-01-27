@@ -1194,4 +1194,182 @@ export const downloadStripboardPdf = async (scriptId, title = 'Stripboard') => {
     }
 };
 
+// ============================================
+// Admin API Endpoints (Superuser Only)
+// ============================================
+
+/**
+ * Get analytics overview (global stats + subscriptions)
+ * @returns {Promise<Object>} Analytics overview data
+ */
+export const getAnalyticsOverview = async () => {
+    try {
+        const response = await api.get('/api/admin/analytics/overview');
+        return response.data;
+    } catch (error) {
+        console.error('Error getting analytics overview:', error);
+        throw error;
+    }
+};
+
+/**
+ * Get user activity analytics with pagination and filtering
+ * @param {number} days - Number of days to look back (default: 30)
+ * @param {number} limit - Maximum records to return (default: 50)
+ * @param {number} offset - Number of records to skip (default: 0)
+ * @param {string} status - Filter by subscription status (optional)
+ * @param {string} search - Search by name or email (optional)
+ * @returns {Promise<Object>} User activity data with pagination
+ */
+export const getUserAnalytics = async (days = 30, limit = 50, offset = 0, status = null, search = null) => {
+    try {
+        const params = { days, limit, offset };
+        if (status) params.status = status;
+        if (search) params.search = search;
+        
+        const response = await api.get('/api/admin/analytics/users', { params });
+        return response.data;
+    } catch (error) {
+        console.error('Error getting user analytics:', error);
+        throw error;
+    }
+};
+
+/**
+ * Get chart data for visualizations
+ * @param {number} days - Number of days to look back (default: 30)
+ * @returns {Promise<Object>} Chart data for scripts and users over time
+ */
+export const getChartData = async (days = 30) => {
+    try {
+        const response = await api.get('/api/admin/analytics/charts', {
+            params: { days }
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error getting chart data:', error);
+        throw error;
+    }
+};
+
+/**
+ * Get recent platform activity feed
+ * @param {number} limit - Maximum number of events to return (default: 50)
+ * @returns {Promise<Object>} Recent activity events
+ */
+export const getRecentActivity = async (limit = 50) => {
+    try {
+        const response = await api.get('/api/admin/analytics/activity', {
+            params: { limit }
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error getting recent activity:', error);
+        throw error;
+    }
+};
+
+/**
+ * Get comprehensive script analytics and performance metrics
+ * @returns {Promise<Object>} Script analytics data
+ */
+export const getScriptAnalytics = async () => {
+    try {
+        const response = await api.get('/api/admin/analytics/scripts');
+        return response.data;
+    } catch (error) {
+        console.error('Error getting script analytics:', error);
+        throw error;
+    }
+};
+
+/**
+ * Get script analysis statistics (legacy)
+ * @param {number} days - Number of days to look back (default: 30)
+ * @returns {Promise<Object>} Script statistics
+ */
+export const getScriptStats = async (days = 30) => {
+    try {
+        const response = await api.get('/api/admin/analytics/scripts/stats', {
+            params: { days }
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error getting script analytics:', error);
+        throw error;
+    }
+};
+
+/**
+ * Get system performance metrics
+ * @returns {Promise<Object>} Performance metrics
+ */
+export const getPerformanceAnalytics = async () => {
+    try {
+        const response = await api.get('/api/admin/analytics/performance');
+        return response.data;
+    } catch (error) {
+        console.error('Error getting performance analytics:', error);
+        throw error;
+    }
+};
+
+/**
+ * Get subscription metrics
+ * @returns {Promise<Object>} Subscription statistics
+ */
+export const getSubscriptionAnalytics = async () => {
+    try {
+        const response = await api.get('/api/admin/analytics/subscriptions');
+        return response.data;
+    } catch (error) {
+        console.error('Error getting subscription analytics:', error);
+        throw error;
+    }
+};
+
+/**
+ * Get system health status
+ * @returns {Promise<Object>} System health indicators
+ */
+export const getSystemHealth = async () => {
+    try {
+        const response = await api.get('/api/admin/health');
+        return response.data;
+    } catch (error) {
+        console.error('Error getting system health:', error);
+        throw error;
+    }
+};
+
+/**
+ * List users with filtering
+ * @param {Object} params - Query parameters (status, limit, offset)
+ * @returns {Promise<Object>} User list
+ */
+export const listUsers = async (params = {}) => {
+    try {
+        const response = await api.get('/api/admin/users', { params });
+        return response.data;
+    } catch (error) {
+        console.error('Error listing users:', error);
+        throw error;
+    }
+};
+
+/**
+ * Get user details
+ * @param {string} userId - User UUID
+ * @returns {Promise<Object>} User details with scripts
+ */
+export const getUserDetails = async (userId) => {
+    try {
+        const response = await api.get(`/api/admin/users/${userId}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error getting user details:', error);
+        throw error;
+    }
+};
+
 export default api;

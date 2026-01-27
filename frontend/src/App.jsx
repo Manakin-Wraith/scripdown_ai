@@ -16,6 +16,12 @@ import ProfilePage from './pages/ProfilePage';
 import AuthCallbackPage from './pages/AuthCallbackPage';
 import ConfirmEmailPage from './pages/ConfirmEmailPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
+import AdminRoute from './components/auth/AdminRoute';
+import AdminTestPage from './pages/Admin/AdminTestPage';
+import AnalyticsDashboard from './pages/Admin/AnalyticsDashboard';
+import UserActivityPage from './pages/Admin/UserActivityPage';
+import ScriptAnalyticsPage from './pages/Admin/ScriptAnalyticsPage';
+import PaymentVerification from './components/admin/PaymentVerification';
 import './App.css';
 
 // Phase 2+ imports (deferred)
@@ -69,6 +75,33 @@ function App() {
                     <ProtectedRoute>
                       <ProfilePage />
                     </ProtectedRoute>
+                  } />
+                  
+                  {/* Admin routes (superuser only) */}
+                  <Route path="admin" element={
+                    <AdminRoute>
+                      <AnalyticsDashboard />
+                    </AdminRoute>
+                  } />
+                  <Route path="admin/users" element={
+                    <AdminRoute>
+                      <UserActivityPage />
+                    </AdminRoute>
+                  } />
+                  <Route path="admin/scripts" element={
+                    <AdminRoute>
+                      <ScriptAnalyticsPage />
+                    </AdminRoute>
+                  } />
+                  <Route path="admin/payments" element={
+                    <AdminRoute>
+                      <PaymentVerification />
+                    </AdminRoute>
+                  } />
+                  <Route path="admin/test" element={
+                    <AdminRoute>
+                      <AdminTestPage />
+                    </AdminRoute>
                   } />
                   
                   {/* Phase 2+ routes (deferred) */}

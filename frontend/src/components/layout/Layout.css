@@ -50,6 +50,23 @@
   width: var(--sidebar-width-collapsed);
 }
 
+/* Sidebar Credits Section */
+.sidebar-credits {
+  padding: 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.sidebar.collapsed .sidebar-credits {
+  padding: 12px 8px;
+}
+
+/* TopBar Credits */
+.topbar-credits {
+  margin-left: 16px;
+  display: flex;
+  align-items: center;
+}
+
 .sidebar-header {
   height: 80px; /* Taller header for authority */
   display: flex;

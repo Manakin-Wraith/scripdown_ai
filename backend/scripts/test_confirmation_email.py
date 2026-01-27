@@ -26,7 +26,7 @@ def test_confirmation_email():
     client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
     
     # Test user
-    test_email = 'ttntshabele@gmail.com'
+    test_email = 'g.mostertpot@gmail.com'
     
     print("\n" + "=" * 70)
     print("EMAIL CONFIRMATION FLOW TEST")
