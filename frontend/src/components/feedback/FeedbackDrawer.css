@@ -1,0 +1,416 @@
+/* Feedback Drawer - Compact Dropdown Style (Dark Theme) */
+.feedback-drawer {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 420px;
+  max-height: 85vh;
+  background: var(--gray-800);
+  border: 1px solid var(--gray-700);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  z-index: 1000;
+  overflow: hidden;
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Header */
+.feedback-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px;
+  border-bottom: 1px solid var(--gray-700);
+  background: var(--gray-900);
+}
+
+.feedback-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  padding: 6px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  border-radius: 6px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.close-btn:hover {
+  background: var(--gray-700);
+  color: var(--text-primary);
+}
+
+.close-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Form */
+.feedback-form {
+  padding: 20px;
+  max-height: calc(85vh - 70px);
+  overflow-y: auto;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.char-limit {
+  float: right;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+
+/* Category Pills */
+.category-pills {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.category-pill {
+  padding: 10px 12px;
+  border: 2px solid var(--gray-700);
+  background: var(--gray-900);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+}
+
+.category-pill:hover:not(:disabled) {
+  border-color: var(--primary-500);
+  background: var(--gray-800);
+}
+
+.category-pill.active {
+  border-color: var(--primary-500);
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--primary-400);
+}
+
+.category-pill:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Select */
+.form-group select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 2px solid var(--gray-700);
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--text-primary);
+  background: var(--gray-900);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.form-group select:focus {
+  outline: none;
+  border-color: var(--primary-500);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+}
+
+.form-group select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: var(--gray-800);
+}
+
+/* Input */
+.form-group input[type="text"] {
+  width: 100%;
+  padding: 10px 12px;
+  border: 2px solid var(--gray-700);
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--text-primary);
+  background: var(--gray-900);
+  transition: all 0.2s;
+}
+
+.form-group input[type="text"]:focus {
+  outline: none;
+  border-color: var(--primary-500);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+}
+
+.form-group input[type="text"]:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: var(--gray-800);
+}
+
+/* Textarea */
+.form-group textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 2px solid var(--gray-700);
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--text-primary);
+  background: var(--gray-900);
+  font-family: inherit;
+  resize: vertical;
+  min-height: 120px;
+  transition: all 0.2s;
+}
+
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--primary-500);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+}
+
+.form-group textarea:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: var(--gray-800);
+}
+
+/* Screenshot Upload */
+.screenshot-upload {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px;
+  border: 2px dashed var(--gray-700);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--gray-900);
+}
+
+.screenshot-upload:hover {
+  border-color: var(--primary-500);
+  background: rgba(245, 158, 11, 0.05);
+}
+
+.screenshot-upload svg {
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.screenshot-upload span {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.screenshot-upload small {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* Screenshot Preview */
+.screenshot-preview {
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid var(--gray-700);
+}
+
+.screenshot-preview img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.remove-screenshot {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.7);
+  border: none;
+  border-radius: 6px;
+  padding: 6px;
+  cursor: pointer;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.remove-screenshot:hover {
+  background: rgba(0, 0, 0, 0.9);
+}
+
+.remove-screenshot:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Error Message */
+.error-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  background: var(--danger-bg);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  color: var(--danger);
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.error-message svg {
+  flex-shrink: 0;
+}
+
+/* Submit Button */
+.submit-btn {
+  width: 100%;
+  padding: 12px 20px;
+  background: var(--primary-600);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.submit-btn:hover:not(:disabled) {
+  background: var(--primary-700);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+.submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.submit-btn .spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Success State */
+.feedback-success {
+  padding: 60px 40px;
+  text-align: center;
+}
+
+.success-icon {
+  color: #10b981;
+  margin-bottom: 16px;
+}
+
+.feedback-success h3 {
+  margin: 0 0 8px 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.feedback-success p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .feedback-drawer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    max-height: 100vh;
+    border-radius: 0;
+    animation: slideUp 0.3s ease-out;
+  }
+
+  @keyframes slideUp {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+
+  .feedback-form {
+    max-height: calc(100vh - 70px);
+  }
+
+  .category-pills {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Scrollbar Styling */
+.feedback-form::-webkit-scrollbar {
+  width: 6px;
+}
+
+.feedback-form::-webkit-scrollbar-track {
+  background: var(--gray-900);
+  border-radius: 3px;
+}
+
+.feedback-form::-webkit-scrollbar-thumb {
+  background: var(--gray-700);
+  border-radius: 3px;
+}
+
+.feedback-form::-webkit-scrollbar-thumb:hover {
+  background: var(--gray-600);
+}

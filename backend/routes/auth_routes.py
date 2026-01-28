@@ -197,6 +197,136 @@ def can_upload_script_route():
         }), 500
 
 
+@auth_bp.route('/set-plan', methods=['POST'])
+def set_plan():
+    """
+    Create or update user profile with plan-specific settings.
+    Called after Supabase auth signup to set script limits based on signup source.
+    
+    Request body:
+        - user_id: User's UUID
+        - email: User's email address
+        - full_name: User's full name
+        - plan: Plan type ('free_trial', 'early_access', or null for default)
+        - source: Signup source ('landing_hero', 'direct', etc.)
+    
+    Returns:
+        - success: bool
+        - profile: Created/updated profile data
+        - script_limit: Number of scripts allowed
+    """
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'error': 'Request body required'}), 400
+        
+        user_id = data.get('user_id')
+        email = data.get('email')
+        full_name = data.get('full_name', '')
+        plan = data.get('plan')
+        source = data.get('source', 'direct')
+        
+        if not user_id or not email:
+            return jsonify({'error': 'user_id and email are required'}), 400
+        
+        supabase = get_supabase_client()
+        
+        # Validate plan parameter - only allow known plan types
+        VALID_PLANS = ['free_trial', 'early_access', None]
+        if plan not in VALID_PLANS:
+            print(f"Warning: Invalid plan '{plan}' provided, defaulting to None")
+            plan = None
+        
+        # Determine script limits and trial settings based on plan
+        if plan == 'free_trial':
+            # Landing page signup - 1 script only, no time-based trial
+            script_upload_limit = 1
+            scripts_uploaded = 0
+            subscription_status = 'trial'
+            subscription_expires_at = None  # No time expiry, just script limit
+            trial_message = '1 script upload'
+            
+        elif plan == 'early_access':
+            # Early access users - check early_access_users table
+            early_access_result = supabase.table('early_access_users') \
+                .select('*') \
+                .eq('email', email.lower().strip()) \
+                .eq('status', 'invited') \
+                .execute()
+            
+            if early_access_result.data and len(early_access_result.data) > 0:
+                trial_days = early_access_result.data[0].get('trial_days', EARLY_ACCESS_TRIAL_DAYS)
+                script_upload_limit = 1
+                scripts_uploaded = 0
+                subscription_status = 'trial'
+                subscription_expires_at = (datetime.now() + timedelta(days=trial_days)).isoformat()
+                trial_message = f'{trial_days} days trial with 1 script'
+                
+                # Mark as signed up
+                supabase.table('early_access_users') \
+                    .update({
+                        'status': 'signed_up',
+                        'user_id': user_id,
+                        'signed_up_at': datetime.now().isoformat()
+                    }) \
+                    .eq('email', email.lower().strip()) \
+                    .execute()
+            else:
+                # Not in early access list - treat as default
+                plan = None
+                script_upload_limit = 1
+                scripts_uploaded = 0
+                subscription_status = 'trial'
+                subscription_expires_at = (datetime.now() + timedelta(days=TRIAL_DURATION_DAYS)).isoformat()
+                trial_message = f'{TRIAL_DURATION_DAYS} days trial with 1 script'
+        else:
+            # Default trial - 14 days with 1 script
+            script_upload_limit = 1
+            scripts_uploaded = 0
+            subscription_status = 'trial'
+            subscription_expires_at = (datetime.now() + timedelta(days=TRIAL_DURATION_DAYS)).isoformat()
+            trial_message = f'{TRIAL_DURATION_DAYS} days trial with 1 script'
+        
+        # Create or update profile
+        profile_data = {
+            'id': user_id,
+            'email': email,
+            'full_name': full_name,
+            'script_upload_limit': script_upload_limit,
+            'scripts_uploaded': scripts_uploaded,
+            'signup_source': source,
+            'signup_plan': plan,
+            'subscription_status': subscription_status,
+            'subscription_expires_at': subscription_expires_at,
+            'created_at': datetime.now().isoformat(),
+            'updated_at': datetime.now().isoformat()
+        }
+        
+        # Upsert profile (create or update)
+        result = supabase.table('profiles') \
+            .upsert(profile_data, on_conflict='id') \
+            .execute()
+        
+        print(f"Profile created/updated for {email}: plan={plan}, source={source}, limit={script_upload_limit}")
+        
+        return jsonify({
+            'success': True,
+            'profile': result.data[0] if result.data else profile_data,
+            'script_limit': script_upload_limit,
+            'trial_message': trial_message,
+            'plan': plan,
+            'source': source
+        })
+        
+    except Exception as e:
+        print(f"Error setting plan: {e}")
+        return jsonify({
+            'error': str(e),
+            'success': False
+        }), 500
+
+
 @auth_bp.route('/apply-early-access', methods=['POST'])
 def apply_early_access():
     """

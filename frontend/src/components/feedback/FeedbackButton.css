@@ -1,0 +1,44 @@
+/* Feedback Button - Compact TopBar Style (Dark Theme) */
+.feedback-button-container {
+  position: relative;
+}
+
+.feedback-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: transparent;
+  border: 1px solid var(--gray-700);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.feedback-button:hover {
+  background: var(--gray-800);
+  border-color: var(--primary-500);
+  color: var(--text-primary);
+}
+
+.feedback-button:active {
+  transform: scale(0.98);
+}
+
+.feedback-button svg {
+  flex-shrink: 0;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .feedback-button span {
+    display: none;
+  }
+  
+  .feedback-button {
+    padding: 8px;
+  }
+}

@@ -179,6 +179,172 @@ def send_invite_accepted_notification(
     return send_email(to_email, subject, html)
 
 
+def send_welcome_credits_email(
+    to_email: str,
+    full_name: str,
+    credits: int = 10
+) -> Dict[str, Any]:
+    """
+    Send welcome email to existing users announcing their free credits.
+    
+    Args:
+        to_email: User's email address
+        full_name: User's full name
+        credits: Number of free credits (default: 10)
+    """
+    first_name = full_name.split(' ')[0] if full_name else 'there'
+    
+    subject = f"🎬 Thank you for joining {APP_NAME} - {credits} Free Credits Inside!"
+    
+    html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>{subject}</title>
+    </head>
+    <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #0F0F0F; color: #FFFFFF;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #0F0F0F; padding: 40px 20px;">
+            <tr>
+                <td align="center">
+                    <table width="600" cellpadding="0" cellspacing="0" style="background-color: #1A1A1A; border-radius: 16px; overflow: hidden; border: 1px solid #2A2A2A;">
+                        
+                        <!-- Header -->
+                        <tr>
+                            <td style="background: linear-gradient(135deg, #F59E0B, #D97706); padding: 32px; text-align: center;">
+                                <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: #000000;">
+                                    🎬 {APP_NAME}
+                                </h1>
+                            </td>
+                        </tr>
+                        
+                        <!-- Thank You Banner -->
+                        <tr>
+                            <td style="background-color: #10B981; padding: 12px; text-align: center;">
+                                <p style="margin: 0; font-size: 14px; font-weight: 700; color: #FFFFFF; text-transform: uppercase; letter-spacing: 1px;">
+                                    ✨ THANK YOU FOR BEING AN EARLY USER ✨
+                                </p>
+                            </td>
+                        </tr>
+                        
+                        <!-- Content -->
+                        <tr>
+                            <td style="padding: 40px 32px;">
+                                <h2 style="margin: 0 0 16px 0; font-size: 28px; font-weight: 700; color: #FFFFFF; line-height: 1.3;">
+                                    Hi {first_name}! 👋
+                                </h2>
+                                
+                                <p style="margin: 0 0 24px 0; font-size: 16px; color: #9CA3AF; line-height: 1.6;">
+                                    Thank you for being one of our early users at {APP_NAME}! We're thrilled to have you on board as we build the future of AI-powered script breakdown.
+                                </p>
+                                
+                                <!-- Credits Announcement Card -->
+                                <div style="background: linear-gradient(135deg, #F59E0B, #D97706); border-radius: 12px; padding: 32px; margin-bottom: 24px; text-align: center;">
+                                    <p style="margin: 0 0 8px 0; font-size: 14px; color: rgba(0,0,0,0.7); font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">🎉 YOU HAVE</p>
+                                    <p style="margin: 0 0 8px 0; font-size: 48px; font-weight: 700; color: #000000;">
+                                        {credits} <span style="font-size: 24px;">FREE CREDITS</span>
+                                    </p>
+                                    <p style="margin: 0; font-size: 16px; color: rgba(0,0,0,0.8); font-weight: 500;">
+                                        1 credit = 1 script analysis
+                                    </p>
+                                </div>
+                                
+                                <p style="margin: 0 0 24px 0; font-size: 16px; color: #9CA3AF; line-height: 1.6;">
+                                    These credits are ready to use right now—no payment required. Upload your scripts and let our AI do the heavy lifting!
+                                </p>
+                                
+                                <!-- What You Can Do Section -->
+                                <div style="background-color: #262626; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+                                    <p style="margin: 0 0 16px 0; font-size: 18px; color: #FFFFFF; font-weight: 600;">
+                                        What You Can Do:
+                                    </p>
+                                    <table width="100%" cellpadding="0" cellspacing="0">
+                                        <tr>
+                                            <td style="padding: 8px 0;">
+                                                <p style="margin: 0; font-size: 14px; color: #9CA3AF;">
+                                                    📄 Upload scripts and get instant AI-powered breakdowns
+                                                </p>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding: 8px 0;">
+                                                <p style="margin: 0; font-size: 14px; color: #9CA3AF;">
+                                                    🎭 Extract characters, props, wardrobe, locations, and more
+                                                </p>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding: 8px 0;">
+                                                <p style="margin: 0; font-size: 14px; color: #9CA3AF;">
+                                                    📊 Export professional stripboards
+                                                </p>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
+                                
+                                <!-- Feedback Request -->
+                                <div style="background-color: #1E293B; border-left: 4px solid #F59E0B; border-radius: 8px; padding: 20px; margin-bottom: 24px;">
+                                    <p style="margin: 0 0 12px 0; font-size: 16px; color: #FFFFFF; font-weight: 600;">
+                                        💬 We'd Love Your Feedback!
+                                    </p>
+                                    <p style="margin: 0; font-size: 14px; color: #9CA3AF; line-height: 1.6;">
+                                        Your input is invaluable as we refine {APP_NAME}. We'll be sending out a feedback form soon, but in the meantime, feel free to reply to this email with any thoughts, suggestions, or feature requests.
+                                    </p>
+                                </div>
+                                
+                                <!-- Spread the Word -->
+                                <div style="background-color: #262626; border-radius: 12px; padding: 20px; margin-bottom: 32px; text-align: center;">
+                                    <p style="margin: 0 0 8px 0; font-size: 16px; color: #FFFFFF; font-weight: 600;">
+                                        🌟 Spread the Word
+                                    </p>
+                                    <p style="margin: 0; font-size: 14px; color: #9CA3AF; line-height: 1.6;">
+                                        Know someone who could benefit from {APP_NAME}? We'd love for you to share it with your network. Every filmmaker, producer, or AD who joins helps us build a better tool for everyone.
+                                    </p>
+                                </div>
+                                
+                                <!-- CTA Button -->
+                                <div style="text-align: center;">
+                                    <a href="{APP_URL}/scripts" style="display: inline-block; background: linear-gradient(135deg, #F59E0B, #D97706); color: #000000; text-decoration: none; padding: 16px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">
+                                        Start Using Your Credits →
+                                    </a>
+                                </div>
+                                
+                                <p style="margin: 32px 0 0 0; font-size: 16px; color: #9CA3AF; line-height: 1.6; text-align: center;">
+                                    Thanks again for being part of our journey!
+                                </p>
+                                
+                                <p style="margin: 16px 0 0 0; font-size: 16px; color: #FFFFFF; font-weight: 500; text-align: center;">
+                                    Best,<br>
+                                    The {APP_NAME} Team
+                                </p>
+                            </td>
+                        </tr>
+                        
+                        <!-- Footer -->
+                        <tr>
+                            <td style="padding: 24px 32px; border-top: 1px solid #2A2A2A; text-align: center;">
+                                <p style="margin: 0 0 8px 0; font-size: 12px; color: #6B7280;">
+                                    Questions? Reply to this email or reach out at hello@slateone.studio
+                                </p>
+                                <p style="margin: 0; font-size: 12px; color: #6B7280;">
+                                    © {APP_NAME} • AI-Powered Script Breakdown
+                                </p>
+                            </td>
+                        </tr>
+                        
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </body>
+    </html>
+    """
+    
+    return send_email(to_email, subject, html)
+
+
 def send_test_email(to_email: str) -> Dict[str, Any]:
     """
     Send a test email to verify the email service is working.
@@ -1155,5 +1321,450 @@ Questions? Reply to this email: hello@slateone.studio
             user_status='active',
             metadata={'reset_url': reset_url}
         )
+    
+    return result
+
+
+def send_feedback_confirmation_email(
+    user_email: str,
+    user_name: str,
+    feedback_id: str,
+    category: str,
+    subject: str
+) -> Dict[str, Any]:
+    """
+    Send confirmation email after feedback submission.
+    
+    Args:
+        user_email: User's email address
+        user_name: User's full name
+        feedback_id: Feedback UUID
+        category: Feedback category
+        subject: Feedback subject
+    """
+    category_labels = {
+        'bug': '🐛 Bug Report',
+        'feature': '✨ Feature Request',
+        'ui_ux': '🎨 UI/UX Issue',
+        'general': '💬 General Feedback'
+    }
+    
+    category_label = category_labels.get(category, 'Feedback')
+    email_subject = f"Feedback Received - {category_label}"
+    
+    tracking_url = f"{APP_URL}/profile/feedback/{feedback_id}"
+    
+    html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+            body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f4f4f4; }}
+            .container {{ max-width: 600px; margin: 40px auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }}
+            .header {{ background: linear-gradient(135deg, #f59e0b, #d97706); padding: 40px 30px; text-align: center; }}
+            .header h1 {{ color: white; margin: 0; font-size: 28px; font-weight: 700; }}
+            .content {{ padding: 40px 30px; }}
+            .feedback-box {{ background: #f9fafb; border-left: 4px solid #f59e0b; padding: 20px; margin: 20px 0; border-radius: 4px; }}
+            .feedback-box strong {{ color: #1f2937; display: block; margin-bottom: 8px; }}
+            .feedback-box p {{ margin: 0; color: #4b5563; }}
+            .button {{ display: inline-block; padding: 14px 28px; background: #f59e0b; color: white; text-decoration: none; border-radius: 6px; font-weight: 600; margin: 20px 0; }}
+            .button:hover {{ background: #d97706; }}
+            .footer {{ background: #f9fafb; padding: 30px; text-align: center; color: #6b7280; font-size: 14px; border-top: 1px solid #e5e7eb; }}
+            .emoji {{ font-size: 48px; margin-bottom: 20px; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <div class="emoji">✅</div>
+                <h1>Feedback Received!</h1>
+            </div>
+            <div class="content">
+                <p>Hi {user_name or 'there'},</p>
+                <p>Thank you for taking the time to share your feedback with us! We've received your submission and our team will review it shortly.</p>
+                
+                <div class="feedback-box">
+                    <strong>Category:</strong>
+                    <p>{category_label}</p>
+                    <strong style="margin-top: 12px;">Subject:</strong>
+                    <p>{subject}</p>
+                </div>
+                
+                <p>We take all feedback seriously and use it to continuously improve {APP_NAME}. If we need any additional information, we'll reach out to you via email.</p>
+                
+                <p style="text-align: center;">
+                    <a href="{tracking_url}" class="button">Track Your Feedback</a>
+                </p>
+                
+                <p style="margin-top: 30px; color: #6b7280; font-size: 14px;">
+                    <strong>What happens next?</strong><br>
+                    • Our team will review your feedback within 48 hours<br>
+                    • You'll receive updates if your feedback status changes<br>
+                    • We may reach out if we need more details
+                </p>
+            </div>
+            <div class="footer">
+                <p>Thanks for helping us improve {APP_NAME}!</p>
+                <p style="margin-top: 10px;">
+                    <a href="{APP_URL}" style="color: #f59e0b; text-decoration: none;">Visit {APP_NAME}</a>
+                </p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    
+    text = f"""
+    Feedback Received - {category_label}
+    
+    Hi {user_name or 'there'},
+    
+    Thank you for taking the time to share your feedback with us! We've received your submission and our team will review it shortly.
+    
+    Category: {category_label}
+    Subject: {subject}
+    
+    We take all feedback seriously and use it to continuously improve {APP_NAME}. If we need any additional information, we'll reach out to you via email.
+    
+    Track your feedback: {tracking_url}
+    
+    What happens next?
+    • Our team will review your feedback within 48 hours
+    • You'll receive updates if your feedback status changes
+    • We may reach out if we need more details
+    
+    Thanks for helping us improve {APP_NAME}!
+    
+    - The {APP_NAME} Team
+    """
+    
+    result = send_email(
+        to=user_email,
+        subject=email_subject,
+        html=html,
+        text=text,
+        from_email="hello@slateone.studio"
+    )
+    
+    # Log to email tracking if email was sent successfully
+    if result and 'error' not in result:
+        resend_email_id = result.get('id')
+        log_email_sent(
+            email_type='feedback_confirmation',
+            recipient_email=user_email,
+            recipient_name=user_name or 'User',
+            resend_email_id=resend_email_id,
+            user_status='active',
+            metadata={'feedback_id': feedback_id, 'category': category}
+        )
+    
+    return result
+
+
+def send_feedback_reply_email(
+    user_email: str,
+    user_name: str,
+    feedback_id: str,
+    subject: str,
+    category: str,
+    reply_message: str
+) -> Dict[str, Any]:
+    """
+    Send email reply to feedback submitter.
+    
+    Args:
+        user_email: User's email address
+        user_name: User's full name
+        feedback_id: Feedback UUID
+        subject: Original feedback subject
+        category: Feedback category
+        reply_message: Admin's reply message
+    """
+    category_labels = {
+        'bug': '🐛 Bug Report',
+        'feature': '✨ Feature Request',
+        'ui_ux': '🎨 UI/UX Issue',
+        'general': '💬 General Feedback'
+    }
+    
+    category_label = category_labels.get(category, 'Feedback')
+    email_subject = f"Re: {subject}"
+    
+    feedback_url = f"{APP_URL}/profile/feedback/{feedback_id}"
+    
+    html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+            body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f4f4f4; }}
+            .container {{ max-width: 600px; margin: 40px auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }}
+            .header {{ background: linear-gradient(135deg, #f59e0b, #d97706); padding: 40px 30px; text-align: center; }}
+            .header h1 {{ color: white; margin: 0; font-size: 28px; font-weight: 700; }}
+            .content {{ padding: 40px 30px; }}
+            .reply-box {{ background: #fef3c7; border-left: 4px solid #f59e0b; padding: 20px; margin: 20px 0; border-radius: 4px; }}
+            .reply-box p {{ margin: 0; color: #1f2937; white-space: pre-wrap; }}
+            .original-box {{ background: #f9fafb; border-left: 4px solid #9ca3af; padding: 20px; margin: 20px 0; border-radius: 4px; }}
+            .original-box strong {{ color: #1f2937; display: block; margin-bottom: 8px; }}
+            .original-box p {{ margin: 0; color: #6b7280; }}
+            .button {{ display: inline-block; padding: 14px 28px; background: #f59e0b; color: white; text-decoration: none; border-radius: 6px; font-weight: 600; margin: 20px 0; }}
+            .button:hover {{ background: #d97706; }}
+            .footer {{ background: #f9fafb; padding: 30px; text-align: center; color: #6b7280; font-size: 14px; border-top: 1px solid #e5e7eb; }}
+            .emoji {{ font-size: 48px; margin-bottom: 20px; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <div class="emoji">💬</div>
+                <h1>Response to Your Feedback</h1>
+            </div>
+            <div class="content">
+                <p>Hi {user_name or 'there'},</p>
+                <p>We've reviewed your feedback and wanted to respond:</p>
+                
+                <div class="reply-box">
+                    <p>{reply_message}</p>
+                </div>
+                
+                <div class="original-box">
+                    <strong>Your Original Feedback:</strong>
+                    <p><strong>Category:</strong> {category_label}</p>
+                    <p><strong>Subject:</strong> {subject}</p>
+                </div>
+                
+                <p>If you have any follow-up questions or additional information to share, feel free to submit new feedback or reply to this email.</p>
+                
+                <p style="text-align: center;">
+                    <a href="{feedback_url}" class="button">View Feedback Details</a>
+                </p>
+            </div>
+            <div class="footer">
+                <p>Thank you for helping us improve {APP_NAME}!</p>
+                <p style="margin-top: 10px;">
+                    <a href="{APP_URL}" style="color: #f59e0b; text-decoration: none;">Visit {APP_NAME}</a>
+                </p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    
+    text = f"""
+    Response to Your Feedback
+    
+    Hi {user_name or 'there'},
+    
+    We've reviewed your feedback and wanted to respond:
+    
+    {reply_message}
+    
+    Your Original Feedback:
+    Category: {category_label}
+    Subject: {subject}
+    
+    If you have any follow-up questions or additional information to share, feel free to submit new feedback or reply to this email.
+    
+    View feedback details: {feedback_url}
+    
+    Thank you for helping us improve {APP_NAME}!
+    
+    - The {APP_NAME} Team
+    """
+    
+    result = send_email(
+        to=user_email,
+        subject=email_subject,
+        html=html,
+        text=text,
+        from_email="hello@slateone.studio",
+        reply_to="hello@slateone.studio"
+    )
+    
+    # Log to email tracking if email was sent successfully
+    if result and 'error' not in result:
+        resend_email_id = result.get('id')
+        log_email_sent(
+            email_type='feedback_reply',
+            recipient_email=user_email,
+            recipient_name=user_name or 'User',
+            resend_email_id=resend_email_id,
+            user_status='active',
+            metadata={'feedback_id': feedback_id, 'category': category}
+        )
+    
+    return result
+
+
+def send_admin_feedback_alert_email(
+    feedback_id: str,
+    user_name: str,
+    user_email: str,
+    category: str,
+    priority: str,
+    subject: str,
+    description: str,
+    admin_emails: list
+) -> Dict[str, Any]:
+    """
+    Send alert email to admins about new feedback submission.
+    Only sent for high-priority or bug feedback.
+    
+    Args:
+        feedback_id: Feedback UUID
+        user_name: Name of user who submitted feedback
+        user_email: Email of user who submitted feedback
+        category: Feedback category (bug, feature, ui_ux, general)
+        priority: Feedback priority (low, medium, high)
+        subject: Feedback subject
+        description: Feedback description
+        admin_emails: List of admin email addresses
+    
+    Returns:
+        dict: Resend API response
+    """
+    # Category emoji mapping
+    category_emoji = {
+        'bug': '🐛',
+        'feature': '✨',
+        'ui_ux': '🎨',
+        'general': '💬'
+    }
+    
+    # Priority badge color
+    priority_color = {
+        'low': '#10b981',
+        'medium': '#f59e0b',
+        'high': '#ef4444'
+    }
+    
+    emoji = category_emoji.get(category, '💬')
+    badge_color = priority_color.get(priority, '#f59e0b')
+    
+    # HTML email template
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>New Feedback Alert</title>
+    </head>
+    <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #0f172a; color: #f8fafc;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #0f172a; padding: 40px 20px;">
+            <tr>
+                <td align="center">
+                    <table width="600" cellpadding="0" cellspacing="0" style="background-color: #1e293b; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 15px rgba(0, 0, 0, 0.5);">
+                        <!-- Header -->
+                        <tr>
+                            <td style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 30px; text-align: center;">
+                                <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 700;">
+                                    {emoji} New Feedback Alert
+                                </h1>
+                            </td>
+                        </tr>
+                        
+                        <!-- Priority Badge -->
+                        <tr>
+                            <td style="padding: 20px 30px 10px;">
+                                <div style="display: inline-block; background-color: {badge_color}; color: #ffffff; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; text-transform: uppercase;">
+                                    {priority} Priority
+                                </div>
+                                <div style="display: inline-block; background-color: #334155; color: #cbd5e1; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; text-transform: uppercase; margin-left: 8px;">
+                                    {category.replace('_', '/')}
+                                </div>
+                            </td>
+                        </tr>
+                        
+                        <!-- Content -->
+                        <tr>
+                            <td style="padding: 20px 30px;">
+                                <h2 style="margin: 0 0 10px 0; color: #f8fafc; font-size: 18px; font-weight: 600;">
+                                    {subject}
+                                </h2>
+                                <p style="margin: 0 0 20px 0; color: #cbd5e1; font-size: 14px; line-height: 1.6;">
+                                    {description[:300]}{'...' if len(description) > 300 else ''}
+                                </p>
+                                
+                                <div style="background-color: #334155; border-radius: 8px; padding: 15px; margin: 20px 0;">
+                                    <p style="margin: 0 0 5px 0; color: #94a3b8; font-size: 12px; font-weight: 600; text-transform: uppercase;">
+                                        Submitted by
+                                    </p>
+                                    <p style="margin: 0; color: #f8fafc; font-size: 14px;">
+                                        {user_name or 'User'} ({user_email})
+                                    </p>
+                                </div>
+                            </td>
+                        </tr>
+                        
+                        <!-- CTA Button -->
+                        <tr>
+                            <td style="padding: 10px 30px 30px;">
+                                <a href="https://app.slateone.studio/admin/feedback/{feedback_id}" 
+                                   style="display: inline-block; background-color: #f59e0b; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px;">
+                                    View in Admin Dashboard →
+                                </a>
+                            </td>
+                        </tr>
+                        
+                        <!-- Footer -->
+                        <tr>
+                            <td style="background-color: #0f172a; padding: 20px 30px; text-align: center; border-top: 1px solid #334155;">
+                                <p style="margin: 0; color: #64748b; font-size: 12px;">
+                                    SlateOne - Script Breakdown & Analysis
+                                </p>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </body>
+    </html>
+    """
+    
+    # Plain text version
+    text_content = f"""
+    NEW FEEDBACK ALERT
+    
+    Priority: {priority.upper()}
+    Category: {category.replace('_', '/')}
+    
+    Subject: {subject}
+    
+    {description}
+    
+    Submitted by: {user_name or 'User'} ({user_email})
+    
+    View in Admin Dashboard:
+    https://app.slateone.studio/admin/feedback/{feedback_id}
+    
+    ---
+    SlateOne - Script Breakdown & Analysis
+    """
+    
+    # Send to all admin emails
+    result = send_email(
+        to_emails=admin_emails,
+        subject=f"{emoji} New {priority.capitalize()} Priority Feedback: {subject[:50]}",
+        html_content=html_content,
+        text_content=text_content
+    )
+    
+    # Log email sent
+    if result and result.get('id'):
+        for admin_email in admin_emails:
+            log_email_sent(
+                email_type='admin_feedback_alert',
+                recipient_email=admin_email,
+                recipient_name='Admin',
+                resend_email_id=result.get('id'),
+                user_status='active',
+                metadata={'feedback_id': feedback_id, 'category': category, 'priority': priority}
+            )
     
     return result

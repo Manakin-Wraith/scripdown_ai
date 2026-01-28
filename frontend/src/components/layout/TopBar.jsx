@@ -14,6 +14,7 @@ import {
 import { useAnalysis } from '../../context/AnalysisContext';
 import { useAuth } from '../../context/AuthContext';
 import NotificationBell from '../notifications/NotificationBell';
+import FeedbackButton from '../feedback/FeedbackButton';
 import { CreditBalance, CreditPurchaseModal } from '../credits';
 import './Layout.css';
 
@@ -108,6 +109,9 @@ const TopBar = () => {
 
         {/* Notification Bell - only show when authenticated */}
         {isAuthenticated && <NotificationBell />}
+
+        {/* Feedback Button - only show when authenticated */}
+        {isAuthenticated && <FeedbackButton />}
 
         {/* User Dropdown or Login Button */}
         {authLoading ? (
