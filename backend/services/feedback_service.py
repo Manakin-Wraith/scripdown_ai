@@ -553,6 +553,12 @@ def send_feedback_reply(feedback_id, reply_message, admin_user_id):
             reply_message=reply_message
         )
         
+        # Update last_reply_sent timestamp
+        supabase.table('feedback_submissions')\
+            .update({'last_reply_sent': datetime.utcnow().isoformat()})\
+            .eq('id', feedback_id)\
+            .execute()
+        
         return {'success': True}
         
     except Exception as e:
