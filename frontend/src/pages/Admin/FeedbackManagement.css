@@ -12,6 +12,33 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 30px;
+    gap: 16px;
+}
+
+.back-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: var(--gray-800);
+    border: 1px solid var(--gray-700);
+    border-radius: 10px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.back-button:hover {
+    background: var(--gray-750);
+    border-color: var(--primary-500);
+    color: var(--primary-500);
+    transform: translateX(-2px);
+}
+
+.back-button:active {
+    transform: translateX(-4px);
 }
 
 .header-left {

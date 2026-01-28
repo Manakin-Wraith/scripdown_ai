@@ -143,6 +143,40 @@ const NotificationBell = () => {
         }
     };
 
+    // Delete notification
+    const deleteNotification = async (notificationId, e) => {
+        e?.stopPropagation();
+        
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session?.access_token) return;
+
+            const response = await fetch(`${API_BASE_URL}/api/notifications/${notificationId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${session.access_token}`
+                }
+            });
+
+            if (response.ok) {
+                // Remove from local state
+                setNotifications(prev => {
+                    const notification = prev.find(n => n.id === notificationId);
+                    const newNotifications = prev.filter(n => n.id !== notificationId);
+                    
+                    // Update unread count if notification was unread
+                    if (notification && !notification.read) {
+                        setUnreadCount(prevCount => Math.max(0, prevCount - 1));
+                    }
+                    
+                    return newNotifications;
+                });
+            }
+        } catch (error) {
+            console.error('Error deleting notification:', error);
+        }
+    };
+
     // Handle notification click
     const handleNotificationClick = (notification) => {
         if (!notification.read) {
@@ -240,15 +274,24 @@ const NotificationBell = () => {
                                             {formatTimeAgo(notification.created_at)}
                                         </div>
                                     </div>
-                                    {!notification.read && (
+                                    <div className="notification-actions">
+                                        {!notification.read && (
+                                            <button 
+                                                className="notification-mark-read"
+                                                onClick={(e) => markAsRead(notification.id, e)}
+                                                title="Mark as read"
+                                            >
+                                                <Check size={14} />
+                                            </button>
+                                        )}
                                         <button 
-                                            className="notification-mark-read"
-                                            onClick={(e) => markAsRead(notification.id, e)}
-                                            title="Mark as read"
+                                            className="notification-delete"
+                                            onClick={(e) => deleteNotification(notification.id, e)}
+                                            title="Remove notification"
                                         >
-                                            <Check size={14} />
+                                            <X size={14} />
                                         </button>
-                                    )}
+                                    </div>
                                 </div>
                             ))
                         )}

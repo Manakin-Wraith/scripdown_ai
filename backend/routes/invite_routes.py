@@ -771,6 +771,29 @@ def mark_all_notifications_read():
         return jsonify({'error': str(e)}), 500
 
 
+@invite_bp.route('/api/notifications/<notification_id>', methods=['DELETE'])
+@require_auth
+def delete_notification(notification_id):
+    """Delete a notification. User can only delete their own notifications."""
+    if not supabase:
+        return jsonify({'error': 'Database not configured'}), 500
+    
+    user_id = get_user_id()
+    
+    try:
+        # Delete notification (user can only delete their own)
+        result = supabase.table('notifications').delete().eq('id', notification_id).eq('user_id', user_id).execute()
+        
+        if result.data:
+            return jsonify({'success': True, 'message': 'Notification deleted'})
+        else:
+            return jsonify({'error': 'Notification not found or unauthorized'}), 404
+        
+    except Exception as e:
+        print(f"Error deleting notification: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 # ============ Email Test Routes ============
 
 @invite_bp.route('/api/email/test', methods=['POST'])
