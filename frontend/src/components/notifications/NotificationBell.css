@@ -230,6 +230,14 @@
     margin-top: 0.375rem;
 }
 
+/* Notification Actions */
+.notification-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    flex-shrink: 0;
+}
+
 /* Mark as Read Button */
 .notification-mark-read {
     display: flex;
@@ -254,6 +262,32 @@
 .notification-mark-read:hover {
     background-color: var(--gray-700);
     color: var(--primary-500);
+}
+
+/* Delete Button */
+.notification-delete {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background-color: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    opacity: 0;
+    flex-shrink: 0;
+}
+
+.notification-item:hover .notification-delete {
+    opacity: 1;
+}
+
+.notification-delete:hover {
+    background-color: rgba(239, 68, 68, 0.15);
+    color: #EF4444;
 }
 
 /* Mobile Responsive */

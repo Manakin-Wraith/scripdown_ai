@@ -9,7 +9,8 @@ import {
     Clock,
     ChevronDown,
     Eye,
-    Mail
+    Mail,
+    ArrowLeft
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import FeedbackDetailModal from '../../components/admin/FeedbackDetailModal';
@@ -156,6 +157,13 @@ const FeedbackManagement = () => {
         <>
             <div className="feedback-management">
                 <div className="feedback-header">
+                    <button 
+                        className="back-button"
+                        onClick={() => navigate('/admin')}
+                        title="Back to Admin Dashboard"
+                    >
+                        <ArrowLeft size={20} />
+                    </button>
                     <div className="header-left">
                         <MessageSquare size={28} />
                         <div>
