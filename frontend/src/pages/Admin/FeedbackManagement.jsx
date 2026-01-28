@@ -242,6 +242,12 @@ const FeedbackManagement = () => {
                                         <span className="category-emoji">{getCategoryEmoji(item.category)}</span>
                                         {getPriorityBadge(item.priority)}
                                         {getStatusBadge(item.status)}
+                                        {item.last_reply_sent && (
+                                            <span className="email-sent-badge">
+                                                <Mail size={12} />
+                                                Email Sent
+                                            </span>
+                                        )}
                                     </div>
                                     <span className="feedback-date">{formatDate(item.created_at)}</span>
                                 </div>

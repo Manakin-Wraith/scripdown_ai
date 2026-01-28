@@ -80,12 +80,16 @@ const FeedbackDetailModal = ({ feedback, onClose, onUpdate }) => {
             });
 
             if (response.ok) {
-                setSuccess('Reply sent successfully');
+                const data = await response.json();
+                const userEmail = feedback.user_email || 'user';
+                setSuccess(`✅ Reply sent to ${userEmail}!`);
                 setReplyMessage('');
+                
+                // Auto-close modal after 2 seconds
                 setTimeout(() => {
-                    onUpdate();
-                    setSuccess(null);
-                }, 1500);
+                    onUpdate(); // Refresh feedback list
+                    onClose(); // Close modal
+                }, 2000);
             } else {
                 setError('Failed to send reply');
             }
