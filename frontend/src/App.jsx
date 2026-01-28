@@ -22,7 +22,7 @@ import AnalyticsDashboard from './pages/Admin/AnalyticsDashboard';
 import UserActivityPage from './pages/Admin/UserActivityPage';
 import ScriptAnalyticsPage from './pages/Admin/ScriptAnalyticsPage';
 import PaymentVerification from './components/admin/PaymentVerification';
-import FeedbackManagement from './pages/admin/FeedbackManagement';
+import FeedbackManagement from './pages/Admin/FeedbackManagement';
 import './App.css';
 
 // Phase 2+ imports (deferred)
