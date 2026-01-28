@@ -105,48 +105,59 @@ export const AuthProvider = ({ children }) => {
                     if (event === 'SIGNED_IN') {
                         const pendingName = localStorage.getItem('pending_profile_name');
                         const pendingEmail = localStorage.getItem('pending_profile_email');
+                        const pendingPlan = localStorage.getItem('pending_profile_plan');
+                        const pendingSource = localStorage.getItem('pending_profile_source');
                         
                         if (pendingName && pendingEmail === session.user.email) {
-                            // Create profile now that email is verified
-                            supabase
-                                .from('profiles')
-                                .upsert({
-                                    id: session.user.id,
+                            // Create profile with plan-specific settings via backend
+                            fetch(`${API_BASE_URL}/api/auth/set-plan`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ 
+                                    user_id: session.user.id,
                                     email: session.user.email,
                                     full_name: pendingName,
-                                    created_at: new Date().toISOString(),
-                                    updated_at: new Date().toISOString()
+                                    plan: pendingPlan || null,
+                                    source: pendingSource || 'direct'
                                 })
-                                .then(({ error: profileError }) => {
-                                    if (profileError) {
-                                        console.error('Error creating profile:', profileError);
-                                    } else {
-                                        console.log('Profile created successfully');
-                                        // Clear pending data
+                            })
+                            .then(res => res.json())
+                            .then(data => {
+                                if (data.success) {
+                                    console.log(`Profile created: ${data.trial_message}, plan=${data.plan}, source=${data.source}`);
+                                    
+                                    // Clear pending data
+                                    localStorage.removeItem('pending_profile_name');
+                                    localStorage.removeItem('pending_profile_email');
+                                    localStorage.removeItem('pending_profile_plan');
+                                    localStorage.removeItem('pending_profile_source');
+                                    
+                                    // Refresh user data to get the new profile
+                                    fetchUserData(session.user.id);
+                                } else {
+                                    console.error('Error creating profile:', data.error);
+                                }
+                            })
+                            .catch(err => {
+                                console.error('Failed to create profile:', err);
+                                // Fallback: create basic profile via Supabase
+                                supabase
+                                    .from('profiles')
+                                    .upsert({
+                                        id: session.user.id,
+                                        email: session.user.email,
+                                        full_name: pendingName,
+                                        created_at: new Date().toISOString(),
+                                        updated_at: new Date().toISOString()
+                                    })
+                                    .then(() => {
                                         localStorage.removeItem('pending_profile_name');
                                         localStorage.removeItem('pending_profile_email');
-                                        
-                                        // Check and apply early access extended trial
-                                        fetch(`${API_BASE_URL}/api/auth/apply-early-access`, {
-                                            method: 'POST',
-                                            headers: { 'Content-Type': 'application/json' },
-                                            body: JSON.stringify({ 
-                                                email: session.user.email,
-                                                user_id: session.user.id
-                                            })
-                                        })
-                                        .then(res => res.json())
-                                        .then(data => {
-                                            if (data.is_early_access) {
-                                                console.log(`Early access applied: ${data.trial_days} days trial`);
-                                            }
-                                        })
-                                        .catch(err => console.error('Early access check error:', err));
-                                        
-                                        // Refresh user data to get the new profile
+                                        localStorage.removeItem('pending_profile_plan');
+                                        localStorage.removeItem('pending_profile_source');
                                         fetchUserData(session.user.id);
-                                    }
-                                });
+                                    });
+                            });
                         }
                         
                         // Auto-accept pending invites on sign in (after email verification)
@@ -203,6 +214,11 @@ export const AuthProvider = ({ children }) => {
         setError(null);
         setLoading(true);
         
+        // Extract plan and source from URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const plan = urlParams.get('plan');
+        const source = urlParams.get('source') || 'direct';
+        
         const { data, error } = await signUp(email, password);
         
         if (error) {
@@ -211,11 +227,12 @@ export const AuthProvider = ({ children }) => {
             return { success: false, error: error.message };
         }
 
-        // Store full name in localStorage for profile creation after email verification
-        // Profile will be created when user verifies email and signs in
+        // Store signup data for profile creation after email verification
         if (data.user) {
             localStorage.setItem('pending_profile_name', fullName);
             localStorage.setItem('pending_profile_email', email);
+            localStorage.setItem('pending_profile_plan', plan || '');
+            localStorage.setItem('pending_profile_source', source);
             
             // Send welcome email with Yoco paylink (fire and forget)
             try {

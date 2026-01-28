@@ -1372,4 +1372,55 @@ export const getUserDetails = async (userId) => {
     }
 };
 
+// ==================== Feedback API ====================
+
+/**
+ * Submit feedback
+ * @param {FormData} formData - Form data with feedback fields and optional screenshot
+ * @returns {Promise<Object>} Feedback submission response
+ */
+export const submitFeedback = async (formData) => {
+    try {
+        const response = await api.post('/api/feedback', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error submitting feedback:', error);
+        throw error;
+    }
+};
+
+/**
+ * Get user's feedback submissions
+ * @param {Object} params - Query parameters (page, limit)
+ * @returns {Promise<Object>} Feedback list with pagination
+ */
+export const getUserFeedback = async (params = {}) => {
+    try {
+        const response = await api.get('/api/feedback', { params });
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching user feedback:', error);
+        throw error;
+    }
+};
+
+/**
+ * Get single feedback by ID
+ * @param {string} feedbackId - Feedback UUID
+ * @returns {Promise<Object>} Feedback details
+ */
+export const getFeedbackById = async (feedbackId) => {
+    try {
+        const response = await api.get(`/api/feedback/${feedbackId}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching feedback:', error);
+        throw error;
+    }
+};
+
 export default api;

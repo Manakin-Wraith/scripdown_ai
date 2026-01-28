@@ -14,6 +14,7 @@ from routes.beta_routes import beta_bp
 from routes.email_analytics_routes import analytics_bp
 from routes.admin_routes import admin_bp
 from routes.credit_routes import credit_bp
+from routes.feedback_routes import feedback_bp
 
 load_dotenv()
 
@@ -44,6 +45,7 @@ app.register_blueprint(beta_bp)  # Beta launch routes at /api/beta/*
 app.register_blueprint(analytics_bp)  # Email analytics routes at /api/email-analytics/*
 app.register_blueprint(admin_bp)  # Admin routes at /api/admin/* (superuser only)
 app.register_blueprint(credit_bp)  # Credit system routes at /api/credits/*
+app.register_blueprint(feedback_bp)  # Feedback routes at /api/feedback/*
 
 @app.route('/health')
 def health_check():
