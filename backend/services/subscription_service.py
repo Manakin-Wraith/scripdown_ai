@@ -84,7 +84,7 @@ def get_subscription_status(user_id: str) -> Dict[str, Any]:
         
         # Get profile with subscription info
         profile_result = supabase.table('profiles') \
-            .select('subscription_status, subscription_expires_at, created_at') \
+            .select('subscription_status, subscription_expires_at, created_at, script_upload_limit') \
             .eq('id', user_id) \
             .single() \
             .execute()
@@ -96,6 +96,8 @@ def get_subscription_status(user_id: str) -> Dict[str, Any]:
         status = profile.get('subscription_status', 'trial')
         expires_at = profile.get('subscription_expires_at')
         created_at = profile.get('created_at')
+        # Get user's script limit from profile, fallback to hardcoded TRIAL_SCRIPT_LIMIT
+        user_script_limit = profile.get('script_upload_limit', TRIAL_SCRIPT_LIMIT)
         
         # Get script count for limit checking
         script_result = supabase.table('scripts') \
@@ -131,14 +133,14 @@ def get_subscription_status(user_id: str) -> Dict[str, Any]:
                     'trial_ends_at': trial_ends_at.isoformat() if trial_ends_at else None,
                     'can_upload_script': False,
                     'script_count': script_count,
-                    'script_limit': TRIAL_SCRIPT_LIMIT,
+                    'script_limit': user_script_limit,
                     'features': [],
                     'message': 'Your trial has expired. Upgrade to continue using SlateOne.'
                 }
             else:
                 # Active trial
                 days_remaining = (trial_ends_at - now).days if trial_ends_at else TRIAL_DURATION_DAYS
-                can_upload = script_count < TRIAL_SCRIPT_LIMIT
+                can_upload = script_count < user_script_limit
                 
                 return {
                     'status': 'trial',
@@ -148,7 +150,7 @@ def get_subscription_status(user_id: str) -> Dict[str, Any]:
                     'trial_ends_at': trial_ends_at.isoformat() if trial_ends_at else None,
                     'can_upload_script': can_upload,
                     'script_count': script_count,
-                    'script_limit': TRIAL_SCRIPT_LIMIT,
+                    'script_limit': user_script_limit,
                     'features': TRIAL_FEATURES,
                     'message': f'{days_remaining} days left in your trial' if days_remaining <= 7 else None
                 }
