@@ -152,10 +152,6 @@ const ReportBuilder = () => {
         window.open(getReportPrintUrl(reportId), '_blank');
     };
 
-    const handleDownload = (reportId) => {
-        window.open(getReportPdfUrl(reportId), '_blank');
-    };
-
     if (loading) {
         return (
             <div className="report-builder-loading">
@@ -386,14 +382,7 @@ const ReportBuilder = () => {
                                             <button 
                                                 className="action-btn"
                                                 onClick={() => handlePrint(report.id)}
-                                                title="Print"
-                                            >
-                                                <Printer size={16} />
-                                            </button>
-                                            <button 
-                                                className="action-btn"
-                                                onClick={() => handleDownload(report.id)}
-                                                title="Download PDF"
+                                                title="Download/Print"
                                             >
                                                 <Download size={16} />
                                             </button>
