@@ -1,13 +1,12 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
     List, Sun, Moon, Home, Building2, Users, MapPin,
-    GripVertical, Printer, Download, ArrowLeft,
+    GripVertical, ArrowLeft,
     Loader, Filter, SortAsc, SortDesc,
-    Maximize2, Minimize2, Package, Shirt, Sparkles, Car, Volume2, Cloud,
+    Package, Shirt, Sparkles, Car, Volume2, Cloud,
     CheckCircle, AlertCircle, Clock, FileText, MessageSquare
 } from 'lucide-react';
-import html2pdf from 'html2pdf.js';
 import { useToast } from '../../context/ToastContext';
 import { useScript } from '../../context/ScriptContext';
 import { getScenes, getScriptMetadata } from '../../services/apiService';
@@ -19,12 +18,10 @@ const Stripboard = () => {
     const navigate = useNavigate();
     const toast = useToast();
     const { setScript } = useScript();
-    const pdfContentRef = useRef(null);
     
     const [scenes, setScenes] = useState([]);
     const [metadata, setMetadata] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [downloading, setDownloading] = useState(false);
     const [sortBy, setSortBy] = useState('scene_order');
     const [sortDir, setSortDir] = useState('asc');
     const [filterIntExt, setFilterIntExt] = useState('all');
@@ -178,67 +175,6 @@ const Stripboard = () => {
         return { intCount, extCount, dayCount, nightCount, totalEighths, totalEighthsDisplay, totalCharacters, totalLocations };
     }, [scenes]);
 
-    const handlePrint = () => {
-        window.print();
-    };
-
-    const handleDownloadPdf = async () => {
-        setDownloading(true);
-        try {
-            // Use client-side PDF generation with html2pdf.js
-            const element = pdfContentRef.current;
-            if (!element) {
-                throw new Error('PDF content not found');
-            }
-            
-            // Temporarily show the PDF header for export
-            const pdfHeader = element.querySelector('.pdf-header');
-            if (pdfHeader) {
-                pdfHeader.style.display = 'block';
-            }
-            
-            const title = metadata?.title || 'Stripboard';
-            const safeTitle = title.replace(/[^a-zA-Z0-9]/g, '_');
-            
-            const opt = {
-                margin: [10, 10, 10, 10],
-                filename: `${safeTitle}_Stripboard.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { 
-                    scale: 2,
-                    useCORS: true,
-                    letterRendering: true,
-                    backgroundColor: '#ffffff'
-                },
-                jsPDF: { 
-                    unit: 'mm', 
-                    format: 'a4', 
-                    orientation: 'landscape' 
-                },
-                pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-            };
-            
-            await html2pdf().set(opt).from(element).save();
-            
-            // Hide the PDF header again
-            if (pdfHeader) {
-                pdfHeader.style.display = 'none';
-            }
-            
-            toast.success('Download Complete', 'Your PDF has been downloaded.');
-        } catch (err) {
-            console.error('PDF generation error:', err);
-            // Make sure to hide header on error too
-            const element = pdfContentRef.current;
-            const pdfHeader = element?.querySelector('.pdf-header');
-            if (pdfHeader) {
-                pdfHeader.style.display = 'none';
-            }
-            toast.error('Download Failed', err.message || 'Could not generate PDF.');
-        } finally {
-            setDownloading(false);
-        }
-    };
 
     const toggleSort = (field) => {
         if (sortBy === field) {
@@ -259,14 +195,6 @@ const Stripboard = () => {
             }
             return newSet;
         });
-    };
-
-    const expandAll = () => {
-        setExpandedRows(new Set(filteredScenes.map(s => s.id)));
-    };
-
-    const collapseAll = () => {
-        setExpandedRows(new Set());
     };
 
     if (loading) {
@@ -344,28 +272,6 @@ const Stripboard = () => {
                     <List size={24} />
                     One-Liner / Stripboard
                 </h1>
-                <div className="header-actions">
-                    <button 
-                        className="action-btn secondary"
-                        onClick={expandedRows.size > 0 ? collapseAll : expandAll}
-                        title={expandedRows.size > 0 ? 'Collapse All' : 'Expand All'}
-                    >
-                        {expandedRows.size > 0 ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
-                        {expandedRows.size > 0 ? 'Collapse All' : 'Expand All'}
-                    </button>
-                    <button 
-                        className="action-btn" 
-                        onClick={handleDownloadPdf}
-                        disabled={downloading}
-                    >
-                        {downloading ? <Loader size={16} className="spin" /> : <Download size={16} />}
-                        {downloading ? 'Generating...' : 'Download PDF'}
-                    </button>
-                    <button className="action-btn" onClick={handlePrint}>
-                        <Printer size={16} />
-                        Print
-                    </button>
-                </div>
             </div>
 
             {/* Stats Bar */}
@@ -407,7 +313,6 @@ const Stripboard = () => {
             {/* Filters */}
             <div className="stripboard-filters">
                 <div className="filter-group">
-                    <Filter size={14} />
                     <select 
                         value={filterIntExt}
                         onChange={(e) => setFilterIntExt(e.target.value)}
@@ -430,19 +335,17 @@ const Stripboard = () => {
                     </select>
                 </div>
                 <div className="filter-group">
-                    <FileText size={14} />
                     <select 
                         value={filterAnalysisStatus}
                         onChange={(e) => setFilterAnalysisStatus(e.target.value)}
                     >
                         <option value="all">All Status</option>
-                        <option value="analyzed">✓ Analyzed</option>
-                        <option value="incomplete">⚠ Incomplete</option>
-                        <option value="pending">⏳ Pending</option>
+                        <option value="analyzed">Analyzed</option>
+                        <option value="incomplete">Incomplete</option>
+                        <option value="pending">Pending</option>
                     </select>
                 </div>
                 <div className="filter-group">
-                    <span className="filter-label">Sort:</span>
                     <select 
                         value={sortBy}
                         onChange={(e) => setSortBy(e.target.value)}
@@ -461,55 +364,8 @@ const Stripboard = () => {
                 </div>
             </div>
 
-            {/* PDF Content Container - includes print header and table */}
-            <div ref={pdfContentRef} className="pdf-content-wrapper">
-                {/* PDF Header (visible in PDF export) */}
-                <div className="pdf-header">
-                    <div className="pdf-header-top">
-                        <div className="pdf-brand">
-                            <span className="pdf-brand-logo">SlateOne</span>
-                            <span className="pdf-brand-tagline">Script Breakdown</span>
-                        </div>
-                        <span className="pdf-confidential">Confidential</span>
-                    </div>
-                    <div className="pdf-header-main">
-                        <div className="pdf-title-section">
-                            <h2 className="pdf-title">{metadata?.title || 'Untitled Script'}</h2>
-                            <p className="pdf-subtitle">One-Liner / Stripboard</p>
-                        </div>
-                        <div className="pdf-meta-section">
-                            {metadata?.writer_name && (
-                                <div className="pdf-meta-row">
-                                    <span className="pdf-meta-label">Written by:</span>
-                                    <span className="pdf-meta-value">{metadata.writer_name}</span>
-                                </div>
-                            )}
-                            {metadata?.genre && (
-                                <div className="pdf-meta-row">
-                                    <span className="pdf-meta-label">Genre:</span>
-                                    <span className="pdf-meta-value">{metadata.genre}</span>
-                                </div>
-                            )}
-                            <div className="pdf-meta-row">
-                                <span className="pdf-meta-label">Generated:</span>
-                                <span className="pdf-meta-value">{printDate}</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="pdf-stats">
-                        <span><strong>{scenes.length}</strong> Scenes</span>
-                        <span><strong>{stats.intCount}</strong> INT</span>
-                        <span><strong>{stats.extCount}</strong> EXT</span>
-                        <span><strong>{stats.dayCount}</strong> DAY</span>
-                        <span><strong>{stats.nightCount}</strong> NIGHT</span>
-                        <span><strong>{stats.totalCharacters}</strong> Cast</span>
-                        <span><strong>{stats.totalLocations}</strong> Locations</span>
-                        <span className="pdf-stats-highlight"><strong>{stats.totalEighthsDisplay}</strong> Pages</span>
-                    </div>
-                </div>
-
-                {/* Stripboard Table */}
-                <div className="stripboard-table-container">
+            {/* Stripboard Table */}
+            <div className="stripboard-table-container">
                 <table className="stripboard-table">
                     <thead>
                         <tr>
@@ -794,7 +650,6 @@ const Stripboard = () => {
                         })}
                     </tbody>
                 </table>
-                </div>
             </div>
 
             {filteredScenes.length === 0 && (

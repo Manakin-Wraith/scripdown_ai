@@ -13,7 +13,13 @@ import {
     Clock,
     MessageSquare,
     Building2,
-    Volume2
+    Volume2,
+    Dog,
+    UserPlus,
+    Flame,
+    Activity,
+    Heart,
+    Camera
 } from 'lucide-react';
 import NoteDrawer from '../notes/NoteDrawer';
 import { getScriptNotes } from '../../services/apiService';
@@ -29,7 +35,10 @@ const CATEGORY_DEPARTMENTS = {
     special_fx: ['vfx', 'director'],
     vehicles: ['locations', 'director', 'production_design'],
     locations: ['locations', 'production_design', 'director'],
-    sound: ['sound', 'director', 'post_production']
+    sound: ['sound', 'director', 'post_production'],
+    animals: ['production_design', 'director'],
+    extras: ['casting', 'director'],
+    stunts: ['stunts', 'director', 'safety']
 };
 
 /**
@@ -88,8 +97,7 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
             }).catch(console.error);
         }
     };
-    // Calculate scene length in eighths
-    const eighthsDisplay = scene ? getSceneEighthsDisplay(scene) : null;
+    
     if (!scene) {
         return (
             <div className="scene-detail-empty">
@@ -168,10 +176,7 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
         <div className="scene-detail">
             {/* Header */}
             <div className="detail-header">
-                <div className="scene-header-row">
-                    <span className="scene-number-label">Scene {scene.scene_number_original || scene.scene_number}</span>
-                    {eighthsDisplay && <span className="scene-eighths-badge" title="Scene length in eighths of a page">{eighthsDisplay}</span>}
-                </div>
+                <span className="scene-number-label">Scene {scene.scene_number_original || scene.scene_number}</span>
                 <h2 className="scene-title">
                     <MapPin size={24} className="inline-icon" />
                     {scene.int_ext && <span className="int-ext-label">{scene.int_ext}.</span>}
@@ -183,12 +188,33 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
                         <span className="value">{scene.atmosphere}</span>
                     </div>
                 )}
+                {scene.emotional_tone && (
+                    <div className="scene-atmosphere">
+                        <Heart size={16} className="inline-icon" />
+                        <span className="label">Tone:</span>
+                        <span className="value">{scene.emotional_tone}</span>
+                    </div>
+                )}
             </div>
 
             <div className="detail-content">
                 {/* Description Box */}
                 <div className="detail-section description-section">
                     <p className="scene-description">{scene.description}</p>
+                    {scene.action_description && (
+                        <div className="scene-action-description">
+                            <Activity size={16} className="inline-icon" />
+                            <span className="label">Action:</span>
+                            <span className="value">{scene.action_description}</span>
+                        </div>
+                    )}
+                    {scene.technical_notes && (
+                        <div className="scene-technical-notes">
+                            <Camera size={16} className="inline-icon" />
+                            <span className="label">Technical:</span>
+                            <span className="value">{scene.technical_notes}</span>
+                        </div>
+                    )}
                 </div>
 
                 {/* Breakdown Grid - Clickable Cards */}
@@ -421,6 +447,93 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
                                 </div>
                             ) : (
                                 <p className="empty-text">No sound cues detected</p>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Animals */}
+                    <div 
+                        className="breakdown-card clickable"
+                        onClick={() => openDrawer('animals', 'Animals')}
+                        title="Click to add notes"
+                    >
+                        <div className="card-header">
+                            <Dog size={20} className="card-icon" />
+                            <h3>Animals</h3>
+                            {noteCounts.animals > 0 && (
+                                <span className="note-badge">
+                                    <MessageSquare size={12} />
+                                    {noteCounts.animals}
+                                </span>
+                            )}
+                        </div>
+                        <div className="card-content">
+                            {scene.animals && scene.animals.length > 0 ? (
+                                <div className="tag-container">
+                                    {scene.animals.map((animal, idx) => (
+                                        <span key={idx} className="tag animal-tag">{animal}</span>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="empty-text">No animals detected</p>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Extras */}
+                    <div 
+                        className="breakdown-card clickable"
+                        onClick={() => openDrawer('extras', 'Extras')}
+                        title="Click to add notes"
+                    >
+                        <div className="card-header">
+                            <UserPlus size={20} className="card-icon" />
+                            <h3>Extras</h3>
+                            {noteCounts.extras > 0 && (
+                                <span className="note-badge">
+                                    <MessageSquare size={12} />
+                                    {noteCounts.extras}
+                                </span>
+                            )}
+                        </div>
+                        <div className="card-content">
+                            {scene.extras && scene.extras.length > 0 ? (
+                                <div className="tag-container">
+                                    {scene.extras.map((extra, idx) => (
+                                        <span key={idx} className="tag extra-tag">{extra}</span>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="empty-text">No extras detected</p>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Stunts */}
+                    <div 
+                        className="breakdown-card clickable"
+                        onClick={() => openDrawer('stunts', 'Stunts')}
+                        title="Click to add notes"
+                    >
+                        <div className="card-header">
+                            <Flame size={20} className="card-icon" />
+                            <h3>Stunts</h3>
+                            {noteCounts.stunts > 0 && (
+                                <span className="note-badge">
+                                    <MessageSquare size={12} />
+                                    {noteCounts.stunts}
+                                </span>
+                            )}
+                        </div>
+                        <div className="card-content">
+                            {scene.stunts && scene.stunts.length > 0 ? (
+                                <div className="tag-container">
+                                    {scene.stunts.map((stunt, idx) => (
+                                        <span key={idx} className="tag stunt-tag">{stunt}</span>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="empty-text">No stunts detected</p>
                             )}
                         </div>
                     </div>

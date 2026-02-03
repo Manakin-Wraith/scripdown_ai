@@ -25,13 +25,15 @@ import PaymentVerification from './components/admin/PaymentVerification';
 import FeedbackManagement from './pages/Admin/FeedbackManagement';
 import './App.css';
 
+// Active imports
+import ReportBuilder from './components/reports/ReportBuilder';
+import SharedReportView from './components/reports/SharedReportView';
+
 // Phase 2+ imports (deferred)
 // import CharacterProfile from './components/characters/CharacterProfile';
 // import ScriptEditorPage from './pages/ScriptEditorPage';
 // import SceneManager from './components/scenes/SceneManager';
 // import ShootingScriptPreview from './components/scripts/ShootingScriptPreview';
-// import ReportBuilder from './components/reports/ReportBuilder';
-// import SharedReportView from './components/reports/SharedReportView';
 // import DepartmentWorkspace from './components/workspace/DepartmentWorkspace';
 // import SettingsPage from './pages/SettingsPage';
 // import InvitePage from './pages/InvitePage';
@@ -58,6 +60,7 @@ function App() {
                     <Route path="scripts" element={<ScriptLibrary />} />
                     <Route path="scenes/:scriptId" element={<SceneViewer />} />
                     <Route path="scripts/:scriptId/stripboard" element={<Stripboard />} />
+                    <Route path="scripts/:scriptId/reports" element={<ReportBuilder />} /> 
                     
                     {/* Phase 2+ routes (deferred - commented out) */}
                     {/* <Route path="scenes/:scriptId/workspace/:departmentCode" element={<DepartmentWorkspace />} /> */}
@@ -66,7 +69,6 @@ function App() {
                     {/* <Route path="scripts/:scriptId/manage" element={<SceneManager />} /> */}
                     {/* <Route path="scripts/:scriptId/shooting-script" element={<ShootingScriptPreview />} /> */}
                     {/* <Route path="scripts/:scriptId/characters/:characterName" element={<CharacterProfile />} /> */}
-                    {/* <Route path="scripts/:scriptId/reports" element={<ReportBuilder />} /> */}
                     {/* <Route path="scripts/:scriptId/workspace/:departmentCode" element={<DepartmentWorkspace />} /> */}
                     {/* <Route path="scripts/:scriptId/workspace" element={<DepartmentWorkspace />} /> */}
                   </Route>
@@ -124,9 +126,11 @@ function App() {
                   <Route path="auth/callback" element={<AuthCallbackPage />} />
                   <Route path="auth/confirm" element={<ConfirmEmailPage />} />
                   
+                  {/* Shared report view (public) */}
+                  <Route path="shared/:shareToken" element={<SharedReportView />} />
+                  
                   {/* Phase 2+ public routes (deferred) */}
                   {/* <Route path="invite/:token" element={<InvitePage />} /> */}
-                  {/* <Route path="shared/:shareToken" element={<SharedReportView />} /> */}
                   {/* <Route path="payment-success" element={<PaymentSuccessPage />} /> */}
                 </Routes>
               </Router>

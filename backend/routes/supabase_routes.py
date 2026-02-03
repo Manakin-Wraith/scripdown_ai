@@ -654,6 +654,18 @@ def detect_and_create_scenes(script_id, full_text, pages_data=None):
         page_start = get_page_for_position(scene['text_start'])
         page_end = get_page_for_position(text_end - 1) if text_end > 0 else page_start
         
+        # Calculate scene length in eighths
+        from utils.scene_calculations import calculate_eighths_from_content, calculate_eighths_from_pages
+        if scene_text and len(scene_text.strip()) > 50:
+            # Use content-based calculation if we have substantial text
+            page_length_eighths = calculate_eighths_from_content(scene_text)
+        elif page_start and page_end:
+            # Fallback to page-based calculation
+            page_length_eighths = calculate_eighths_from_pages(page_start, page_end)
+        else:
+            # Default to 1 page
+            page_length_eighths = 8
+        
         scene_data = {
             'script_id': script_id,
             'scene_number': str(idx + 1),
@@ -666,6 +678,7 @@ def detect_and_create_scenes(script_id, full_text, pages_data=None):
             'text_end': text_end,
             'page_start': page_start,
             'page_end': page_end,
+            'page_length_eighths': page_length_eighths,
             'is_manual': False,
             'analysis_status': 'pending'
         }
@@ -2016,6 +2029,15 @@ def analyze_scene(scene_id):
         # Call Gemini for analysis
         analysis = analyze_scene_with_gemini(scene_text, scene.get('setting', ''))
         
+        # Recalculate scene length in eighths with full scene text
+        from utils.scene_calculations import calculate_eighths_from_content, calculate_eighths_from_pages
+        if scene_text and len(scene_text.strip()) > 50:
+            page_length_eighths = calculate_eighths_from_content(scene_text)
+        elif scene.get('page_start') and scene.get('page_end'):
+            page_length_eighths = calculate_eighths_from_pages(scene.get('page_start'), scene.get('page_end'))
+        else:
+            page_length_eighths = 8  # Default to 1 page
+        
         # Update scene with analysis results
         update_data = {
             'characters': analysis.get('characters', []),
@@ -2028,6 +2050,7 @@ def analyze_scene(scene_id):
             'sound': analysis.get('sound', []),
             'atmosphere': analysis.get('atmosphere', ''),
             'description': analysis.get('description', ''),
+            'page_length_eighths': page_length_eighths,
             'analysis_status': 'complete'
         }
         
@@ -2299,6 +2322,15 @@ def analyze_scene_internal(scene_id):
     # Call Gemini for analysis
     analysis = analyze_scene_with_gemini(scene_text, scene.get('setting', ''))
     
+    # Recalculate scene length in eighths with full scene text
+    from utils.scene_calculations import calculate_eighths_from_content, calculate_eighths_from_pages
+    if scene_text and len(scene_text.strip()) > 50:
+        page_length_eighths = calculate_eighths_from_content(scene_text)
+    elif scene.get('page_start') and scene.get('page_end'):
+        page_length_eighths = calculate_eighths_from_pages(scene.get('page_start'), scene.get('page_end'))
+    else:
+        page_length_eighths = 8  # Default to 1 page
+    
     # Update scene with analysis results
     update_data = {
         'characters': analysis.get('characters', []),
@@ -2311,6 +2343,7 @@ def analyze_scene_internal(scene_id):
         'sound': analysis.get('sound', []),
         'atmosphere': analysis.get('atmosphere', ''),
         'description': analysis.get('description', ''),
+        'page_length_eighths': page_length_eighths,
         'analysis_status': 'complete'
     }
     

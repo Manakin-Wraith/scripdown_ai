@@ -103,6 +103,9 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    background: transparent;
+    padding: 0;
+    border: none;
 }
 
 .filter-group svg {
@@ -114,15 +117,7 @@
     color: var(--text-secondary);
 }
 
-.filter-group select {
-    padding: 0.4rem 0.75rem;
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    color: var(--text-primary);
-    font-size: 0.8rem;
-    cursor: pointer;
-}
+/* Select styles inherited from global forms.css */
 
 .sort-dir-btn {
     display: flex;

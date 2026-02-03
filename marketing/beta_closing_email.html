@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SlateOne - BETA Closing Soon</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #1e293b;
+        }
+        .header {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            padding: 40px 30px;
+            text-align: center;
+            border-bottom: 3px solid #f59e0b;
+        }
+        .logo {
+            font-size: 28px;
+            font-weight: 800;
+            color: #f59e0b;
+            letter-spacing: -0.5px;
+            margin-bottom: 10px;
+        }
+        .tagline {
+            font-size: 14px;
+            color: #94a3b8;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        .hero {
+            padding: 50px 30px;
+            text-align: center;
+            background: linear-gradient(180deg, #1e293b 0%, #334155 100%);
+        }
+        .countdown-badge {
+            display: inline-block;
+            background: #ef4444;
+            color: #fff;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 20px;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+        .hero h1 {
+            font-size: 42px;
+            font-weight: 800;
+            color: #f8fafc;
+            margin: 0 0 15px 0;
+            line-height: 1.2;
+        }
+        .hero .highlight {
+            color: #fbbf24;
+        }
+        .hero p {
+            font-size: 18px;
+            color: #cbd5e1;
+            margin: 0 0 30px 0;
+            line-height: 1.6;
+        }
+        .spots-remaining {
+            background: rgba(245, 158, 11, 0.1);
+            border: 2px solid #f59e0b;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 30px 0;
+            text-align: center;
+        }
+        .spots-number {
+            font-size: 64px;
+            font-weight: 900;
+            color: #fbbf24;
+            line-height: 1;
+            margin-bottom: 5px;
+        }
+        .spots-text {
+            font-size: 16px;
+            color: #e2e8f0;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .benefits {
+            padding: 40px 30px;
+            background-color: #1e293b;
+        }
+        .benefits h2 {
+            font-size: 24px;
+            font-weight: 700;
+            color: #f8fafc;
+            margin: 0 0 25px 0;
+            text-align: center;
+        }
+        .benefit-item {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(245, 158, 11, 0.05);
+            border-radius: 8px;
+            border-left: 3px solid #f59e0b;
+        }
+        .benefit-icon {
+            font-size: 24px;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+        .benefit-text {
+            flex: 1;
+        }
+        .benefit-text strong {
+            color: #fbbf24;
+            font-weight: 700;
+            display: block;
+            margin-bottom: 5px;
+        }
+        .benefit-text p {
+            margin: 0;
+            color: #cbd5e1;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .cta-section {
+            padding: 50px 30px;
+            text-align: center;
+            background: linear-gradient(180deg, #334155 0%, #1e293b 100%);
+        }
+        .price-box {
+            background: rgba(245, 158, 11, 0.1);
+            border: 2px solid #f59e0b;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 30px;
+            display: inline-block;
+        }
+        .price-label {
+            font-size: 14px;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+        .price {
+            font-size: 48px;
+            font-weight: 900;
+            color: #fbbf24;
+            line-height: 1;
+        }
+        .price-currency {
+            font-size: 28px;
+            vertical-align: super;
+        }
+        .price-period {
+            font-size: 16px;
+            color: #cbd5e1;
+            margin-top: 5px;
+        }
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: #0f172a;
+            font-size: 18px;
+            font-weight: 800;
+            padding: 18px 50px;
+            border-radius: 8px;
+            text-decoration: none;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 10px 25px rgba(245, 158, 11, 0.3);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 35px rgba(245, 158, 11, 0.4);
+        }
+        .urgency-text {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #ef4444;
+            font-weight: 600;
+        }
+        .footer {
+            padding: 30px;
+            text-align: center;
+            background-color: #0f172a;
+            border-top: 1px solid #334155;
+        }
+        .footer p {
+            margin: 5px 0;
+            font-size: 12px;
+            color: #64748b;
+        }
+        .footer a {
+            color: #f59e0b;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">SlateOne</div>
+            <div class="tagline">Script Breakdown. Reimagined.</div>
+        </div>
+
+        <!-- Hero Section -->
+        <div class="hero">
+            <div class="countdown-badge">⏰ BETA CLOSES THIS WEEK</div>
+            <h1>Only <span class="highlight">50 Spots</span> Left</h1>
+            <p>Lock in lifetime BETA pricing before it's gone forever.</p>
+            
+            <div class="spots-remaining">
+                <div class="spots-number">50</div>
+                <div class="spots-text">Spots Remaining</div>
+            </div>
+        </div>
+
+        <!-- Benefits Section -->
+        <div class="benefits">
+            <h2>What You Get as a BETA Founder</h2>
+            
+            <div class="benefit-item">
+                <div class="benefit-icon">🎬</div>
+                <div class="benefit-text">
+                    <strong>Full Access for 1 Year</strong>
+                </div>
+            </div>
+
+            <div class="benefit-item">
+                <div class="benefit-icon">🚀</div>
+                <div class="benefit-text">
+                    <strong>Early Access to New Features</strong>
+                </div>
+            </div>
+
+            <div class="benefit-item">
+                <div class="benefit-icon">🤝</div>
+                <div class="benefit-text">
+                    <strong>Direct Line to the Dev Team</strong>
+                </div>
+            </div>
+
+        <!-- CTA Section -->
+        <div class="cta-section">
+            <div class="price-box">
+                <div class="price-label">BETA Access Price</div>
+                <div class="price">
+                    <span class="price-currency">R</span>249
+                </div>
+                <div class="price-period">One-time payment • 1 Year Full Access</div>
+            </div>
+
+            <a href="https://pay.yoco.com/scripdown-beta" class="cta-button">Claim Your Spot Now</a>
+            
+            <p class="urgency-text">⚡ BETA closes Friday, Feb 7th at midnight</p>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p><strong>SlateOne</strong> | AI-Powered Script Breakdown for Film & TV</p>
+            <p>Questions? <a href="mailto:hello@slateone.studio">hello@slateone.studio</a></p>
+            <p style="margin-top: 15px; font-size: 11px;">
+                You're receiving this because you signed up for SlateOne.<br>
+                <a href="#">Unsubscribe</a> | <a href="#">Update Preferences</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

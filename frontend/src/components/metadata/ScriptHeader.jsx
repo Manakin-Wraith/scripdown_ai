@@ -9,7 +9,8 @@ import {
     Check,
     FileText,
     List,
-    Clock
+    Clock,
+    ClipboardList
 } from 'lucide-react';
 import './ScriptHeader.css';
 
@@ -130,7 +131,7 @@ const ScriptHeader = ({ metadata, sceneCount = 0 }) => {
                     </div>
                 )}
 
-                {/* Phase 1: Only Stripboard button - other actions deferred */}
+                {/* Action buttons */}
                 <button 
                     className="header-action-btn primary" 
                     title="One-Liner / Stripboard"
@@ -140,15 +141,16 @@ const ScriptHeader = ({ metadata, sceneCount = 0 }) => {
                     <span>Stripboard</span>
                 </button>
 
-                {/* Phase 2+: Coming Soon buttons - hidden for now, CSS infrastructure preserved
-                <div className="coming-soon-btn-wrapper">
-                    <div className="header-action-btn coming-soon">
-                        <Clock size={16} />
-                        <span>Reports</span>
-                        <span className="soon-badge">SOON</span>
-                    </div>
-                    <div className="coming-soon-tooltip">Coming in Phase 2</div>
-                </div>
+                <button 
+                    className="header-action-btn primary" 
+                    title="Generate Reports"
+                    onClick={() => navigate(`/scripts/${scriptId}/reports`)}
+                >
+                    <ClipboardList size={18} />
+                    <span>Reports</span>
+                </button>
+
+                {/* Phase 2+: Team button - deferred
                 <div className="coming-soon-btn-wrapper">
                     <div className="header-action-btn coming-soon">
                         <Clock size={16} />

@@ -18,6 +18,7 @@ import time
 import os
 from typing import Dict, Optional
 import google.generativeai as genai
+from utils.scene_calculations import calculate_eighths_from_content
 
 # Rate limiting
 RATE_LIMIT_SECONDS = 4  # Gemini free tier: 15 RPM = 4 seconds between calls
@@ -66,7 +67,7 @@ def enhance_scene(scene_text: str, scene_header: Dict) -> Dict:
         scene_text = scene_text[:max_chars] + "\n[... scene continues ...]"
     
     prompt = f"""
-Analyze this screenplay scene and extract production breakdown details.
+Analyze this screenplay scene and extract COMPLETE production breakdown details for all departments.
 
 SCENE HEADER:
 Scene {scene_header.get('scene_number', '?')}: {scene_header.get('int_ext', '')}. {scene_header.get('setting', '')} - {scene_header.get('time_of_day', '')}
@@ -74,37 +75,71 @@ Scene {scene_header.get('scene_number', '?')}: {scene_header.get('int_ext', '')}
 SCENE TEXT:
 {scene_text}
 
-Extract the following (be thorough but accurate - only include what's actually in the scene):
+Extract the following (be thorough but accurate - only include what's ACTUALLY in the scene):
 
-1. CHARACTERS: List ALL character names that appear or speak (UPPERCASE names only)
-2. PROPS: Physical objects characters interact with or that are important to the scene
-3. WARDROBE: Any specific clothing, costumes, or accessories mentioned
-4. VEHICLES: Cars, bikes, boats, or any transportation
-5. SPECIAL_FX: Visual effects, practical effects, stunts, or special requirements
-6. MAKEUP_HAIR: Any specific makeup, hair, or prosthetic requirements
-7. LOCATIONS: Specific areas, rooms, or sub-locations within the main setting (e.g., "kitchen", "backyard", "rooftop")
-8. SOUND: Sound effects, music cues, ambient sounds, or audio requirements mentioned in the scene
-9. ATMOSPHERE: Lighting, weather, mood, time of day details
-10. DESCRIPTION: 2-3 sentence summary of what happens in this scene
+**CAST & CHARACTERS:**
+1. CHARACTERS: ALL character names that appear or speak (UPPERCASE names only)
+2. EXTRAS: Background actors, crowd requirements (e.g., "Restaurant patrons (8)", "Crowd (20-30)")
+
+**PROPS & SET DRESSING:**
+3. PROPS: Physical objects characters interact with or that are important
+
+**WARDROBE DEPARTMENT:**
+4. WARDROBE: Specific clothing, costumes, accessories mentioned
+
+**MAKEUP & HAIR DEPARTMENT:**
+5. MAKEUP_HAIR: Makeup, hair styling, special makeup effects (e.g., "Bruised face", "Period hairstyle")
+
+**SPECIAL EFFECTS DEPARTMENT:**
+6. SPECIAL_FX: Visual/practical effects (e.g., "Gunshot squib", "Rain effect", "Explosion")
+
+**STUNTS DEPARTMENT:**
+7. STUNTS: Stunt requirements, fight choreography, dangerous actions (e.g., "Car crash", "Fight choreography", "Fall from height")
+
+**VEHICLES & TRANSPORTATION:**
+8. VEHICLES: ALL vehicles appearing or mentioned (e.g., "Police car", "Motorcycle")
+
+**ANIMALS & WRANGLERS:**
+9. ANIMALS: ALL animals appearing (e.g., "German Shepherd", "Horses (3)")
+
+**LOCATIONS:**
+10. LOCATIONS: Specific areas, rooms, or sub-locations within main setting (e.g., "kitchen", "rooftop")
+
+**SOUND DEPARTMENT:**
+11. SOUND: Sound effects, music cues, ambient sounds (e.g., "Thunder SFX", "Jazz music", "Gunshots")
+
+**SCENE DESCRIPTIONS:**
+12. DESCRIPTION: 2-3 sentence summary of what happens
+13. ACTION_DESCRIPTION: Summary of physical action (what characters DO physically)
+14. EMOTIONAL_TONE: Emotional mood (e.g., "Tense", "Romantic", "Suspenseful")
+15. TECHNICAL_NOTES: Camera, lighting, equipment requirements (e.g., "Crane shot", "Low-light")
+16. ATMOSPHERE: Overall mood, lighting, weather details
 
 Return ONLY valid JSON in this exact format:
 {{
     "characters": ["CHARACTER1", "CHARACTER2"],
-    "props": ["prop1", "prop2"],
-    "wardrobe": ["item1", "item2"],
-    "vehicles": ["vehicle1"],
-    "special_fx": [],
-    "makeup_hair": [],
-    "locations": ["sub-location1", "sub-location2"],
-    "sound": ["sound effect 1", "music cue"],
-    "atmosphere": "Description of mood, lighting, weather",
-    "description": "What happens in this scene"
+    "extras": ["Restaurant patrons (8)"],
+    "props": ["coffee cup", "laptop"],
+    "wardrobe": ["Business suit"],
+    "makeup_hair": ["Natural makeup"],
+    "special_fx": ["Rain on window"],
+    "stunts": [],
+    "vehicles": ["BMW sedan"],
+    "animals": [],
+    "locations": ["kitchen", "living room"],
+    "sound": ["Ambient coffee shop noise"],
+    "description": "What happens in this scene",
+    "action_description": "Physical actions characters perform",
+    "emotional_tone": "Tense and melancholic",
+    "technical_notes": "Close-ups for emotional beats",
+    "atmosphere": "Intimate, slightly uncomfortable"
 }}
 
 IMPORTANT:
-- Only include items that are ACTUALLY in the scene text
-- Character names should be in UPPERCASE
-- If a category has nothing, use an empty array []
+- Only include items ACTUALLY in the scene text
+- Character names in UPPERCASE
+- Separate stunts from special_fx (stunts = performed by people, special_fx = technical effects)
+- If a category has nothing, use empty array [] or empty string ""
 - Return ONLY the JSON, no markdown formatting
 """
     
@@ -124,18 +159,24 @@ IMPORTANT:
         
         result = json.loads(response_text)
         
-        # Validate and normalize
+        # Validate and normalize - include all new fields
         return {
             'characters': result.get('characters', []),
+            'extras': result.get('extras', []),
             'props': result.get('props', []),
             'wardrobe': result.get('wardrobe', []),
+            'makeup_hair': result.get('makeup_hair', []),
+            'special_fx': result.get('special_fx', []),
+            'stunts': result.get('stunts', []),
+            'vehicles': result.get('vehicles', []),
+            'animals': result.get('animals', []),
             'locations': result.get('locations', []),
             'sound': result.get('sound', []),
-            'vehicles': result.get('vehicles', []),
-            'special_fx': result.get('special_fx', []),
-            'makeup_hair': result.get('makeup_hair', []),
-            'atmosphere': result.get('atmosphere', ''),
             'description': result.get('description', ''),
+            'action_description': result.get('action_description', ''),
+            'emotional_tone': result.get('emotional_tone', ''),
+            'technical_notes': result.get('technical_notes', ''),
+            'atmosphere': result.get('atmosphere', ''),
         }
         
     except json.JSONDecodeError as e:
@@ -164,21 +205,34 @@ def extract_fallback(scene_text: str) -> Dict:
     
     return {
         'characters': characters[:20],  # Limit to 20
+        'extras': [],
         'props': [],
         'wardrobe': [],
+        'makeup_hair': [],
+        'special_fx': [],
+        'stunts': [],
+        'vehicles': [],
+        'animals': [],
         'locations': [],
         'sound': [],
-        'vehicles': [],
-        'special_fx': [],
-        'makeup_hair': [],
-        'atmosphere': '',
         'description': 'Scene details extracted with fallback method.',
+        'action_description': '',
+        'emotional_tone': '',
+        'technical_notes': '',
+        'atmosphere': '',
     }
 
 
-def save_enhanced_scene(script_id: int, candidate: Dict, enhancement: Dict, db_conn) -> int:
+def save_enhanced_scene(script_id: int, candidate: Dict, enhancement: Dict, db_conn, scene_text: str = None) -> int:
     """
     Save the enhanced scene to the database.
+    
+    Args:
+        script_id: Script ID
+        candidate: Scene candidate dict
+        enhancement: Enhanced scene data from AI
+        db_conn: Database connection
+        scene_text: Full scene text for eighths calculation
     
     Returns the scene_id of the saved scene.
     """
@@ -191,21 +245,36 @@ def save_enhanced_scene(script_id: int, candidate: Dict, enhancement: Dict, db_c
     if candidate.get('time_of_day'):
         setting = f"{setting} - {candidate['time_of_day']}"
     
+    # Calculate scene length in eighths
+    if scene_text:
+        page_length_eighths = calculate_eighths_from_content(scene_text)
+    else:
+        # Fallback: estimate from page range
+        from utils.scene_calculations import calculate_eighths_from_pages
+        page_length_eighths = calculate_eighths_from_pages(
+            candidate.get('page_start'),
+            candidate.get('page_end')
+        )
+    
     cursor.execute("""
         INSERT INTO scenes (
             script_id, scene_number, scene_number_original,
-            page_start, page_end,
+            page_start, page_end, page_length_eighths,
             setting, description,
             characters, props, special_fx, wardrobe,
-            makeup_hair, vehicles, locations, sound, atmosphere, content_hash
+            makeup_hair, vehicles, animals, extras, stunts,
+            locations, sound, atmosphere,
+            action_description, emotional_tone, technical_notes, sound_notes,
+            content_hash
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         script_id,
         candidate['scene_order'],  # Sequential number for ordering
         candidate['scene_number_original'],  # Original from script
         candidate['page_start'],
         candidate['page_end'],
+        page_length_eighths,
         setting,
         enhancement.get('description', ''),
         json.dumps(enhancement.get('characters', [])),
@@ -214,9 +283,16 @@ def save_enhanced_scene(script_id: int, candidate: Dict, enhancement: Dict, db_c
         json.dumps(enhancement.get('wardrobe', [])),
         json.dumps(enhancement.get('makeup_hair', [])),
         json.dumps(enhancement.get('vehicles', [])),
+        json.dumps(enhancement.get('animals', [])),
+        json.dumps(enhancement.get('extras', [])),
+        json.dumps(enhancement.get('stunts', [])),
         json.dumps(enhancement.get('locations', [])),
         json.dumps(enhancement.get('sound', [])),
         enhancement.get('atmosphere', ''),
+        enhancement.get('action_description', ''),
+        enhancement.get('emotional_tone', ''),
+        enhancement.get('technical_notes', ''),
+        enhancement.get('sound', ''),  # sound_notes uses sound field
         candidate.get('content_hash', '')
     ))
     
@@ -289,8 +365,8 @@ def process_scene_candidate(script_id: int, candidate: Dict, db_conn) -> Optiona
         print(f"[Enhancer] Enhancing scene {candidate['scene_number_original']} (pages {candidate['page_start']}-{candidate['page_end']})")
         enhancement = enhance_scene(scene_text, scene_header)
         
-        # Save to database
-        scene_id = save_enhanced_scene(script_id, candidate, enhancement, db_conn)
+        # Save to database (pass scene_text for eighths calculation)
+        scene_id = save_enhanced_scene(script_id, candidate, enhancement, db_conn, scene_text)
         
         print(f"[Enhancer] Saved scene {candidate['scene_number_original']} as scene_id {scene_id}")
         return scene_id

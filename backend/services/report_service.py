@@ -21,6 +21,280 @@ except ImportError:
     print("Warning: weasyprint not installed. PDF generation disabled.")
 
 from db.supabase_client import db
+from utils.scene_calculations import format_eighths, calculate_total_script_length
+
+
+# ============================================
+# Report Configuration Presets
+# ============================================
+
+PRESET_FULL_BREAKDOWN = {
+    "report_type": "full_breakdown",
+    "include_categories": ["all"],
+    "exclude_categories": [],
+    "include_metadata": {"all": True},
+    "include_descriptions": {"all": True},
+    "include_summary": True,
+    "show_cross_references": False
+}
+
+PRESET_WARDROBE = {
+    "report_type": "wardrobe",
+    "include_categories": ["characters", "wardrobe"],
+    "exclude_categories": [],
+    "include_metadata": {
+        "script_title": True,
+        "writer_name": True,
+        "production_company": True
+    },
+    "include_descriptions": {
+        "description": True
+    },
+    "include_summary": True,
+    "show_cross_references": True,
+    "group_by": "character"
+}
+
+PRESET_PROPS = {
+    "report_type": "props",
+    "include_categories": ["characters", "props"],
+    "exclude_categories": [],
+    "include_metadata": {
+        "script_title": True,
+        "production_company": True
+    },
+    "include_descriptions": {
+        "description": True
+    },
+    "include_summary": True,
+    "show_cross_references": True
+}
+
+PRESET_MAKEUP = {
+    "report_type": "makeup",
+    "include_categories": ["characters", "makeup"],
+    "exclude_categories": [],
+    "include_metadata": {
+        "script_title": True,
+        "production_company": True
+    },
+    "include_descriptions": {
+        "description": True,
+        "emotional_tone": True
+    },
+    "include_summary": True,
+    "show_cross_references": True,
+    "group_by": "character"
+}
+
+PRESET_SFX = {
+    "report_type": "sfx",
+    "include_categories": ["special_effects"],
+    "exclude_categories": [],
+    "include_metadata": {
+        "script_title": True,
+        "production_company": True
+    },
+    "include_descriptions": {
+        "description": True,
+        "technical_notes": True
+    },
+    "include_summary": True,
+    "show_cross_references": True
+}
+
+PRESET_STUNTS = {
+    "report_type": "stunts",
+    "include_categories": ["characters", "stunts"],
+    "exclude_categories": [],
+    "include_metadata": {
+        "script_title": True,
+        "production_company": True
+    },
+    "include_descriptions": {
+        "description": True,
+        "action_description": True,
+        "technical_notes": True
+    },
+    "include_summary": True,
+    "show_cross_references": True
+}
+
+PRESET_VEHICLES = {
+    "report_type": "vehicles",
+    "include_categories": ["vehicles", "characters"],
+    "exclude_categories": [],
+    "include_metadata": {
+        "script_title": True,
+        "production_company": True
+    },
+    "include_descriptions": {
+        "description": True
+    },
+    "include_summary": True,
+    "show_cross_references": True
+}
+
+PRESET_ANIMALS = {
+    "report_type": "animals",
+    "include_categories": ["animals", "characters"],
+    "exclude_categories": [],
+    "include_metadata": {
+        "script_title": True,
+        "production_company": True
+    },
+    "include_descriptions": {
+        "description": True
+    },
+    "include_summary": True,
+    "show_cross_references": True
+}
+
+PRESET_EXTRAS = {
+    "report_type": "extras",
+    "include_categories": ["extras", "locations"],
+    "exclude_categories": [],
+    "include_metadata": {
+        "script_title": True,
+        "production_company": True
+    },
+    "include_descriptions": {
+        "description": True,
+        "atmosphere": True
+    },
+    "include_summary": True,
+    "show_cross_references": True
+}
+
+
+class ReportConfig:
+    """Report configuration with validation and defaults."""
+    
+    VALID_REPORT_TYPES = [
+        "full_breakdown", "scene_breakdown", "wardrobe", "props",
+        "makeup", "sfx", "special_effects", "stunts", "vehicles", 
+        "animals", "extras", "custom", "day_out_of_days", 
+        "location", "one_liner"
+    ]
+    
+    VALID_CATEGORIES = [
+        "characters", "props", "wardrobe", "makeup", "special_effects",
+        "stunts", "vehicles", "animals", "extras", "locations", "sound"
+    ]
+    
+    def __init__(self, config_dict: Optional[Dict] = None):
+        """Initialize configuration with optional custom config."""
+        self.config = self._merge_with_defaults(config_dict or {})
+        self._validate()
+    
+    def _merge_with_defaults(self, config: Dict) -> Dict:
+        """Merge user config with defaults."""
+        defaults = {
+            "report_type": "full_breakdown",
+            "include_categories": ["all"],
+            "exclude_categories": [],
+            "include_metadata": {"all": True},
+            "include_descriptions": {"all": True},
+            "include_summary": True,
+            "show_cross_references": False,
+            "group_by": None,
+            "sort_by": "scene_number",
+            "filter": {
+                "scene_numbers": [],
+                "characters": [],
+                "locations": []
+            },
+            "department_options": {},
+            "visual_options": {
+                "color_code_int_ext": False,
+                "color_code_day_night": False,
+                "show_page_numbers": True,
+                "compact_mode": False
+            }
+        }
+        
+        # Deep merge for nested dicts
+        merged = defaults.copy()
+        for key, value in config.items():
+            if key in merged and isinstance(merged[key], dict) and isinstance(value, dict):
+                merged[key] = {**merged[key], **value}
+            else:
+                merged[key] = value
+        
+        return merged
+    
+    def _validate(self):
+        """Validate configuration values."""
+        if self.config["report_type"] not in self.VALID_REPORT_TYPES:
+            raise ValueError(f"Invalid report_type: {self.config['report_type']}")
+        
+        # Validate categories
+        for category in self.config["include_categories"]:
+            if category != "all" and category not in self.VALID_CATEGORIES:
+                raise ValueError(f"Invalid category: {category}")
+        
+        for category in self.config["exclude_categories"]:
+            if category not in self.VALID_CATEGORIES:
+                raise ValueError(f"Invalid exclude category: {category}")
+    
+    def should_include_category(self, category: str) -> bool:
+        """Check if a category should be included."""
+        if "all" in self.config["include_categories"]:
+            return category not in self.config["exclude_categories"]
+        return category in self.config["include_categories"]
+    
+    def should_include_metadata(self, field: str) -> bool:
+        """Check if a metadata field should be included."""
+        metadata = self.config["include_metadata"]
+        if metadata.get("all"):
+            return True
+        return metadata.get(field, False)
+    
+    def should_include_description(self, field: str) -> bool:
+        """Check if a description field should be included."""
+        descriptions = self.config["include_descriptions"]
+        if descriptions.get("all"):
+            return True
+        return descriptions.get(field, False)
+    
+    def to_dict(self) -> Dict:
+        """Convert config to dictionary for storage."""
+        return self.config.copy()
+    
+    @staticmethod
+    def from_preset(preset_name: str) -> 'ReportConfig':
+        """Create config from preset name."""
+        presets = {
+            "full_breakdown": PRESET_FULL_BREAKDOWN,
+            "wardrobe": PRESET_WARDROBE,
+            "props": PRESET_PROPS,
+            "makeup": PRESET_MAKEUP,
+            "sfx": PRESET_SFX,
+            "stunts": PRESET_STUNTS,
+            "vehicles": PRESET_VEHICLES,
+            "animals": PRESET_ANIMALS,
+            "extras": PRESET_EXTRAS
+        }
+        
+        if preset_name not in presets:
+            raise ValueError(f"Unknown preset: {preset_name}")
+        
+        return ReportConfig(presets[preset_name])
+    
+    @staticmethod
+    def get_available_presets() -> List[Dict[str, str]]:
+        """Get list of available presets with metadata."""
+        return [
+            {"name": "full_breakdown", "title": "Full Breakdown", "description": "Complete script breakdown with all categories"},
+            {"name": "wardrobe", "title": "Wardrobe Department", "description": "Wardrobe items grouped by character"},
+            {"name": "props", "title": "Props Department", "description": "Props list with scene cross-references"},
+            {"name": "makeup", "title": "Makeup & Hair", "description": "Makeup requirements by character"},
+            {"name": "sfx", "title": "Special Effects", "description": "VFX and practical effects breakdown"},
+            {"name": "stunts", "title": "Stunts Department", "description": "Stunt requirements with safety notes"},
+            {"name": "vehicles", "title": "Vehicles & Transportation", "description": "Vehicle requirements by scene"},
+            {"name": "animals", "title": "Animals & Wranglers", "description": "Animal requirements by scene"},
+            {"name": "extras", "title": "Extras & Background", "description": "Background actor requirements"}
+        ]
 
 
 class ReportService:
@@ -88,6 +362,7 @@ class ReportService:
         """
         Aggregate all scene data for a script.
         Returns structured data for report generation.
+        Collects ALL breakdown categories without truncation.
         """
         # Get script metadata
         script = self.db.get_script(script_id)
@@ -97,21 +372,25 @@ class ReportService:
         # Get all scenes
         scenes = self.db.get_scenes(script_id)
         
-        # Aggregate data
-        characters = defaultdict(lambda: {'count': 0, 'scenes': [], 'pages': 0})
+        # Aggregate data - NO TRUNCATION
+        characters = defaultdict(lambda: {'count': 0, 'scenes': [], 'eighths': 0})
         locations = defaultdict(lambda: {'count': 0, 'scenes': [], 'int_ext': set(), 'time_of_day': set()})
         props = defaultdict(lambda: {'count': 0, 'scenes': []})
         wardrobe_items = defaultdict(lambda: {'count': 0, 'scenes': [], 'characters': set()})
+        makeup_items = defaultdict(lambda: {'count': 0, 'scenes': [], 'characters': set()})
+        special_effects = defaultdict(lambda: {'count': 0, 'scenes': [], 'type': set()})
+        vehicles = defaultdict(lambda: {'count': 0, 'scenes': []})
+        animals = defaultdict(lambda: {'count': 0, 'scenes': []})
+        extras = defaultdict(lambda: {'count': 0, 'scenes': []})
+        stunts = defaultdict(lambda: {'count': 0, 'scenes': []})
         
-        total_pages = 0
+        total_eighths = 0
         analyzed_scenes = 0
         
         for scene in scenes:
             scene_num = scene.get('scene_number', '')
-            page_start = scene.get('page_start', 0) or 0
-            page_end = scene.get('page_end', page_start) or page_start
-            page_count = max(1, page_end - page_start + 1) if page_start else 1
-            total_pages += page_count
+            eighths = scene.get('page_length_eighths', 8)  # Default to 1 page
+            total_eighths += eighths
             
             if scene.get('analysis_status') == 'complete':
                 analyzed_scenes += 1
@@ -121,7 +400,7 @@ class ReportService:
                 char_name = char if isinstance(char, str) else char.get('name', str(char))
                 characters[char_name]['count'] += 1
                 characters[char_name]['scenes'].append(scene_num)
-                characters[char_name]['pages'] += page_count
+                characters[char_name]['eighths'] += eighths
             
             # Locations
             setting = scene.get('setting', 'UNKNOWN')
@@ -139,8 +418,57 @@ class ReportService:
             # Wardrobe
             for item in (scene.get('wardrobe') or []):
                 item_name = item if isinstance(item, str) else item.get('name', str(item))
+                char_ref = item.get('character', '') if isinstance(item, dict) else ''
                 wardrobe_items[item_name]['count'] += 1
                 wardrobe_items[item_name]['scenes'].append(scene_num)
+                if char_ref:
+                    wardrobe_items[item_name]['characters'].add(char_ref)
+            
+            # Makeup & Hair
+            for item in (scene.get('makeup') or []):
+                item_name = item if isinstance(item, str) else item.get('requirements', str(item))
+                if isinstance(item_name, list):
+                    item_name = ', '.join(item_name)
+                char_ref = item.get('character', '') if isinstance(item, dict) else ''
+                makeup_items[item_name]['count'] += 1
+                makeup_items[item_name]['scenes'].append(scene_num)
+                if char_ref:
+                    makeup_items[item_name]['characters'].add(char_ref)
+            
+            # Special Effects (SFX/VFX)
+            for item in (scene.get('special_effects') or []):
+                item_name = item if isinstance(item, str) else item.get('effect', str(item))
+                item_type = item.get('type', 'unknown') if isinstance(item, dict) else 'unknown'
+                special_effects[item_name]['count'] += 1
+                special_effects[item_name]['scenes'].append(scene_num)
+                special_effects[item_name]['type'].add(item_type)
+            
+            # Vehicles
+            for item in (scene.get('vehicles') or []):
+                item_name = item if isinstance(item, str) else item.get('type', str(item))
+                vehicles[item_name]['count'] += 1
+                vehicles[item_name]['scenes'].append(scene_num)
+            
+            # Animals
+            for item in (scene.get('animals') or []):
+                item_name = item if isinstance(item, str) else item.get('type', str(item))
+                animals[item_name]['count'] += 1
+                animals[item_name]['scenes'].append(scene_num)
+            
+            # Extras
+            for item in (scene.get('extras') or []):
+                item_name = item if isinstance(item, str) else item.get('type', str(item))
+                extras[item_name]['count'] += 1
+                extras[item_name]['scenes'].append(scene_num)
+            
+            # Stunts
+            for item in (scene.get('stunts') or []):
+                item_name = item if isinstance(item, str) else item.get('type', str(item))
+                stunts[item_name]['count'] += 1
+                stunts[item_name]['scenes'].append(scene_num)
+        
+        # Calculate total pages from eighths
+        total_pages = total_eighths / 8
         
         return {
             'script': {
@@ -151,7 +479,9 @@ class ReportService:
                 'total_pages': script.get('total_pages', total_pages),
                 'production_company': script.get('production_company', ''),
                 'contact_email': script.get('contact_email', ''),
-                'contact_phone': script.get('contact_phone', '')
+                'contact_phone': script.get('contact_phone', ''),
+                'copyright_info': script.get('copyright_info', ''),
+                'additional_credits': script.get('additional_credits', '')
             },
             'summary': {
                 'total_scenes': len(scenes),
@@ -159,6 +489,14 @@ class ReportService:
                 'total_characters': len(characters),
                 'total_locations': len(locations),
                 'total_props': len(props),
+                'total_wardrobe': len(wardrobe_items),
+                'total_makeup': len(makeup_items),
+                'total_special_effects': len(special_effects),
+                'total_vehicles': len(vehicles),
+                'total_animals': len(animals),
+                'total_extras': len(extras),
+                'total_stunts': len(stunts),
+                'total_eighths': total_eighths,
                 'total_pages': total_pages
             },
             'scenes': scenes,
@@ -166,7 +504,13 @@ class ReportService:
             'locations': {k: {**v, 'int_ext': list(v['int_ext']), 'time_of_day': list(v['time_of_day'])} 
                          for k, v in locations.items()},
             'props': dict(props),
-            'wardrobe': dict(wardrobe_items),
+            'wardrobe': {k: {**v, 'characters': list(v['characters'])} for k, v in wardrobe_items.items()},
+            'makeup': {k: {**v, 'characters': list(v['characters'])} for k, v in makeup_items.items()},
+            'special_effects': {k: {**v, 'type': list(v['type'])} for k, v in special_effects.items()},
+            'vehicles': dict(vehicles),
+            'animals': dict(animals),
+            'extras': dict(extras),
+            'stunts': dict(stunts),
             'generated_at': datetime.utcnow().isoformat()
         }
     
@@ -306,19 +650,46 @@ class ReportService:
         return html.write_pdf(stylesheets=[css])
     
     def _render_report_html(self, report: Dict) -> str:
-        """Render report data as HTML."""
+        """Render report data as HTML with enhanced metadata."""
         report_type = report.get('report_type')
         data = report.get('data_snapshot', {})
         script = data.get('script', {})
         
-        # Common header
+        # Build metadata sections
+        metadata_items = [
+            f"<p><strong>Script:</strong> {script.get('title', 'Untitled')}</p>",
+            f"<p><strong>Writer:</strong> {script.get('writer', 'Unknown')}</p>"
+        ]
+        
+        if script.get('draft'):
+            metadata_items.append(f"<p><strong>Draft:</strong> {script.get('draft')}</p>")
+        
+        if script.get('production_company'):
+            metadata_items.append(f"<p><strong>Production:</strong> {script.get('production_company')}</p>")
+        
+        if script.get('total_pages'):
+            metadata_items.append(f"<p><strong>Pages:</strong> {script.get('total_pages')}</p>")
+        
+        if script.get('contact_email'):
+            metadata_items.append(f"<p><strong>Contact:</strong> {script.get('contact_email')}</p>")
+        
+        if script.get('contact_phone'):
+            metadata_items.append(f"<p><strong>Phone:</strong> {script.get('contact_phone')}</p>")
+        
+        if script.get('copyright_info'):
+            metadata_items.append(f"<p><strong>Copyright:</strong> {script.get('copyright_info')}</p>")
+        
+        if script.get('additional_credits'):
+            metadata_items.append(f"<p><strong>Credits:</strong> {script.get('additional_credits')}</p>")
+        
+        metadata_items.append(f"<p><strong>Generated:</strong> {report.get('generated_at', '')[:10]}</p>")
+        
+        # Common header with enhanced metadata
         header = f"""
         <div class="report-header">
             <h1>{report.get('title', 'Script Report')}</h1>
             <div class="script-info">
-                <p><strong>Script:</strong> {script.get('title', 'Untitled')}</p>
-                <p><strong>Writer:</strong> {script.get('writer', 'Unknown')}</p>
-                <p><strong>Generated:</strong> {report.get('generated_at', '')[:10]}</p>
+                {''.join(metadata_items)}
             </div>
         </div>
         """
@@ -334,6 +705,21 @@ class ReportService:
             body = self._render_props_report(data)
         elif report_type == 'one_liner':
             body = self._render_one_liner(data)
+        # Department-specific reports
+        elif report_type == 'wardrobe':
+            body = self._render_wardrobe_department(data)
+        elif report_type == 'makeup':
+            body = self._render_makeup_department(data)
+        elif report_type == 'sfx' or report_type == 'special_effects':
+            body = self._render_sfx_department(data)
+        elif report_type == 'stunts':
+            body = self._render_stunts_department(data)
+        elif report_type == 'vehicles':
+            body = self._render_vehicles_department(data)
+        elif report_type == 'animals':
+            body = self._render_animals_department(data)
+        elif report_type == 'extras':
+            body = self._render_extras_department(data)
         else:
             body = self._render_full_breakdown(data)
         
@@ -352,32 +738,71 @@ class ReportService:
         """
     
     def _render_scene_breakdown(self, data: Dict) -> str:
-        """Render scene breakdown HTML."""
+        """Render scene breakdown HTML with complete data (no truncation)."""
         scenes = data.get('scenes', [])
         rows = []
         
         for scene in scenes:
-            chars = ', '.join(scene.get('characters', [])[:5])
-            if len(scene.get('characters', [])) > 5:
-                chars += '...'
+            # Helper function to format arrays
+            def format_list(items, key=None):
+                if not items:
+                    return '—'
+                if isinstance(items, list):
+                    if key and isinstance(items[0], dict):
+                        return ', '.join([item.get(key, str(item)) for item in items])
+                    return ', '.join([str(item) if isinstance(item, str) else item.get('name', str(item)) for item in items])
+                return str(items)
             
-            props = ', '.join(scene.get('props', [])[:3])
-            if len(scene.get('props', [])) > 3:
-                props += '...'
+            # Get all breakdown data - NO TRUNCATION
+            chars = format_list(scene.get('characters'))
+            props = format_list(scene.get('props'))
+            wardrobe = format_list(scene.get('wardrobe'))
+            makeup = format_list(scene.get('makeup'))
+            sfx = format_list(scene.get('special_effects'))
+            vehicles = format_list(scene.get('vehicles'))
+            animals = format_list(scene.get('animals'))
+            extras = format_list(scene.get('extras'))
+            stunts = format_list(scene.get('stunts'))
+            
+            # Scene description and notes
+            description = scene.get('description', '') or scene.get('action_description', '')
+            emotional_tone = scene.get('emotional_tone', '')
+            technical_notes = scene.get('technical_notes', '')
+            
+            # Scene length in eighths
+            eighths = scene.get('page_length_eighths', 8)
+            length_display = format_eighths(eighths)
             
             rows.append(f"""
             <tr>
-                <td>{scene.get('scene_number', '')}</td>
-                <td>{scene.get('int_ext', '')}</td>
-                <td>{scene.get('setting', '')}</td>
-                <td>{scene.get('time_of_day', '')}</td>
-                <td>{chars}</td>
-                <td>{props}</td>
-                <td>{scene.get('page_start', '')}</td>
+                <td class="scene-num"><strong>{scene.get('scene_number', '')}</strong></td>
+                <td class="int-ext">{scene.get('int_ext', '')}</td>
+                <td class="setting"><strong>{scene.get('setting', '')}</strong></td>
+                <td class="time">{scene.get('time_of_day', '')}</td>
+                <td class="length-cell">{length_display}</td>
+            </tr>
+            <tr class="breakdown-details">
+                <td colspan="5">
+                    <div class="breakdown-grid">
+                        {f'<div class="breakdown-item"><span class="label">Description:</span> <span class="value">{description[:200]}...</span></div>' if description and len(description) > 200 else f'<div class="breakdown-item"><span class="label">Description:</span> <span class="value">{description}</span></div>' if description else ''}
+                        {f'<div class="breakdown-item"><span class="label">Tone:</span> <span class="value">{emotional_tone}</span></div>' if emotional_tone else ''}
+                        <div class="breakdown-item"><span class="label">Characters:</span> <span class="value">{chars}</span></div>
+                        <div class="breakdown-item"><span class="label">Props:</span> <span class="value">{props}</span></div>
+                        {f'<div class="breakdown-item"><span class="label">Wardrobe:</span> <span class="value">{wardrobe}</span></div>' if wardrobe != '—' else ''}
+                        {f'<div class="breakdown-item"><span class="label">Makeup/Hair:</span> <span class="value">{makeup}</span></div>' if makeup != '—' else ''}
+                        {f'<div class="breakdown-item"><span class="label">Special FX:</span> <span class="value">{sfx}</span></div>' if sfx != '—' else ''}
+                        {f'<div class="breakdown-item"><span class="label">Vehicles:</span> <span class="value">{vehicles}</span></div>' if vehicles != '—' else ''}
+                        {f'<div class="breakdown-item"><span class="label">Animals:</span> <span class="value">{animals}</span></div>' if animals != '—' else ''}
+                        {f'<div class="breakdown-item"><span class="label">Extras:</span> <span class="value">{extras}</span></div>' if extras != '—' else ''}
+                        {f'<div class="breakdown-item"><span class="label">Stunts:</span> <span class="value">{stunts}</span></div>' if stunts != '—' else ''}
+                        {f'<div class="breakdown-item"><span class="label">Technical:</span> <span class="value">{technical_notes}</span></div>' if technical_notes else ''}
+                    </div>
+                </td>
             </tr>
             """)
         
         return f"""
+        <h2>Scene Breakdown</h2>
         <table class="breakdown-table">
             <thead>
                 <tr>
@@ -385,9 +810,7 @@ class ReportService:
                     <th>I/E</th>
                     <th>Setting</th>
                     <th>D/N</th>
-                    <th>Characters</th>
-                    <th>Props</th>
-                    <th>Page</th>
+                    <th>Length</th>
                 </tr>
             </thead>
             <tbody>
@@ -521,9 +944,9 @@ class ReportService:
             if len(scene.get('characters', [])) > 3:
                 chars += f" +{len(scene.get('characters', [])) - 3}"
             
-            page_info = scene.get('page_start', '')
-            if scene.get('page_end') and scene.get('page_end') != scene.get('page_start'):
-                page_info = f"{scene.get('page_start')}-{scene.get('page_end')}"
+            # Scene length in eighths
+            eighths = scene.get('page_length_eighths', 8)
+            length_display = format_eighths(eighths)
             
             rows.append(f"""
             <tr class="one-liner-row">
@@ -532,7 +955,7 @@ class ReportService:
                 <td class="setting">{scene.get('setting', '')}</td>
                 <td class="time">{scene.get('time_of_day', '')}</td>
                 <td class="chars">{chars}</td>
-                <td class="pages">{page_info}</td>
+                <td class="length">{length_display}</td>
             </tr>
             """)
         
@@ -546,7 +969,7 @@ class ReportService:
                     <th>Setting</th>
                     <th>D/N</th>
                     <th>Cast</th>
-                    <th>Pg</th>
+                    <th>Len</th>
                 </tr>
             </thead>
             <tbody>
@@ -556,8 +979,18 @@ class ReportService:
         """
     
     def _render_full_breakdown(self, data: Dict) -> str:
-        """Render full breakdown HTML."""
+        """Render full breakdown HTML with comprehensive statistics."""
         summary = data.get('summary', {})
+        
+        # Calculate analysis completion percentage
+        total_scenes = summary.get('total_scenes', 0)
+        analyzed_scenes = summary.get('analyzed_scenes', 0)
+        completion_pct = int((analyzed_scenes / total_scenes * 100)) if total_scenes > 0 else 0
+        
+        # Calculate script length from eighths
+        total_eighths = summary.get('total_eighths', 0)
+        total_pages = total_eighths / 8 if total_eighths else summary.get('total_pages', 0)
+        avg_scene_eighths = total_eighths // max(total_scenes, 1) if total_eighths else 8
         
         summary_html = f"""
         <div class="summary-section">
@@ -568,8 +1001,16 @@ class ReportService:
                     <span class="value">{summary.get('total_scenes', 0)}</span>
                 </div>
                 <div class="summary-item">
-                    <span class="label">Total Pages</span>
-                    <span class="value">{summary.get('total_pages', 0)}</span>
+                    <span class="label">Script Length</span>
+                    <span class="value">{total_pages:.1f} pgs</span>
+                </div>
+                <div class="summary-item">
+                    <span class="label">Avg Scene</span>
+                    <span class="value">{format_eighths(avg_scene_eighths)}</span>
+                </div>
+                <div class="summary-item">
+                    <span class="label">Analysis</span>
+                    <span class="value">{completion_pct}%</span>
                 </div>
                 <div class="summary-item">
                     <span class="label">Characters</span>
@@ -583,7 +1024,38 @@ class ReportService:
                     <span class="label">Props</span>
                     <span class="value">{summary.get('total_props', 0)}</span>
                 </div>
+                <div class="summary-item">
+                    <span class="label">Wardrobe</span>
+                    <span class="value">{summary.get('total_wardrobe', 0)}</span>
+                </div>
+                <div class="summary-item">
+                    <span class="label">Makeup/Hair</span>
+                    <span class="value">{summary.get('total_makeup', 0)}</span>
+                </div>
+                <div class="summary-item">
+                    <span class="label">Special FX</span>
+                    <span class="value">{summary.get('total_special_effects', 0)}</span>
+                </div>
+                <div class="summary-item">
+                    <span class="label">Vehicles</span>
+                    <span class="value">{summary.get('total_vehicles', 0)}</span>
+                </div>
+                <div class="summary-item">
+                    <span class="label">Animals</span>
+                    <span class="value">{summary.get('total_animals', 0)}</span>
+                </div>
+                <div class="summary-item">
+                    <span class="label">Extras</span>
+                    <span class="value">{summary.get('total_extras', 0)}</span>
+                </div>
+                <div class="summary-item">
+                    <span class="label">Stunts</span>
+                    <span class="value">{summary.get('total_stunts', 0)}</span>
+                </div>
             </div>
+            <p style="margin-top: 1rem; font-size: 8pt; color: #666; text-align: center;">
+                Report generated: {data.get('generated_at', '')[:19].replace('T', ' ')} UTC
+            </p>
         </div>
         """
         
@@ -598,7 +1070,7 @@ class ReportService:
         """
     
     def _get_report_css(self) -> str:
-        """Get CSS for PDF reports."""
+        """Get CSS for PDF reports with enhanced breakdown layout."""
         return """
         @page {
             size: A4;
@@ -629,6 +1101,7 @@ class ReportService:
             gap: 2rem;
             font-size: 9pt;
             color: #666;
+            flex-wrap: wrap;
         }
         
         .script-info p {
@@ -641,6 +1114,7 @@ class ReportService:
             border-bottom: 1px solid #ddd;
             padding-bottom: 0.5rem;
             margin-top: 1.5rem;
+            page-break-after: avoid;
         }
         
         table {
@@ -648,6 +1122,7 @@ class ReportService:
             border-collapse: collapse;
             margin: 1rem 0;
             font-size: 9pt;
+            page-break-inside: auto;
         }
         
         th {
@@ -665,16 +1140,86 @@ class ReportService:
             border: 1px solid #ddd;
             padding: 6px;
             vertical-align: top;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
         }
         
-        tr:nth-child(even) {
+        tr {
+            page-break-inside: avoid;
+        }
+        
+        tr:nth-child(4n+1) {
             background: #fafafa;
+        }
+        
+        /* Scene breakdown specific styles */
+        .breakdown-table .scene-num {
+            font-weight: 600;
+            width: 50px;
+        }
+        
+        .breakdown-table .int-ext {
+            width: 40px;
+            text-align: center;
+        }
+        
+        .breakdown-table .setting {
+            min-width: 120px;
+        }
+        
+        .breakdown-table .time {
+            width: 50px;
+            text-align: center;
+        }
+        
+        .breakdown-table .length-cell {
+            width: 80px;
+            text-align: center;
+            font-weight: 600;
+            font-family: 'Courier New', monospace;
+            white-space: nowrap;
+            font-size: 9pt;
+        }
+        
+        .breakdown-details {
+            background: #f9f9f9 !important;
+        }
+        
+        .breakdown-details td {
+            padding: 12px;
+        }
+        
+        .breakdown-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 8px;
+            font-size: 8.5pt;
+        }
+        
+        .breakdown-item {
+            display: flex;
+            gap: 8px;
+            line-height: 1.3;
+        }
+        
+        .breakdown-item .label {
+            font-weight: 600;
+            color: #555;
+            min-width: 90px;
+            flex-shrink: 0;
+        }
+        
+        .breakdown-item .value {
+            color: #1a1a1a;
+            flex: 1;
+            word-wrap: break-word;
         }
         
         .scenes-cell {
             font-size: 8pt;
             color: #666;
             max-width: 200px;
+            word-wrap: break-word;
         }
         
         /* One-liner specific */
@@ -695,9 +1240,11 @@ class ReportService:
             width: 50px;
         }
         
-        .one-liner-table .pages {
-            width: 40px;
+        .one-liner-table .length {
+            width: 60px;
             text-align: center;
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
         }
         
         /* Summary section */
@@ -706,6 +1253,7 @@ class ReportService:
             padding: 1rem;
             border-radius: 4px;
             margin-bottom: 1.5rem;
+            page-break-inside: avoid;
         }
         
         .summary-grid {
@@ -716,6 +1264,7 @@ class ReportService:
         
         .summary-item {
             text-align: center;
+            min-width: 80px;
         }
         
         .summary-item .label {
@@ -723,6 +1272,7 @@ class ReportService:
             font-size: 8pt;
             color: #666;
             text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         
         .summary-item .value {
@@ -730,6 +1280,7 @@ class ReportService:
             font-size: 18pt;
             font-weight: 700;
             color: #333;
+            margin-top: 4px;
         }
         
         .page-break {
@@ -741,7 +1292,381 @@ class ReportService:
             .page-break {
                 page-break-after: always;
             }
+            
+            h2 {
+                page-break-after: avoid;
+            }
+            
+            tr {
+                page-break-inside: avoid;
+            }
+            
+            table {
+                page-break-inside: auto;
+            }
         }
+        
+        /* Department-specific report styles */
+        .department-header {
+            background: #e8f4f8;
+            padding: 12px;
+            margin: 1rem 0;
+            border-left: 4px solid #0066cc;
+        }
+        
+        .department-header h3 {
+            margin: 0;
+            font-size: 12pt;
+            color: #0066cc;
+        }
+        """
+    
+    # ============================================
+    # Department-Specific Report Renderers
+    # ============================================
+    
+    def _render_wardrobe_department(self, data: Dict) -> str:
+        """Render wardrobe department report with character grouping."""
+        wardrobe = data.get('wardrobe', {})
+        characters = data.get('characters', {})
+        
+        if not wardrobe:
+            return '<h2>Wardrobe Department</h2><p>No wardrobe items found.</p>'
+        
+        rows = []
+        sorted_items = sorted(wardrobe.items(), key=lambda x: x[1]['count'], reverse=True)
+        
+        for item_name, info in sorted_items:
+            scenes_str = ', '.join(info['scenes'][:15])
+            if len(info['scenes']) > 15:
+                scenes_str += f" (+{len(info['scenes']) - 15} more)"
+            
+            # Get associated characters
+            chars = ', '.join(info.get('characters', [])) or '—'
+            
+            rows.append(f"""
+            <tr>
+                <td><strong>{item_name}</strong></td>
+                <td>{chars}</td>
+                <td>{info['count']}</td>
+                <td class="scenes-cell">{scenes_str}</td>
+            </tr>
+            """)
+        
+        return f"""
+        <div class="department-header">
+            <h3>Wardrobe Department Report</h3>
+        </div>
+        <table class="breakdown-table">
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Character(s)</th>
+                    <th>Scenes</th>
+                    <th>Scene Numbers</th>
+                </tr>
+            </thead>
+            <tbody>
+                {''.join(rows)}
+            </tbody>
+        </table>
+        """
+    
+    def _render_props_department(self, data: Dict) -> str:
+        """Render props department report."""
+        props = data.get('props', {})
+        
+        if not props:
+            return '<h2>Props Department</h2><p>No props found.</p>'
+        
+        rows = []
+        sorted_props = sorted(props.items(), key=lambda x: x[1]['count'], reverse=True)
+        
+        for prop_name, info in sorted_props:
+            scenes_str = ', '.join(info['scenes'][:15])
+            if len(info['scenes']) > 15:
+                scenes_str += f" (+{len(info['scenes']) - 15} more)"
+            
+            rows.append(f"""
+            <tr>
+                <td><strong>{prop_name}</strong></td>
+                <td>{info['count']}</td>
+                <td class="scenes-cell">{scenes_str}</td>
+            </tr>
+            """)
+        
+        return f"""
+        <div class="department-header">
+            <h3>Props Department Report</h3>
+        </div>
+        <table class="breakdown-table">
+            <thead>
+                <tr>
+                    <th>Prop</th>
+                    <th>Scenes</th>
+                    <th>Scene Numbers</th>
+                </tr>
+            </thead>
+            <tbody>
+                {''.join(rows)}
+            </tbody>
+        </table>
+        """
+    
+    def _render_makeup_department(self, data: Dict) -> str:
+        """Render makeup & hair department report with character grouping."""
+        makeup = data.get('makeup', {})
+        
+        if not makeup:
+            return '<h2>Makeup & Hair Department</h2><p>No makeup requirements found.</p>'
+        
+        rows = []
+        sorted_items = sorted(makeup.items(), key=lambda x: x[1]['count'], reverse=True)
+        
+        for item_name, info in sorted_items:
+            scenes_str = ', '.join(info['scenes'][:15])
+            if len(info['scenes']) > 15:
+                scenes_str += f" (+{len(info['scenes']) - 15} more)"
+            
+            # Get associated characters
+            chars = ', '.join(info.get('characters', [])) or '—'
+            
+            rows.append(f"""
+            <tr>
+                <td><strong>{item_name}</strong></td>
+                <td>{chars}</td>
+                <td>{info['count']}</td>
+                <td class="scenes-cell">{scenes_str}</td>
+            </tr>
+            """)
+        
+        return f"""
+        <div class="department-header">
+            <h3>Makeup & Hair Department Report</h3>
+        </div>
+        <table class="breakdown-table">
+            <thead>
+                <tr>
+                    <th>Requirement</th>
+                    <th>Character(s)</th>
+                    <th>Scenes</th>
+                    <th>Scene Numbers</th>
+                </tr>
+            </thead>
+            <tbody>
+                {''.join(rows)}
+            </tbody>
+        </table>
+        """
+    
+    def _render_sfx_department(self, data: Dict) -> str:
+        """Render special effects department report."""
+        sfx = data.get('special_effects', {})
+        
+        if not sfx:
+            return '<h2>Special Effects Department</h2><p>No special effects found.</p>'
+        
+        rows = []
+        sorted_sfx = sorted(sfx.items(), key=lambda x: x[1]['count'], reverse=True)
+        
+        for effect_name, info in sorted_sfx:
+            scenes_str = ', '.join(info['scenes'][:15])
+            if len(info['scenes']) > 15:
+                scenes_str += f" (+{len(info['scenes']) - 15} more)"
+            
+            # Get effect types
+            types = ', '.join(info.get('type', [])) or 'unknown'
+            
+            rows.append(f"""
+            <tr>
+                <td><strong>{effect_name}</strong></td>
+                <td>{types}</td>
+                <td>{info['count']}</td>
+                <td class="scenes-cell">{scenes_str}</td>
+            </tr>
+            """)
+        
+        return f"""
+        <div class="department-header">
+            <h3>Special Effects Department Report</h3>
+        </div>
+        <table class="breakdown-table">
+            <thead>
+                <tr>
+                    <th>Effect</th>
+                    <th>Type</th>
+                    <th>Scenes</th>
+                    <th>Scene Numbers</th>
+                </tr>
+            </thead>
+            <tbody>
+                {''.join(rows)}
+            </tbody>
+        </table>
+        """
+    
+    def _render_stunts_department(self, data: Dict) -> str:
+        """Render stunts department report."""
+        stunts = data.get('stunts', {})
+        
+        if not stunts:
+            return '<h2>Stunts Department</h2><p>No stunts found.</p>'
+        
+        rows = []
+        sorted_stunts = sorted(stunts.items(), key=lambda x: x[1]['count'], reverse=True)
+        
+        for stunt_name, info in sorted_stunts:
+            scenes_str = ', '.join(info['scenes'][:15])
+            if len(info['scenes']) > 15:
+                scenes_str += f" (+{len(info['scenes']) - 15} more)"
+            
+            rows.append(f"""
+            <tr>
+                <td><strong>{stunt_name}</strong></td>
+                <td>{info['count']}</td>
+                <td class="scenes-cell">{scenes_str}</td>
+            </tr>
+            """)
+        
+        return f"""
+        <div class="department-header">
+            <h3>Stunts Department Report</h3>
+        </div>
+        <table class="breakdown-table">
+            <thead>
+                <tr>
+                    <th>Stunt</th>
+                    <th>Scenes</th>
+                    <th>Scene Numbers</th>
+                </tr>
+            </thead>
+            <tbody>
+                {''.join(rows)}
+            </tbody>
+        </table>
+        """
+    
+    def _render_vehicles_department(self, data: Dict) -> str:
+        """Render vehicles department report."""
+        vehicles = data.get('vehicles', {})
+        
+        if not vehicles:
+            return '<h2>Vehicles Department</h2><p>No vehicles found.</p>'
+        
+        rows = []
+        sorted_vehicles = sorted(vehicles.items(), key=lambda x: x[1]['count'], reverse=True)
+        
+        for vehicle_name, info in sorted_vehicles:
+            scenes_str = ', '.join(info['scenes'][:15])
+            if len(info['scenes']) > 15:
+                scenes_str += f" (+{len(info['scenes']) - 15} more)"
+            
+            rows.append(f"""
+            <tr>
+                <td><strong>{vehicle_name}</strong></td>
+                <td>{info['count']}</td>
+                <td class="scenes-cell">{scenes_str}</td>
+            </tr>
+            """)
+        
+        return f"""
+        <div class="department-header">
+            <h3>Vehicles & Transportation Report</h3>
+        </div>
+        <table class="breakdown-table">
+            <thead>
+                <tr>
+                    <th>Vehicle</th>
+                    <th>Scenes</th>
+                    <th>Scene Numbers</th>
+                </tr>
+            </thead>
+            <tbody>
+                {''.join(rows)}
+            </tbody>
+        </table>
+        """
+    
+    def _render_animals_department(self, data: Dict) -> str:
+        """Render animals department report."""
+        animals = data.get('animals', {})
+        
+        if not animals:
+            return '<h2>Animals Department</h2><p>No animals found.</p>'
+        
+        rows = []
+        sorted_animals = sorted(animals.items(), key=lambda x: x[1]['count'], reverse=True)
+        
+        for animal_name, info in sorted_animals:
+            scenes_str = ', '.join(info['scenes'][:15])
+            if len(info['scenes']) > 15:
+                scenes_str += f" (+{len(info['scenes']) - 15} more)"
+            
+            rows.append(f"""
+            <tr>
+                <td><strong>{animal_name}</strong></td>
+                <td>{info['count']}</td>
+                <td class="scenes-cell">{scenes_str}</td>
+            </tr>
+            """)
+        
+        return f"""
+        <div class="department-header">
+            <h3>Animals & Wranglers Report</h3>
+        </div>
+        <table class="breakdown-table">
+            <thead>
+                <tr>
+                    <th>Animal</th>
+                    <th>Scenes</th>
+                    <th>Scene Numbers</th>
+                </tr>
+            </thead>
+            <tbody>
+                {''.join(rows)}
+            </tbody>
+        </table>
+        """
+    
+    def _render_extras_department(self, data: Dict) -> str:
+        """Render extras department report."""
+        extras = data.get('extras', {})
+        
+        if not extras:
+            return '<h2>Extras Department</h2><p>No extras found.</p>'
+        
+        rows = []
+        sorted_extras = sorted(extras.items(), key=lambda x: x[1]['count'], reverse=True)
+        
+        for extra_name, info in sorted_extras:
+            scenes_str = ', '.join(info['scenes'][:15])
+            if len(info['scenes']) > 15:
+                scenes_str += f" (+{len(info['scenes']) - 15} more)"
+            
+            rows.append(f"""
+            <tr>
+                <td><strong>{extra_name}</strong></td>
+                <td>{info['count']}</td>
+                <td class="scenes-cell">{scenes_str}</td>
+            </tr>
+            """)
+        
+        return f"""
+        <div class="department-header">
+            <h3>Extras & Background Report</h3>
+        </div>
+        <table class="breakdown-table">
+            <thead>
+                <tr>
+                    <th>Extras</th>
+                    <th>Scenes</th>
+                    <th>Scene Numbers</th>
+                </tr>
+            </thead>
+            <tbody>
+                {''.join(rows)}
+            </tbody>
+        </table>
         """
 
 

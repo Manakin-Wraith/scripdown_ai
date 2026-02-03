@@ -3,7 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { 
     FileText, Download, Share2, Printer, ChevronRight, 
     Users, MapPin, Package, Shirt, Film, List, BookOpen,
-    Loader, Check, AlertCircle, Clock, Trash2, ExternalLink
+    Loader, Check, AlertCircle, Clock, Trash2, ExternalLink,
+    UserPlus, Zap, Flame
 } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 import { useScript } from '../../context/ScriptContext';
@@ -29,7 +30,11 @@ const REPORT_ICONS = {
     props: Package,
     wardrobe: Shirt,
     one_liner: List,
-    full_breakdown: BookOpen
+    full_breakdown: BookOpen,
+    extras: UserPlus,
+    sfx: Zap,
+    special_effects: Zap,
+    stunts: Flame
 };
 
 const ReportBuilder = () => {
