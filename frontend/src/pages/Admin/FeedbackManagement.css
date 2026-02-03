@@ -75,14 +75,14 @@
     border-radius: 12px;
 }
 
-.filter-group {
+.feedback-management .filter-group {
     display: flex;
     align-items: center;
     gap: 12px;
     flex: 1;
 }
 
-.filter-group svg {
+.feedback-management .filter-group svg {
     color: var(--text-secondary);
 }
 

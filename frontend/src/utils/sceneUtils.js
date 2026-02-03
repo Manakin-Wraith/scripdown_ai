@@ -4,28 +4,25 @@
 
 /**
  * Calculate scene length in eighths of a page.
- * Industry standard: 1 page ≈ 250 words ≈ 8/8
+ * Industry standard: 1 page ≈ 55 lines (screenplay format) ≈ 8/8
  * 
  * @param {string} sceneText - The full text of the scene
- * @returns {number} - Number of eighths (1-8+ per page)
+ * @returns {number} - Number of eighths (1-80 max)
  */
 export function calculateEighths(sceneText) {
-    if (!sceneText || typeof sceneText !== 'string') {
-        return 1; // Minimum 1/8
+    if (!sceneText || typeof sceneText !== 'string' || !sceneText.trim()) {
+        return 8; // Default to 1 page
     }
     
-    // Count words (split by whitespace)
-    const words = sceneText.trim().split(/\s+/).filter(w => w.length > 0);
-    const wordCount = words.length;
+    // Count lines (industry standard: 55 lines = 1 page)
+    const lines = sceneText.trim().split('\n').length;
     
-    // Standard: 250 words = 1 page = 8 eighths
-    // So 31.25 words = 1 eighth
-    const WORDS_PER_EIGHTH = 31.25;
+    // Calculate eighths: 55 lines = 8 eighths
+    // Round to nearest eighth
+    const eighths = Math.round((lines / 55) * 8);
     
-    const eighths = Math.ceil(wordCount / WORDS_PER_EIGHTH);
-    
-    // Minimum 1/8, no maximum (scenes can span multiple pages)
-    return Math.max(1, eighths);
+    // Minimum 1/8, maximum 80 eighths (10 pages)
+    return Math.max(1, Math.min(eighths, 80));
 }
 
 /**
@@ -58,35 +55,50 @@ export function formatEighths(eighths) {
  * 
  * @param {number} pageStart - Starting page number
  * @param {number} pageEnd - Ending page number
+ * @param {string} sceneText - Optional scene text for more accurate calculation
  * @returns {number} - Estimated eighths
  */
-export function calculateEighthsFromPages(pageStart, pageEnd) {
-    if (!pageStart) return 1;
-    if (!pageEnd || pageEnd < pageStart) {
-        return 4; // Default to half page for single page
+export function calculateEighthsFromPages(pageStart, pageEnd, sceneText = null) {
+    if (!pageStart || !pageEnd) {
+        return 8; // Default to 1 page
     }
     
-    // Estimate: each page span = 8 eighths
+    // If we have scene text, use line-based calculation (most accurate)
+    if (sceneText && sceneText.trim()) {
+        return calculateEighths(sceneText);
+    }
+    
+    // Otherwise, estimate based on page span
+    // Each page = 8 eighths (assumes full pages)
     const pageSpan = pageEnd - pageStart + 1;
-    return pageSpan * 8;
+    const totalEighths = pageSpan * 8;
+    
+    // Cap at maximum 80 eighths (10 pages)
+    return Math.max(1, Math.min(totalEighths, 80));
 }
 
 /**
- * Get eighths for a scene, using text if available, pages as fallback.
+ * Get eighths for a scene, using database value if available, with fallbacks.
  * 
- * @param {object} scene - Scene object with scene_text, page_start, page_end
+ * @param {object} scene - Scene object with page_length_eighths, scene_text, page_start, page_end
  * @returns {number} - Number of eighths
  */
 export function getSceneEighths(scene) {
-    if (!scene) return 1;
+    if (!scene) return 8;
     
-    // Prefer text-based calculation
+    // Priority 1: ALWAYS use pre-calculated eighths from database
+    // Backend has already calculated this accurately
+    if (scene.page_length_eighths && scene.page_length_eighths > 0) {
+        return scene.page_length_eighths;
+    }
+    
+    // Priority 2: Calculate from text if available (rare - only if DB value missing)
     if (scene.scene_text && scene.scene_text.length > 10) {
         return calculateEighths(scene.scene_text);
     }
     
-    // Fallback to page-based estimation
-    return calculateEighthsFromPages(scene.page_start, scene.page_end);
+    // Priority 3: Fallback to page-based estimation (last resort)
+    return calculateEighthsFromPages(scene.page_start, scene.page_end, scene.scene_text);
 }
 
 /**

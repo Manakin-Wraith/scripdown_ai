@@ -378,3 +378,20 @@ def get_report_types():
         'success': True,
         'report_types': report_service.REPORT_TYPES
     })
+
+
+@report_bp.route('/report-presets', methods=['GET'])
+def get_report_presets():
+    """
+    Get available report configuration presets.
+    Returns list of presets with name, title, and description.
+    """
+    try:
+        from services.report_service import ReportConfig
+        presets = ReportConfig.get_available_presets()
+        return jsonify({
+            'success': True,
+            'presets': presets
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500

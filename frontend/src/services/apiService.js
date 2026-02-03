@@ -551,6 +551,20 @@ export const getReportTypes = async () => {
 };
 
 /**
+ * Get available report configuration presets
+ * @returns {Promise<Object>} Report presets with metadata
+ */
+export const getReportPresets = async () => {
+    try {
+        const response = await api.get('/api/reports/report-presets');
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching report presets:', error);
+        throw error;
+    }
+};
+
+/**
  * Generate a new report
  * @param {string} scriptId - The script UUID
  * @param {string} reportType - Type of report to generate

@@ -1,0 +1,246 @@
+{
+  "ticket_id": "LANGEXTRACT_PHASE2_BACKEND_FOUNDATION",
+  "phase": "Phase 2 - Week 1-2: Backend Foundation",
+  "description": "Implement core LangExtract backend infrastructure including database schema, service layer, API endpoints, and feature flags",
+  "total_estimated_effort": "80-120 hours (2 weeks with 1 developer)",
+  "subtasks": [
+    {
+      "id": 1,
+      "description": "Create database migration scripts for new tables (extraction_metadata, extraction_visualizations) and column extensions (scenes, scripts tables)",
+      "agent": "Backend Architect",
+      "dependencies": [],
+      "estimated_effort": "8 hours",
+      "deliverable": "SQL migration files in backend/db/migrations/",
+      "acceptance_criteria": [
+        "extraction_metadata table created with proper indexes",
+        "extraction_visualizations table created",
+        "scenes table extended with text_start, text_end, extraction_confidence, extraction_method columns",
+        "scripts table extended with extraction_method, langextract_version, has_visualization columns",
+        "Migration is idempotent and includes rollback script"
+      ],
+      "files_to_create": [
+        "backend/db/migrations/migration_019_langextract_schema.sql",
+        "backend/db/migrations/rollback_019_langextract_schema.sql"
+      ]
+    },
+    {
+      "id": 2,
+      "description": "Apply database migrations to development environment and verify schema changes",
+      "agent": "Backend Architect",
+      "dependencies": [1],
+      "estimated_effort": "2 hours",
+      "deliverable": "Verified database schema in dev environment",
+      "acceptance_criteria": [
+        "All migrations applied successfully",
+        "Tables and columns exist as specified",
+        "Indexes created correctly",
+        "Foreign key constraints working"
+      ]
+    },
+    {
+      "id": 3,
+      "description": "Implement core LangExtract service (backend/services/langextract_service.py) with extraction, saving, and visualization generation functions",
+      "agent": "Coder",
+      "dependencies": [2],
+      "estimated_effort": "16 hours",
+      "deliverable": "backend/services/langextract_service.py with 4 core functions",
+      "acceptance_criteria": [
+        "extract_with_langextract() function integrates POC code",
+        "save_extractions() persists to extraction_metadata table",
+        "generate_visualization() creates HTML from JSONL",
+        "get_extraction_stats() returns aggregated metrics",
+        "Error handling and logging implemented",
+        "Gemini API key configuration via environment variable"
+      ],
+      "files_to_create": [
+        "backend/services/langextract_service.py"
+      ],
+      "integration_points": [
+        "Uses langextract_schema.py and langextract_examples.py from POC",
+        "Integrates with existing PDF text extraction",
+        "Saves to Supabase database via existing connection"
+      ]
+    },
+    {
+      "id": 4,
+      "description": "Implement feature flag system for LangExtract with environment variable ENABLE_LANGEXTRACT",
+      "agent": "Coder",
+      "dependencies": [],
+      "estimated_effort": "4 hours",
+      "deliverable": "Feature flag configuration and helper functions",
+      "acceptance_criteria": [
+        "ENABLE_LANGEXTRACT environment variable checked",
+        "Feature flag helper function is_langextract_enabled()",
+        "Default to False (disabled) for safety",
+        "Documented in .env.example"
+      ],
+      "files_to_modify": [
+        "backend/.env.example",
+        "backend/config.py or backend/services/feature_flags.py"
+      ]
+    },
+    {
+      "id": 5,
+      "description": "Create LangExtract API routes (backend/routes/langextract_routes.py) with extraction trigger, retrieval, and visualization endpoints",
+      "agent": "Coder",
+      "dependencies": [3, 4],
+      "estimated_effort": "12 hours",
+      "deliverable": "backend/routes/langextract_routes.py with 4 endpoints",
+      "acceptance_criteria": [
+        "POST /api/scripts/:id/extract/langextract triggers extraction",
+        "GET /api/scripts/:id/extractions returns extraction list",
+        "GET /api/scripts/:id/visualization returns HTML content",
+        "GET /api/scripts/:id/extraction-stats returns metrics",
+        "Feature flag checked before execution",
+        "Authentication middleware applied",
+        "Error responses with proper HTTP status codes"
+      ],
+      "files_to_create": [
+        "backend/routes/langextract_routes.py"
+      ]
+    },
+    {
+      "id": 6,
+      "description": "Integrate LangExtract routes into main Flask/FastAPI application and register blueprints",
+      "agent": "Coder",
+      "dependencies": [5],
+      "estimated_effort": "2 hours",
+      "deliverable": "LangExtract routes registered in main app",
+      "acceptance_criteria": [
+        "Routes accessible via /api/scripts/:id/extract/langextract",
+        "Blueprint/router registered in main app",
+        "Routes appear in API documentation"
+      ],
+      "files_to_modify": [
+        "backend/app.py or backend/main.py"
+      ]
+    },
+    {
+      "id": 7,
+      "description": "Implement async job queue for long-running LangExtract extractions using Celery or background tasks",
+      "agent": "Backend Architect",
+      "dependencies": [3],
+      "estimated_effort": "16 hours",
+      "deliverable": "Async job queue with progress tracking",
+      "acceptance_criteria": [
+        "LangExtract extraction runs in background job",
+        "Job status tracked in database (pending, processing, completed, failed)",
+        "Progress updates available via API",
+        "Job results stored in extraction_metadata table",
+        "Email/push notification on completion (optional)",
+        "Job timeout and retry logic implemented"
+      ],
+      "files_to_create": [
+        "backend/tasks/langextract_tasks.py",
+        "backend/services/job_queue.py"
+      ],
+      "technical_notes": [
+        "Consider using Celery with Redis or RQ for job queue",
+        "Alternative: FastAPI BackgroundTasks for simpler implementation",
+        "Store job_id in scripts table for tracking"
+      ]
+    },
+    {
+      "id": 8,
+      "description": "Write unit tests for LangExtract service functions (extraction, saving, visualization)",
+      "agent": "Tester",
+      "dependencies": [3],
+      "estimated_effort": "12 hours",
+      "deliverable": "Unit test suite with >80% coverage",
+      "acceptance_criteria": [
+        "Test extract_with_langextract() with mock Gemini API",
+        "Test save_extractions() with test database",
+        "Test generate_visualization() output format",
+        "Test get_extraction_stats() calculations",
+        "Test error handling and edge cases",
+        "All tests pass in CI pipeline"
+      ],
+      "files_to_create": [
+        "backend/tests/test_langextract_service.py"
+      ]
+    },
+    {
+      "id": 9,
+      "description": "Write integration tests for LangExtract API endpoints",
+      "agent": "Tester",
+      "dependencies": [5, 6],
+      "estimated_effort": "8 hours",
+      "deliverable": "Integration test suite for API routes",
+      "acceptance_criteria": [
+        "Test POST /api/scripts/:id/extract/langextract with valid script",
+        "Test GET /api/scripts/:id/extractions returns correct data",
+        "Test GET /api/scripts/:id/visualization returns HTML",
+        "Test authentication and authorization",
+        "Test feature flag behavior (enabled/disabled)",
+        "Test error responses (404, 500, etc.)"
+      ],
+      "files_to_create": [
+        "backend/tests/test_langextract_routes.py"
+      ]
+    },
+    {
+      "id": 10,
+      "description": "Create migration utility script to re-extract existing scripts with LangExtract (optional, for data migration)",
+      "agent": "Coder",
+      "dependencies": [3, 7],
+      "estimated_effort": "8 hours",
+      "deliverable": "backend/scripts/migrate_to_langextract.py",
+      "acceptance_criteria": [
+        "Batch process existing scripts",
+        "Preserve baseline extraction data",
+        "Progress tracking and logging",
+        "Rollback capability if needed",
+        "Dry-run mode for testing",
+        "Command-line interface with options"
+      ],
+      "files_to_create": [
+        "backend/scripts/migrate_to_langextract.py"
+      ],
+      "technical_notes": [
+        "Use async job queue for each script",
+        "Rate limit to avoid API quota issues",
+        "Skip scripts that already have LangExtract data"
+      ]
+    }
+  ],
+  "critical_path": [1, 2, 3, 5, 6],
+  "parallel_tracks": {
+    "track_1_core": [1, 2, 3, 5, 6],
+    "track_2_async": [7],
+    "track_3_testing": [8, 9],
+    "track_4_migration": [10]
+  },
+  "risk_factors": [
+    {
+      "risk": "Dependency conflicts (httpx/anyio) with Supabase",
+      "mitigation": "Use virtual environment isolation, test in staging first",
+      "severity": "Medium"
+    },
+    {
+      "risk": "Gemini API rate limits during testing",
+      "mitigation": "Implement rate limiting, use test fixtures, mock API in unit tests",
+      "severity": "Low"
+    },
+    {
+      "risk": "Database migration failures in production",
+      "mitigation": "Test migrations in staging, create rollback scripts, backup before migration",
+      "severity": "High"
+    },
+    {
+      "risk": "Async job queue complexity",
+      "mitigation": "Start with simple BackgroundTasks, upgrade to Celery if needed",
+      "severity": "Medium"
+    }
+  ],
+  "success_metrics": [
+    "All 10 subtasks completed",
+    "Database schema deployed to dev environment",
+    "LangExtract service functional with test script",
+    "API endpoints accessible and tested",
+    "Unit test coverage >80%",
+    "Integration tests passing",
+    "Feature flag working correctly",
+    "Async job queue processing extractions"
+  ],
+  "next_phase": "Week 3-4: Frontend Integration"
+}

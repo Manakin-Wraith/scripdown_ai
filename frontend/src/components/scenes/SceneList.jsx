@@ -47,9 +47,6 @@ const SceneList = ({ scenes, selectedId, onSelect, analyzingScenes = new Set(), 
 
                 // Use original scene number if available, otherwise fall back to sequential
                 const displaySceneNum = scene.scene_number_original || scene.scene_number;
-                
-                // Calculate scene length in eighths
-                const eighthsDisplay = getSceneEighthsDisplay(scene);
 
                 // Check if this scene just completed (for fade-out animation)
                 const isRecentlyCompleted = recentlyCompletedScenes.has(scene.scene_id) || 
@@ -97,9 +94,6 @@ const SceneList = ({ scenes, selectedId, onSelect, analyzingScenes = new Set(), 
                                         <span className="meta-value">Analyzing...</span>
                                     </div>
                                 )}
-                                <div className="entity-meta eighths-info" title={`Scene length: ${eighthsDisplay} page`}>
-                                    <span className="meta-value eighths-badge">{eighthsDisplay}</span>
-                                </div>
                             </div>
                         </div>
                         

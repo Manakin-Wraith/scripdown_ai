@@ -554,28 +554,58 @@ def extract_scenes_from_chunk(chunk_text, starting_scene_number):
     """
     Extract scenes from a chunk of script text using Gemini.
     Preserves original scene numbers and page numbers from the script.
+    Extracts comprehensive breakdown data including all production departments.
     """
     prompt = f"""
-Analyze this screenplay excerpt and extract ALL scenes present.
+Analyze this screenplay excerpt and extract ALL scenes with COMPLETE breakdown data for production.
 
 CRITICAL: Preserve the ORIGINAL scene numbers exactly as they appear in the script.
 - Scene numbers may be like "1", "1A", "42", "42B", "OMIT", etc.
 - If no scene number is visible, use the order starting from {starting_scene_number}
 
-For each scene, provide:
-- scene_number_original: The EXACT scene number as written in the script (e.g., "1", "1A", "42", "OMIT")
-- scene_number: A sequential integer for ordering (starting from {starting_scene_number})
-- page_start: The page number where this scene starts (if visible in the text)
-- page_end: The page number where this scene ends (if visible, otherwise same as page_start)
-- Setting/Location (e.g., "COFFEE SHOP - INT - DAY")
-- Characters present (list ALL character names in UPPERCASE)
-- Props (list ALL props, objects, items mentioned or needed)
-- Special FX (visual effects, practical effects, stunts)
-- Wardrobe notes (costume details, specific clothing mentioned)
-- Makeup/Hair notes (any specific requirements)
-- Vehicles (cars, bikes, etc.)
-- Atmosphere (lighting, weather, mood)
-- Description (detailed 2-3 sentence summary of what happens)
+For each scene, extract ALL of the following:
+
+**SCENE IDENTIFICATION:**
+- scene_number_original: EXACT scene number from script (e.g., "1", "1A", "42", "OMIT")
+- scene_number: Sequential integer for ordering (starting from {starting_scene_number})
+- page_start: Page number where scene starts (if visible)
+- page_end: Page number where scene ends (if visible, else same as page_start)
+- setting: Location name (e.g., "COFFEE SHOP - INT - DAY")
+
+**CHARACTERS & CAST:**
+- characters: ALL character names in UPPERCASE (speaking and non-speaking)
+
+**PROPS DEPARTMENT:**
+- props: ALL props, objects, items mentioned or needed (be thorough - include implied items like "coffee cup" if someone drinks coffee, "phone" if they make a call)
+
+**WARDROBE DEPARTMENT:**
+- wardrobe: Costume details, specific clothing mentioned, wardrobe changes (e.g., "Business suit", "Blood-stained shirt", "Period costume 1940s")
+
+**MAKEUP & HAIR DEPARTMENT:**
+- makeup: Makeup requirements, hair styling, special makeup effects (e.g., "Bruised face", "Aging makeup", "Period hairstyle", "Blood makeup")
+
+**SPECIAL EFFECTS DEPARTMENT:**
+- special_effects: SFX/VFX requirements, practical effects (e.g., "Gunshot squib", "Rain effect", "Explosion", "CGI creature", "Wire work")
+
+**STUNTS DEPARTMENT:**
+- stunts: Stunt requirements, fight choreography, dangerous actions (e.g., "Car crash", "Fight choreography", "Fall from height", "Fire burn", "High-speed chase")
+
+**VEHICLES & TRANSPORTATION:**
+- vehicles: ALL vehicles appearing or mentioned (e.g., "Police car", "Motorcycle", "Helicopter", "Bicycle")
+
+**ANIMALS & WRANGLERS:**
+- animals: ALL animals appearing (e.g., "German Shepherd", "Horses (3)", "Pigeons", "Goldfish")
+
+**EXTRAS & BACKGROUND:**
+- extras: Background actors, crowd requirements (e.g., "Restaurant patrons (8)", "Crowd (20-30)", "Office workers (5)")
+
+**SCENE DESCRIPTIONS:**
+- description: Detailed 2-3 sentence summary of what happens in the scene
+- action_description: Summary of physical action from action lines (what characters DO physically)
+- emotional_tone: Emotional mood/tone of the scene (e.g., "Tense", "Romantic", "Comedic", "Suspenseful", "Melancholic")
+- technical_notes: Technical requirements for camera, lighting, equipment (e.g., "Requires crane shot", "Low-light conditions", "Steadicam", "Underwater camera")
+- sound_notes: Sound effects, music requirements (e.g., "Diegetic music - jazz club", "Thunder SFX", "Gunshot sounds", "Ambient city noise")
+- atmosphere: Overall mood, lighting, weather (e.g., "Dark and moody", "Bright sunlight", "Rainy", "Foggy morning")
 
 Return ONLY valid JSON in this exact format:
 {{
@@ -587,24 +617,35 @@ Return ONLY valid JSON in this exact format:
             "page_end": 2,
             "setting": "LOCATION - INT/EXT - TIME",
             "characters": ["CHARACTER1", "CHARACTER2"],
-            "props": ["prop1", "prop2"],
-            "special_fx": [],
-            "wardrobe": [],
-            "makeup_hair": [],
-            "vehicles": [],
-            "atmosphere": "Description of mood/lighting",
-            "description": "What happens in this scene"
+            "props": ["coffee cup", "laptop", "car keys"],
+            "wardrobe": ["Business suit", "Designer handbag"],
+            "makeup": ["Natural makeup", "Tired eyes"],
+            "special_effects": ["Rain on window"],
+            "stunts": [],
+            "vehicles": ["BMW sedan"],
+            "animals": [],
+            "extras": ["Coffee shop patrons (6)"],
+            "description": "Sarah meets John at a coffee shop to discuss their failed relationship. The conversation is tense and emotional.",
+            "action_description": "Sarah enters, spots John, walks to his table, sits down. They talk intensely. Sarah stands abruptly and leaves.",
+            "emotional_tone": "Tense and melancholic",
+            "technical_notes": "Close-ups for emotional beats, natural lighting through windows",
+            "sound_notes": "Ambient coffee shop noise, soft background music",
+            "atmosphere": "Intimate, slightly uncomfortable"
         }}
     ]
 }}
 
-IMPORTANT:
-- Extract ALL scenes in this excerpt
-- PRESERVE original scene numbers exactly (including letters like "A", "B")
-- Include page numbers if they appear in the text
-- Be thorough with props, characters, and details
-- If a category doesn't apply, use an empty array []
-- Look for implied needs (e.g., if someone drinks coffee, include "coffee cup" in props)
+EXTRACTION GUIDELINES:
+✓ Extract ALL scenes in this excerpt
+✓ PRESERVE original scene numbers exactly (including letters like "A", "B")
+✓ Include page numbers if they appear in the text
+✓ Be THOROUGH with all breakdown categories - production teams rely on this data
+✓ If a category doesn't apply, use an empty array [] or empty string ""
+✓ Look for IMPLIED needs (e.g., if someone drinks coffee → "coffee cup" in props)
+✓ Include BACKGROUND elements (extras, ambient sounds, atmosphere details)
+✓ Separate stunts from special_effects (stunts = performed by people, special_effects = technical effects)
+✓ Include ALL vehicles even if just mentioned or parked in background
+✓ Note specific makeup/wardrobe requirements for continuity
 
 Script excerpt:
 {chunk_text}
@@ -617,7 +658,7 @@ Return only the JSON, no markdown formatting.
 
 
 def save_extracted_scene(script_id, scene_data):
-    """Save an extracted scene to the database with original scene/page numbers."""
+    """Save an extracted scene to the database with all breakdown fields."""
     try:
         conn = get_worker_db()
         cursor = conn.cursor()
@@ -628,9 +669,11 @@ def save_extracted_scene(script_id, scene_data):
                 page_start, page_end,
                 setting, description, 
                 characters, props, special_fx, wardrobe, 
-                makeup_hair, vehicles, atmosphere
+                makeup_hair, vehicles, animals, extras, stunts,
+                atmosphere, action_description, emotional_tone, 
+                technical_notes, sound_notes
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             script_id,
             scene_data.get('scene_number', 0),
@@ -641,11 +684,18 @@ def save_extracted_scene(script_id, scene_data):
             scene_data.get('description', ''),
             json.dumps(scene_data.get('characters', [])),
             json.dumps(scene_data.get('props', [])),
-            json.dumps(scene_data.get('special_fx', [])),
+            json.dumps(scene_data.get('special_fx', []) or scene_data.get('special_effects', [])),
             json.dumps(scene_data.get('wardrobe', [])),
-            json.dumps(scene_data.get('makeup_hair', [])),
+            json.dumps(scene_data.get('makeup_hair', []) or scene_data.get('makeup', [])),
             json.dumps(scene_data.get('vehicles', [])),
-            scene_data.get('atmosphere', '')
+            json.dumps(scene_data.get('animals', [])),
+            json.dumps(scene_data.get('extras', [])),
+            json.dumps(scene_data.get('stunts', [])),
+            scene_data.get('atmosphere', ''),
+            scene_data.get('action_description', ''),
+            scene_data.get('emotional_tone', ''),
+            scene_data.get('technical_notes', ''),
+            scene_data.get('sound_notes', '')
         ))
         
         conn.commit()

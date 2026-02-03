@@ -1,0 +1,243 @@
+{
+  "ticket_id": "PDF_EXPORT_ENHANCEMENT_2026",
+  "project_name": "Enhanced PDF Export & Print System",
+  "total_subtasks": 13,
+  "estimated_effort": "3-4 weeks",
+  "subtasks": [
+    {
+      "id": 1,
+      "phase": "Phase 1: Enhanced Scene Breakdown",
+      "description": "Verify and document current scene table schema for breakdown fields",
+      "agent": "Backend Architect",
+      "dependencies": [],
+      "estimated_hours": 2,
+      "files_affected": [
+        "backend/db/supabase_client.py",
+        "docs/DATABASE_SCHEMA.md"
+      ],
+      "acceptance_criteria": [
+        "Document all existing breakdown fields in scenes table",
+        "Identify missing fields (wardrobe, makeup, sfx, vehicles, animals, extras, stunts)",
+        "Create migration plan if schema updates needed"
+      ]
+    },
+    {
+      "id": 2,
+      "phase": "Phase 1: Enhanced Scene Breakdown",
+      "description": "Enhance aggregate_scene_data() to collect ALL breakdown categories",
+      "agent": "Coder",
+      "dependencies": [1],
+      "estimated_hours": 4,
+      "files_affected": [
+        "backend/services/report_service.py"
+      ],
+      "acceptance_criteria": [
+        "Aggregate wardrobe, makeup, sfx, vehicles, animals, extras, stunts",
+        "Remove truncation - collect complete lists",
+        "Add scene descriptions and notes to aggregation",
+        "Include dialogue excerpts and action descriptions"
+      ]
+    },
+    {
+      "id": 3,
+      "phase": "Phase 1: Enhanced Scene Breakdown",
+      "description": "Modify _render_scene_breakdown() to display complete breakdown data",
+      "agent": "Coder",
+      "dependencies": [2],
+      "estimated_hours": 6,
+      "files_affected": [
+        "backend/services/report_service.py"
+      ],
+      "acceptance_criteria": [
+        "Display ALL characters (not just first 5)",
+        "Display ALL props (not just first 3)",
+        "Add columns for wardrobe, makeup, sfx, vehicles",
+        "Include scene description/summary",
+        "Add technical notes and emotional tone"
+      ]
+    },
+    {
+      "id": 4,
+      "phase": "Phase 1: Enhanced Scene Breakdown",
+      "description": "Update PDF CSS for enhanced scene breakdown layout",
+      "agent": "Coder",
+      "dependencies": [3],
+      "estimated_hours": 3,
+      "files_affected": [
+        "backend/services/report_service.py"
+      ],
+      "acceptance_criteria": [
+        "Responsive table layout for additional columns",
+        "Better text wrapping for long lists",
+        "Improved readability with proper spacing",
+        "Page break optimization for multi-page tables"
+      ]
+    },
+    {
+      "id": 5,
+      "phase": "Phase 2: Metadata Enrichment",
+      "description": "Enhance report header with full script metadata",
+      "agent": "Coder",
+      "dependencies": [1],
+      "estimated_hours": 3,
+      "files_affected": [
+        "backend/services/report_service.py"
+      ],
+      "acceptance_criteria": [
+        "Include draft_version, production_company",
+        "Add contact_email, contact_phone",
+        "Display copyright_info if available",
+        "Show total_pages from script metadata"
+      ]
+    },
+    {
+      "id": 6,
+      "phase": "Phase 2: Metadata Enrichment",
+      "description": "Add comprehensive summary statistics and version tracking",
+      "agent": "Coder",
+      "dependencies": [5],
+      "estimated_hours": 2,
+      "files_affected": [
+        "backend/services/report_service.py"
+      ],
+      "acceptance_criteria": [
+        "Enhanced summary with wardrobe count, vehicle count, etc.",
+        "Report generation timestamp with timezone",
+        "Report version number",
+        "Analysis completion percentage"
+      ]
+    },
+    {
+      "id": 7,
+      "phase": "Phase 3: Department Views",
+      "description": "Create department-specific render methods (costume, props, locations, etc.)",
+      "agent": "Coder",
+      "dependencies": [2],
+      "estimated_hours": 8,
+      "files_affected": [
+        "backend/services/report_service.py"
+      ],
+      "acceptance_criteria": [
+        "Add _render_wardrobe_department() method",
+        "Add _render_props_department() method",
+        "Add _render_makeup_department() method",
+        "Add _render_sfx_department() method",
+        "Include cross-references between scenes",
+        "Add department notes to each report"
+      ]
+    },
+    {
+      "id": 8,
+      "phase": "Phase 3: Department Views",
+      "description": "Implement configuration system for report customization",
+      "agent": "Backend Architect",
+      "dependencies": [7],
+      "estimated_hours": 5,
+      "files_affected": [
+        "backend/services/report_service.py",
+        "backend/routes/report_routes.py"
+      ],
+      "acceptance_criteria": [
+        "Add config parameter to control included fields",
+        "Support include/exclude lists for breakdown categories",
+        "Allow department filtering",
+        "Enable custom field ordering"
+      ]
+    },
+    {
+      "id": 9,
+      "phase": "Phase 3: Department Views",
+      "description": "Build frontend export options UI with checkboxes",
+      "agent": "UX Agent",
+      "dependencies": [8],
+      "estimated_hours": 6,
+      "files_affected": [
+        "frontend/src/components/reports/ReportBuilder.jsx",
+        "frontend/src/components/reports/ExportOptionsModal.jsx (new)"
+      ],
+      "acceptance_criteria": [
+        "Create ExportOptionsModal component",
+        "Checkboxes for each breakdown category",
+        "Department filter dropdown",
+        "Include/exclude metadata toggle",
+        "Save preferences to localStorage"
+      ]
+    },
+    {
+      "id": 10,
+      "phase": "Phase 3: Department Views",
+      "description": "Add department filter and PDF preview functionality",
+      "agent": "Coder",
+      "dependencies": [9],
+      "estimated_hours": 5,
+      "files_affected": [
+        "frontend/src/components/reports/ReportPreview.jsx (new)",
+        "frontend/src/services/apiService.js"
+      ],
+      "acceptance_criteria": [
+        "Preview report data before PDF generation",
+        "Show estimated page count",
+        "Display selected options summary",
+        "Allow preview in modal before download"
+      ]
+    },
+    {
+      "id": 11,
+      "phase": "Phase 4: Visual Polish",
+      "description": "Enhance PDF CSS with professional typography and color coding",
+      "agent": "UX Agent",
+      "dependencies": [4],
+      "estimated_hours": 4,
+      "files_affected": [
+        "backend/services/report_service.py"
+      ],
+      "acceptance_criteria": [
+        "Professional font stack (industry-standard)",
+        "Color coding for INT/EXT scenes",
+        "Color coding for D/N scenes",
+        "Icons for breakdown categories (if supported)",
+        "Improved spacing and hierarchy",
+        "Print-optimized margins and page breaks"
+      ]
+    },
+    {
+      "id": 12,
+      "phase": "Phase 4: Visual Polish",
+      "description": "Add custom template saving and management",
+      "agent": "Coder",
+      "dependencies": [9, 10],
+      "estimated_hours": 4,
+      "files_affected": [
+        "frontend/src/components/reports/TemplateManager.jsx (new)",
+        "backend/routes/report_routes.py",
+        "backend/db/migrations/add_custom_templates.sql (new)"
+      ],
+      "acceptance_criteria": [
+        "Save custom export configurations as templates",
+        "Load saved templates",
+        "Share templates with team members",
+        "Default template per user"
+      ]
+    },
+    {
+      "id": 13,
+      "phase": "Testing & QA",
+      "description": "Comprehensive testing of all report types with enhanced data",
+      "agent": "Tester",
+      "dependencies": [3, 6, 7, 11],
+      "estimated_hours": 6,
+      "files_affected": [
+        "backend/tests/test_report_service.py (new)",
+        "docs/TESTING_REPORT_EXPORTS.md (new)"
+      ],
+      "acceptance_criteria": [
+        "Test all report types (scene_breakdown, day_out_of_days, location, props, one_liner, full_breakdown)",
+        "Test department-specific reports",
+        "Verify PDF generation with complete data",
+        "Test print layout on different paper sizes",
+        "Verify configuration options work correctly",
+        "Test with scripts of varying complexity (small, medium, large)"
+      ]
+    }
+  ]
+}
