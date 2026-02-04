@@ -349,11 +349,9 @@ export default function AnalyticsDashboard() {
           <button 
             onClick={() => navigate('/admin/emails')} 
             className="action-card"
-            disabled
           >
             <BarChart3 size={24} />
             <span>Email Campaigns</span>
-            <span className="badge">Coming Soon</span>
           </button>
         </div>
       </section>

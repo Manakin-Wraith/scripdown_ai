@@ -1,0 +1,265 @@
+/* Simplified Email Campaigns Page - Option C */
+
+.email-campaigns-page.simplified {
+    padding: 2rem;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+/* Back Button */
+.back-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 8px;
+    color: #9ca3af;
+    cursor: pointer;
+    margin-bottom: 1.5rem;
+    transition: all 0.2s;
+}
+
+.back-button:hover {
+    background: #2a2a2a;
+    border-color: #F59E0B;
+    color: #F59E0B;
+    transform: translateX(-2px);
+}
+
+/* Simple Header */
+.page-header-simple {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.page-header-simple svg {
+    color: #F59E0B;
+}
+
+.page-header-simple h1 {
+    margin: 0;
+    font-size: 2rem;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+/* Compose Section */
+.compose-section {
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 12px;
+    padding: 2.5rem;
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.compose-description {
+    color: #9ca3af;
+    font-size: 15px;
+    margin: 0 0 1.5rem 0;
+    line-height: 1.6;
+}
+
+.btn-primary-large {
+    background: linear-gradient(135deg, #F59E0B, #D97706);
+    color: #000000;
+    border: none;
+    padding: 1rem 2rem;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    transition: all 0.2s;
+}
+
+.btn-primary-large:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(245, 158, 11, 0.3);
+}
+
+/* Recent Campaigns Section */
+.recent-campaigns-section {
+    margin-top: 3rem;
+}
+
+.section-toggle {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: transparent;
+    border: none;
+    padding: 1rem 0;
+    cursor: pointer;
+    color: #e5e7eb;
+    border-bottom: 1px solid #2a2a2a;
+    margin-bottom: 1rem;
+}
+
+.section-toggle h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.section-toggle:hover h2 {
+    color: #F59E0B;
+}
+
+/* Simple Campaign List */
+.campaigns-simple-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.campaign-simple-card {
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 8px;
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.2s;
+}
+
+.campaign-simple-card:hover {
+    border-color: #3a3a3a;
+    background: #1f1f1f;
+}
+
+.campaign-simple-info h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.campaign-simple-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 13px;
+    color: #6b7280;
+}
+
+.campaign-simple-meta svg {
+    color: #9ca3af;
+}
+
+.campaign-simple-meta .separator {
+    color: #4b5563;
+}
+
+/* Simple Actions */
+.campaign-simple-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.btn-send {
+    background: linear-gradient(135deg, #F59E0B, #D97706);
+    color: #000000;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s;
+}
+
+.btn-send:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+.status-sent {
+    color: #10b981;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 0.25rem 0.75rem;
+    background: rgba(16, 185, 129, 0.1);
+    border-radius: 4px;
+}
+
+.btn-delete-simple {
+    background: transparent;
+    border: 1px solid #3a3a3a;
+    color: #9ca3af;
+    padding: 0.5rem;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    transition: all 0.2s;
+}
+
+.btn-delete-simple:hover {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: #ef4444;
+    color: #ef4444;
+}
+
+/* Error Banner */
+.error-banner {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #fca5a5;
+    padding: 1rem 1.25rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    font-size: 14px;
+}
+
+/* Loading State */
+.loading-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 2rem;
+    color: #6b7280;
+}
+
+.loading-state svg {
+    color: #F59E0B;
+    margin-bottom: 1rem;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .email-campaigns-page.simplified {
+        padding: 1rem;
+    }
+
+    .campaign-simple-card {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .campaign-simple-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    .btn-primary-large {
+        width: 100%;
+        justify-content: center;
+    }
+}

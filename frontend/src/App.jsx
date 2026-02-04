@@ -23,6 +23,7 @@ import UserActivityPage from './pages/Admin/UserActivityPage';
 import ScriptAnalyticsPage from './pages/Admin/ScriptAnalyticsPage';
 import PaymentVerification from './components/admin/PaymentVerification';
 import FeedbackManagement from './pages/Admin/FeedbackManagement';
+import EmailCampaignsPage from './pages/Admin/EmailCampaignsPage';
 import './App.css';
 
 // Active imports
@@ -114,6 +115,11 @@ function App() {
                   <Route path="admin/feedback/:feedbackId" element={
                     <AdminRoute>
                       <FeedbackManagement />
+                    </AdminRoute>
+                  } />
+                  <Route path="admin/emails" element={
+                    <AdminRoute>
+                      <EmailCampaignsPage />
                     </AdminRoute>
                   } />
                   

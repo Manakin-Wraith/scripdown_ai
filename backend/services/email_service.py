@@ -729,6 +729,53 @@ def send_early_access_invite(
     return result
 
 
+def send_feature_announcement_email(
+    to_email: str,
+    full_name: str,
+    features: list = None
+) -> Dict[str, Any]:
+    """
+    Send feature announcement email to existing users about new features.
+    Uses the proper email template system.
+    
+    Args:
+        to_email: User's email address
+        full_name: User's full name
+        features: List of feature dicts with 'title', 'description', 'icon' keys
+    """
+    from email_templates.registry import EmailTemplateRegistry
+    
+    first_name = full_name.split(' ')[0] if full_name else 'there'
+    
+    # Get the feature announcement template
+    FeatureAnnouncementEmail = EmailTemplateRegistry.get('feature_announcement')
+    
+    # Build email
+    email = FeatureAnnouncementEmail(
+        user_name=first_name,
+        features=features
+    )
+    
+    subject, html = email.build()
+    
+    # Send email
+    result = send_email(to_email, subject, html)
+    
+    # Log to email tracking if email was sent successfully
+    if result and 'error' not in result:
+        resend_email_id = result.get('id')
+        log_email_sent(
+            email_type='feature_announcement',
+            recipient_email=to_email,
+            recipient_name=full_name or first_name,
+            resend_email_id=resend_email_id,
+            user_status='active',
+            metadata={'features_count': len(features) if features else 2}
+        )
+    
+    return result
+
+
 def send_expiration_reminder_email(
     to_email: str,
     full_name: str,

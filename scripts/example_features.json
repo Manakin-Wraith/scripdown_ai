@@ -1,0 +1,22 @@
+[
+    {
+        "icon": "💬",
+        "title": "Feedback System",
+        "description": "Share your thoughts and suggestions directly in the app. We read every piece of feedback and use it to improve SlateOne!"
+    },
+    {
+        "icon": "📊",
+        "title": "Enhanced Reports",
+        "description": "Generate professional production reports with improved layouts, better formatting, and more export options. Perfect for sharing with your team."
+    },
+    {
+        "icon": "🎯",
+        "title": "Improved Scene Analysis",
+        "description": "Our AI now provides more accurate breakdowns with better character detection and prop identification."
+    },
+    {
+        "icon": "⚡",
+        "title": "Performance Improvements",
+        "description": "Faster script uploads, quicker analysis, and smoother navigation throughout the app."
+    }
+]

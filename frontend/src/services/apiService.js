@@ -1437,4 +1437,188 @@ export const getFeedbackById = async (feedbackId) => {
     }
 };
 
+// ==================== Email Campaigns API ====================
+
+/**
+ * List email templates
+ * @param {Object} params - Query parameters (category, active_only)
+ * @returns {Promise<Object>} Template list
+ */
+export const getEmailTemplates = async (params = {}) => {
+    try {
+        const response = await api.get('/api/campaigns/templates', { params });
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching email templates:', error);
+        throw error;
+    }
+};
+
+/**
+ * Get single email template
+ * @param {string} templateId - Template UUID
+ * @returns {Promise<Object>} Template details
+ */
+export const getEmailTemplate = async (templateId) => {
+    try {
+        const response = await api.get(`/api/campaigns/templates/${templateId}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching email template:', error);
+        throw error;
+    }
+};
+
+/**
+ * Create new email template
+ * @param {Object} templateData - Template data (name, subject, body_html, etc.)
+ * @returns {Promise<Object>} Created template
+ */
+export const createEmailTemplate = async (templateData) => {
+    try {
+        const response = await api.post('/api/campaigns/templates', templateData);
+        return response.data;
+    } catch (error) {
+        console.error('Error creating email template:', error);
+        throw error;
+    }
+};
+
+/**
+ * List email campaigns
+ * @param {Object} params - Query parameters (status, limit, offset)
+ * @returns {Promise<Object>} Campaign list with pagination
+ */
+export const getCampaigns = async (params = {}) => {
+    try {
+        const response = await api.get('/api/campaigns/', { params });
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching campaigns:', error);
+        throw error;
+    }
+};
+
+/**
+ * Get single campaign with details
+ * @param {string} campaignId - Campaign UUID
+ * @returns {Promise<Object>} Campaign details with recipient counts
+ */
+export const getCampaign = async (campaignId) => {
+    try {
+        const response = await api.get(`/api/campaigns/${campaignId}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching campaign:', error);
+        throw error;
+    }
+};
+
+/**
+ * Create new email campaign
+ * @param {Object} campaignData - Campaign data (name, template_id, audience_filter, etc.)
+ * @returns {Promise<Object>} Created campaign with recipient count
+ */
+export const createCampaign = async (campaignData) => {
+    try {
+        const response = await api.post('/api/campaigns/', campaignData);
+        return response.data;
+    } catch (error) {
+        console.error('Error creating campaign:', error);
+        throw error;
+    }
+};
+
+/**
+ * Update campaign (draft/scheduled only)
+ * @param {string} campaignId - Campaign UUID
+ * @param {Object} updates - Fields to update
+ * @returns {Promise<Object>} Updated campaign
+ */
+export const updateCampaign = async (campaignId, updates) => {
+    try {
+        const response = await api.patch(`/api/campaigns/${campaignId}`, updates);
+        return response.data;
+    } catch (error) {
+        console.error('Error updating campaign:', error);
+        throw error;
+    }
+};
+
+/**
+ * Delete campaign (draft only)
+ * @param {string} campaignId - Campaign UUID
+ * @returns {Promise<Object>} Success status
+ */
+export const deleteCampaign = async (campaignId) => {
+    try {
+        const response = await api.delete(`/api/campaigns/${campaignId}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error deleting campaign:', error);
+        throw error;
+    }
+};
+
+/**
+ * Send campaign immediately
+ * @param {string} campaignId - Campaign UUID
+ * @returns {Promise<Object>} Updated campaign
+ */
+export const sendCampaign = async (campaignId) => {
+    try {
+        const response = await api.post(`/api/campaigns/${campaignId}/send`);
+        return response.data;
+    } catch (error) {
+        console.error('Error sending campaign:', error);
+        throw error;
+    }
+};
+
+/**
+ * Get campaign analytics
+ * @param {string} campaignId - Campaign UUID
+ * @returns {Promise<Object>} Campaign performance metrics
+ */
+export const getCampaignAnalytics = async (campaignId) => {
+    try {
+        const response = await api.get(`/api/campaigns/${campaignId}/analytics`);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching campaign analytics:', error);
+        throw error;
+    }
+};
+
+/**
+ * Preview campaign audience
+ * @param {Object} audienceFilter - Audience segmentation filters
+ * @returns {Promise<Object>} Audience statistics and sample users
+ */
+export const previewCampaignAudience = async (audienceFilter) => {
+    try {
+        const response = await api.post('/api/campaigns/preview', { audience_filter: audienceFilter });
+        return response.data;
+    } catch (error) {
+        console.error('Error previewing campaign audience:', error);
+        throw error;
+    }
+};
+
+/**
+ * Get campaign recipients
+ * @param {string} campaignId - Campaign UUID
+ * @param {Object} params - Query parameters (status, limit, offset)
+ * @returns {Promise<Object>} Recipient list with pagination
+ */
+export const getCampaignRecipients = async (campaignId, params = {}) => {
+    try {
+        const response = await api.get(`/api/campaigns/${campaignId}/recipients`, { params });
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching campaign recipients:', error);
+        throw error;
+    }
+};
+
 export default api;
