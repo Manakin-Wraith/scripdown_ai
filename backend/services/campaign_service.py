@@ -383,15 +383,15 @@ class CampaignService:
             
             recipients_data = recipients_result.data or []
             
-            # Enrich recipients with user names from auth.users
+            # Enrich recipients with user names from profiles
             recipients = []
             for recipient in recipients_data:
                 user_name = None
                 
-                # Try to get user's name from auth.users
+                # Try to get user's name from profiles table
                 if recipient.get('user_id'):
                     try:
-                        user_result = self.supabase.table('users')\
+                        user_result = self.supabase.table('profiles')\
                             .select('full_name')\
                             .eq('id', recipient['user_id'])\
                             .single()\
