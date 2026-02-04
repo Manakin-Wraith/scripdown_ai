@@ -5,7 +5,7 @@ Handles welcome emails, subscription status, and other auth-related functionalit
 
 from flask import Blueprint, request, jsonify
 from datetime import datetime, timedelta
-from services.email_service import send_welcome_email, is_configured
+from services.email_service import send_welcome_email, send_feature_announcement_email, is_configured
 from services.subscription_service import (
     get_subscription_status, 
     can_upload_script,
@@ -411,4 +411,108 @@ def apply_early_access():
         return jsonify({
             'error': str(e),
             'is_early_access': False
+        }), 500
+
+
+@auth_bp.route('/send-feature-announcement', methods=['POST'])
+def send_feature_announcement():
+    """
+    Send feature announcement email to specific users or all users.
+    Admin endpoint for announcing new features.
+    
+    Request body:
+        - recipients: List of email addresses (optional, sends to all if not provided)
+        - features: List of feature dicts with 'icon', 'title', 'description' (optional)
+        - send_to_all: Boolean to send to all active users (default: false)
+    
+    Returns:
+        - success: bool
+        - sent_count: int
+        - failed_count: int
+        - errors: list of error messages
+    """
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'error': 'Request body required'}), 400
+        
+        # Check if email service is configured
+        if not is_configured():
+            return jsonify({
+                'error': 'Email service not configured',
+                'success': False
+            }), 503
+        
+        recipients = data.get('recipients', [])
+        features = data.get('features')
+        send_to_all = data.get('send_to_all', False)
+        
+        supabase = get_supabase_client()
+        
+        # If send_to_all is true, fetch all user emails from profiles
+        if send_to_all:
+            profiles_result = supabase.table('profiles') \
+                .select('email, full_name') \
+                .execute()
+            
+            recipients = [
+                {'email': p['email'], 'full_name': p.get('full_name', '')}
+                for p in profiles_result.data
+            ]
+        else:
+            # If recipients is a list of emails, fetch their names
+            if recipients and isinstance(recipients[0], str):
+                profiles_result = supabase.table('profiles') \
+                    .select('email, full_name') \
+                    .in_('email', recipients) \
+                    .execute()
+                
+                recipients = [
+                    {'email': p['email'], 'full_name': p.get('full_name', '')}
+                    for p in profiles_result.data
+                ]
+        
+        if not recipients:
+            return jsonify({
+                'error': 'No recipients specified',
+                'success': False
+            }), 400
+        
+        # Send emails
+        sent_count = 0
+        failed_count = 0
+        errors = []
+        
+        for recipient in recipients:
+            try:
+                result = send_feature_announcement_email(
+                    to_email=recipient['email'],
+                    full_name=recipient.get('full_name', ''),
+                    features=features
+                )
+                
+                if 'error' in result:
+                    failed_count += 1
+                    errors.append(f"{recipient['email']}: {result['error']}")
+                else:
+                    sent_count += 1
+                    print(f"Feature announcement sent to {recipient['email']}")
+            except Exception as e:
+                failed_count += 1
+                errors.append(f"{recipient['email']}: {str(e)}")
+        
+        return jsonify({
+            'success': True,
+            'sent_count': sent_count,
+            'failed_count': failed_count,
+            'total_recipients': len(recipients),
+            'errors': errors if errors else None
+        })
+        
+    except Exception as e:
+        print(f"Error sending feature announcements: {e}")
+        return jsonify({
+            'error': str(e),
+            'success': False
         }), 500
