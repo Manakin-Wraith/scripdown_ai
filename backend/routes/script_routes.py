@@ -377,7 +377,7 @@ def reanalyze_script(script_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@script_bp.route('/scripts/<int:script_id>/metadata', methods=['GET'])
+@script_bp.route('/scripts/<script_id>/metadata', methods=['GET'])
 def get_script_metadata(script_id):
     """Get metadata for a specific script."""
     try:

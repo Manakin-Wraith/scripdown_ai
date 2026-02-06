@@ -229,7 +229,7 @@ def get_script_metadata(script_id):
     
     try:
         result = supabase.table('scripts').select(
-            'id, title, writer_name, draft_version, genre, logline, total_pages, created_at, analysis_status'
+            'id, title, writer_name, draft_version, genre, logline, total_pages, created_at, analysis_status, full_text'
         ).eq('id', script_id).single().execute()
         
         return jsonify(result.data), 200
@@ -706,6 +706,18 @@ def get_scenes(script_id):
         
         scenes = []
         for scene in result.data:
+            # Calculate eighths on-the-fly if DB value is NULL
+            eighths = scene.get('page_length_eighths')
+            if not eighths:
+                from utils.scene_calculations import calculate_eighths_from_content, calculate_eighths_from_pages
+                scene_text = scene.get('scene_text', '')
+                if scene_text and len(scene_text.strip()) > 50:
+                    eighths = calculate_eighths_from_content(scene_text)
+                elif scene.get('page_start') and scene.get('page_end'):
+                    eighths = calculate_eighths_from_pages(scene['page_start'], scene['page_end'])
+                else:
+                    eighths = 0
+            
             scenes.append({
                 'id': scene['id'],
                 'scene_id': scene['id'],  # Alias for compatibility
@@ -729,7 +741,8 @@ def get_scenes(script_id):
                 'text_start': scene.get('text_start'),
                 'text_end': scene.get('text_end'),
                 'page_start': scene.get('page_start'),
-                'page_end': scene.get('page_end')
+                'page_end': scene.get('page_end'),
+                'page_length_eighths': eighths
             })
         
         return jsonify({'script_id': script_id, 'scenes': scenes}), 200
@@ -3103,3 +3116,98 @@ def get_version_details(script_id, version_id):
     except Exception as e:
         print(f"Error getting version details: {e}")
         return jsonify({'error': str(e)}), 500
+
+
+# ============================================
+# Analysis Status Endpoints (Migrated from SQLite)
+# ============================================
+
+@supabase_bp.route('/api/analysis/status', methods=['GET'])
+@optional_auth
+def get_global_analysis_status():
+    """
+    Get analysis status for all scripts.
+    Returns summary of pending, analyzing, and complete scripts.
+    """
+    if not supabase:
+        return jsonify({'error': 'Supabase not configured'}), 500
+    
+    try:
+        user_id = get_user_id()
+        
+        # Get all scripts for user (owned + team member)
+        script_ids = set()
+        
+        if user_id:
+            # Get owned scripts
+            owned_result = supabase.table('scripts').select('id').eq('user_id', user_id).execute()
+            for script in owned_result.data or []:
+                script_ids.add(script['id'])
+            
+            # Get team member scripts
+            member_result = supabase.table('script_members').select('script_id').eq('user_id', user_id).execute()
+            for member in member_result.data or []:
+                script_ids.add(member['script_id'])
+        
+        if not script_ids:
+            return jsonify({
+                'success': True,
+                'data': {
+                    'total_scripts': 0,
+                    'pending': 0,
+                    'analyzing': 0,
+                    'complete': 0,
+                    'scripts': []
+                }
+            }), 200
+        
+        # Get analysis status for all scripts
+        scripts_status = []
+        total_pending = 0
+        total_analyzing = 0
+        total_complete = 0
+        
+        for script_id in script_ids:
+            # Get scenes for this script
+            scenes_result = supabase.table('scenes').select('id, analysis_status').eq('script_id', script_id).execute()
+            scenes = scenes_result.data or []
+            
+            if not scenes:
+                continue
+            
+            # Count scene statuses
+            pending = sum(1 for s in scenes if s.get('analysis_status') == 'pending')
+            analyzing = sum(1 for s in scenes if s.get('analysis_status') == 'analyzing')
+            complete = sum(1 for s in scenes if s.get('analysis_status') == 'complete')
+            
+            total_pending += pending
+            total_analyzing += analyzing
+            total_complete += complete
+            
+            scripts_status.append({
+                'script_id': script_id,
+                'total_scenes': len(scenes),
+                'pending': pending,
+                'analyzing': analyzing,
+                'complete': complete
+            })
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'total_scripts': len(scripts_status),
+                'pending': total_pending,
+                'analyzing': total_analyzing,
+                'complete': total_complete,
+                'scripts': scripts_status
+            }
+        }), 200
+        
+    except Exception as e:
+        print(f"Error getting global analysis status: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500

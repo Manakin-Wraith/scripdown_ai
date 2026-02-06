@@ -7,9 +7,10 @@ from dotenv import load_dotenv
 from routes.supabase_routes import supabase_bp
 from routes.report_routes import report_bp
 from routes.invite_routes import invite_bp
-from routes.analysis_routes import analysis_bp
+# DEPRECATED: SQLite-based routes (use Supabase as single source of truth)
+# from routes.analysis_routes import analysis_bp
+# from routes.script_routes import script_bp
 from routes.auth_routes import auth_bp
-from routes.script_routes import script_bp
 from routes.beta_routes import beta_bp
 from routes.email_analytics_routes import analytics_bp
 from routes.admin_routes import admin_bp
@@ -17,6 +18,7 @@ from routes.credit_routes import credit_bp
 from routes.feedback_routes import feedback_bp
 from routes.email_campaign_routes import campaign_bp
 from routes.campaign_webhook_routes import webhook_bp
+from routes.langextract_routes import langextract_bp
 
 load_dotenv()
 
@@ -40,9 +42,10 @@ CORS(app,
 app.register_blueprint(supabase_bp)  # Main Supabase routes at /api/*
 app.register_blueprint(report_bp, url_prefix='/api/reports')
 app.register_blueprint(invite_bp)
-app.register_blueprint(analysis_bp)  # Analysis routes at /api/analysis/*
+# DEPRECATED: SQLite-based blueprints (incompatible with Supabase UUID script_ids)
+# app.register_blueprint(analysis_bp)  # Analysis routes at /api/analysis/*
+# app.register_blueprint(script_bp, url_prefix='/api')  # Script routes including stripboard PDF
 app.register_blueprint(auth_bp)  # Auth routes at /api/auth/*
-app.register_blueprint(script_bp, url_prefix='/api')  # Script routes including stripboard PDF
 app.register_blueprint(beta_bp)  # Beta launch routes at /api/beta/*
 app.register_blueprint(analytics_bp)  # Email analytics routes at /api/email-analytics/*
 app.register_blueprint(admin_bp)  # Admin routes at /api/admin/* (superuser only)
@@ -50,10 +53,11 @@ app.register_blueprint(credit_bp)  # Credit system routes at /api/credits/*
 app.register_blueprint(feedback_bp)  # Feedback routes at /api/feedback/*
 app.register_blueprint(campaign_bp)  # Email campaign routes at /api/campaigns/* (superuser only)
 app.register_blueprint(webhook_bp)  # Campaign webhook routes at /api/campaigns/webhooks/*
+app.register_blueprint(langextract_bp)  # LangExtract routes at /api/scripts/:id/extractions/*
 
 @app.route('/health')
 def health_check():
     return {"status": "healthy", "service": "ScripDown Backend"}
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    app.run(debug=True, port=5000, threaded=True)

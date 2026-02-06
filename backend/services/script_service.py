@@ -4,6 +4,11 @@ from werkzeug.utils import secure_filename
 from utils.pdf_parser import parse_pdf
 from utils.metadata_extractor import extract_metadata
 from services.gemini_service import analyze_script
+from services.langextract_service import (
+    extract_with_langextract,
+    save_extractions_to_supabase,
+    generate_visualization
+)
 from db.db_connection import get_db
 
 UPLOAD_FOLDER = 'uploads'
@@ -234,5 +239,60 @@ def save_scene(script_id, scene_data):
     cursor.close()
 
 
+def process_script_with_langextract(script_id, script_text, supabase_client):
+    """
+    Process script using LangExtract for structured extraction.
+    This replaces the current Gemini service with LangExtract.
+    
+    Args:
+        script_id: UUID of the script (Supabase)
+        script_text: Full script text
+        supabase_client: Supabase client instance
+        
+    Returns:
+        Dictionary with extraction results and statistics
+    """
+    print(f"[LangExtract] Starting extraction for script {script_id}")
+    
+    try:
+        # Run LangExtract
+        extractions = extract_with_langextract(script_text)
+        print(f"[LangExtract] Extracted {len(extractions)} elements")
+        
+        # Save to database
+        saved_count = save_extractions_to_supabase(script_id, extractions, supabase_client)
+        print(f"[LangExtract] Saved {saved_count} extractions")
+        
+        # Generate visualization
+        html_viz = generate_visualization(script_id, script_text, extractions, supabase_client)
+        print(f"[LangExtract] Generated visualization ({len(html_viz)} bytes)")
+        
+        # NOTE: aggregate_extractions_to_scenes() removed — extraction_metadata is now
+        # the single source of truth. See docs/rich_update.md for details.
+        
+        # Update script status
+        supabase_client.table('scripts').update({
+            'analysis_status': 'complete',
+            'analysis_progress': 100
+        }).eq('id', script_id).execute()
+        
+        return {
+            'success': True,
+            'extractions_count': len(extractions),
+            'saved_count': saved_count,
+            'visualization_size': len(html_viz),
+            'status': 'complete'
+        }
+        
+    except Exception as e:
+        print(f"[LangExtract] Processing failed: {str(e)}")
+        
+        # Update script status to failed
+        supabase_client.table('scripts').update({
+            'analysis_status': 'failed',
+            'analysis_progress': 0
+        }).eq('id', script_id).execute()
+        
+        raise
 
 
