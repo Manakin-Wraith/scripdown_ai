@@ -10,6 +10,7 @@ import ScriptUpload from './components/script/ScriptUpload';
 import SceneViewer from './components/scenes/SceneViewer';
 import ScriptLibrary from './components/scripts/ScriptLibrary';
 import Stripboard from './components/reports/Stripboard';
+import InteractiveViewer from './components/langextract/InteractiveViewer';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import LoginPage from './pages/LoginPage';
 import ProfilePage from './pages/ProfilePage';
@@ -18,6 +19,8 @@ import ConfirmEmailPage from './pages/ConfirmEmailPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import AdminRoute from './components/auth/AdminRoute';
 import AdminTestPage from './pages/Admin/AdminTestPage';
+import LegacySceneRedirect from './components/routing/LegacySceneRedirect';
+import ScriptIntelligencePage from './components/intelligence/ScriptIntelligencePage';
 import AnalyticsDashboard from './pages/Admin/AnalyticsDashboard';
 import UserActivityPage from './pages/Admin/UserActivityPage';
 import ScriptAnalyticsPage from './pages/Admin/ScriptAnalyticsPage';
@@ -60,8 +63,12 @@ function App() {
                     <Route path="upload" element={<ScriptUpload />} />
                     <Route path="scripts" element={<ScriptLibrary />} />
                     <Route path="scenes/:scriptId" element={<SceneViewer />} />
+                    {/* Legacy redirect for old URL pattern */}
+                    <Route path="scripts/:scriptId/scenes" element={<LegacySceneRedirect />} />
                     <Route path="scripts/:scriptId/stripboard" element={<Stripboard />} />
-                    <Route path="scripts/:scriptId/reports" element={<ReportBuilder />} /> 
+                    <Route path="scripts/:scriptId/reports" element={<ReportBuilder />} />
+                    <Route path="scripts/:scriptId/interactive" element={<InteractiveViewer />} />
+                    <Route path="scenes/:scriptId/intelligence" element={<ScriptIntelligencePage />} /> 
                     
                     {/* Phase 2+ routes (deferred - commented out) */}
                     {/* <Route path="scenes/:scriptId/workspace/:departmentCode" element={<DepartmentWorkspace />} /> */}

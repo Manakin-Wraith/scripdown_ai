@@ -517,6 +517,37 @@ export const getPageMapping = async (scriptId) => {
 };
 
 // ============================================
+// Scene Breakdown API (Rich Extraction Data)
+// ============================================
+
+/**
+ * Get rich scene breakdown from extraction_metadata, grouped by category.
+ * Returns full attributes and confidence scores — single source of truth.
+ * @param {string} scriptId - The script UUID
+ * @param {string} sceneId - The scene UUID
+ * @returns {Promise<Object>} { breakdown, enrichment, avg_confidence, total_extractions }
+ */
+export const getScriptIntelligence = async (scriptId) => {
+    try {
+        const response = await api.get(`/api/scripts/${scriptId}/intelligence`);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching script intelligence:', error);
+        throw error;
+    }
+};
+
+export const getSceneBreakdown = async (scriptId, sceneId) => {
+    try {
+        const response = await api.get(`/api/scripts/${scriptId}/scenes/${sceneId}/breakdown`);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching scene breakdown:', error);
+        throw error;
+    }
+};
+
+// ============================================
 // Report Generation API
 // ============================================
 
@@ -1617,6 +1648,145 @@ export const getCampaignRecipients = async (campaignId, params = {}) => {
         return response.data;
     } catch (error) {
         console.error('Error fetching campaign recipients:', error);
+        throw error;
+    }
+};
+
+/**
+ * Trigger LangExtract processing for a script
+ * @param {string} scriptId - Script UUID
+ * @returns {Promise<Object>} Processing job details
+ */
+export const triggerLangExtract = async (scriptId) => {
+    try {
+        // Endpoint returns 202 immediately, extraction runs in background thread
+        const response = await api.post(`/api/scripts/${scriptId}/process-langextract`, {}, {
+          timeout: 30000 // 30s — endpoint returns immediately now
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error triggering langextract:', error);
+        throw error;
+    }
+};
+
+/**
+ * Get langextract processing status
+ * @param {string} scriptId - Script UUID
+ * @returns {Promise<Object>} Processing status
+ */
+export const getLangExtractStatus = async (scriptId) => {
+    try {
+        const response = await api.get(`/api/scripts/${scriptId}/extractions/job-status`);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching langextract status:', error);
+        throw error;
+    }
+};
+
+/**
+ * Cancel langextract processing
+ * @param {string} scriptId - Script UUID
+ * @returns {Promise<Object>} Cancellation result
+ */
+export const cancelLangExtract = async (scriptId) => {
+    try {
+        const response = await api.post(`/api/scripts/${scriptId}/extractions/cancel`);
+        return response.data;
+    } catch (error) {
+        console.error('Error cancelling langextract:', error);
+        throw error;
+    }
+};
+
+// ============================================
+// Highlighted Script PDF
+// ============================================
+
+/**
+ * Get available extraction classes for a script (with counts).
+ * Used to build the filter UI before generating highlighted PDF.
+ * @param {string} scriptId - Script UUID
+ * @returns {Promise<Object>} { script_id, classes: [{ class, label, color, count }], total }
+ */
+export const getHighlightClasses = async (scriptId) => {
+    try {
+        const response = await api.get(`/api/scripts/${scriptId}/highlighted-pdf/classes`);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching highlight classes:', error);
+        throw error;
+    }
+};
+
+/**
+ * Generate and download a highlighted script PDF.
+ * @param {string} scriptId - Script UUID
+ * @param {string[]|null} filterClasses - Optional array of extraction_class values to include
+ * @returns {Promise<Blob>} PDF blob for download
+ */
+export const downloadHighlightedPdf = async (scriptId, filterClasses = null) => {
+    try {
+        const response = await api.post(
+            `/api/scripts/${scriptId}/highlighted-pdf`,
+            { filter_classes: filterClasses },
+            {
+                responseType: 'blob',
+                timeout: 120000 // 2 min — PDF generation can be slow
+            }
+        );
+
+        // Extract filename from Content-Disposition header
+        const disposition = response.headers['content-disposition'];
+        let filename = 'highlighted_script.pdf';
+        if (disposition) {
+            const match = disposition.match(/filename="?([^"]+)"?/);
+            if (match) filename = match[1];
+        }
+
+        // Trigger browser download
+        const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', filename);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+
+        return { success: true, filename };
+    } catch (error) {
+        console.error('Error downloading highlighted PDF:', error);
+        throw error;
+    }
+};
+
+/**
+ * Generate highlighted script as printable HTML (opens in new tab).
+ * @param {string} scriptId - Script UUID
+ * @param {string[]|null} filterClasses - Optional array of extraction_class values to include
+ * @returns {Promise<void>}
+ */
+export const openHighlightedHtml = async (scriptId, filterClasses = null) => {
+    try {
+        const response = await api.post(
+            `/api/scripts/${scriptId}/highlighted-html`,
+            { filter_classes: filterClasses },
+            {
+                responseType: 'text',
+                timeout: 120000
+            }
+        );
+
+        // Open in new tab for printing
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.write(response.data);
+            printWindow.document.close();
+        }
+    } catch (error) {
+        console.error('Error generating highlighted HTML:', error);
         throw error;
     }
 };

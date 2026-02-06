@@ -10,8 +10,11 @@ import {
     FileText,
     List,
     Clock,
-    ClipboardList
+    ClipboardList,
+    Eye,
+    Highlighter
 } from 'lucide-react';
+import HighlightedPdfModal from '../export/HighlightedPdfModal';
 import './ScriptHeader.css';
 
 // Phase 1: Simplified header - deferred features commented out
@@ -26,6 +29,7 @@ const ScriptHeader = ({ metadata, sceneCount = 0 }) => {
     const { scriptId } = useParams();
     const [infoOpen, setInfoOpen] = useState(false);
     const [copiedField, setCopiedField] = useState(null);
+    const [highlightModalOpen, setHighlightModalOpen] = useState(false);
     const popoverRef = useRef(null);
 
     // Phase 1: Membership/team features deferred
@@ -134,6 +138,15 @@ const ScriptHeader = ({ metadata, sceneCount = 0 }) => {
                 {/* Action buttons */}
                 <button 
                     className="header-action-btn primary" 
+                    title="Interactive Extractions Viewer"
+                    onClick={() => navigate(`/scripts/${scriptId}/interactive`)}
+                >
+                    <Eye size={18} />
+                    <span>Interactive</span>
+                </button>
+
+                <button 
+                    className="header-action-btn primary" 
                     title="One-Liner / Stripboard"
                     onClick={() => navigate(`/scripts/${scriptId}/stripboard`)}
                 >
@@ -150,6 +163,15 @@ const ScriptHeader = ({ metadata, sceneCount = 0 }) => {
                     <span>Reports</span>
                 </button>
 
+                <button 
+                    className="header-action-btn primary" 
+                    title="Download Highlighted Script PDF"
+                    onClick={() => setHighlightModalOpen(true)}
+                >
+                    <Highlighter size={18} />
+                    <span>Highlighted</span>
+                </button>
+
                 {/* Phase 2+: Team button - deferred
                 <div className="coming-soon-btn-wrapper">
                     <div className="header-action-btn coming-soon">
@@ -163,6 +185,12 @@ const ScriptHeader = ({ metadata, sceneCount = 0 }) => {
             </div>
 
             {/* Phase 1: Team Drawer and Lock Modal deferred */}
+
+            <HighlightedPdfModal
+                scriptId={scriptId}
+                isOpen={highlightModalOpen}
+                onClose={() => setHighlightModalOpen(false)}
+            />
         </div>
     );
 };

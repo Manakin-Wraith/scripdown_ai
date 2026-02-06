@@ -1,0 +1,288 @@
+/* ============================================
+   Highlighted PDF Modal Styles
+   Matches the app's dark Indigo/Slate design system
+   ============================================ */
+
+.hlpdf-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: hlpdf-fade-in 0.15s ease-out;
+}
+
+@keyframes hlpdf-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.hlpdf-modal {
+    background: var(--gray-900, #111827);
+    border: 1px solid var(--gray-700, #374151);
+    border-radius: 16px;
+    width: 90%;
+    max-width: 520px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4);
+    animation: hlpdf-slide-up 0.2s ease-out;
+}
+
+@keyframes hlpdf-slide-up {
+    from { transform: translateY(12px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+/* Header */
+.hlpdf-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--gray-700, #374151);
+}
+
+.hlpdf-header-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--gray-100, #f3f4f6);
+}
+
+.hlpdf-header-title h2 {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.hlpdf-header-title svg {
+    color: var(--primary-400, #818cf8);
+}
+
+.hlpdf-close {
+    background: none;
+    border: none;
+    color: var(--gray-400, #9ca3af);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 6px;
+    transition: all 0.15s;
+}
+.hlpdf-close:hover {
+    color: var(--gray-100, #f3f4f6);
+    background: var(--gray-800, #1f2937);
+}
+
+/* Description */
+.hlpdf-desc {
+    padding: 12px 20px 0;
+    margin: 0;
+    font-size: 13px;
+    color: var(--gray-400, #9ca3af);
+    line-height: 1.5;
+}
+
+/* Body */
+.hlpdf-body {
+    padding: 12px 20px;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 100px;
+}
+
+/* Loading / Error / Empty states */
+.hlpdf-loading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    justify-content: center;
+    padding: 32px 0;
+    color: var(--gray-400, #9ca3af);
+    font-size: 14px;
+}
+
+.hlpdf-loading .spin {
+    animation: hlpdf-spin 1s linear infinite;
+}
+
+@keyframes hlpdf-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.hlpdf-error {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 8px;
+    color: #fca5a5;
+    font-size: 13px;
+}
+
+.hlpdf-empty {
+    text-align: center;
+    padding: 24px 0;
+    color: var(--gray-400, #9ca3af);
+    font-size: 14px;
+}
+.hlpdf-hint {
+    font-size: 12px;
+    color: var(--gray-500, #6b7280);
+    margin-top: 4px;
+}
+
+/* Quick actions */
+.hlpdf-quick-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    font-size: 12px;
+}
+
+.hlpdf-link-btn {
+    background: none;
+    border: none;
+    color: var(--primary-400, #818cf8);
+    cursor: pointer;
+    font-size: 12px;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: all 0.15s;
+}
+.hlpdf-link-btn:hover {
+    background: var(--gray-800, #1f2937);
+    color: var(--primary-300, #a5b4fc);
+}
+
+.hlpdf-divider {
+    color: var(--gray-600, #4b5563);
+}
+
+.hlpdf-selection-count {
+    margin-left: auto;
+    color: var(--gray-500, #6b7280);
+    font-size: 11px;
+}
+
+/* Class list */
+.hlpdf-class-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.hlpdf-class-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    width: 100%;
+    text-align: left;
+    color: var(--gray-300, #d1d5db);
+    font-size: 13px;
+}
+
+.hlpdf-class-item:hover {
+    background: var(--gray-800, #1f2937);
+    border-color: var(--gray-700, #374151);
+}
+
+.hlpdf-class-item.selected {
+    background: rgba(99, 102, 241, 0.08);
+    border-color: rgba(99, 102, 241, 0.2);
+}
+
+.hlpdf-class-check {
+    display: flex;
+    align-items: center;
+    color: var(--gray-500, #6b7280);
+    flex-shrink: 0;
+}
+.hlpdf-class-item.selected .hlpdf-class-check {
+    color: var(--primary-400, #818cf8);
+}
+
+.hlpdf-class-swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    flex-shrink: 0;
+}
+
+.hlpdf-class-label {
+    flex: 1;
+}
+
+.hlpdf-class-count {
+    font-size: 11px;
+    color: var(--gray-500, #6b7280);
+    background: var(--gray-800, #1f2937);
+    padding: 2px 8px;
+    border-radius: 10px;
+    min-width: 30px;
+    text-align: center;
+}
+
+/* Footer */
+.hlpdf-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 14px 20px;
+    border-top: 1px solid var(--gray-700, #374151);
+}
+
+.hlpdf-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s;
+}
+
+.hlpdf-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.hlpdf-btn.primary {
+    background: var(--primary-600, #4f46e5);
+    color: white;
+}
+.hlpdf-btn.primary:hover:not(:disabled) {
+    background: var(--primary-500, #6366f1);
+}
+
+.hlpdf-btn.secondary {
+    background: var(--gray-800, #1f2937);
+    color: var(--gray-300, #d1d5db);
+    border: 1px solid var(--gray-700, #374151);
+}
+.hlpdf-btn.secondary:hover:not(:disabled) {
+    background: var(--gray-700, #374151);
+    color: var(--gray-100, #f3f4f6);
+}
+
+.hlpdf-btn .spin {
+    animation: hlpdf-spin 1s linear infinite;
+}

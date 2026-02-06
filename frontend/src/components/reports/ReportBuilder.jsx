@@ -4,7 +4,7 @@ import {
     FileText, Download, Share2, Printer, ChevronRight, 
     Users, MapPin, Package, Shirt, Film, List, BookOpen,
     Loader, Check, AlertCircle, Clock, Trash2, ExternalLink,
-    UserPlus, Zap, Flame
+    UserPlus, Zap, Flame, MessageSquare, Volume2, Heart, Link2
 } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 import { useScript } from '../../context/ScriptContext';
@@ -34,7 +34,11 @@ const REPORT_ICONS = {
     extras: UserPlus,
     sfx: Zap,
     special_effects: Zap,
-    stunts: Flame
+    stunts: Flame,
+    dialogue: MessageSquare,
+    sound_cues: Volume2,
+    emotional_arc: Heart,
+    continuity: Link2
 };
 
 const ReportBuilder = () => {
@@ -335,6 +339,28 @@ const ReportBuilder = () => {
                                             }
                                         </tbody>
                                     </table>
+                                </div>
+                            )}
+
+                            {/* Enrichment stats for new report types */}
+                            {previewData.summary?.has_rich_data && ['dialogue', 'sound_cues', 'emotional_arc', 'continuity'].includes(selectedType) && (
+                                <div className="preview-stats" style={{ marginTop: '0.75rem' }}>
+                                    <div className="stat-item">
+                                        <span className="stat-value">{previewData.summary?.total_dialogue_lines || 0}</span>
+                                        <span className="stat-label">Dialogue Lines</span>
+                                    </div>
+                                    <div className="stat-item">
+                                        <span className="stat-value">{previewData.summary?.total_emotions || 0}</span>
+                                        <span className="stat-label">Emotions</span>
+                                    </div>
+                                    <div className="stat-item">
+                                        <span className="stat-value">{previewData.summary?.total_relationships || 0}</span>
+                                        <span className="stat-label">Relationships</span>
+                                    </div>
+                                    <div className="stat-item">
+                                        <span className="stat-value">{previewData.summary?.total_sound_cues || 0}</span>
+                                        <span className="stat-label">Sound Cues</span>
+                                    </div>
                                 </div>
                             )}
                         </div>

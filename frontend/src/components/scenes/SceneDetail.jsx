@@ -1,53 +1,85 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
-    Users, 
-    Package, 
-    Sparkles, 
-    Shirt, 
-    Palette, 
-    Car, 
     Clapperboard,
     MapPin,
     Zap,
     Loader,
     Clock,
     MessageSquare,
-    Building2,
-    Volume2,
-    Dog,
-    UserPlus,
-    Flame,
     Activity,
     Heart,
-    Camera
+    Camera,
+    Sparkles,
+    Info,
+    ShieldCheck,
+    ChevronRight,
+    ChevronDown,
+    Eye,
+    EyeOff,
+    Brain,
+    ArrowLeftRight,
+    Sun,
+    Moon,
+    Sunset
 } from 'lucide-react';
 import NoteDrawer from '../notes/NoteDrawer';
-import { getScriptNotes } from '../../services/apiService';
+import { getScriptNotes, getSceneBreakdown } from '../../services/apiService';
 import { getSceneEighthsDisplay } from '../../utils/sceneUtils';
+import { SCENE_CATEGORIES, CATEGORY_DEPARTMENTS } from '../../config/extractionClassConfig';
 import './SceneDetail.css';
 
-// Category to department mapping for counting notes
-const CATEGORY_DEPARTMENTS = {
-    characters: ['director', 'casting', 'actor'],
-    props: ['production_design', 'director'],
-    wardrobe: ['costume', 'director'],
-    makeup_hair: ['makeup_hair', 'director'],
-    special_fx: ['vfx', 'director'],
-    vehicles: ['locations', 'director', 'production_design'],
-    locations: ['locations', 'production_design', 'director'],
-    sound: ['sound', 'director', 'post_production'],
-    animals: ['production_design', 'director'],
-    extras: ['casting', 'director'],
-    stunts: ['stunts', 'director', 'safety']
+// Tier thresholds
+const HERO_THRESHOLD = 4; // ≥4 items → expanded by default
+
+// Confidence dot color helper
+const getConfidenceColor = (confidence) => {
+    if (confidence >= 0.9) return 'var(--success, #22c55e)';
+    if (confidence >= 0.7) return 'var(--warning, #eab308)';
+    return 'var(--danger, #f97316)';
 };
 
 /**
- * SceneDetail - Shows scene breakdown with clickable cards for notes
+ * SceneDetail - Tiered Accordion breakdown layout
+ * Hero (≥4 items) → expanded by default
+ * Summary (1-3 items) → collapsed, inline preview
+ * Hidden (0 items) → tucked under disclosure toggle
  */
 const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapping = null }) => {
+    const navigate = useNavigate();
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [activeCategory, setActiveCategory] = useState(null);
     const [noteCounts, setNoteCounts] = useState({});
+    const [richBreakdown, setRichBreakdown] = useState(null);
+    const [enrichment, setEnrichment] = useState(null);
+    const [breakdownLoading, setBreakdownLoading] = useState(false);
+    const [expandedCategories, setExpandedCategories] = useState({});
+    const [showEmptyCategories, setShowEmptyCategories] = useState(false);
+    const [intelligenceOpen, setIntelligenceOpen] = useState(true);
+
+    // Fetch rich breakdown data from extraction_metadata
+    useEffect(() => {
+        const fetchBreakdown = async () => {
+            if (!scene || !scriptId) return;
+            const sceneId = scene.id || scene.scene_id;
+            if (!sceneId) return;
+
+            setBreakdownLoading(true);
+            try {
+                const data = await getSceneBreakdown(scriptId, sceneId);
+                setRichBreakdown(data.breakdown || null);
+                setEnrichment(data.enrichment || null);
+            } catch (err) {
+                console.warn('Rich breakdown unavailable, using flat scene data:', err.message);
+                setRichBreakdown(null);
+                setEnrichment(null);
+            } finally {
+                setBreakdownLoading(false);
+            }
+        };
+
+        fetchBreakdown();
+    }, [scene, scriptId]);
 
     // Fetch note counts for badges
     useEffect(() => {
@@ -59,10 +91,8 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
                 const response = await getScriptNotes(scriptId, { scene_id: sceneId });
                 const notes = response.notes || [];
                 
-                // Count notes per category using note_type field
                 const counts = {};
                 Object.keys(CATEGORY_DEPARTMENTS).forEach(category => {
-                    // Filter by note_type (category) - this is the correct way
                     counts[category] = notes.filter(n => n.note_type === category).length;
                 });
                 
@@ -75,6 +105,70 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
         fetchNoteCounts();
     }, [scene, scriptId]);
 
+    /**
+     * Get items for a category: prefer rich extraction data, fall back to flat scene arrays.
+     * Rich items have { text, attributes, confidence }, flat items are strings.
+     */
+    const getCategoryItems = useCallback((categoryKey) => {
+        if (richBreakdown && richBreakdown[categoryKey] && richBreakdown[categoryKey].length > 0) {
+            // Deduplicate rich items case-insensitively (safety net — backend should already dedup)
+            const seen = new Map();
+            for (const item of richBreakdown[categoryKey]) {
+                const norm = (item.text || '').trim().toLowerCase();
+                if (!norm) continue;
+                const existing = seen.get(norm);
+                if (!existing || (item.confidence || 0) > (existing.confidence || 0)) {
+                    seen.set(norm, item);
+                }
+            }
+            return { items: Array.from(seen.values()), isRich: true };
+        }
+        // Deduplicate flat items case-insensitively
+        const flatItems = scene[categoryKey] || [];
+        const seen = new Set();
+        const deduped = flatItems.filter(item => {
+            const text = (typeof item === 'string' ? item : item?.name || String(item)).trim().toLowerCase();
+            if (seen.has(text)) return false;
+            seen.add(text);
+            return true;
+        });
+        return { items: deduped, isRich: false };
+    }, [richBreakdown, scene]);
+
+    /**
+     * Sort categories by item count descending, split into tiers.
+     */
+    const { heroCategories, summaryCategories, emptyCategories } = useMemo(() => {
+        const sorted = Object.entries(SCENE_CATEGORIES)
+            .map(([key, config]) => {
+                const { items, isRich } = getCategoryItems(key);
+                return { key, config, items, isRich, count: items.length };
+            })
+            .sort((a, b) => b.count - a.count);
+
+        return {
+            heroCategories: sorted.filter(c => c.count >= HERO_THRESHOLD),
+            summaryCategories: sorted.filter(c => c.count > 0 && c.count < HERO_THRESHOLD),
+            emptyCategories: sorted.filter(c => c.count === 0)
+        };
+    }, [getCategoryItems]);
+
+
+    // Reset expanded state when scene changes; auto-expand hero categories
+    useEffect(() => {
+        const initial = {};
+        heroCategories.forEach(c => { initial[c.key] = true; });
+        setExpandedCategories(initial);
+        setShowEmptyCategories(false);
+    }, [scene?.id, scene?.scene_id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const toggleCategory = (categoryKey) => {
+        setExpandedCategories(prev => ({
+            ...prev,
+            [categoryKey]: !prev[categoryKey]
+        }));
+    };
+
     const openDrawer = (category, title) => {
         setActiveCategory({ key: category, title });
         setDrawerOpen(true);
@@ -83,19 +177,143 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
     const closeDrawer = () => {
         setDrawerOpen(false);
         setActiveCategory(null);
-        // Refresh note counts after closing
         if (scene && scriptId) {
             const sceneId = scene.id || scene.scene_id;
             getScriptNotes(scriptId, { scene_id: sceneId }).then(response => {
                 const notes = response.notes || [];
                 const counts = {};
                 Object.keys(CATEGORY_DEPARTMENTS).forEach(category => {
-                    // Filter by note_type (category)
                     counts[category] = notes.filter(n => n.note_type === category).length;
                 });
                 setNoteCounts(counts);
             }).catch(console.error);
         }
+    };
+
+    /** Render a single accordion row */
+    const renderAccordionRow = ({ key, config, items, isRich, count }) => {
+        const Icon = config.icon;
+        const isExpanded = !!expandedCategories[key];
+        const noteCount = noteCounts[key] || 0;
+
+        return (
+            <div key={key} className={`accordion-row ${isExpanded ? 'expanded' : ''}`}>
+                <div
+                    className="accordion-header"
+                    role="button"
+                    tabIndex={0}
+                    aria-expanded={isExpanded}
+                    aria-controls={`accordion-panel-${key}`}
+                    onClick={() => toggleCategory(key)}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            toggleCategory(key);
+                        }
+                    }}
+                    style={{ '--accent-color': config.color }}
+                >
+                    <span className="accordion-chevron">
+                        {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                    </span>
+                    <Icon size={18} className="accordion-icon" style={{ color: config.color }} />
+                    <span className="accordion-label">{config.label}</span>
+                    <span className="accordion-count" style={{ 
+                        background: `${config.color}22`,
+                        color: config.color 
+                    }}>
+                        {count}
+                    </span>
+                    {isRich && (
+                        <span className="rich-badge" title="Rich extraction data">
+                            <ShieldCheck size={12} />
+                        </span>
+                    )}
+                    {noteCount > 0 && (
+                        <button
+                            className="note-badge"
+                            onClick={(e) => { e.stopPropagation(); openDrawer(key, config.label); }}
+                            title={`${noteCount} note${noteCount > 1 ? 's' : ''} — click to view`}
+                        >
+                            <MessageSquare size={12} />
+                            {noteCount}
+                        </button>
+                    )}
+                    <button
+                        className="accordion-note-btn"
+                        onClick={(e) => { e.stopPropagation(); openDrawer(key, config.label); }}
+                        title="Add note"
+                    >
+                        <MessageSquare size={14} />
+                    </button>
+                    {/* Inline summary when collapsed and has items */}
+                    {!isExpanded && count > 0 && (
+                        <span className="accordion-inline-summary">
+                            {items.slice(0, 3).map((item, idx) => (
+                                <span key={idx} className={`inline-tag ${config.tagClass}`}>
+                                    {isRich ? item.text : (typeof item === 'string' ? item : item?.name || String(item))}
+                                </span>
+                            ))}
+                            {count > 3 && <span className="inline-more">+{count - 3}</span>}
+                        </span>
+                    )}
+                </div>
+
+                {/* Expandable panel */}
+                <div
+                    id={`accordion-panel-${key}`}
+                    className="accordion-panel"
+                    role="region"
+                >
+                    {isExpanded && (
+                        <div className="accordion-content">
+                            {isRich ? (
+                                <div className="rich-item-list">
+                                    {items.map((item, idx) => {
+                                        const attrs = item.attributes || {};
+                                        const displayAttrs = Object.entries(attrs)
+                                            .filter(([, v]) => v && v !== '' && v !== 'unknown')
+                                            .slice(0, 3);
+                                        const conf = item.confidence;
+                                        return (
+                                            <div key={item.id || idx} className="rich-item">
+                                                <div className="rich-item-header">
+                                                    <span className={`tag ${config.tagClass}`}>{item.text}</span>
+                                                    {typeof conf === 'number' && (
+                                                        <span
+                                                            className="confidence-dot"
+                                                            style={{ background: getConfidenceColor(conf) }}
+                                                            title={`AI Confidence: ${Math.round(conf * 100)}%`}
+                                                        />
+                                                    )}
+                                                </div>
+                                                {displayAttrs.length > 0 && (
+                                                    <div className="rich-attrs">
+                                                        {displayAttrs.map(([attrKey, value]) => (
+                                                            <span key={attrKey} className="attr-pill">
+                                                                {attrKey.replace(/_/g, ' ')}: {String(value)}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            ) : (
+                                <div className="tag-container">
+                                    {items.map((item, idx) => (
+                                        <span key={idx} className={`tag ${config.tagClass}`}>
+                                            {typeof item === 'string' ? item : item?.name || String(item)}
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            </div>
+        );
     };
     
     if (!scene) {
@@ -117,7 +335,6 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
     if (needsAnalysis && !isAnalyzing) {
         return (
             <div className="scene-detail">
-                {/* Header */}
                 <div className="detail-header">
                     <span className="scene-number-label">Scene {scene.scene_number_original || scene.scene_number}</span>
                     <h2 className="scene-title">
@@ -127,7 +344,6 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
                     </h2>
                 </div>
 
-                {/* Analyze Prompt */}
                 <div className="analyze-prompt">
                     <div className="prompt-icon">
                         <Clock size={48} />
@@ -150,7 +366,6 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
     if (isAnalyzing) {
         return (
             <div className="scene-detail">
-                {/* Header */}
                 <div className="detail-header">
                     <span className="scene-number-label">Scene {scene.scene_number_original || scene.scene_number}</span>
                     <h2 className="scene-title">
@@ -160,7 +375,6 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
                     </h2>
                 </div>
 
-                {/* Analyzing State */}
                 <div className="analyze-prompt analyzing">
                     <div className="prompt-icon">
                         <Loader size={48} className="spin" />
@@ -172,27 +386,50 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
         );
     }
 
+    const totalPopulated = heroCategories.length + summaryCategories.length;
+
     return (
         <div className="scene-detail">
             {/* Header */}
             <div className="detail-header">
-                <span className="scene-number-label">Scene {scene.scene_number_original || scene.scene_number}</span>
+                <div className="header-top-row">
+                    <span className="scene-number-label">Scene {scene.scene_number_original || scene.scene_number}</span>
+                    <div className="header-badges">
+                        {scene.time_of_day && (
+                            <span className={`time-of-day-badge ${(scene.time_of_day || '').toLowerCase().includes('night') ? 'night' : (scene.time_of_day || '').toLowerCase().includes('sunset') || (scene.time_of_day || '').toLowerCase().includes('dawn') || (scene.time_of_day || '').toLowerCase().includes('dusk') ? 'twilight' : 'day'}`}>
+                                {(scene.time_of_day || '').toLowerCase().includes('night')
+                                    ? <Moon size={12} />
+                                    : (scene.time_of_day || '').toLowerCase().includes('sunset') || (scene.time_of_day || '').toLowerCase().includes('dawn') || (scene.time_of_day || '').toLowerCase().includes('dusk')
+                                        ? <Sunset size={12} />
+                                        : <Sun size={12} />}
+                                {scene.time_of_day}
+                            </span>
+                        )}
+                        <span className="page-length-badge">
+                            {getSceneEighthsDisplay(scene)} pg
+                        </span>
+                    </div>
+                </div>
                 <h2 className="scene-title">
                     <MapPin size={24} className="inline-icon" />
                     {scene.int_ext && <span className="int-ext-label">{scene.int_ext}.</span>}
                     {scene.setting}
                 </h2>
-                {scene.atmosphere && (
-                    <div className="scene-atmosphere">
-                        <span className="label">Atmosphere:</span>
-                        <span className="value">{scene.atmosphere}</span>
-                    </div>
-                )}
-                {scene.emotional_tone && (
-                    <div className="scene-atmosphere">
-                        <Heart size={16} className="inline-icon" />
-                        <span className="label">Tone:</span>
-                        <span className="value">{scene.emotional_tone}</span>
+                {(scene.atmosphere || scene.emotional_tone) && (
+                    <div className="header-meta-row">
+                        {scene.atmosphere && (
+                            <div className="scene-atmosphere">
+                                <span className="label">Atmosphere:</span>
+                                <span className="value">{scene.atmosphere}</span>
+                            </div>
+                        )}
+                        {scene.emotional_tone && (
+                            <div className="scene-atmosphere">
+                                <Heart size={14} className="inline-icon" />
+                                <span className="label">Tone:</span>
+                                <span className="value">{scene.emotional_tone}</span>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
@@ -217,327 +454,251 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
                     )}
                 </div>
 
-                {/* Breakdown Grid - Clickable Cards */}
-                <div className="breakdown-grid">
-                    {/* Characters */}
-                    <div 
-                        className="breakdown-card clickable"
-                        onClick={() => openDrawer('characters', 'Characters')}
-                        title="Click to add notes"
-                    >
-                        <div className="card-header">
-                            <Users size={20} className="card-icon" />
-                            <h3>Characters</h3>
-                            {noteCounts.characters > 0 && (
-                                <span className="note-badge">
-                                    <MessageSquare size={12} />
-                                    {noteCounts.characters}
-                                </span>
-                            )}
-                        </div>
-                        <div className="card-content">
-                            {scene.characters && scene.characters.length > 0 ? (
-                                <div className="tag-container">
-                                    {scene.characters.map((char, idx) => (
-                                        <span key={idx} className="tag character-tag">{char}</span>
-                                    ))}
+                {/* Loading skeleton */}
+                {breakdownLoading && (
+                    <div className="accordion-skeleton">
+                        {[1, 2, 3].map(i => (
+                            <div key={i} className="skeleton-row" />
+                        ))}
+                    </div>
+                )}
+
+                {/* Tiered Accordion Breakdown */}
+                {!breakdownLoading && totalPopulated > 0 && (
+                    <div className="accordion-breakdown">
+                        {/* Hero tier — expanded by default */}
+                        {heroCategories.map(renderAccordionRow)}
+
+                        {/* Summary tier — collapsed by default */}
+                        {summaryCategories.map(renderAccordionRow)}
+
+                        {/* Empty categories disclosure */}
+                        {emptyCategories.length > 0 && (
+                            <button
+                                className="empty-disclosure-toggle"
+                                onClick={() => setShowEmptyCategories(prev => !prev)}
+                                aria-expanded={showEmptyCategories}
+                            >
+                                {showEmptyCategories ? <EyeOff size={14} /> : <Eye size={14} />}
+                                {showEmptyCategories
+                                    ? 'Hide empty categories'
+                                    : `+${emptyCategories.length} empty categor${emptyCategories.length === 1 ? 'y' : 'ies'}`
+                                }
+                            </button>
+                        )}
+
+                        {/* Revealed empty categories */}
+                        {showEmptyCategories && emptyCategories.map(({ key, config }) => {
+                            const Icon = config.icon;
+                            const noteCount = noteCounts[key] || 0;
+                            return (
+                                <div key={key} className="accordion-row empty-row">
+                                    <div
+                                        className="accordion-header empty-header"
+                                        role="button"
+                                        tabIndex={0}
+                                        onClick={() => openDrawer(key, config.label)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                e.preventDefault();
+                                                openDrawer(key, config.label);
+                                            }
+                                        }}
+                                        style={{ '--accent-color': config.color }}
+                                    >
+                                        <Icon size={18} className="accordion-icon" style={{ color: config.color, opacity: 0.5 }} />
+                                        <span className="accordion-label" style={{ opacity: 0.5 }}>{config.label}</span>
+                                        <span className="accordion-count empty-count">0</span>
+                                        {noteCount > 0 && (
+                                            <span className="note-badge">
+                                                <MessageSquare size={12} />
+                                                {noteCount}
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
-                            ) : (
-                                <p className="empty-text">No characters detected</p>
-                            )}
-                        </div>
+                            );
+                        })}
                     </div>
+                )}
 
-                    {/* Props */}
-                    <div 
-                        className="breakdown-card clickable"
-                        onClick={() => openDrawer('props', 'Props')}
-                        title="Click to add notes"
-                    >
-                        <div className="card-header">
-                            <Package size={20} className="card-icon" />
-                            <h3>Props</h3>
-                            {noteCounts.props > 0 && (
-                                <span className="note-badge">
-                                    <MessageSquare size={12} />
-                                    {noteCounts.props}
-                                </span>
-                            )}
-                        </div>
-                        <div className="card-content">
-                            {scene.props && scene.props.length > 0 ? (
-                                <div className="tag-container">
-                                    {scene.props.map((prop, idx) => (
-                                        <span key={idx} className="tag prop-tag">{prop}</span>
-                                    ))}
-                                </div>
-                            ) : (
-                                <p className="empty-text">No props detected</p>
-                            )}
-                        </div>
+                {/* No extraction data at all */}
+                {!breakdownLoading && totalPopulated === 0 && !needsAnalysis && (
+                    <div className="no-extraction-message">
+                        <Info size={20} />
+                        <span>No extraction data found for this scene</span>
                     </div>
+                )}
 
-                    {/* Wardrobe */}
-                    <div 
-                        className="breakdown-card clickable"
-                        onClick={() => openDrawer('wardrobe', 'Wardrobe')}
-                        title="Click to add notes"
-                    >
-                        <div className="card-header">
-                            <Shirt size={20} className="card-icon" />
-                            <h3>Wardrobe</h3>
-                            {noteCounts.wardrobe > 0 && (
-                                <span className="note-badge">
-                                    <MessageSquare size={12} />
-                                    {noteCounts.wardrobe}
-                                </span>
-                            )}
+                {/* Scene Intelligence — elevated enrichment panel */}
+                {enrichment && Object.keys(enrichment).length > 0 && (
+                    <div className="intelligence-section">
+                        <div
+                            className="intelligence-header"
+                            role="button"
+                            tabIndex={0}
+                            aria-expanded={intelligenceOpen}
+                            aria-controls="intelligence-panel"
+                            onClick={() => setIntelligenceOpen(prev => !prev)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    setIntelligenceOpen(prev => !prev);
+                                }
+                            }}
+                        >
+                            <Brain size={18} className="intelligence-icon" />
+                            <span className="intelligence-title">Scene Intelligence</span>
+                            <button
+                                className="intel-deep-dive-btn"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigate(`/scenes/${scriptId}/intelligence`);
+                                }}
+                                title="Open Script Intelligence overview"
+                            >
+                                <Brain size={14} />
+                                Deep Dive
+                            </button>
+                            <span className="intelligence-chevron">
+                                {intelligenceOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                            </span>
                         </div>
-                        <div className="card-content">
-                            {scene.wardrobe && scene.wardrobe.length > 0 ? (
-                                <ul className="detail-list">
-                                    {scene.wardrobe.map((item, idx) => (
-                                        <li key={idx}>{item}</li>
-                                    ))}
-                                </ul>
-                            ) : (
-                                <p className="empty-text">No wardrobe notes</p>
-                            )}
-                        </div>
-                    </div>
 
-                    {/* Makeup & Hair */}
-                    <div 
-                        className="breakdown-card clickable"
-                        onClick={() => openDrawer('makeup_hair', 'Makeup & Hair')}
-                        title="Click to add notes"
-                    >
-                        <div className="card-header">
-                            <Palette size={20} className="card-icon" />
-                            <h3>Makeup & Hair</h3>
-                            {noteCounts.makeup_hair > 0 && (
-                                <span className="note-badge">
-                                    <MessageSquare size={12} />
-                                    {noteCounts.makeup_hair}
-                                </span>
-                            )}
-                        </div>
-                        <div className="card-content">
-                            {scene.makeup_hair && scene.makeup_hair.length > 0 ? (
-                                <ul className="detail-list">
-                                    {scene.makeup_hair.map((item, idx) => (
-                                        <li key={idx}>{item}</li>
-                                    ))}
-                                </ul>
-                            ) : (
-                                <p className="empty-text">No makeup/hair notes</p>
-                            )}
-                        </div>
-                    </div>
+                        {intelligenceOpen && (
+                            <div id="intelligence-panel" className="intelligence-body" role="region">
+                                {/* Emotions — intensity bars */}
+                                {enrichment.emotion && enrichment.emotion.length > 0 && (
+                                    <div className="intel-card">
+                                        <div className="intel-card-header">
+                                            <Heart size={16} style={{ color: '#db2777' }} />
+                                            <span>Emotions ({enrichment.emotion.length})</span>
+                                        </div>
+                                        <div className="intel-card-body">
+                                            {enrichment.emotion.map((e, idx) => {
+                                                const intensity = (e.attributes?.intensity || '').toLowerCase();
+                                                const barWidth = intensity === 'high' || intensity === 'intense' ? 100
+                                                    : intensity === 'medium' || intensity === 'moderate' ? 60
+                                                    : intensity === 'low' || intensity === 'subtle' ? 30
+                                                    : 50;
+                                                return (
+                                                    <div key={e.id || idx} className="emotion-row">
+                                                        <div className="emotion-info">
+                                                            <span className="emotion-label">{e.text}</span>
+                                                            {typeof e.confidence === 'number' && (
+                                                                <span
+                                                                    className="confidence-dot"
+                                                                    style={{ background: getConfidenceColor(e.confidence) }}
+                                                                    title={`AI Confidence: ${Math.round(e.confidence * 100)}%`}
+                                                                />
+                                                            )}
+                                                        </div>
+                                                        <div className="emotion-bar-track">
+                                                            <div
+                                                                className="emotion-bar-fill"
+                                                                style={{ width: `${barWidth}%` }}
+                                                            />
+                                                        </div>
+                                                        {intensity && (
+                                                            <span className="emotion-intensity-label">{intensity}</span>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
 
-                    {/* Special FX */}
-                    <div 
-                        className="breakdown-card clickable"
-                        onClick={() => openDrawer('special_fx', 'Special FX')}
-                        title="Click to add notes"
-                    >
-                        <div className="card-header">
-                            <Sparkles size={20} className="card-icon" />
-                            <h3>Special FX</h3>
-                            {noteCounts.special_fx > 0 && (
-                                <span className="note-badge">
-                                    <MessageSquare size={12} />
-                                    {noteCounts.special_fx}
-                                </span>
-                            )}
-                        </div>
-                        <div className="card-content">
-                            {scene.special_fx && scene.special_fx.length > 0 ? (
-                                <div className="tag-container">
-                                    {scene.special_fx.map((fx, idx) => (
-                                        <span key={idx} className="tag fx-tag">{fx}</span>
-                                    ))}
-                                </div>
-                            ) : (
-                                <p className="empty-text">No special FX detected</p>
-                            )}
-                        </div>
-                    </div>
+                                {/* Dialogue — grouped by character */}
+                                {enrichment.dialogue && enrichment.dialogue.length > 0 && (() => {
+                                    const grouped = {};
+                                    enrichment.dialogue.forEach(d => {
+                                        const rawChar = d.attributes?.character || 'Unknown';
+                                        const char = rawChar.trim().toUpperCase();
+                                        if (!grouped[char]) grouped[char] = [];
+                                        grouped[char].push(d);
+                                    });
+                                    const totalLines = enrichment.dialogue.length;
+                                    let shownCount = 0;
+                                    const maxLines = 5;
 
-                    {/* Vehicles */}
-                    <div 
-                        className="breakdown-card clickable"
-                        onClick={() => openDrawer('vehicles', 'Vehicles')}
-                        title="Click to add notes"
-                    >
-                        <div className="card-header">
-                            <Car size={20} className="card-icon" />
-                            <h3>Vehicles</h3>
-                            {noteCounts.vehicles > 0 && (
-                                <span className="note-badge">
-                                    <MessageSquare size={12} />
-                                    {noteCounts.vehicles}
-                                </span>
-                            )}
-                        </div>
-                        <div className="card-content">
-                            {scene.vehicles && scene.vehicles.length > 0 ? (
-                                <div className="tag-container">
-                                    {scene.vehicles.map((v, idx) => (
-                                        <span key={idx} className="tag vehicle-tag">{v}</span>
-                                    ))}
-                                </div>
-                            ) : (
-                                <p className="empty-text">No vehicles detected</p>
-                            )}
-                        </div>
-                    </div>
+                                    return (
+                                        <div className="intel-card">
+                                            <div className="intel-card-header">
+                                                <MessageSquare size={16} style={{ color: '#14b8a6' }} />
+                                                <span>Dialogue ({totalLines})</span>
+                                            </div>
+                                            <div className="intel-card-body">
+                                                {Object.entries(grouped).map(([character, lines]) => (
+                                                    <div key={character} className="dialogue-group">
+                                                        <span className="dialogue-character">{character}</span>
+                                                        {lines.map((d, idx) => {
+                                                            shownCount++;
+                                                            if (shownCount > maxLines) return null;
+                                                            return (
+                                                                <div key={d.id || idx} className="dialogue-line">
+                                                                    <span className="dialogue-text">"{d.text}"</span>
+                                                                    {d.attributes?.tone && (
+                                                                        <span className="tone-badge">{d.attributes.tone}</span>
+                                                                    )}
+                                                                    {typeof d.confidence === 'number' && (
+                                                                        <span
+                                                                            className="confidence-dot"
+                                                                            style={{ background: getConfidenceColor(d.confidence) }}
+                                                                            title={`AI Confidence: ${Math.round(d.confidence * 100)}%`}
+                                                                        />
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                ))}
+                                                {totalLines > maxLines && (
+                                                    <p className="intel-more">+{totalLines - maxLines} more lines</p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
 
-                    {/* Locations */}
-                    <div 
-                        className="breakdown-card clickable"
-                        onClick={() => openDrawer('locations', 'Locations')}
-                        title="Click to add notes"
-                    >
-                        <div className="card-header">
-                            <Building2 size={20} className="card-icon" />
-                            <h3>Locations</h3>
-                            {noteCounts.locations > 0 && (
-                                <span className="note-badge">
-                                    <MessageSquare size={12} />
-                                    {noteCounts.locations}
-                                </span>
-                            )}
-                        </div>
-                        <div className="card-content">
-                            {scene.locations && scene.locations.length > 0 ? (
-                                <div className="tag-container">
-                                    {scene.locations.map((loc, idx) => (
-                                        <span key={idx} className="tag location-tag">{loc}</span>
-                                    ))}
-                                </div>
-                            ) : (
-                                <p className="empty-text">No sub-locations detected</p>
-                            )}
-                        </div>
+                                {/* Relationships — pairs with dynamic */}
+                                {enrichment.relationship && enrichment.relationship.length > 0 && (
+                                    <div className="intel-card">
+                                        <div className="intel-card-header">
+                                            <ArrowLeftRight size={16} style={{ color: '#ec4899' }} />
+                                            <span>Relationships ({enrichment.relationship.length})</span>
+                                        </div>
+                                        <div className="intel-card-body">
+                                            {enrichment.relationship.map((r, idx) => {
+                                                const chars = r.attributes?.characters || r.text;
+                                                const dynamic = r.attributes?.dynamic;
+                                                const relType = r.attributes?.type;
+                                                return (
+                                                    <div key={r.id || idx} className="relationship-row">
+                                                        <div className="relationship-pair">
+                                                            <span className="relationship-chars">{chars}</span>
+                                                            {typeof r.confidence === 'number' && (
+                                                                <span
+                                                                    className="confidence-dot"
+                                                                    style={{ background: getConfidenceColor(r.confidence) }}
+                                                                    title={`AI Confidence: ${Math.round(r.confidence * 100)}%`}
+                                                                />
+                                                            )}
+                                                        </div>
+                                                        <div className="relationship-meta">
+                                                            {dynamic && <span className="relationship-dynamic">{dynamic}</span>}
+                                                            {relType && <span className="attr-pill">{relType}</span>}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
-
-                    {/* Sound */}
-                    <div 
-                        className="breakdown-card clickable"
-                        onClick={() => openDrawer('sound', 'Sound')}
-                        title="Click to add notes"
-                    >
-                        <div className="card-header">
-                            <Volume2 size={20} className="card-icon" />
-                            <h3>Sound</h3>
-                            {noteCounts.sound > 0 && (
-                                <span className="note-badge">
-                                    <MessageSquare size={12} />
-                                    {noteCounts.sound}
-                                </span>
-                            )}
-                        </div>
-                        <div className="card-content">
-                            {scene.sound && scene.sound.length > 0 ? (
-                                <div className="tag-container">
-                                    {scene.sound.map((s, idx) => (
-                                        <span key={idx} className="tag sound-tag">{s}</span>
-                                    ))}
-                                </div>
-                            ) : (
-                                <p className="empty-text">No sound cues detected</p>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Animals */}
-                    <div 
-                        className="breakdown-card clickable"
-                        onClick={() => openDrawer('animals', 'Animals')}
-                        title="Click to add notes"
-                    >
-                        <div className="card-header">
-                            <Dog size={20} className="card-icon" />
-                            <h3>Animals</h3>
-                            {noteCounts.animals > 0 && (
-                                <span className="note-badge">
-                                    <MessageSquare size={12} />
-                                    {noteCounts.animals}
-                                </span>
-                            )}
-                        </div>
-                        <div className="card-content">
-                            {scene.animals && scene.animals.length > 0 ? (
-                                <div className="tag-container">
-                                    {scene.animals.map((animal, idx) => (
-                                        <span key={idx} className="tag animal-tag">{animal}</span>
-                                    ))}
-                                </div>
-                            ) : (
-                                <p className="empty-text">No animals detected</p>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Extras */}
-                    <div 
-                        className="breakdown-card clickable"
-                        onClick={() => openDrawer('extras', 'Extras')}
-                        title="Click to add notes"
-                    >
-                        <div className="card-header">
-                            <UserPlus size={20} className="card-icon" />
-                            <h3>Extras</h3>
-                            {noteCounts.extras > 0 && (
-                                <span className="note-badge">
-                                    <MessageSquare size={12} />
-                                    {noteCounts.extras}
-                                </span>
-                            )}
-                        </div>
-                        <div className="card-content">
-                            {scene.extras && scene.extras.length > 0 ? (
-                                <div className="tag-container">
-                                    {scene.extras.map((extra, idx) => (
-                                        <span key={idx} className="tag extra-tag">{extra}</span>
-                                    ))}
-                                </div>
-                            ) : (
-                                <p className="empty-text">No extras detected</p>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Stunts */}
-                    <div 
-                        className="breakdown-card clickable"
-                        onClick={() => openDrawer('stunts', 'Stunts')}
-                        title="Click to add notes"
-                    >
-                        <div className="card-header">
-                            <Flame size={20} className="card-icon" />
-                            <h3>Stunts</h3>
-                            {noteCounts.stunts > 0 && (
-                                <span className="note-badge">
-                                    <MessageSquare size={12} />
-                                    {noteCounts.stunts}
-                                </span>
-                            )}
-                        </div>
-                        <div className="card-content">
-                            {scene.stunts && scene.stunts.length > 0 ? (
-                                <div className="tag-container">
-                                    {scene.stunts.map((stunt, idx) => (
-                                        <span key={idx} className="tag stunt-tag">{stunt}</span>
-                                    ))}
-                                </div>
-                            ) : (
-                                <p className="empty-text">No stunts detected</p>
-                            )}
-                        </div>
-                    </div>
-                </div>
+                )}
             </div>
 
             {/* Note Drawer */}
