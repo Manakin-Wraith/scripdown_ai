@@ -43,7 +43,7 @@ SET body_html = '<!DOCTYPE html>
                                 <table cellpadding="0" cellspacing="0" style="width: 100%;">
                                     <tr>
                                         <td style="width: 60px; vertical-align: top; padding-right: 16px;">
-                                            <img src="https://app.slateone.studio/profile_pic.png" alt="{{founder_name}}" style="width: 56px; height: 56px; border-radius: 50%; object-fit: cover; border: 2px solid #F59E0B;">
+                                            <img src="https://app.slateone.studio/profile_pic.png" alt="{{founder_name}}" width="56" height="56" style="display: block; width: 56px; height: 56px; border-radius: 50%; object-fit: cover; object-position: center 30%; border: 2px solid #F59E0B; max-width: 56px;" border="0">
                                         </td>
                                         <td style="vertical-align: top;">
                                             <p style="margin: 0 0 4px 0; font-size: 16px; font-weight: 700; color: #FFFFFF; letter-spacing: -0.3px;">
