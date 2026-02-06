@@ -166,6 +166,59 @@ PRESET_EXTRAS = {
     "show_cross_references": True
 }
 
+PRESET_DIALOGUE = {
+    "report_type": "dialogue",
+    "include_categories": ["characters"],
+    "exclude_categories": [],
+    "include_metadata": {
+        "script_title": True,
+        "writer_name": True
+    },
+    "include_descriptions": {"all": True},
+    "include_summary": True,
+    "show_cross_references": False,
+    "group_by": "character"
+}
+
+PRESET_SOUND_CUES = {
+    "report_type": "sound_cues",
+    "include_categories": ["sound"],
+    "exclude_categories": [],
+    "include_metadata": {
+        "script_title": True,
+        "production_company": True
+    },
+    "include_descriptions": {
+        "description": True,
+        "technical_notes": True
+    },
+    "include_summary": True,
+    "show_cross_references": True
+}
+
+PRESET_EMOTIONAL_ARC = {
+    "report_type": "emotional_arc",
+    "include_categories": ["characters"],
+    "exclude_categories": [],
+    "include_metadata": {
+        "script_title": True,
+        "writer_name": True
+    },
+    "include_descriptions": {"all": True},
+    "include_summary": True,
+    "show_cross_references": False
+}
+
+PRESET_CONTINUITY = {
+    "report_type": "continuity",
+    "include_categories": ["all"],
+    "exclude_categories": [],
+    "include_metadata": {"all": True},
+    "include_descriptions": {"all": True},
+    "include_summary": True,
+    "show_cross_references": True
+}
+
 
 class ReportConfig:
     """Report configuration with validation and defaults."""
@@ -174,7 +227,8 @@ class ReportConfig:
         "full_breakdown", "scene_breakdown", "wardrobe", "props",
         "makeup", "sfx", "special_effects", "stunts", "vehicles", 
         "animals", "extras", "custom", "day_out_of_days", 
-        "location", "one_liner"
+        "location", "one_liner", "dialogue", "sound_cues",
+        "emotional_arc", "continuity"
     ]
     
     VALID_CATEGORIES = [
@@ -273,7 +327,11 @@ class ReportConfig:
             "stunts": PRESET_STUNTS,
             "vehicles": PRESET_VEHICLES,
             "animals": PRESET_ANIMALS,
-            "extras": PRESET_EXTRAS
+            "extras": PRESET_EXTRAS,
+            "dialogue": PRESET_DIALOGUE,
+            "sound_cues": PRESET_SOUND_CUES,
+            "emotional_arc": PRESET_EMOTIONAL_ARC,
+            "continuity": PRESET_CONTINUITY
         }
         
         if preset_name not in presets:
@@ -293,7 +351,11 @@ class ReportConfig:
             {"name": "stunts", "title": "Stunts Department", "description": "Stunt requirements with safety notes"},
             {"name": "vehicles", "title": "Vehicles & Transportation", "description": "Vehicle requirements by scene"},
             {"name": "animals", "title": "Animals & Wranglers", "description": "Animal requirements by scene"},
-            {"name": "extras", "title": "Extras & Background", "description": "Background actor requirements"}
+            {"name": "extras", "title": "Extras & Background", "description": "Background actor requirements"},
+            {"name": "dialogue", "title": "Dialogue & Tone", "description": "Dialogue lines with tone and character analysis"},
+            {"name": "sound_cues", "title": "Sound Design Cue Sheet", "description": "Sound effects and audio cues by scene"},
+            {"name": "emotional_arc", "title": "Emotional Arc", "description": "Emotional progression across scenes"},
+            {"name": "continuity", "title": "Continuity Report", "description": "Props, wardrobe, and makeup continuity tracking"}
         ]
 
 
@@ -329,6 +391,22 @@ class ReportService:
         'full_breakdown': {
             'name': 'Full Script Breakdown',
             'description': 'Complete breakdown document'
+        },
+        'dialogue': {
+            'name': 'Dialogue & Tone Report',
+            'description': 'Dialogue lines with tone analysis grouped by character'
+        },
+        'sound_cues': {
+            'name': 'Sound Design Cue Sheet',
+            'description': 'Sound effects and audio cues by scene'
+        },
+        'emotional_arc': {
+            'name': 'Emotional Arc Report',
+            'description': 'Emotional progression and intensity across scenes'
+        },
+        'continuity': {
+            'name': 'Continuity Report',
+            'description': 'Props, wardrobe, and makeup continuity tracking across scenes'
         }
     }
     
@@ -470,7 +548,7 @@ class ReportService:
         # Calculate total pages from eighths
         total_pages = total_eighths / 8
         
-        return {
+        result = {
             'script': {
                 'id': script_id,
                 'title': script.get('title', 'Untitled'),
@@ -513,6 +591,146 @@ class ReportService:
             'stunts': dict(stunts),
             'generated_at': datetime.utcnow().isoformat()
         }
+        
+        # Enrich with extraction_metadata (rich attributes + new categories)
+        result = self._enrich_with_extraction_metadata(script_id, scenes, result)
+        
+        return result
+    
+    def _enrich_with_extraction_metadata(
+        self,
+        script_id: str,
+        scenes: List[Dict],
+        data: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Augment aggregated report data with rich attributes from extraction_metadata.
+        Adds detailed attributes (tone, condition, importance) to existing categories
+        and populates new enrichment categories (dialogue, emotions, relationships, sound).
+        """
+        try:
+            response = self.db.client.table('extraction_metadata')\
+                .select('id, extraction_class, extraction_text, attributes, confidence, scene_id')\
+                .eq('script_id', script_id)\
+                .order('text_start')\
+                .execute()
+            
+            extractions = response.data if response.data else []
+            if not extractions:
+                return data
+            
+            # Build scene_id -> scene_number lookup
+            scene_num_map = {}
+            for s in scenes:
+                sid = s.get('id') or s.get('scene_id')
+                if sid:
+                    scene_num_map[sid] = s.get('scene_number', '')
+            
+            # Enrich existing categories with rich attributes
+            rich_characters = defaultdict(lambda: {'attributes': [], 'avg_confidence': 0})
+            rich_props = defaultdict(lambda: {'attributes': [], 'avg_confidence': 0})
+            rich_wardrobe = defaultdict(lambda: {'attributes': [], 'avg_confidence': 0})
+            
+            # New enrichment categories
+            dialogue_items = []
+            emotions = defaultdict(lambda: {'count': 0, 'scenes': [], 'intensity': []})
+            relationships = []
+            sound_cues = defaultdict(lambda: {'count': 0, 'scenes': [], 'type': set()})
+            
+            for ext in extractions:
+                cls = ext.get('extraction_class', '')
+                text = ext.get('extraction_text', '')
+                attrs = ext.get('attributes', {}) or {}
+                confidence = ext.get('confidence', 1.0)
+                scene_id = ext.get('scene_id')
+                scene_num = scene_num_map.get(scene_id, '')
+                
+                if cls == 'character' and text:
+                    char_name = attrs.get('name', text)
+                    rich_characters[char_name]['attributes'].append(attrs)
+                    rich_characters[char_name]['avg_confidence'] = confidence
+                
+                elif cls == 'prop' and text:
+                    prop_name = attrs.get('item_name', text)
+                    rich_props[prop_name]['attributes'].append(attrs)
+                    rich_props[prop_name]['avg_confidence'] = confidence
+                
+                elif cls == 'wardrobe' and text:
+                    rich_wardrobe[text]['attributes'].append(attrs)
+                    rich_wardrobe[text]['avg_confidence'] = confidence
+                
+                elif cls == 'dialogue' and text:
+                    dialogue_items.append({
+                        'text': text[:200],
+                        'character': attrs.get('character', ''),
+                        'tone': attrs.get('tone', ''),
+                        'scene': scene_num,
+                        'confidence': confidence
+                    })
+                
+                elif cls == 'emotion' and text:
+                    emotions[text]['count'] += 1
+                    if scene_num and scene_num not in emotions[text]['scenes']:
+                        emotions[text]['scenes'].append(scene_num)
+                    if attrs.get('intensity'):
+                        emotions[text]['intensity'].append(attrs['intensity'])
+                
+                elif cls == 'relationship' and text:
+                    relationships.append({
+                        'text': text,
+                        'characters': [attrs.get('character_a', ''), attrs.get('character_b', '')],
+                        'dynamic': attrs.get('dynamic', ''),
+                        'scene': scene_num
+                    })
+                
+                elif cls == 'sound' and text:
+                    sound_cues[text]['count'] += 1
+                    if scene_num and scene_num not in sound_cues[text]['scenes']:
+                        sound_cues[text]['scenes'].append(scene_num)
+                    if attrs.get('type'):
+                        sound_cues[text]['type'].add(attrs['type'])
+            
+            # Merge rich attributes into existing character data
+            for char_name, rich in rich_characters.items():
+                if char_name in data['characters']:
+                    data['characters'][char_name]['rich_attributes'] = rich['attributes']
+                    data['characters'][char_name]['avg_confidence'] = rich['avg_confidence']
+            
+            for prop_name, rich in rich_props.items():
+                if prop_name in data['props']:
+                    data['props'][prop_name]['rich_attributes'] = rich['attributes']
+                    data['props'][prop_name]['avg_confidence'] = rich['avg_confidence']
+            
+            for item_name, rich in rich_wardrobe.items():
+                if item_name in data['wardrobe']:
+                    data['wardrobe'][item_name]['rich_attributes'] = rich['attributes']
+                    data['wardrobe'][item_name]['avg_confidence'] = rich['avg_confidence']
+            
+            # Add new enrichment sections
+            data['enrichment'] = {
+                'dialogue': dialogue_items[:100],
+                'emotions': dict(emotions),
+                'relationships': relationships,
+                'sound_cues': {k: {**v, 'type': list(v['type'])} for k, v in sound_cues.items()},
+                'total_dialogue_lines': len(dialogue_items),
+                'total_emotions': len(emotions),
+                'total_relationships': len(relationships),
+                'total_sound_cues': len(sound_cues)
+            }
+            
+            # Update summary counts
+            data['summary']['total_dialogue_lines'] = len(dialogue_items)
+            data['summary']['total_emotions'] = len(emotions)
+            data['summary']['total_relationships'] = len(relationships)
+            data['summary']['total_sound_cues'] = len(sound_cues)
+            data['summary']['has_rich_data'] = True
+            
+        except Exception as e:
+            print(f"[ReportService] Enrichment from extraction_metadata failed: {str(e)}")
+            # Non-fatal: reports still work with flat scene data
+            data['summary']['has_rich_data'] = False
+        
+        return data
     
     # ============================================
     # Report Generation
@@ -720,6 +938,15 @@ class ReportService:
             body = self._render_animals_department(data)
         elif report_type == 'extras':
             body = self._render_extras_department(data)
+        # Enrichment-based reports (langextract)
+        elif report_type == 'dialogue':
+            body = self._render_dialogue_report(data)
+        elif report_type == 'sound_cues':
+            body = self._render_sound_cues_report(data)
+        elif report_type == 'emotional_arc':
+            body = self._render_emotional_arc_report(data)
+        elif report_type == 'continuity':
+            body = self._render_continuity_report(data)
         else:
             body = self._render_full_breakdown(data)
         
@@ -1668,6 +1895,281 @@ class ReportService:
             </tbody>
         </table>
         """
+
+    # ============================================
+    # Enrichment-Based Report Renderers (LangExtract)
+    # ============================================
+    
+    def _render_dialogue_report(self, data: Dict) -> str:
+        """Render dialogue & tone report grouped by character."""
+        enrichment = data.get('enrichment', {})
+        dialogue = enrichment.get('dialogue', [])
+        
+        if not dialogue:
+            return '<p class="no-data">No dialogue data available. Run LangExtract analysis first.</p>'
+        
+        # Group by character
+        by_character = defaultdict(list)
+        for line in dialogue:
+            char = line.get('character', 'Unknown')
+            by_character[char].append(line)
+        
+        rows = []
+        for char_name in sorted(by_character.keys()):
+            lines = by_character[char_name]
+            rows.append(f'<tr class="character-header"><td colspan="4"><strong>{char_name}</strong> ({len(lines)} lines)</td></tr>')
+            for line in lines:
+                tone = line.get('tone', '')
+                tone_badge = f'<span class="tone-badge">{tone}</span>' if tone else '—'
+                rows.append(f"""
+                <tr>
+                    <td class="dialogue-text">"{line.get('text', '')}"</td>
+                    <td>{tone_badge}</td>
+                    <td>Sc. {line.get('scene', '—')}</td>
+                    <td>{line.get('confidence', 0):.0%}</td>
+                </tr>
+                """)
+        
+        total = enrichment.get('total_dialogue_lines', len(dialogue))
+        
+        return f"""
+        <div class="department-header">
+            <h3>Dialogue & Tone Report</h3>
+            <p>{total} dialogue lines across {len(by_character)} characters</p>
+        </div>
+        <table class="breakdown-table">
+            <thead>
+                <tr>
+                    <th>Dialogue</th>
+                    <th>Tone</th>
+                    <th>Scene</th>
+                    <th>Confidence</th>
+                </tr>
+            </thead>
+            <tbody>
+                {''.join(rows)}
+            </tbody>
+        </table>
+        """
+    
+    def _render_sound_cues_report(self, data: Dict) -> str:
+        """Render sound design cue sheet."""
+        enrichment = data.get('enrichment', {})
+        sound_cues = enrichment.get('sound_cues', {})
+        
+        if not sound_cues:
+            return '<p class="no-data">No sound cue data available. Run LangExtract analysis first.</p>'
+        
+        rows = []
+        for cue_name, cue_data in sorted(sound_cues.items(), key=lambda x: -x[1].get('count', 0)):
+            cue_type = ', '.join(cue_data.get('type', [])) or '—'
+            scenes = ', '.join(str(s) for s in cue_data.get('scenes', []))
+            rows.append(f"""
+            <tr>
+                <td>{cue_name}</td>
+                <td>{cue_type}</td>
+                <td>{cue_data.get('count', 0)}</td>
+                <td>{scenes or '—'}</td>
+            </tr>
+            """)
+        
+        return f"""
+        <div class="department-header">
+            <h3>Sound Design Cue Sheet</h3>
+            <p>{len(sound_cues)} unique sound cues</p>
+        </div>
+        <table class="breakdown-table">
+            <thead>
+                <tr>
+                    <th>Sound Cue</th>
+                    <th>Type</th>
+                    <th>Occurrences</th>
+                    <th>Scenes</th>
+                </tr>
+            </thead>
+            <tbody>
+                {''.join(rows)}
+            </tbody>
+        </table>
+        """
+    
+    def _render_emotional_arc_report(self, data: Dict) -> str:
+        """Render emotional arc report showing emotional progression."""
+        enrichment = data.get('enrichment', {})
+        emotions = enrichment.get('emotions', {})
+        relationships = enrichment.get('relationships', [])
+        
+        if not emotions and not relationships:
+            return '<p class="no-data">No emotional data available. Run LangExtract analysis first.</p>'
+        
+        # Emotions table
+        emotion_rows = []
+        for emotion_name, emo_data in sorted(emotions.items(), key=lambda x: -x[1].get('count', 0)):
+            scenes = ', '.join(str(s) for s in emo_data.get('scenes', []))
+            intensities = emo_data.get('intensity', [])
+            avg_intensity = intensities[0] if intensities else '—'
+            emotion_rows.append(f"""
+            <tr>
+                <td>{emotion_name}</td>
+                <td>{emo_data.get('count', 0)}</td>
+                <td>{avg_intensity}</td>
+                <td>{scenes or '—'}</td>
+            </tr>
+            """)
+        
+        # Relationships table
+        rel_rows = []
+        for rel in relationships:
+            chars = ' & '.join(c for c in rel.get('characters', []) if c)
+            rel_rows.append(f"""
+            <tr>
+                <td>{rel.get('text', '')}</td>
+                <td>{chars or '—'}</td>
+                <td>{rel.get('dynamic', '—')}</td>
+                <td>Sc. {rel.get('scene', '—')}</td>
+            </tr>
+            """)
+        
+        emotions_html = f"""
+        <div class="department-header">
+            <h3>Emotional Arc</h3>
+            <p>{len(emotions)} unique emotions detected</p>
+        </div>
+        <table class="breakdown-table">
+            <thead>
+                <tr>
+                    <th>Emotion</th>
+                    <th>Occurrences</th>
+                    <th>Intensity</th>
+                    <th>Scenes</th>
+                </tr>
+            </thead>
+            <tbody>
+                {''.join(emotion_rows)}
+            </tbody>
+        </table>
+        """
+        
+        relationships_html = ''
+        if rel_rows:
+            relationships_html = f"""
+            <div class="department-header" style="margin-top: 2rem;">
+                <h3>Character Relationships</h3>
+                <p>{len(relationships)} relationship dynamics</p>
+            </div>
+            <table class="breakdown-table">
+                <thead>
+                    <tr>
+                        <th>Relationship</th>
+                        <th>Characters</th>
+                        <th>Dynamic</th>
+                        <th>Scene</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {''.join(rel_rows)}
+                </tbody>
+            </table>
+            """
+        
+        return emotions_html + relationships_html
+    
+    def _render_continuity_report(self, data: Dict) -> str:
+        """Render continuity report tracking props, wardrobe, and makeup across scenes."""
+        props = data.get('props', {})
+        wardrobe = data.get('wardrobe', {})
+        makeup = data.get('makeup', {})
+        
+        sections = []
+        
+        # Props continuity
+        if props:
+            prop_rows = []
+            for name, info in sorted(props.items(), key=lambda x: -x[1].get('count', 0)):
+                scenes = ', '.join(str(s) for s in info.get('scenes', []))
+                rich = info.get('rich_attributes', [{}])
+                condition = rich[0].get('condition', '') if rich else ''
+                importance = rich[0].get('importance', '') if rich else ''
+                prop_rows.append(f"""
+                <tr>
+                    <td>{name}</td>
+                    <td>{info.get('count', 0)}</td>
+                    <td>{scenes}</td>
+                    <td>{condition or '—'}</td>
+                    <td>{importance or '—'}</td>
+                </tr>
+                """)
+            
+            sections.append(f"""
+            <div class="department-header">
+                <h3>Props Continuity</h3>
+            </div>
+            <table class="breakdown-table">
+                <thead>
+                    <tr><th>Prop</th><th>Appearances</th><th>Scenes</th><th>Condition</th><th>Importance</th></tr>
+                </thead>
+                <tbody>{''.join(prop_rows)}</tbody>
+            </table>
+            """)
+        
+        # Wardrobe continuity
+        if wardrobe:
+            ward_rows = []
+            for name, info in sorted(wardrobe.items(), key=lambda x: -x[1].get('count', 0)):
+                scenes = ', '.join(str(s) for s in info.get('scenes', []))
+                chars = ', '.join(info.get('characters', [])) or '—'
+                ward_rows.append(f"""
+                <tr>
+                    <td>{name}</td>
+                    <td>{chars}</td>
+                    <td>{info.get('count', 0)}</td>
+                    <td>{scenes}</td>
+                </tr>
+                """)
+            
+            sections.append(f"""
+            <div class="department-header" style="margin-top: 2rem;">
+                <h3>Wardrobe Continuity</h3>
+            </div>
+            <table class="breakdown-table">
+                <thead>
+                    <tr><th>Item</th><th>Character</th><th>Appearances</th><th>Scenes</th></tr>
+                </thead>
+                <tbody>{''.join(ward_rows)}</tbody>
+            </table>
+            """)
+        
+        # Makeup continuity
+        if makeup:
+            makeup_rows = []
+            for name, info in sorted(makeup.items(), key=lambda x: -x[1].get('count', 0)):
+                scenes = ', '.join(str(s) for s in info.get('scenes', []))
+                chars = ', '.join(info.get('characters', [])) or '—'
+                makeup_rows.append(f"""
+                <tr>
+                    <td>{name}</td>
+                    <td>{chars}</td>
+                    <td>{info.get('count', 0)}</td>
+                    <td>{scenes}</td>
+                </tr>
+                """)
+            
+            sections.append(f"""
+            <div class="department-header" style="margin-top: 2rem;">
+                <h3>Makeup & Hair Continuity</h3>
+            </div>
+            <table class="breakdown-table">
+                <thead>
+                    <tr><th>Look</th><th>Character</th><th>Appearances</th><th>Scenes</th></tr>
+                </thead>
+                <tbody>{''.join(makeup_rows)}</tbody>
+            </table>
+            """)
+        
+        if not sections:
+            return '<p class="no-data">No continuity data available.</p>'
+        
+        return '\n'.join(sections)
 
 
 # Singleton instance
