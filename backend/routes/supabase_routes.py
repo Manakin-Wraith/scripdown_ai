@@ -6,6 +6,7 @@ All IDs are UUIDs and data is stored in Supabase PostgreSQL.
 """
 
 import os
+import re
 import json
 import uuid
 import time
@@ -221,6 +222,34 @@ def delete_script(script_id):
         return jsonify({'error': str(e)}), 500
 
 
+@supabase_bp.route('/api/scripts/<script_id>', methods=['PATCH'])
+@optional_auth
+def update_script(script_id):
+    """Update script metadata (title, writer_name, etc.)."""
+    if not supabase:
+        return jsonify({'error': 'Supabase not configured'}), 500
+    
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        
+        # Only allow updating specific fields
+        allowed_fields = {'title', 'writer_name', 'genre', 'logline', 'draft_version'}
+        update_data = {k: v for k, v in data.items() if k in allowed_fields}
+        
+        if not update_data:
+            return jsonify({'error': 'No valid fields to update'}), 400
+        
+        supabase.table('scripts').update(update_data).eq('id', script_id).execute()
+        
+        return jsonify({'message': 'Script updated', 'updated': update_data}), 200
+        
+    except Exception as e:
+        print(f"Error updating script: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 @supabase_bp.route('/api/scripts/<script_id>/metadata', methods=['GET'])
 def get_script_metadata(script_id):
     """Get script metadata."""
@@ -248,11 +277,13 @@ def upload_script():
     """
     Upload a script to Supabase.
     
-    1. Parse PDF
-    2. Save to Supabase Storage
-    3. Create script record
-    4. Create page records
-    5. Detect scenes via regex
+    Architecture (Phase 1 — ScreenPy integration):
+    1. Save PDF to temp file
+    2. Extract text via pdfplumber (replaces PyMuPDF)
+    3. Upload PDF to Supabase Storage
+    4. Create script + page records
+    5. Run grammar-first scene detection (falls back to regex)
+    6. Write enriched scenes + scene_candidates to Supabase
     """
     if not supabase:
         return jsonify({'error': 'Supabase not configured'}), 500
@@ -265,108 +296,122 @@ def upload_script():
         return jsonify({'error': 'No file selected'}), 400
     
     try:
-        import fitz  # PyMuPDF
+        import tempfile
+        import pdfplumber
         
         # Read file content
         file_content = file.read()
         filename = secure_filename(file.filename)
         
-        # Generate UUID for script (used for storage path)
-        script_id = str(uuid.uuid4())
-        
-        # Upload original PDF to Supabase Storage
-        storage_path = f"{script_id}/{filename}"
+        # Save to temp file (pdfplumber needs a file path)
+        tmp_fd, tmp_path = tempfile.mkstemp(suffix='.pdf')
         try:
-            storage_result = supabase.storage.from_('scripts').upload(
-                storage_path,
-                file_content,
-                {'content-type': 'application/pdf'}
-            )
-            print(f"✓ PDF uploaded to Storage: {storage_path}")
-        except Exception as storage_error:
-            print(f"Warning: Storage upload failed: {storage_error}")
-            # Continue anyway - we still have the text
-        
-        # Parse PDF
-        doc = fitz.open(stream=file_content, filetype="pdf")
-        total_pages = len(doc)
-        
-        # Extract text from all pages
-        pages_data = []
-        full_text_parts = []
-        
-        for page_num in range(total_pages):
-            page = doc[page_num]
-            text = page.get_text()
-            pages_data.append({
-                'page_number': page_num + 1,
-                'text': text
-            })
-            full_text_parts.append(text)
-        
-        doc.close()
-        full_text = '\n\n'.join(full_text_parts)
-        
-        # Extract comprehensive metadata from title page
-        title_page_text = pages_data[0]['text'] if pages_data else full_text[:4000]
-        metadata = extract_title_page_metadata(title_page_text)
-        
-        # Use extracted title or fallback to filename
-        title = metadata.get('title') or filename.rsplit('.', 1)[0] if '.' in filename else filename
-        writer_name = metadata.get('writers')
-        
-        print(f"✓ Extracted metadata: {metadata}")
-        
-        # Get user ID from auth token (if authenticated)
-        user_id = get_user_id()
-        
-        # Create script record
-        script_data = {
-            'id': script_id,
-            'user_id': user_id,  # Will be None if not authenticated
-            'title': title,
-            'writer_name': writer_name,
-            'file_name': filename,
-            'file_path': storage_path,  # Path in Supabase Storage
-            'file_size': len(file_content),
-            'full_text': full_text,
-            'total_pages': total_pages,
-            'analysis_status': 'pending',
-            # Additional metadata from title page
-            'draft_version': metadata.get('draft_version'),
-            'genre': None,  # Could be extracted with AI
-            'logline': metadata.get('based_on'),
-            'production_company': metadata.get('production_company'),
-            'contact_phone': metadata.get('phone'),
-            'contact_email': metadata.get('email'),
-            'contact_address': metadata.get('address'),
-            'based_on': metadata.get('based_on'),
-            'copyright_year': metadata.get('copyright'),
-            'wga_registration': metadata.get('wga_registration'),
-        }
-        
-        result = supabase.table('scripts').insert(script_data).execute()
-        print(f"✓ Script saved to Supabase: {script_id}")
-        
-        # Create page records
-        for page in pages_data:
-            page_data = {
-                'script_id': script_id,
-                'page_number': page['page_number'],
-                'page_text': page['text']
+            os.write(tmp_fd, file_content)
+            os.close(tmp_fd)
+            
+            # Generate UUID for script
+            script_id = str(uuid.uuid4())
+            
+            # Upload original PDF to Supabase Storage
+            storage_path = f"{script_id}/{filename}"
+            try:
+                supabase.storage.from_('scripts').upload(
+                    storage_path,
+                    file_content,
+                    {'content-type': 'application/pdf'}
+                )
+                print(f"✓ PDF uploaded to Storage: {storage_path}")
+            except Exception as storage_error:
+                print(f"Warning: Storage upload failed: {storage_error}")
+            
+            # Extract text via pdfplumber (replaces PyMuPDF)
+            pages_data = []
+            full_text_parts = []
+            
+            with pdfplumber.open(tmp_path) as pdf:
+                total_pages = len(pdf.pages)
+                for page_num, page in enumerate(pdf.pages, start=1):
+                    text = page.extract_text() or ""
+                    pages_data.append({
+                        'page_number': page_num,
+                        'text': text
+                    })
+                    full_text_parts.append(text)
+            
+            full_text = '\n\n'.join(full_text_parts)
+            
+            # Extract comprehensive metadata from title page
+            title_page_text = pages_data[0]['text'] if pages_data else full_text[:4000]
+            metadata = extract_title_page_metadata(title_page_text)
+            
+            raw_title = metadata.get('title')
+            # Safety check: reject titles that look like scene headings after .title() conversion
+            if raw_title and re.match(r'^(Int[\./]|Ext[\./]|Int/Ext)', raw_title, re.IGNORECASE):
+                raw_title = None
+            title = raw_title or (filename.rsplit('.', 1)[0] if '.' in filename else filename)
+            writer_name = metadata.get('writers')
+            
+            print(f"✓ Extracted metadata: {metadata}")
+            
+            # Get user ID from auth token
+            user_id = get_user_id()
+            
+            # Create script record
+            script_data = {
+                'id': script_id,
+                'user_id': user_id,
+                'title': title,
+                'writer_name': writer_name,
+                'file_name': filename,
+                'file_path': storage_path,
+                'file_size': len(file_content),
+                'full_text': full_text,
+                'total_pages': total_pages,
+                'analysis_status': 'pending',
+                'draft_version': metadata.get('draft_version'),
+                'genre': None,
+                'logline': metadata.get('based_on'),
+                'production_company': metadata.get('production_company'),
+                'contact_phone': metadata.get('phone'),
+                'contact_email': metadata.get('email'),
+                'contact_address': metadata.get('address'),
+                'based_on': metadata.get('based_on'),
+                'copyright_year': metadata.get('copyright'),
+                'wga_registration': metadata.get('wga_registration'),
             }
-            supabase.table('script_pages').insert(page_data).execute()
-        
-        # Detect scenes using regex (pass pages_data for page number calculation)
-        scenes_detected = detect_and_create_scenes(script_id, full_text, pages_data)
-        
-        return jsonify({
-            'message': 'Script uploaded successfully',
-            'script_id': script_id,
-            'total_pages': total_pages,
-            'scene_candidates': scenes_detected,
-            'status': 'ready_for_analysis'
-        }), 201
+            
+            supabase.table('scripts').insert(script_data).execute()
+            print(f"✓ Script saved to Supabase: {script_id}")
+            
+            # Create page records
+            for page in pages_data:
+                page_data = {
+                    'script_id': script_id,
+                    'page_number': page['page_number'],
+                    'page_text': page['text']
+                }
+                supabase.table('script_pages').insert(page_data).execute()
+            
+            # Run grammar-first scene detection with regex fallback
+            scenes_detected, parse_meta = detect_and_create_scenes_v2(
+                script_id, tmp_path, full_text, pages_data
+            )
+            
+            return jsonify({
+                'message': 'Script uploaded successfully',
+                'script_id': script_id,
+                'total_pages': total_pages,
+                'scene_candidates': scenes_detected,
+                'parse_method': parse_meta.get('parse_method', 'regex'),
+                'status': 'ready_for_analysis'
+            }), 201
+            
+        finally:
+            # Clean up temp file
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
         
     except Exception as e:
         print(f"Error uploading script: {e}")
@@ -391,14 +436,31 @@ def extract_title_page_metadata(first_page_text):
     metadata = {}
     
     # 1. TITLE - Usually centered, often underlined or in caps at top
-    title_patterns = [
-        r'^\s*([A-Z][A-Z\s\-\']+)\s*$',  # All caps title on its own line
-        r'^\s*"([^"]+)"\s*$',  # Title in quotes
+    # Exclude scene headings (INT./EXT.), common non-title keywords, and page numbering
+    title_exclude_words = [
+        'WRITTEN', 'BY', 'BASED', 'DRAFT', 'FADE IN', 'FADE OUT',
+        'CUT TO', 'DISSOLVE', 'CONTINUED', 'CONT\'D', 'MORE',
+        'PRODUCTIONS', 'PICTURES', 'ENTERTAINMENT', 'FILMS',
     ]
+    scene_heading_re = re.compile(r'^(INT[\./]|EXT[\./]|INT/EXT|I/E[\.\s])', re.IGNORECASE)
+    time_of_day_re = re.compile(r'\b(DAY|NIGHT|DAWN|DUSK|EVENING|MORNING|CONTINUOUS|LATER|SAME TIME)\b', re.IGNORECASE)
+    
     lines = text.split('\n')
     for line in lines[:20]:  # Title usually in first 20 lines
         line = line.strip()
-        if len(line) > 2 and len(line) < 60 and line.isupper() and not any(x in line for x in ['WRITTEN', 'BY', 'BASED', 'DRAFT']):
+        if len(line) > 2 and len(line) < 60 and line.isupper():
+            # Skip scene headings
+            if scene_heading_re.match(line):
+                continue
+            # Skip lines with time-of-day markers (scene headings)
+            if time_of_day_re.search(line):
+                continue
+            # Skip common non-title words
+            if any(x in line for x in title_exclude_words):
+                continue
+            # Skip lines that look like page numbers or single short words
+            if len(line) <= 3 or line.isdigit():
+                continue
             metadata['title'] = line.title()
             break
     
@@ -517,6 +579,129 @@ def extract_writer_name(text):
     """Extract writer name from script text (legacy function)."""
     metadata = extract_title_page_metadata(text)
     return metadata.get('writers')
+
+
+def detect_and_create_scenes_v2(script_id, pdf_path, full_text, pages_data):
+    """
+    Grammar-first scene detection with regex fallback.
+    
+    Uses the ScreenPy adapter to parse the PDF, then writes results
+    to both `scenes` (for the existing UI) and `scene_candidates`
+    (for tracking and A/B testing).
+    
+    Returns:
+        (scene_count, parse_meta_dict)
+    """
+    from utils.scene_calculations import calculate_eighths_from_content, calculate_eighths_from_pages
+
+    try:
+        from services.screenplay_parser import parse_screenplay
+
+        parsed_scenes, parse_meta = parse_screenplay(pdf_path, locale_codes=["en", "af"])
+        parse_method = parse_meta.get("parse_method", "grammar")
+        print(f"✓ ScreenPy adapter: {parse_method} found {len(parsed_scenes)} scenes")
+
+    except Exception as e:
+        print(f"⚠ Grammar adapter failed ({e}), falling back to legacy regex")
+        return detect_and_create_scenes(script_id, full_text, pages_data), {"parse_method": "regex", "error": str(e)}
+
+    if not parsed_scenes:
+        print("⚠ Grammar returned 0 scenes, falling back to legacy regex")
+        return detect_and_create_scenes(script_id, full_text, pages_data), {"parse_method": "regex", "reason": "0 scenes"}
+
+    # Build page boundaries for eighths calculation
+    page_boundaries = []
+    current_pos = 0
+    for page in pages_data:
+        page_text = page['text']
+        page_boundaries.append({
+            'page': page['page_number'],
+            'start': current_pos,
+            'end': current_pos + len(page_text)
+        })
+        current_pos += len(page_text) + 2
+
+    # Write to both tables
+    scenes_created = 0
+    candidates_created = 0
+
+    for idx, ps in enumerate(parsed_scenes):
+        # Use scene text from parser (correct text source) with fallback
+        scene_text = ps.scene_text or (full_text[ps.text_start:ps.text_end] if ps.text_start >= 0 else '')
+
+        # Calculate scene length in eighths
+        if scene_text and len(scene_text.strip()) > 50:
+            page_length_eighths = calculate_eighths_from_content(scene_text)
+        elif ps.page_start and ps.page_end:
+            page_length_eighths = calculate_eighths_from_pages(ps.page_start, ps.page_end)
+        else:
+            page_length_eighths = 8
+
+        # Parse location hierarchy into parent/specific
+        loc_parent = ps.location_hierarchy[0] if ps.location_hierarchy else None
+        loc_specific = ps.location_hierarchy[-1] if len(ps.location_hierarchy) > 1 else None
+
+        # --- Insert into scenes table (UI-facing) ---
+        scene_data = {
+            'script_id': script_id,
+            'scene_number': ps.scene_number_original,
+            'scene_order': ps.scene_order,
+            'int_ext': ps.int_ext,
+            'setting': ps.setting,
+            'time_of_day': ps.time_of_day,
+            'scene_text': scene_text[:5000],
+            'text_start': ps.text_start,
+            'text_end': ps.text_end,
+            'page_start': ps.page_start,
+            'page_end': ps.page_end,
+            'page_length_eighths': page_length_eighths,
+            'is_manual': False,
+            'analysis_status': 'pending',
+            # ScreenPy enrichments
+            'location_parent': loc_parent,
+            'location_specific': loc_specific,
+            'location_hierarchy': ps.location_hierarchy,
+            'shot_type': ps.shot_type,
+            'speakers': list(ps.speakers.keys()) if ps.speakers else [],
+            'transitions': ps.transitions or [],
+            'parse_method': ps.parse_method or 'grammar',
+        }
+
+        try:
+            supabase.table('scenes').insert(scene_data).execute()
+            scenes_created += 1
+        except Exception as e:
+            print(f"Error creating scene {ps.scene_order}: {e}")
+
+        # --- Insert into scene_candidates table (tracking/audit) ---
+        candidate_data = {
+            'script_id': script_id,
+            'scene_number_original': ps.scene_number_original,
+            'scene_order': ps.scene_order,
+            'int_ext': ps.int_ext,
+            'setting': ps.setting,
+            'time_of_day': ps.time_of_day,
+            'page_start': ps.page_start,
+            'page_end': ps.page_end,
+            'text_start': ps.text_start,
+            'text_end': ps.text_end,
+            'content_hash': ps.content_hash,
+            'status': 'detected',
+            'location_hierarchy': ps.location_hierarchy,
+            'speaker_list': ps.speakers,
+            'shot_type': ps.shot_type,
+            'transitions': ps.transitions,
+            'parse_method': ps.parse_method,
+        }
+
+        try:
+            supabase.table('scene_candidates').insert(candidate_data).execute()
+            candidates_created += 1
+        except Exception as e:
+            print(f"Error creating candidate {ps.scene_order}: {e}")
+
+    print(f"✓ Created {scenes_created} scenes + {candidates_created} candidates ({parse_method})")
+    return scenes_created, parse_meta
 
 
 def detect_and_create_scenes(script_id, full_text, pages_data=None):
@@ -729,7 +914,15 @@ def get_scenes(script_id):
                 'text_start': scene.get('text_start'),
                 'text_end': scene.get('text_end'),
                 'page_start': scene.get('page_start'),
-                'page_end': scene.get('page_end')
+                'page_end': scene.get('page_end'),
+                # ScreenPy enrichments (Phase 1 + Phase 3)
+                'location_parent': scene.get('location_parent'),
+                'location_specific': scene.get('location_specific'),
+                'location_hierarchy': scene.get('location_hierarchy', []),
+                'shot_type': scene.get('shot_type'),
+                'speakers': scene.get('speakers', []),
+                'transitions': scene.get('transitions', []),
+                'parse_method': scene.get('parse_method', 'regex'),
             })
         
         return jsonify({'script_id': script_id, 'scenes': scenes}), 200
@@ -2026,8 +2219,27 @@ def analyze_scene(scene_id):
             supabase.table('scenes').update({'analysis_status': 'error'}).eq('id', scene_id).execute()
             return jsonify({'error': 'No scene text available'}), 400
         
-        # Call Gemini for analysis
-        analysis = analyze_scene_with_gemini(scene_text, scene.get('setting', ''))
+        # Phase 2: Extract pre-parsed data for prompt optimization
+        known_speakers = scene.get('speakers') or {}
+        if isinstance(known_speakers, str):
+            known_speakers = json.loads(known_speakers)
+        # Normalize: speakers may be a list of names (from detect_and_create_scenes_v2)
+        if isinstance(known_speakers, list):
+            known_speakers = {name: {} for name in known_speakers}
+        scene_shot_type = scene.get('shot_type')
+        scene_location_hierarchy = scene.get('location_hierarchy') or []
+        if isinstance(scene_location_hierarchy, str):
+            scene_location_hierarchy = json.loads(scene_location_hierarchy)
+        
+        has_speakers = known_speakers and len(known_speakers) > 0
+        
+        # Call Gemini for analysis with pre-extracted context
+        analysis = analyze_scene_with_gemini(
+            scene_text, scene.get('setting', ''),
+            known_speakers=known_speakers if has_speakers else None,
+            shot_type=scene_shot_type,
+            location_hierarchy=scene_location_hierarchy,
+        )
         
         # Recalculate scene length in eighths with full scene text
         from utils.scene_calculations import calculate_eighths_from_content, calculate_eighths_from_pages
@@ -2074,9 +2286,16 @@ def analyze_scene(scene_id):
         return jsonify({'error': str(e)}), 500
 
 
-def analyze_scene_with_gemini(scene_text, setting):
-    """Use Gemini to analyze a single scene."""
+def analyze_scene_with_gemini(scene_text, setting, known_speakers=None, shot_type=None, location_hierarchy=None):
+    """
+    Use Gemini to analyze a single scene.
+    
+    Phase 2 optimization: When known_speakers are provided (from ScreenPy
+    grammar parsing), the prompt is optimized — AI only extracts non-speaking
+    characters from action lines instead of guessing ALL characters.
+    """
     import google.generativeai as genai
+    from services.entity_resolver import merge_to_character_list
     
     api_key = os.getenv('GEMINI_API_KEY')
     if not api_key:
@@ -2085,33 +2304,72 @@ def analyze_scene_with_gemini(scene_text, setting):
     genai.configure(api_key=api_key)
     model = genai.GenerativeModel('gemini-2.0-flash')
     
+    has_speakers = known_speakers and len(known_speakers) > 0
+    
+    # Build pre-extracted context block
+    context_block = ""
+    context_lines = []
+    if has_speakers:
+        speaker_list = ", ".join(sorted(known_speakers.keys()))
+        context_lines.append(f"KNOWN SPEAKING CHARACTERS (already identified from dialogue): [{speaker_list}]")
+    if shot_type:
+        context_lines.append(f"SHOT TYPE: {shot_type}")
+    if location_hierarchy and len(location_hierarchy) > 1:
+        context_lines.append(f"LOCATION HIERARCHY: {' > '.join(location_hierarchy)}")
+    if context_lines:
+        context_block = "\nPRE-EXTRACTED CONTEXT:\n" + "\n".join(context_lines) + "\n"
+    
+    # Build character section based on available data
+    if has_speakers:
+        char_instruction = (
+            "- NON_SPEAKING_CHARACTERS: Characters in ACTION LINES who are NOT in the known speakers list. UPPERCASE names only.\n"
+            "- EXTRAS: Background actors, crowd requirements"
+        )
+        char_json = '    "non_speaking_characters": ["BOUNCER", "WAITRESS #2"],'
+    else:
+        char_instruction = (
+            "- CHARACTERS: ALL character names that appear or speak (UPPERCASE names only)\n"
+            "- EXTRAS: Background actors, crowd requirements"
+        )
+        char_json = '    "characters": ["CHARACTER1", "CHARACTER2"],'
+    
     prompt = f"""Analyze this screenplay scene and extract detailed breakdown information.
 
 Scene Setting: {setting}
-
+{context_block}
 Scene Text:
 {scene_text[:8000]}
 
-Extract and return ONLY valid JSON in this exact format:
+Extract and return ONLY valid JSON:
+{char_instruction}
+- PROPS: Physical objects characters interact with
+- WARDROBE: Specific clothing/costumes mentioned
+- SPECIAL_FX: Visual/practical effects
+- VEHICLES: All vehicles appearing
+- MAKEUP_HAIR: Makeup, hair styling requirements
+- LOCATIONS: Specific areas/rooms within the main setting
+- SOUND: Sound effects, music cues, ambient sounds
+- ATMOSPHERE: Mood, lighting, weather
+- DESCRIPTION: 2-3 sentence summary
+
+Return format:
 {{
-    "characters": ["CHARACTER1", "CHARACTER2"],
+{char_json}
+    "extras": [],
     "props": ["prop1", "prop2"],
-    "wardrobe": ["Character: description of wardrobe"],
-    "special_fx": ["effect1", "effect2"],
-    "vehicles": ["vehicle1"],
-    "makeup_hair": ["makeup or hair requirement"],
-    "locations": ["sub-location within the setting"],
-    "sound": ["sound effect", "music cue", "ambient sound"],
-    "atmosphere": "Description of mood, lighting, weather",
-    "description": "2-3 sentence summary of what happens in this scene"
+    "wardrobe": ["Character: description"],
+    "special_fx": [],
+    "vehicles": [],
+    "makeup_hair": [],
+    "locations": [],
+    "sound": [],
+    "atmosphere": "Description of mood",
+    "description": "Scene summary"
 }}
 
 IMPORTANT:
-- Characters should be in UPPERCASE
-- Be thorough - include ALL props mentioned or implied
-- Include wardrobe only if specifically mentioned
-- Locations are specific areas/rooms within the main setting (e.g., kitchen, backyard)
-- Sound includes sound effects, music cues, ambient sounds mentioned in the scene
+- Characters in UPPERCASE
+- Only include items ACTUALLY in the scene text
 - If a category doesn't apply, use empty array []
 - Return ONLY the JSON, no markdown or extra text
 """
@@ -2130,11 +2388,17 @@ IMPORTANT:
         response_text = re.sub(r'\s*```$', '', response_text)
         
         result = json.loads(response_text)
+        
+        # Phase 2: Entity resolution — merge speakers with AI characters
+        if has_speakers:
+            ai_characters = result.get('characters', []) + result.get('non_speaking_characters', [])
+            result['characters'] = merge_to_character_list(known_speakers, ai_characters)
+        
         return result
         
     except Exception as e:
         print(f"Gemini analysis error: {e}")
-        return {
+        fallback = {
             'characters': [],
             'props': [],
             'wardrobe': [],
@@ -2146,6 +2410,10 @@ IMPORTANT:
             'atmosphere': '',
             'description': f'Analysis failed: {str(e)}'
         }
+        # Still merge speakers into fallback if available
+        if has_speakers:
+            fallback['characters'] = merge_to_character_list(known_speakers, [])
+        return fallback
 
 
 @supabase_bp.route('/api/scripts/<script_id>/analyze/bulk', methods=['POST'])
@@ -2165,8 +2433,8 @@ def analyze_bulk_scenes(script_id):
         return jsonify({'error': 'Supabase not configured'}), 500
     
     try:
-        # Get all pending scenes
-        result = supabase.table('scenes').select('id, scene_number').eq('script_id', script_id).eq('analysis_status', 'pending').order('scene_number').execute()
+        # Get all pending + error scenes (error scenes can be retried)
+        result = supabase.table('scenes').select('id, scene_number').eq('script_id', script_id).in_('analysis_status', ['pending', 'error']).order('scene_number').execute()
         
         pending_scenes = result.data
         pending_count = len(pending_scenes)
@@ -2216,14 +2484,17 @@ def process_bulk_analysis_job(job_id, script_id, scene_ids):
     """
     Background worker to process scenes one-by-one.
     
-    - Updates job progress after each scene
-    - Rate limits API calls (2 seconds between scenes)
-    - Continues on individual scene failures
+    - Retries each scene up to 3 times with exponential backoff on rate-limit errors
+    - Wraps progress updates in try/except so they can't crash the loop
+    - Adaptive delay: increases wait time after consecutive failures
     - Updates job status to 'completed' or 'failed' at end
     """
     total = len(scene_ids)
     analyzed = 0
     failed = 0
+    base_delay = 3  # seconds between successful calls
+    current_delay = base_delay
+    max_retries = 3
     
     print(f"🚀 Starting bulk analysis job {job_id}: {total} scenes")
     
@@ -2236,30 +2507,48 @@ def process_bulk_analysis_job(job_id, script_id, scene_ids):
         }).eq('id', job_id).execute()
         
         for i, scene_id in enumerate(scene_ids):
-            try:
-                # Analyze the scene (reuse existing logic)
-                analyze_scene_internal(scene_id)
-                analyzed += 1
-                
-            except Exception as e:
-                print(f"  ✗ Scene {scene_id} failed: {e}")
-                failed += 1
-                # Mark scene as error but continue with others
+            scene_success = False
+            
+            for attempt in range(1, max_retries + 1):
                 try:
-                    supabase.table('scenes').update({'analysis_status': 'error'}).eq('id', scene_id).execute()
-                except:
-                    pass
+                    analyze_scene_internal(scene_id)
+                    analyzed += 1
+                    scene_success = True
+                    current_delay = base_delay  # Reset delay on success
+                    break
+                    
+                except Exception as e:
+                    error_str = str(e).lower()
+                    is_rate_limit = any(kw in error_str for kw in ['429', 'resource_exhausted', 'rate', 'quota'])
+                    
+                    if is_rate_limit and attempt < max_retries:
+                        backoff = base_delay * (2 ** attempt)  # 6s, 12s, 24s
+                        print(f"  ⏳ Scene {scene_id} rate-limited (attempt {attempt}/{max_retries}), retrying in {backoff}s...")
+                        time.sleep(backoff)
+                        current_delay = min(current_delay + 2, 10)  # Increase base delay too
+                        continue
+                    
+                    print(f"  ✗ Scene {scene_id} failed (attempt {attempt}/{max_retries}): {e}")
+                    if attempt == max_retries:
+                        failed += 1
+                        try:
+                            supabase.table('scenes').update({'analysis_status': 'error'}).eq('id', scene_id).execute()
+                        except:
+                            pass
             
-            # Update job progress
-            progress = int(((i + 1) / total) * 100)
-            supabase.table('analysis_jobs').update({
-                'progress': progress,
-                'result_summary': f'Analyzed {i + 1} of {total} scenes ({analyzed} success, {failed} failed)'
-            }).eq('id', job_id).execute()
+            # Update job progress (wrapped in try/except so it can't crash the loop)
+            try:
+                progress = int(((i + 1) / total) * 100)
+                supabase.table('analysis_jobs').update({
+                    'progress': progress,
+                    'result_summary': f'Analyzed {i + 1} of {total} scenes ({analyzed} success, {failed} failed)'
+                }).eq('id', job_id).execute()
+            except Exception as progress_err:
+                print(f"  ⚠ Progress update failed (non-fatal): {progress_err}")
             
-            # Rate limit: wait 2 seconds between API calls to avoid hitting Gemini limits
-            if i < total - 1:  # Don't wait after the last scene
-                time.sleep(2)
+            # Rate limit between scenes (skip after last scene)
+            if i < total - 1:
+                time.sleep(current_delay)
         
         # Job completed
         final_status = 'completed' if failed == 0 else 'completed_with_errors'
@@ -2292,6 +2581,10 @@ def analyze_scene_internal(scene_id):
     Internal function to analyze a single scene.
     Reuses the same logic as the analyze_scene endpoint but without HTTP response.
     
+    Phase 2: Fetches pre-extracted speakers, shot_type, and location_hierarchy
+    from the scene record (populated by ScreenPy grammar parser in Phase 1)
+    and passes them to the optimized Gemini prompt.
+    
     Raises exception on failure (caller handles error).
     """
     # Get scene data
@@ -2319,8 +2612,29 @@ def analyze_scene_internal(scene_id):
         supabase.table('scenes').update({'analysis_status': 'error'}).eq('id', scene_id).execute()
         raise ValueError(f"No scene text available for scene {scene_id}")
     
-    # Call Gemini for analysis
-    analysis = analyze_scene_with_gemini(scene_text, scene.get('setting', ''))
+    # Phase 2: Extract pre-parsed data for prompt optimization
+    known_speakers = scene.get('speakers') or {}
+    if isinstance(known_speakers, str):
+        known_speakers = json.loads(known_speakers)
+    # Normalize: speakers may be a list of names (from detect_and_create_scenes_v2)
+    if isinstance(known_speakers, list):
+        known_speakers = {name: {} for name in known_speakers}
+    scene_shot_type = scene.get('shot_type')
+    scene_location_hierarchy = scene.get('location_hierarchy') or []
+    if isinstance(scene_location_hierarchy, str):
+        scene_location_hierarchy = json.loads(scene_location_hierarchy)
+    
+    has_speakers = known_speakers and len(known_speakers) > 0
+    opt_label = "optimized" if has_speakers else "full"
+    print(f"  → Analyzing scene {scene_id} (prompt={opt_label}, speakers={len(known_speakers) if known_speakers else 0})")
+    
+    # Call Gemini for analysis with pre-extracted context
+    analysis = analyze_scene_with_gemini(
+        scene_text, scene.get('setting', ''),
+        known_speakers=known_speakers if has_speakers else None,
+        shot_type=scene_shot_type,
+        location_hierarchy=scene_location_hierarchy,
+    )
     
     # Recalculate scene length in eighths with full scene text
     from utils.scene_calculations import calculate_eighths_from_content, calculate_eighths_from_pages

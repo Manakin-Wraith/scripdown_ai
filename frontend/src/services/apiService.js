@@ -170,6 +170,12 @@ export const deleteScript = async (scriptId) => {
     return response.data;
 };
 
+// Update script metadata (title, writer_name, etc.)
+export const updateScript = async (scriptId, data) => {
+    const response = await api.patch(`/api/scripts/${scriptId}`, data);
+    return response.data;
+};
+
 export const reanalyzeScript = async (scriptId) => {
     const response = await api.post(`/scripts/${scriptId}/reanalyze`);
     return response.data;

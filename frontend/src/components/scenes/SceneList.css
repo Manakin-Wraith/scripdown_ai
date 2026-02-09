@@ -348,3 +348,38 @@
 .scene-item.status-complete.selected {
     border-left: 3px solid var(--primary-500);
 }
+
+/* ============================================
+   Phase 3: Transition Dividers Between Scenes
+   ============================================ */
+
+.transition-divider {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.15rem 0.5rem;
+    margin: -0.15rem 0;
+}
+
+.transition-line {
+    flex: 1;
+    height: 1px;
+    background: rgba(168, 85, 247, 0.25);
+}
+
+.transition-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.1rem 0.5rem;
+    font-size: 0.6rem;
+    font-weight: 600;
+    color: #c084fc;
+    background: rgba(168, 85, 247, 0.08);
+    border: 1px solid rgba(168, 85, 247, 0.2);
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+    flex-shrink: 0;
+}

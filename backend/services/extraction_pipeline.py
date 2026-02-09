@@ -76,6 +76,20 @@ class SceneCandidate:
     text_end: int
     content_hash: str           # For idempotency
     status: ExtractionStatus = ExtractionStatus.PENDING
+    # ScreenPy enrichments (Phase 1)
+    location_hierarchy: List = None
+    speakers: Dict = None
+    shot_type: str = None
+    transitions: List = None
+    parse_method: str = "regex"
+
+    def __post_init__(self):
+        if self.location_hierarchy is None:
+            self.location_hierarchy = []
+        if self.speakers is None:
+            self.speakers = {}
+        if self.transitions is None:
+            self.transitions = []
 
 
 # ============================================
@@ -191,20 +205,23 @@ def parse_pdf_with_pages(file_path: str) -> Tuple[List[PageData], str]:
     """
     Parse PDF and extract text per page with metadata.
     
+    Uses pdfplumber (replaces PyPDF2) for better text quality.
+    Raw text (layout=False) is used here for page storage and
+    regex header detection. The grammar path uses layout=True
+    via the screenplay_parser adapter.
+    
     Returns:
     - List of PageData objects
     - Full concatenated text
     """
-    import PyPDF2
+    import pdfplumber
     
     pages = []
     full_text = ""
     
     try:
-        with open(file_path, 'rb') as file:
-            reader = PyPDF2.PdfReader(file)
-            
-            for page_num, page in enumerate(reader.pages, start=1):
+        with pdfplumber.open(file_path) as pdf:
+            for page_num, page in enumerate(pdf.pages, start=1):
                 page_text = page.extract_text() or ""
                 
                 # Detect scene headers on this page
@@ -339,6 +356,7 @@ def save_pages_to_db(script_id: int, pages: List[PageData], db_conn) -> int:
 def save_scene_candidates_to_db(script_id: int, candidates: List[SceneCandidate], db_conn) -> int:
     """
     Save scene candidates to database for processing.
+    Includes ScreenPy enrichment columns (Phase 1).
     Returns number of candidates saved.
     """
     cursor = db_conn.cursor()
@@ -350,8 +368,9 @@ def save_scene_candidates_to_db(script_id: int, candidates: List[SceneCandidate]
                 INSERT OR REPLACE INTO scene_candidates 
                 (script_id, scene_number_original, scene_order, int_ext, setting, 
                  time_of_day, page_start, page_end, text_start, text_end, 
-                 content_hash, status)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 content_hash, status,
+                 location_hierarchy, speaker_list, shot_type, transitions, parse_method)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 script_id,
                 candidate.scene_number_original,
@@ -364,7 +383,12 @@ def save_scene_candidates_to_db(script_id: int, candidates: List[SceneCandidate]
                 candidate.text_start,
                 candidate.text_end,
                 candidate.content_hash,
-                candidate.status.value
+                candidate.status.value,
+                json.dumps(candidate.location_hierarchy),
+                json.dumps(candidate.speakers),
+                candidate.shot_type,
+                json.dumps(candidate.transitions),
+                candidate.parse_method,
             ))
             saved += 1
         except Exception as e:
@@ -375,12 +399,18 @@ def save_scene_candidates_to_db(script_id: int, candidates: List[SceneCandidate]
 
 
 def get_pending_candidates(script_id: int, db_conn) -> List[Dict]:
-    """Get scene candidates that haven't been processed yet."""
+    """Get scene candidates that haven't been processed yet.
+    
+    Includes ScreenPy enrichment columns (Phase 1) so that Phase 2
+    AI prompt optimization can use pre-extracted speakers, shot_type,
+    and location_hierarchy.
+    """
     cursor = db_conn.cursor()
     
     cursor.execute("""
         SELECT candidate_id, scene_number_original, scene_order, int_ext, setting,
-               time_of_day, page_start, page_end, text_start, text_end, content_hash
+               time_of_day, page_start, page_end, text_start, text_end, content_hash,
+               speaker_list, shot_type, location_hierarchy, parse_method
         FROM scene_candidates
         WHERE script_id = ? AND status = 'pending'
         ORDER BY scene_order
@@ -400,6 +430,10 @@ def get_pending_candidates(script_id: int, db_conn) -> List[Dict]:
             'text_start': row[8],
             'text_end': row[9],
             'content_hash': row[10],
+            'speaker_list': row[11],
+            'shot_type': row[12],
+            'location_hierarchy': row[13],
+            'parse_method': row[14],
         })
     
     return candidates
@@ -421,32 +455,68 @@ def check_already_processed(script_id: int, content_hash: str, db_conn) -> bool:
 # Main Pipeline Entry Points
 # ============================================
 
-def process_upload(file_path: str, script_id: int, db_conn) -> Dict:
+def process_upload(file_path: str, script_id: int, db_conn, locale_codes=None) -> Dict:
     """
     Phase 1: Process uploaded script.
     
-    1. Parse PDF with page awareness
-    2. Detect scene headers
-    3. Build scene candidates
-    4. Save to database
+    Architecture (grammar-first with regex fallback):
+    1. Parse PDF with pdfplumber (page awareness)
+    2. Run ScreenPy grammar parser on normalized layout text
+    3. Fall back to regex on raw text if grammar returns 0 scenes
+    4. Save pages and enriched scene candidates to database
     
     Returns summary of what was found.
     """
     print(f"[Pipeline] Processing upload for script {script_id}")
     
-    # Parse PDF
+    # Step 1: Parse PDF for page storage (raw text, pdfplumber)
     pages, full_text = parse_pdf_with_pages(file_path)
     print(f"[Pipeline] Parsed {len(pages)} pages")
     
-    # Save pages
+    # Save pages to DB
     pages_saved = save_pages_to_db(script_id, pages, db_conn)
     print(f"[Pipeline] Saved {pages_saved} pages to database")
     
-    # Build scene candidates
-    candidates = build_scene_candidates(pages, full_text)
+    # Step 2: Run grammar-first parser adapter
+    try:
+        from services.screenplay_parser import parse_screenplay
+        
+        parsed_scenes, parse_meta = parse_screenplay(
+            file_path, locale_codes=locale_codes
+        )
+        
+        parse_method = parse_meta.get("parse_method", "grammar")
+        print(f"[Pipeline] {parse_method} parser found {len(parsed_scenes)} scenes")
+        
+        # Convert ParsedScene objects to SceneCandidate objects
+        candidates = []
+        for ps in parsed_scenes:
+            candidates.append(SceneCandidate(
+                scene_number_original=ps.scene_number_original,
+                scene_order=ps.scene_order,
+                int_ext=ps.int_ext,
+                setting=ps.setting,
+                time_of_day=ps.time_of_day,
+                page_start=ps.page_start,
+                page_end=ps.page_end,
+                text_start=ps.text_start,
+                text_end=ps.text_end,
+                content_hash=ps.content_hash,
+                location_hierarchy=ps.location_hierarchy,
+                speakers=ps.speakers,
+                shot_type=ps.shot_type,
+                transitions=ps.transitions,
+                parse_method=ps.parse_method,
+            ))
+    except Exception as e:
+        # If the grammar adapter fails entirely, fall back to legacy regex
+        print(f"[Pipeline] Grammar adapter error: {e}, using legacy regex")
+        candidates = build_scene_candidates(pages, full_text)
+        parse_meta = {"parse_method": "regex", "error": str(e)}
+    
     print(f"[Pipeline] Found {len(candidates)} scene candidates")
     
-    # Save candidates
+    # Save candidates (with enrichment columns)
     candidates_saved = save_scene_candidates_to_db(script_id, candidates, db_conn)
     print(f"[Pipeline] Saved {candidates_saved} candidates to database")
     
@@ -454,7 +524,9 @@ def process_upload(file_path: str, script_id: int, db_conn) -> Dict:
         'script_id': script_id,
         'total_pages': len(pages),
         'scene_candidates': len(candidates),
-        'status': 'ready_for_analysis'
+        'parse_method': parse_meta.get('parse_method', 'regex'),
+        'status': 'ready_for_analysis',
+        **{k: v for k, v in parse_meta.items() if k != 'parse_method'},
     }
 
 
@@ -507,6 +579,12 @@ CREATE TABLE IF NOT EXISTS scene_candidates (
     content_hash TEXT,
     status TEXT DEFAULT 'pending',
     error_message TEXT,
+    -- ScreenPy enrichment columns (Phase 1)
+    location_hierarchy TEXT DEFAULT '[]',
+    speaker_list TEXT DEFAULT '{}',
+    shot_type TEXT,
+    transitions TEXT DEFAULT '[]',
+    parse_method TEXT DEFAULT 'regex',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     processed_at TIMESTAMP,
     FOREIGN KEY (script_id) REFERENCES scripts(script_id) ON DELETE CASCADE

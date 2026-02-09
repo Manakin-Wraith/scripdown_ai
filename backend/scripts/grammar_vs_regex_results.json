@@ -1,0 +1,123 @@
+{
+  "scripts": [
+    {
+      "name": "Ep_1.pdf",
+      "regex_headers": 22,
+      "grammar_masters": 22,
+      "grammar_ge_regex": true,
+      "unique_characters": 8,
+      "dialogue_blocks": 197,
+      "top_characters": {
+        "LEROY": 77,
+        "SEGUN": 73,
+        "LEROY (CONT\u2019D)": 31,
+        "EMEKA": 6,
+        "SEGUN (CONT\u2019D)": 4,
+        "JOHN": 4,
+        "SETS": 1,
+        "LERO": 1
+      },
+      "extract_time": 2.733,
+      "regex_time": 0.0032,
+      "grammar_time": 0.026
+    },
+    {
+      "name": "LASGIDI_-EPISODE_14_-YANK_HOOKUP.pdf",
+      "regex_headers": 19,
+      "grammar_masters": 22,
+      "grammar_ge_regex": true,
+      "unique_characters": 11,
+      "dialogue_blocks": 223,
+      "top_characters": {
+        "LEROY": 87,
+        "SEGUN": 57,
+        "MR. SMITH": 24,
+        "AUNTY RONKE": 21,
+        "EMEKA": 16,
+        "JESSICA": 8,
+        "ANNA": 5,
+        "ANNA/JESSICA": 2,
+        "JOVI BABS": 1,
+        "MR.SMITH": 1
+      },
+      "extract_time": 0.383,
+      "regex_time": 0.0014,
+      "grammar_time": 0.014
+    },
+    {
+      "name": "LASGIDI_-EPISODE_4_-_EDIT.pdf",
+      "regex_headers": 25,
+      "grammar_masters": 25,
+      "grammar_ge_regex": true,
+      "unique_characters": 8,
+      "dialogue_blocks": 237,
+      "top_characters": {
+        "LEROY": 106,
+        "PATRICK": 80,
+        "TEMI": 41,
+        "LARIELS": 6,
+        "JOVI BABS": 1,
+        "LEROY (cont\u2019d)": 1,
+        "ALL": 1,
+        "PATRICK\u2019S VOICE": 1
+      },
+      "extract_time": 0.567,
+      "regex_time": 0.0014,
+      "grammar_time": 0.015
+    },
+    {
+      "name": "Script_Powerlessness.pdf",
+      "regex_headers": 189,
+      "grammar_masters": 194,
+      "grammar_ge_regex": true,
+      "unique_characters": 57,
+      "dialogue_blocks": 508,
+      "top_characters": {
+        "DARTHY": 185,
+        "CLYDE": 67,
+        "FATIMA": 62,
+        "KATE": 31,
+        "DARHTY": 23,
+        "DAVID": 17,
+        "URSULA": 16,
+        "FARNY": 14,
+        "GIRL": 12,
+        "THANDO": 5
+      },
+      "extract_time": 2.496,
+      "regex_time": 0.0053,
+      "grammar_time": 0.038
+    },
+    {
+      "name": "BIRD_V8.pdf",
+      "regex_headers": 0,
+      "grammar_masters": 107,
+      "grammar_ge_regex": true,
+      "unique_characters": 68,
+      "dialogue_blocks": 969,
+      "top_characters": {
+        "WILLIE": 185,
+        "MARTJIE-SANTJIE": 155,
+        "CHARLIE": 83,
+        "OUS": 64,
+        "PIET": 63,
+        "DOLLIE": 32,
+        "DAVID": 30,
+        "LOUWRENS": 29,
+        "WILLIE (CONT\u2019D)": 24,
+        "MARTJIE-SANTJIE (CONT\u2019D)": 22
+      },
+      "extract_time": 3.412,
+      "regex_time": 0.0064,
+      "grammar_time": 0.047
+    }
+  ],
+  "summary": {
+    "total_scripts": 5,
+    "total_regex_headers": 255,
+    "total_grammar_masters": 370,
+    "total_characters_found": 152,
+    "check_6_passed": true,
+    "check_8_has_characters": true
+  }
+}

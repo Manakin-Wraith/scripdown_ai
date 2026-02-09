@@ -31,8 +31,8 @@ const AnalysisStepper = ({ progress, status, fileName }) => {
 
     const steps = [
         { title: 'Upload Script', description: 'Sending PDF to secure server' },
-        { title: 'AI Analysis', description: 'Extracting scenes, characters, and props' },
-        { title: 'Finalizing', description: 'Preparing your interactive breakdown' }
+        { title: 'Structural Analysis', description: 'Parsing scenes, speakers & locations' },
+        { title: 'Finalizing', description: 'Saving enriched breakdown data' }
     ];
 
     // Override for demo/MVP smoothness:

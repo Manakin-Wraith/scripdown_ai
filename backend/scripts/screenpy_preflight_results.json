@@ -1,0 +1,2651 @@
+{
+  "scripts_tested": 5,
+  "per_script": [
+    {
+      "name": "BIRD_V8.pdf",
+      "comparison": {
+        "pdf_path": "BIRD_V8.pdf",
+        "total_pages": 109,
+        "pypdf2": {
+          "total_chars": 108460,
+          "kerning_artifacts": 0,
+          "time_seconds": 0.283
+        },
+        "pdfplumber_fast": {
+          "total_chars": 111007,
+          "kerning_artifacts": 0,
+          "time_seconds": 2.468
+        },
+        "pdfplumber_layout": {
+          "total_chars": 555791,
+          "kerning_artifacts": 0,
+          "time_seconds": 2.461
+        }
+      },
+      "normalization": {
+        "layout_chars": 555899,
+        "normalized_chars": 410795,
+        "chars_removed": 145104
+      },
+      "dual_paths": {
+        "regex_on_raw_count": 0,
+        "regex_on_normalized_count": 0,
+        "divergence": false,
+        "divergence_detail": "No divergence",
+        "raw_headers": []
+      },
+      "indentation": {
+        "pages_sampled": 20,
+        "total_lines_analyzed": 762,
+        "x_clusters": [
+          {
+            "x_position": 110,
+            "count": 278,
+            "likely_element": "parenthetical/dialogue"
+          },
+          {
+            "x_position": 180,
+            "count": 313,
+            "likely_element": "character_name"
+          },
+          {
+            "x_position": 210,
+            "count": 6,
+            "likely_element": "character_name"
+          },
+          {
+            "x_position": 250,
+            "count": 141,
+            "likely_element": "character_name"
+          },
+          {
+            "x_position": 410,
+            "count": 2,
+            "likely_element": "transition"
+          },
+          {
+            "x_position": 450,
+            "count": 1,
+            "likely_element": "transition"
+          },
+          {
+            "x_position": 460,
+            "count": 2,
+            "likely_element": "transition"
+          },
+          {
+            "x_position": 500,
+            "count": 11,
+            "likely_element": "transition"
+          },
+          {
+            "x_position": 510,
+            "count": 8,
+            "likely_element": "transition"
+          }
+        ],
+        "indent_samples": {
+          "15": "INT. CAR DUSK",
+          "25": "Life, what a ride, what a game.",
+          "35": "V.O.",
+          "38": "V.O.",
+          "56": "ON BLACK SCREEN",
+          "62": "FADE OUT.",
+          "70": "2."
+        },
+        "screenpy_alignment": {
+          "center_indent_20plus": true,
+          "dialogue_indent_10_30": true,
+          "right_indent_40plus": true
+        },
+        "all_thresholds_met": true
+      },
+      "locations": {
+        "total_headers": 0,
+        "multi_level": 0,
+        "unique_parents": 0
+      }
+    },
+    {
+      "name": "Ep_1.pdf",
+      "comparison": {
+        "pdf_path": "Ep_1.pdf",
+        "total_pages": 39,
+        "pypdf2": {
+          "total_chars": 29228,
+          "kerning_artifacts": 31,
+          "time_seconds": 0.747
+        },
+        "pdfplumber_fast": {
+          "total_chars": 28939,
+          "kerning_artifacts": 33,
+          "time_seconds": 2.715
+        },
+        "pdfplumber_layout": {
+          "total_chars": 198861,
+          "kerning_artifacts": 31,
+          "time_seconds": 2.164
+        }
+      },
+      "normalization": {
+        "layout_chars": 198899,
+        "normalized_chars": 160774,
+        "chars_removed": 38125
+      },
+      "dual_paths": {
+        "regex_on_raw_count": 22,
+        "regex_on_normalized_count": 22,
+        "divergence": false,
+        "divergence_detail": "No divergence",
+        "raw_headers": [
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "SEGUN/LEROYS APARTMENT BLOCK",
+            "time_of_day": "DAY",
+            "line": "EXT. SEGUN/LEROYS APARTMENT BLOCK - DAY",
+            "line_number": 32
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "SEGUN/LEROYS LOUNGE",
+            "time_of_day": "DAY",
+            "line": "INT. SEGUN/LEROYS LOUNGE - DAY",
+            "line_number": 34
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "SEGUN/LEROYS APARTMENT BLOCK",
+            "time_of_day": "CONTINUOUS",
+            "line": "EXT. SEGUN/LEROYS APARTMENT BLOCK - CONTINUOUS",
+            "line_number": 167
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "SEGUN/LEROYS BEDROOM",
+            "time_of_day": "DAY",
+            "line": "INT. SEGUN/LEROYS BEDROOM - DAY",
+            "line_number": 170
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "SEGUN/LEROYS LOUNGE",
+            "time_of_day": "CONTINUOUS",
+            "line": "INT. SEGUN/LEROYS LOUNGE - CONTINUOUS",
+            "line_number": 262
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "SEGUN/LEROYS APARTMENT BLOCK",
+            "time_of_day": "DAY",
+            "line": "EXT. SEGUN/LEROYS APARTMENT BLOCK - DAY",
+            "line_number": 302
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "SEGUN/LEROYS LOUNGE",
+            "time_of_day": "DAY",
+            "line": "INT. SEGUN/LEROYS LOUNGE - DAY",
+            "line_number": 305
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "SEGUN/LEROYS APARTMENT BLOCK",
+            "time_of_day": "DAY",
+            "line": "EXT. SEGUN/LEROYS APARTMENT BLOCK - DAY",
+            "line_number": 392
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "SEGUN/LEROYS LOUNGE",
+            "time_of_day": "MOMENTS LATER",
+            "line": "INT. SEGUN/LEROYS LOUNGE - MOMENTS LATER",
+            "line_number": 396
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "SEGUN/LEROYS LOUNGE",
+            "time_of_day": "DAY",
+            "line": "INT. SEGUN/LEROYS LOUNGE - DAY",
+            "line_number": 465
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "SEGUN/LEROYS KITCHEN",
+            "time_of_day": "CONTINUOUS",
+            "line": "INT. SEGUN/LEROYS KITCHEN - CONTINUOUS",
+            "line_number": 526
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "SEGUN/LEROYS LOUNGE",
+            "time_of_day": "CONTINUOUS",
+            "line": "INT. SEGUN/LEROYS LOUNGE - CONTINUOUS",
+            "line_number": 573
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "SEGUN/LEROYS BEDROOM",
+            "time_of_day": "CONTINUOUS",
+            "line": "INT. SEGUN/LEROYS BEDROOM - CONTINUOUS",
+            "line_number": 575
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "SEGUN/LEROY\u2019S APARTMENT",
+            "time_of_day": "MOMENTS LATER",
+            "line": "EXT. SEGUN/LEROY\u2019S APARTMENT - MOMENTS LATER",
+            "line_number": 623
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "SEGUN/LEROYS LOUNGE",
+            "time_of_day": "DAY",
+            "line": "INT. SEGUN/LEROYS LOUNGE - DAY",
+            "line_number": 626
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "SEGUN/LEROYS KITCHEN",
+            "time_of_day": "CONTINUOUS",
+            "line": "INT. SEGUN/LEROYS KITCHEN - CONTINUOUS",
+            "line_number": 687
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "SEGUN/LEROYS LOUNGE",
+            "time_of_day": "CONTINUOUS",
+            "line": "INT. SEGUN/LEROYS LOUNGE - CONTINUOUS",
+            "line_number": 706
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "SEGUN/LEROYS KITCHEN",
+            "time_of_day": "CONTINUOUS",
+            "line": "INT. SEGUN/LEROYS KITCHEN - CONTINUOUS",
+            "line_number": 739
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "SEGUN/LEROYS APARTMENT BLOCK",
+            "time_of_day": "DAY",
+            "line": "EXT. SEGUN/LEROYS APARTMENT BLOCK - DAY",
+            "line_number": 777
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "SEGUN/LEROYS LOUNGE",
+            "time_of_day": "DAY",
+            "line": "INT. SEGUN/LEROYS LOUNGE - DAY",
+            "line_number": 782
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "SEGUN/LEROYS APARTMENT BLOCK",
+            "time_of_day": "DAY",
+            "line": "EXT. SEGUN/LEROYS APARTMENT BLOCK - DAY",
+            "line_number": 895
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "SEGUN/LEROYS LOUNGE",
+            "time_of_day": "DAY",
+            "line": "INT. SEGUN/LEROYS LOUNGE - DAY",
+            "line_number": 898
+          }
+        ]
+      },
+      "indentation": {
+        "pages_sampled": 20,
+        "total_lines_analyzed": 550,
+        "x_clusters": [
+          {
+            "x_position": 40,
+            "count": 17,
+            "likely_element": "scene_header/action"
+          },
+          {
+            "x_position": 70,
+            "count": 11,
+            "likely_element": "scene_header/action"
+          },
+          {
+            "x_position": 110,
+            "count": 130,
+            "likely_element": "parenthetical/dialogue"
+          },
+          {
+            "x_position": 120,
+            "count": 3,
+            "likely_element": "parenthetical/dialogue"
+          },
+          {
+            "x_position": 160,
+            "count": 264,
+            "likely_element": "parenthetical/dialogue"
+          },
+          {
+            "x_position": 170,
+            "count": 1,
+            "likely_element": "parenthetical/dialogue"
+          },
+          {
+            "x_position": 190,
+            "count": 16,
+            "likely_element": "character_name"
+          },
+          {
+            "x_position": 250,
+            "count": 101,
+            "likely_element": "character_name"
+          },
+          {
+            "x_position": 260,
+            "count": 2,
+            "likely_element": "character_name"
+          },
+          {
+            "x_position": 280,
+            "count": 1,
+            "likely_element": "character_name"
+          },
+          {
+            "x_position": 290,
+            "count": 2,
+            "likely_element": "character_name"
+          },
+          {
+            "x_position": 490,
+            "count": 1,
+            "likely_element": "transition"
+          },
+          {
+            "x_position": 500,
+            "count": 1,
+            "likely_element": "transition"
+          }
+        ],
+        "indent_samples": {
+          "10": "CHARACTER NAME..........................",
+          "15": "EXT. SEGUN/LEROYS APARTMENT BLOCK - DAY",
+          "16": "LEROY/KOLA",
+          "22": "That\u2019s it. By the time I make my grand",
+          "23": "LASGIDI -EPISODE 1 -THIS IS HOW WE DO IT",
+          "26": "(excited)",
+          "35": "\"Episode Title\"",
+          "36": "SERIES TITLE",
+          "39": "GUEST CAST",
+          "40": "CAST",
+          "68": "iii.",
+          "69": "ii."
+        },
+        "screenpy_alignment": {
+          "center_indent_20plus": true,
+          "dialogue_indent_10_30": true,
+          "right_indent_40plus": true
+        },
+        "all_thresholds_met": true
+      },
+      "locations": {
+        "total_headers": 22,
+        "multi_level": 0,
+        "unique_parents": 5
+      }
+    },
+    {
+      "name": "LASGIDI_-EPISODE_14_-YANK_HOOKUP.pdf",
+      "comparison": {
+        "pdf_path": "LASGIDI_-EPISODE_14_-YANK_HOOKUP.pdf",
+        "total_pages": 26,
+        "pypdf2": {
+          "total_chars": 23576,
+          "kerning_artifacts": 0,
+          "time_seconds": 0.053
+        },
+        "pdfplumber_fast": {
+          "total_chars": 23576,
+          "kerning_artifacts": 0,
+          "time_seconds": 0.479
+        },
+        "pdfplumber_layout": {
+          "total_chars": 132574,
+          "kerning_artifacts": 0,
+          "time_seconds": 0.337
+        }
+      },
+      "normalization": {
+        "layout_chars": 132599,
+        "normalized_chars": 96440,
+        "chars_removed": 36159
+      },
+      "dual_paths": {
+        "regex_on_raw_count": 22,
+        "regex_on_normalized_count": 22,
+        "divergence": false,
+        "divergence_detail": "No divergence",
+        "raw_headers": [
+          {
+            "scene_number": "1",
+            "int_ext": "EXT",
+            "setting": "LEROY/SEGUN\u2019S APARTMENT",
+            "time_of_day": "DAY",
+            "line": "1. EXT. LEROY/SEGUN\u2019S APARTMENT - DAY",
+            "line_number": 9
+          },
+          {
+            "scene_number": "2",
+            "int_ext": "INT",
+            "setting": "LEROY/SEGUN\u2019S LIVING ROOM",
+            "time_of_day": "DAY",
+            "line": "2. INT. LEROY/SEGUN\u2019S LIVING ROOM - DAY",
+            "line_number": 11
+          },
+          {
+            "scene_number": "3",
+            "int_ext": "EXT",
+            "setting": "LEROY/SEGUN\u2019S APARTMENT",
+            "time_of_day": "DAY",
+            "line": "3. EXT. LEROY/SEGUN\u2019S APARTMENT - DAY",
+            "line_number": 87
+          },
+          {
+            "scene_number": "4",
+            "int_ext": "INT",
+            "setting": "LEROY/SEGUN\u2019S LIVING ROOM",
+            "time_of_day": "DAY",
+            "line": "4. INT. LEROY/SEGUN\u2019S LIVING ROOM - DAY",
+            "line_number": 89
+          },
+          {
+            "scene_number": "5",
+            "int_ext": "EXT",
+            "setting": "LEROY/SEGUN\u2019S APARTMENT",
+            "time_of_day": "NIGHT",
+            "line": "5. EXT. LEROY/SEGUN\u2019S APARTMENT - NIGHT",
+            "line_number": 166
+          },
+          {
+            "scene_number": "6",
+            "int_ext": "INT",
+            "setting": "LEROY/SEGUN\u2019S LIVING ROOM",
+            "time_of_day": "NIGHT",
+            "line": "6. INT. LEROY/SEGUN\u2019S LIVING ROOM - NIGHT",
+            "line_number": 168
+          },
+          {
+            "scene_number": "7",
+            "int_ext": "EXT",
+            "setting": "LEROY/SEGUN\u2019S APARTMENT",
+            "time_of_day": "EVENING",
+            "line": "7. EXT. LEROY/SEGUN\u2019S APARTMENT - EVENING",
+            "line_number": 286
+          },
+          {
+            "scene_number": "8",
+            "int_ext": "INT",
+            "setting": "LEROY/SEGUN\u2019S LIVING ROOM",
+            "time_of_day": "EVENING",
+            "line": "8. INT. LEROY/SEGUN\u2019S LIVING ROOM - EVENING",
+            "line_number": 288
+          },
+          {
+            "scene_number": "9",
+            "int_ext": "INT",
+            "setting": "LEROY/SEGUN\u2019S APARTMENT",
+            "time_of_day": "DAY",
+            "line": "9. INT. LEROY/SEGUN\u2019S APARTMENT - DAY",
+            "line_number": 430
+          },
+          {
+            "scene_number": "10",
+            "int_ext": "INT",
+            "setting": "LEROY/SEGUN\u2019S BEDROOM",
+            "time_of_day": "DAY",
+            "line": "10. INT. LEROY/SEGUN\u2019S BEDROOM - DAY",
+            "line_number": 432
+          },
+          {
+            "scene_number": "11",
+            "int_ext": "EXT",
+            "setting": "LEROY/SEGUN\u2019S APARTMENT",
+            "time_of_day": "MOMENT\u2019S LATER",
+            "line": "11. EXT. LEROY/SEGUN\u2019S APARTMENT - MOMENT\u2019S LATER",
+            "line_number": 492
+          },
+          {
+            "scene_number": "12",
+            "int_ext": "INT",
+            "setting": "LEROY/SEGUN\u2019S LIVING ROOM",
+            "time_of_day": "MOMENT\u2019S LATER",
+            "line": "12. INT. LEROY/SEGUN\u2019S LIVING ROOM - MOMENT\u2019S LATER",
+            "line_number": 495
+          },
+          {
+            "scene_number": "13",
+            "int_ext": "INT",
+            "setting": "LEROY/SEGUN\u2019S APARTMENT",
+            "time_of_day": "DAY",
+            "line": "13. INT. LEROY/SEGUN\u2019S APARTMENT - DAY",
+            "line_number": 573
+          },
+          {
+            "scene_number": "14",
+            "int_ext": "INT",
+            "setting": "LEROY/SEGUN\u2019S LIVING ROOM/LEROY/SEGUN\u2019S BEDROOM -",
+            "time_of_day": "DAY",
+            "line": "14. INT. LEROY/SEGUN\u2019S LIVING ROOM/LEROY/SEGUN\u2019S BEDROOM -",
+            "line_number": 601
+          },
+          {
+            "scene_number": "15",
+            "int_ext": "INT",
+            "setting": "LEROY/SEGUN\u2019S LIVING ROOM",
+            "time_of_day": "CONTINUOUS",
+            "line": "15. INT. LEROY/SEGUN\u2019S LIVING ROOM - CONTINUOUS",
+            "line_number": 626
+          },
+          {
+            "scene_number": "16",
+            "int_ext": "EXT",
+            "setting": "LEROY/SEGUN\u2019S APARTMENT",
+            "time_of_day": "EVENING",
+            "line": "16. EXT. LEROY/SEGUN\u2019S APARTMENT - EVENING",
+            "line_number": 645
+          },
+          {
+            "scene_number": "17",
+            "int_ext": "INT",
+            "setting": "LEROY/SEGUN\u2019S LIVING ROOM",
+            "time_of_day": "EVENING",
+            "line": "17. INT. LEROY/SEGUN\u2019S LIVING ROOM - EVENING",
+            "line_number": 648
+          },
+          {
+            "scene_number": "18",
+            "int_ext": "INT",
+            "setting": "LEROY/SEGUN\u2019S KITCHEN",
+            "time_of_day": "CONTINUOUS",
+            "line": "18. INT. LEROY/SEGUN\u2019S KITCHEN - CONTINUOUS",
+            "line_number": 718
+          },
+          {
+            "scene_number": "19",
+            "int_ext": "INT",
+            "setting": "LEROY/SEGUN\u2019S LIVING ROOM",
+            "time_of_day": "CONTINUOUS",
+            "line": "19. INT. LEROY/SEGUN\u2019S LIVING ROOM - CONTINUOUS",
+            "line_number": 758
+          },
+          {
+            "scene_number": "20",
+            "int_ext": "INT",
+            "setting": "LEROY/SEGUN\u2019S KITCHEN",
+            "time_of_day": "CONTINUOUS",
+            "line": "20. INT. LEROY/SEGUN\u2019S KITCHEN - CONTINUOUS",
+            "line_number": 806
+          },
+          {
+            "scene_number": "21",
+            "int_ext": "EXT",
+            "setting": "LEROY/SEGUN\u2019S APARTMENT",
+            "time_of_day": "DAY",
+            "line": "21. EXT. LEROY/SEGUN\u2019S APARTMENT - DAY",
+            "line_number": 888
+          },
+          {
+            "scene_number": "22",
+            "int_ext": "INT",
+            "setting": "LEROY/SEGUN\u2019S LIVING ROOM",
+            "time_of_day": "DAY",
+            "line": "22. INT. LEROY/SEGUN\u2019S LIVING ROOM - DAY",
+            "line_number": 890
+          }
+        ]
+      },
+      "indentation": {
+        "pages_sampled": 20,
+        "total_lines_analyzed": 796,
+        "x_clusters": [
+          {
+            "x_position": 110,
+            "count": 145,
+            "likely_element": "parenthetical/dialogue"
+          },
+          {
+            "x_position": 180,
+            "count": 417,
+            "likely_element": "character_name"
+          },
+          {
+            "x_position": 220,
+            "count": 8,
+            "likely_element": "character_name"
+          },
+          {
+            "x_position": 230,
+            "count": 2,
+            "likely_element": "character_name"
+          },
+          {
+            "x_position": 240,
+            "count": 20,
+            "likely_element": "character_name"
+          },
+          {
+            "x_position": 250,
+            "count": 184,
+            "likely_element": "character_name"
+          },
+          {
+            "x_position": 460,
+            "count": 13,
+            "likely_element": "transition"
+          },
+          {
+            "x_position": 490,
+            "count": 1,
+            "likely_element": "transition"
+          },
+          {
+            "x_position": 500,
+            "count": 3,
+            "likely_element": "transition"
+          },
+          {
+            "x_position": 510,
+            "count": 3,
+            "likely_element": "transition"
+          }
+        ],
+        "indent_samples": {
+          "15": "1. EXT. LEROY/SEGUN\u2019S APARTMENT - DAY",
+          "25": "Hey, I just finished speaking with",
+          "33": "(Excited)",
+          "34": "(Teases)",
+          "35": "SEGUN",
+          "64": "(CONTINUED)",
+          "70": "3."
+        },
+        "screenpy_alignment": {
+          "center_indent_20plus": true,
+          "dialogue_indent_10_30": true,
+          "right_indent_40plus": true
+        },
+        "all_thresholds_met": true
+      },
+      "locations": {
+        "total_headers": 22,
+        "multi_level": 0,
+        "unique_parents": 5
+      }
+    },
+    {
+      "name": "LASGIDI_-EPISODE_4_-_EDIT.pdf",
+      "comparison": {
+        "pdf_path": "LASGIDI_-EPISODE_4_-_EDIT.pdf",
+        "total_pages": 27,
+        "pypdf2": {
+          "total_chars": 23797,
+          "kerning_artifacts": 1,
+          "time_seconds": 0.07
+        },
+        "pdfplumber_fast": {
+          "total_chars": 23795,
+          "kerning_artifacts": 0,
+          "time_seconds": 0.364
+        },
+        "pdfplumber_layout": {
+          "total_chars": 137673,
+          "kerning_artifacts": 0,
+          "time_seconds": 0.442
+        }
+      },
+      "normalization": {
+        "layout_chars": 137699,
+        "normalized_chars": 99649,
+        "chars_removed": 38050
+      },
+      "dual_paths": {
+        "regex_on_raw_count": 25,
+        "regex_on_normalized_count": 25,
+        "divergence": false,
+        "divergence_detail": "No divergence",
+        "raw_headers": [
+          {
+            "scene_number": "1",
+            "int_ext": "EXT",
+            "setting": "LEROY/PATRICK\u2019S APARTMENT",
+            "time_of_day": "DAY",
+            "line": "1. EXT. LEROY/PATRICK\u2019S APARTMENT - DAY",
+            "line_number": 8
+          },
+          {
+            "scene_number": "2",
+            "int_ext": "INT",
+            "setting": "LEROY/PATRICK\u2019S LIVING ROOM",
+            "time_of_day": "DAY",
+            "line": "2. INT. LEROY/PATRICK\u2019S LIVING ROOM - DAY",
+            "line_number": 10
+          },
+          {
+            "scene_number": "3",
+            "int_ext": "EXT",
+            "setting": "LEROY/PATRICK\u2019S APARTMENT",
+            "time_of_day": "NIGHT",
+            "line": "3. EXT. LEROY/PATRICK\u2019S APARTMENT - NIGHT",
+            "line_number": 148
+          },
+          {
+            "scene_number": "4",
+            "int_ext": "INT",
+            "setting": "LEROY/ PATRICK\u2019S KITCHEN",
+            "time_of_day": "NIGHT",
+            "line": "4. INT. LEROY/ PATRICK\u2019S KITCHEN - NIGHT",
+            "line_number": 152
+          },
+          {
+            "scene_number": "5",
+            "int_ext": "EXT",
+            "setting": "LEROY/PATRICK\u2019S APARTMENT",
+            "time_of_day": "DAY",
+            "line": "5. EXT. LEROY/PATRICK\u2019S APARTMENT - DAY",
+            "line_number": 284
+          },
+          {
+            "scene_number": "6",
+            "int_ext": "INT",
+            "setting": "LEROY/PATRICK\u2019S LIVING ROOM",
+            "time_of_day": "DAY",
+            "line": "6. INT. LEROY/PATRICK\u2019S LIVING ROOM - DAY",
+            "line_number": 287
+          },
+          {
+            "scene_number": "7",
+            "int_ext": "INT",
+            "setting": "LEROY/PATRICK\u2019S LIVING ROOM",
+            "time_of_day": "DAY",
+            "line": "7. INT. LEROY/PATRICK\u2019S LIVING ROOM - DAY",
+            "line_number": 375
+          },
+          {
+            "scene_number": "8",
+            "int_ext": "EXT",
+            "setting": "LEROY/PATRICK\u2019S APARTMENT",
+            "time_of_day": "NIGHT",
+            "line": "8. EXT. LEROY/PATRICK\u2019S APARTMENT - NIGHT",
+            "line_number": 505
+          },
+          {
+            "scene_number": "9",
+            "int_ext": "INT",
+            "setting": "LEROY/PATRICK\u2019S LIVING ROOM",
+            "time_of_day": "NIGHT",
+            "line": "9. INT. LEROY/PATRICK\u2019S LIVING ROOM - NIGHT",
+            "line_number": 509
+          },
+          {
+            "scene_number": "10",
+            "int_ext": "INT",
+            "setting": "LEROY/PATRICK\u2019S LIVING ROOM",
+            "time_of_day": "NIGHT",
+            "line": "10. INT. LEROY/PATRICK\u2019S LIVING ROOM - NIGHT",
+            "line_number": 618
+          },
+          {
+            "scene_number": "11",
+            "int_ext": "EXT",
+            "setting": "LEROY/PATRICK\u2019S APARTMENT",
+            "time_of_day": "DAY",
+            "line": "11. EXT. LEROY/PATRICK\u2019S APARTMENT - DAY",
+            "line_number": 673
+          },
+          {
+            "scene_number": "12",
+            "int_ext": "INT",
+            "setting": "LEROY/PATRICK\u2019S LIVING ROOM",
+            "time_of_day": "DAY",
+            "line": "12. INT. LEROY/PATRICK\u2019S LIVING ROOM - DAY",
+            "line_number": 677
+          },
+          {
+            "scene_number": "13",
+            "int_ext": "EXT",
+            "setting": "LEROY/PATRICK\u2019S APARTMENT",
+            "time_of_day": "DAY",
+            "line": "13. EXT. LEROY/PATRICK\u2019S APARTMENT - DAY",
+            "line_number": 746
+          },
+          {
+            "scene_number": "14",
+            "int_ext": "INT",
+            "setting": "LEROY/PATRICK\u2019S LIVING ROOM",
+            "time_of_day": "DAY",
+            "line": "14. INT. LEROY/PATRICK\u2019S LIVING ROOM - DAY",
+            "line_number": 749
+          },
+          {
+            "scene_number": "15",
+            "int_ext": "INT",
+            "setting": "LEROY/PATRICK\u2019S LIVING ROOM",
+            "time_of_day": "CONTINUOUS",
+            "line": "15. INT. LEROY/PATRICK\u2019S LIVING ROOM - CONTINUOUS",
+            "line_number": 831
+          },
+          {
+            "scene_number": "16",
+            "int_ext": "INT",
+            "setting": "LEROY/PATRICK\u2019S BATHROOM",
+            "time_of_day": "CONTINUOUS",
+            "line": "16. INT. LEROY/PATRICK\u2019S BATHROOM - CONTINUOUS",
+            "line_number": 843
+          },
+          {
+            "scene_number": "17",
+            "int_ext": "INT",
+            "setting": "LEROY/PATRICK\u2019S LIVING ROOM",
+            "time_of_day": "CONTINUOUS",
+            "line": "17. INT. LEROY/PATRICK\u2019S LIVING ROOM - CONTINUOUS",
+            "line_number": 852
+          },
+          {
+            "scene_number": "18",
+            "int_ext": "INT",
+            "setting": "LEROY/PATRICK\u2019S BATHROOM",
+            "time_of_day": "CONTINUOUS",
+            "line": "18. INT. LEROY/PATRICK\u2019S BATHROOM - CONTINUOUS",
+            "line_number": 864
+          },
+          {
+            "scene_number": "19",
+            "int_ext": "INT",
+            "setting": "LEROY/PATRICK\u2019S LIVING ROOM",
+            "time_of_day": "CONTINUOUS",
+            "line": "19. INT. LEROY/PATRICK\u2019S LIVING ROOM - CONTINUOUS",
+            "line_number": 871
+          },
+          {
+            "scene_number": "20",
+            "int_ext": "INT",
+            "setting": "LEROY/PATRICK\u2019S BATHROOM",
+            "time_of_day": "CONTINUOUS",
+            "line": "20. INT. LEROY/PATRICK\u2019S BATHROOM - CONTINUOUS",
+            "line_number": 879
+          },
+          {
+            "scene_number": "21",
+            "int_ext": "INT",
+            "setting": "LEROY/PATRICK\u2019S LIVING ROOM",
+            "time_of_day": "CONTINUOUS",
+            "line": "21. INT. LEROY/PATRICK\u2019S LIVING ROOM - CONTINUOUS",
+            "line_number": 884
+          },
+          {
+            "scene_number": "22",
+            "int_ext": "INT",
+            "setting": "LEROY/PATRICK\u2019S BATHROOM",
+            "time_of_day": "CONTINUOUS",
+            "line": "22. INT. LEROY/PATRICK\u2019S BATHROOM - CONTINUOUS",
+            "line_number": 892
+          },
+          {
+            "scene_number": "23",
+            "int_ext": "INT",
+            "setting": "LEROY/PATRICK\u2019S LIVING ROOM",
+            "time_of_day": "CONTINUOUS",
+            "line": "23. INT. LEROY/PATRICK\u2019S LIVING ROOM - CONTINUOUS",
+            "line_number": 900
+          },
+          {
+            "scene_number": "24",
+            "int_ext": "EXT",
+            "setting": "LEROY/PATRICK\u2019S APARTMENT",
+            "time_of_day": "DAY",
+            "line": "24. EXT. LEROY/PATRICK\u2019S APARTMENT - DAY",
+            "line_number": 982
+          },
+          {
+            "scene_number": "25",
+            "int_ext": "INT",
+            "setting": "LEROY/PATRICK\u2019S LIVING ROOM",
+            "time_of_day": "DAY",
+            "line": "25. INT. LEROY/PATRICK\u2019S LIVING ROOM - DAY",
+            "line_number": 985
+          }
+        ]
+      },
+      "indentation": {
+        "pages_sampled": 20,
+        "total_lines_analyzed": 808,
+        "x_clusters": [
+          {
+            "x_position": 110,
+            "count": 146,
+            "likely_element": "parenthetical/dialogue"
+          },
+          {
+            "x_position": 120,
+            "count": 1,
+            "likely_element": "parenthetical/dialogue"
+          },
+          {
+            "x_position": 180,
+            "count": 415,
+            "likely_element": "character_name"
+          },
+          {
+            "x_position": 220,
+            "count": 4,
+            "likely_element": "character_name"
+          },
+          {
+            "x_position": 230,
+            "count": 6,
+            "likely_element": "character_name"
+          },
+          {
+            "x_position": 240,
+            "count": 31,
+            "likely_element": "character_name"
+          },
+          {
+            "x_position": 250,
+            "count": 179,
+            "likely_element": "character_name"
+          },
+          {
+            "x_position": 260,
+            "count": 7,
+            "likely_element": "character_name"
+          },
+          {
+            "x_position": 460,
+            "count": 17,
+            "likely_element": "transition"
+          },
+          {
+            "x_position": 500,
+            "count": 2,
+            "likely_element": "transition"
+          }
+        ],
+        "indent_samples": {
+          "15": "1. EXT. LEROY/PATRICK\u2019S APARTMENT - DAY",
+          "25": "This is the day the Lord has made,",
+          "30": "(Shocked/Concerned)",
+          "32": "(Confused)",
+          "33": "(To Patrick)",
+          "34": "(O.S.)",
+          "35": "LEROY",
+          "64": "(CONTINUED)"
+        },
+        "screenpy_alignment": {
+          "center_indent_20plus": true,
+          "dialogue_indent_10_30": true,
+          "right_indent_40plus": true
+        },
+        "all_thresholds_met": true
+      },
+      "locations": {
+        "total_headers": 25,
+        "multi_level": 0,
+        "unique_parents": 4
+      }
+    },
+    {
+      "name": "Script_Powerlessness.pdf",
+      "comparison": {
+        "pdf_path": "Script_Powerlessness.pdf",
+        "total_pages": 88,
+        "pypdf2": {
+          "total_chars": 119438,
+          "kerning_artifacts": 0,
+          "time_seconds": 0.275
+        },
+        "pdfplumber_fast": {
+          "total_chars": 109023,
+          "kerning_artifacts": 0,
+          "time_seconds": 2.485
+        },
+        "pdfplumber_layout": {
+          "total_chars": 448712,
+          "kerning_artifacts": 0,
+          "time_seconds": 2.676
+        }
+      },
+      "normalization": {
+        "layout_chars": 448799,
+        "normalized_chars": 340947,
+        "chars_removed": 107852
+      },
+      "dual_paths": {
+        "regex_on_raw_count": 189,
+        "regex_on_normalized_count": 189,
+        "divergence": false,
+        "divergence_detail": "No divergence",
+        "raw_headers": [
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "STUDY",
+            "time_of_day": "DAY",
+            "line": "INT. STUDY - DAY",
+            "line_number": 5
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "CLEAR PLASTIC BAG",
+            "time_of_day": "DAY",
+            "line": "INT. CLEAR PLASTIC BAG - DAY",
+            "line_number": 99
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "CAR",
+            "time_of_day": "DAY",
+            "line": "INT. CAR - DAY",
+            "line_number": 104
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "HOSPITAL EMERGENCY ROOM",
+            "time_of_day": "DAY",
+            "line": "INT. HOSPITAL EMERGENCY ROOM - DAY",
+            "line_number": 127
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "HOSPITAL ROOK",
+            "time_of_day": "NIGHT",
+            "line": "INT. HOSPITAL ROOK - NIGHT",
+            "line_number": 131
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "HOSPITAL",
+            "time_of_day": "MORNING",
+            "line": "EXT. HOSPITAL - MORNING",
+            "line_number": 139
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "HOSPITAL ROOK",
+            "time_of_day": "MORNING",
+            "line": "INT. HOSPITAL ROOK - MORNING",
+            "line_number": 143
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "KATES CAR",
+            "time_of_day": "MORNING",
+            "line": "INT. KATES CAR - MORNING",
+            "line_number": 152
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "THE BRIDGE TO LIFE REHAB ENTRANCE",
+            "time_of_day": "MORNING",
+            "line": "EXT. THE BRIDGE TO LIFE REHAB ENTRANCE - MORNING",
+            "line_number": 157
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "REHAB ROOM",
+            "time_of_day": "DAY",
+            "line": "EXT. REHAB ROOM - DAY",
+            "line_number": 179
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "REHAB ROOM",
+            "time_of_day": "DAY",
+            "line": "INT. REHAB ROOM - DAY",
+            "line_number": 192
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "REHAB CANTEEN",
+            "time_of_day": "DAY",
+            "line": "INT. REHAB CANTEEN - DAY",
+            "line_number": 265
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "REHAB GROWNDS",
+            "time_of_day": "DAY",
+            "line": "EXT. REHAB GROWNDS - DAY",
+            "line_number": 346
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "REHAB ROOM",
+            "time_of_day": "DAY",
+            "line": "INT. REHAB ROOM - DAY",
+            "line_number": 389
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "REHAB ROOM 2",
+            "time_of_day": "DAY",
+            "line": "INT. REHAB ROOM 2 - DAY",
+            "line_number": 409
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "REHAB ROOM 3",
+            "time_of_day": "DAY",
+            "line": "INT. REHAB ROOM 3 - DAY",
+            "line_number": 436
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "RAHAB GROWNDS PHONE BOOTH",
+            "time_of_day": "NIGHT",
+            "line": "EXT. RAHAB GROWNDS PHONE BOOTH - NIGHT",
+            "line_number": 451
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "DARHTY'S LOUNGE",
+            "time_of_day": "EVENING",
+            "line": "INT. DARHTY'S LOUNGE - EVENING",
+            "line_number": 492
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "RESTURANT",
+            "time_of_day": "NIGHT",
+            "line": "EXT. RESTURANT - NIGHT",
+            "line_number": 513
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "KATES CAR",
+            "time_of_day": "NIGHT",
+            "line": "INT. KATES CAR - NIGHT",
+            "line_number": 546
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "CLUB",
+            "time_of_day": "NIGHT",
+            "line": "INT. CLUB - NIGHT",
+            "line_number": 549
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "KATES CAR",
+            "time_of_day": "NIGHT",
+            "line": "INT. KATES CAR - NIGHT",
+            "line_number": 571
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "DARTHY'S APARTMENT",
+            "time_of_day": "NIGHT",
+            "line": "EXT. DARTHY'S APARTMENT - NIGHT",
+            "line_number": 573
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "TOY SHOP",
+            "time_of_day": "DAY",
+            "line": "INT. TOY SHOP - DAY",
+            "line_number": 606
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "CLYDES LIVING ROOM / ENTRANCE TO HOUSE",
+            "time_of_day": "DAY",
+            "line": "INT. CLYDES LIVING ROOM / ENTRANCE TO HOUSE - DAY",
+            "line_number": 610
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "DARTHYS BEDROOM",
+            "time_of_day": "DAY",
+            "line": "INT. DARTHYS BEDROOM - DAY",
+            "line_number": 624
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "CHURCH",
+            "time_of_day": "EVENING",
+            "line": "EXT. CHURCH - EVENING",
+            "line_number": 646
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "DARTHY'S CAR",
+            "time_of_day": "EVENING",
+            "line": "INT. DARTHY'S CAR - EVENING",
+            "line_number": 651
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "RECEPTION ARIA IN AN OLD AGE HOME",
+            "time_of_day": "DAY",
+            "line": "INT. RECEPTION ARIA IN AN OLD AGE HOME - DAY",
+            "line_number": 654
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "SMALL BEDROOM",
+            "time_of_day": "DAY",
+            "line": "INT. SMALL BEDROOM - DAY",
+            "line_number": 668
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "DARTHY'S BEDROOM",
+            "time_of_day": "MORNING",
+            "line": "INT. DARTHY'S BEDROOM - MORNING",
+            "line_number": 688
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "DATHY'S PASAGE WAY/BATHROOM/LOUNGE/KITCHEN",
+            "time_of_day": "DAY",
+            "line": "INT. DATHY'S PASAGE WAY/BATHROOM/LOUNGE/KITCHEN - DAY",
+            "line_number": 691
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "N3",
+            "time_of_day": "DAY",
+            "line": "EXT. N3 - DAY",
+            "line_number": 701
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "URSULAS PRACTICE",
+            "time_of_day": "DAY",
+            "line": "EXT. URSULAS PRACTICE - DAY",
+            "line_number": 703
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "COUNSELLORS ROOM",
+            "time_of_day": "DAY",
+            "line": "INT. COUNSELLORS ROOM - DAY",
+            "line_number": 705
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "CLYDES KITCHEN",
+            "time_of_day": "DAY",
+            "line": "INT. CLYDES KITCHEN - DAY",
+            "line_number": 737
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "DARTHY'S KITCHEN",
+            "time_of_day": "DAY",
+            "line": "INT. DARTHY'S KITCHEN - DAY",
+            "line_number": 754
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "DARTHY'S FLATS DRIVE WAY",
+            "time_of_day": "DAY",
+            "line": "EXT. DARTHY'S FLATS DRIVE WAY - DAY",
+            "line_number": 763
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "CHURCH AA",
+            "time_of_day": "DAY",
+            "line": "INT. CHURCH AA - DAY",
+            "line_number": 769
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "DEARTH'S LIVING ROOM",
+            "time_of_day": "DAY",
+            "line": "INT. DEARTH'S LIVING ROOM - DAY",
+            "line_number": 844
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "SMALL BEDROOM",
+            "time_of_day": "DAY",
+            "line": "INT. SMALL BEDROOM - DAY",
+            "line_number": 931
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "DARTHYS APARTMENT",
+            "time_of_day": "DAY",
+            "line": "EXT. DARTHYS APARTMENT - DAY",
+            "line_number": 960
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "DARTHY'S LIVING ROOM",
+            "time_of_day": "DAY",
+            "line": "INT. DARTHY'S LIVING ROOM - DAY",
+            "line_number": 962
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "CHURCH",
+            "time_of_day": "EVENING",
+            "line": "EXT. CHURCH - EVENING",
+            "line_number": 991
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "AA MEETING",
+            "time_of_day": "EVENING",
+            "line": "INT. AA MEETING - EVENING",
+            "line_number": 1002
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "MUIZENBERG BEACH",
+            "time_of_day": "EVENING",
+            "line": "EXT. MUIZENBERG BEACH - EVENING",
+            "line_number": 1011
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "DVD AND MUSIC SHOP",
+            "time_of_day": "DAY",
+            "line": "INT. DVD AND MUSIC SHOP - DAY",
+            "line_number": 1072
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "CAR",
+            "time_of_day": "DAY",
+            "line": "INT. CAR - DAY",
+            "line_number": 1083
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "OFFICE",
+            "time_of_day": "DAY",
+            "line": "INT. OFFICE - DAY",
+            "line_number": 1093
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "BATHROOM",
+            "time_of_day": "DAY",
+            "line": "INT. BATHROOM - DAY",
+            "line_number": 1124
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "DARTHY'S LIVING ROOM",
+            "time_of_day": "DAY",
+            "line": "INT. DARTHY'S LIVING ROOM - DAY",
+            "line_number": 1140
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "DARTHY'S LIVING ROOM",
+            "time_of_day": "DAY",
+            "line": "INT. DARTHY'S LIVING ROOM - DAY",
+            "line_number": 1153
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "CLYDES BEDROOM / ON SUIT BATHROOM",
+            "time_of_day": "NIGHT",
+            "line": "INT. CLYDES BEDROOM / ON SUIT BATHROOM - NIGHT",
+            "line_number": 1162
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "COUNSELLORS ROOM",
+            "time_of_day": "DAY",
+            "line": "INT. COUNSELLORS ROOM - DAY",
+            "line_number": 1183
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "PARKING LOT CURCH",
+            "time_of_day": "NIGHT",
+            "line": "EXT. PARKING LOT CURCH - NIGHT",
+            "line_number": 1260
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "THE ROOMS",
+            "time_of_day": "NIGHT",
+            "line": "INT. THE ROOMS - NIGHT",
+            "line_number": 1265
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "BEACH PROMINARD",
+            "time_of_day": "DAY",
+            "line": "EXT. BEACH PROMINARD - DAY",
+            "line_number": 1324
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "DAVID'S CAR",
+            "time_of_day": "DAY",
+            "line": "INT. DAVID'S CAR - DAY",
+            "line_number": 1331
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "BEACH PROMINARD",
+            "time_of_day": "DAY",
+            "line": "EXT. BEACH PROMINARD - DAY",
+            "line_number": 1337
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "HALLWAY PASSAGE OUTSIDE DARTHYS FLAT",
+            "time_of_day": "DAY",
+            "line": "INT. HALLWAY PASSAGE OUTSIDE DARTHYS FLAT - DAY",
+            "line_number": 1347
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "DARTHY'S LIVING ROOM",
+            "time_of_day": "DAY",
+            "line": "INT. DARTHY'S LIVING ROOM - DAY",
+            "line_number": 1353
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "WEDDING VENUE",
+            "time_of_day": "NIGHT",
+            "line": "INT. WEDDING VENUE - NIGHT",
+            "line_number": 1413
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "HOPITAL RECEPTION",
+            "time_of_day": "NIGHT",
+            "line": "INT. HOPITAL RECEPTION - NIGHT",
+            "line_number": 1483
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "HOSPITAL WARD",
+            "time_of_day": "NIGHT",
+            "line": "INT. HOSPITAL WARD - NIGHT",
+            "line_number": 1502
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "DARTHY'S LIVING ROOM",
+            "time_of_day": "DAY",
+            "line": "INT. DARTHY'S LIVING ROOM - DAY",
+            "line_number": 1515
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "BAR",
+            "time_of_day": "DAY",
+            "line": "INT. BAR - DAY (FLASH BACK)",
+            "line_number": 1517
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "DARTHY'S LIVING ROOM",
+            "time_of_day": "DAY",
+            "line": "INT. DARTHY'S LIVING ROOM - DAY (BACK TO PRESENT DAY)",
+            "line_number": 1521
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "CLUB",
+            "time_of_day": "NIGHT",
+            "line": "INT. CLUB - NIGHT (FLASH BACK)",
+            "line_number": 1524
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "DARTHY'S LIVING ROOM",
+            "time_of_day": "DAY",
+            "line": "INT. DARTHY'S LIVING ROOM - DAY (BACK TO PRESENT DAY)",
+            "line_number": 1528
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "ROAD",
+            "time_of_day": "DAY",
+            "line": "EXT. ROAD - DAY",
+            "line_number": 1531
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "DARTHY'S LIVING ROOM",
+            "time_of_day": "DAY",
+            "line": "INT. DARTHY'S LIVING ROOM - DAY (FLASH BACK)",
+            "line_number": 1538
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "BEACH PROMINARD",
+            "time_of_day": "DAY",
+            "line": "EXT. BEACH PROMINARD - DAY (BACK TO PRESENT DAY)",
+            "line_number": 1542
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "BEACH",
+            "time_of_day": "DAY",
+            "line": "EXT. BEACH - DAY (FLASH BACK)",
+            "line_number": 1546
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "BEACH PROMINARD",
+            "time_of_day": "DAY",
+            "line": "EXT. BEACH PROMINARD - DAY (BACK TO PRESENT DAY)",
+            "line_number": 1549
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "PUB",
+            "time_of_day": "DAY",
+            "line": "INT. PUB - DAY",
+            "line_number": 1558
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "COUNSELLORS ROOM",
+            "time_of_day": "DAY",
+            "line": "INT. COUNSELLORS ROOM - DAY",
+            "line_number": 1619
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "AA MEETING",
+            "time_of_day": "EVENING",
+            "line": "INT. AA MEETING - EVENING",
+            "line_number": 1689
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "COFFEE SHOP",
+            "time_of_day": "DAY",
+            "line": "EXT. COFFEE SHOP - DAY",
+            "line_number": 1769
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "CLYDES CAR SHOPING CENTRE",
+            "time_of_day": "DAY",
+            "line": "INT. CLYDES CAR SHOPING CENTRE - DAY",
+            "line_number": 1796
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "COFFEE SHOP",
+            "time_of_day": "DAY",
+            "line": "INT. COFFEE SHOP - DAY",
+            "line_number": 1922
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "ICE CREAM SHOP",
+            "time_of_day": "DAY",
+            "line": "EXT. ICE CREAM SHOP - DAY",
+            "line_number": 2041
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "MUIZNBERR KALK BAY WALK",
+            "time_of_day": "DAY",
+            "line": "EXT. MUIZNBERR KALK BAY WALK - DAY",
+            "line_number": 2094
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "BAR",
+            "time_of_day": "DAY",
+            "line": "EXT. BAR - DAY",
+            "line_number": 2154
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "BAR - SLOT MACHINE AREA",
+            "time_of_day": "DAY",
+            "line": "INT. BAR - SLOT MACHINE AREA - DAY",
+            "line_number": 2163
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "BAR - BAR AREA",
+            "time_of_day": "DAY",
+            "line": "INT. BAR - BAR AREA - DAY",
+            "line_number": 2183
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "BAR",
+            "time_of_day": "DAY",
+            "line": "EXT. BAR - DAY",
+            "line_number": 2224
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "CLYDE'S LIVING ROOM",
+            "time_of_day": "DAY",
+            "line": "INT. CLYDE'S LIVING ROOM - DAY",
+            "line_number": 2238
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "CLYDE'S KITCHEN",
+            "time_of_day": "MORNING",
+            "line": "INT. CLYDE'S KITCHEN - MORNING",
+            "line_number": 2247
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "CLIDES LIVING ROOM",
+            "time_of_day": "DAY",
+            "line": "INT. CLIDES LIVING ROOM - DAY",
+            "line_number": 2258
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "CLYDES HOUSE",
+            "time_of_day": "DAY",
+            "line": "EXT. CLYDES HOUSE - DAY",
+            "line_number": 2262
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "CLYDES LIVING ROOM",
+            "time_of_day": "DAY",
+            "line": "INT. CLYDES LIVING ROOM - DAY",
+            "line_number": 2269
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "ROAD TO STRANDFONTEIN",
+            "time_of_day": "DAY",
+            "line": "EXT. ROAD TO STRANDFONTEIN - DAY",
+            "line_number": 2314
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "STRANDFONTEIN BEACH",
+            "time_of_day": "DAY",
+            "line": "EXT. STRANDFONTEIN BEACH - DAY",
+            "line_number": 2316
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "FATIMAS BLOCK OF FLATS",
+            "time_of_day": "NIGHT",
+            "line": "EXT. FATIMAS BLOCK OF FLATS - NIGHT",
+            "line_number": 2339
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "FATIMA'S HALL WAY",
+            "time_of_day": "NIGHT",
+            "line": "INT. FATIMA'S HALL WAY - NIGHT.",
+            "line_number": 2342
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "FATIMA'S BEDROOM",
+            "time_of_day": "NIGHT",
+            "line": "INT. FATIMA'S BEDROOM - NIGHT.",
+            "line_number": 2353
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "FATIMA'S FRINEDS HOUSE (SARAH'S HOUSE)",
+            "time_of_day": "NIGHT",
+            "line": "EXT. FATIMA'S FRINEDS HOUSE (SARAH'S HOUSE) - NIGHT",
+            "line_number": 2371
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "SARAH'S LIVING ROOM",
+            "time_of_day": "NIGHT",
+            "line": "INT. SARAH'S LIVING ROOM - NIGHT",
+            "line_number": 2385
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "SARAH'S DINING ROOM",
+            "time_of_day": "NIGHT",
+            "line": "INT. SARAH'S DINING ROOM - NIGHT",
+            "line_number": 2415
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "SARAH'S BATHROOM",
+            "time_of_day": "NIGHT",
+            "line": "INT. SARAH'S BATHROOM - NIGHT",
+            "line_number": 2493
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "SARAH'S DINING ROOM",
+            "time_of_day": "NIGHT",
+            "line": "INT. SARAH'S DINING ROOM - NIGHT",
+            "line_number": 2531
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "UBER",
+            "time_of_day": "NIGHT",
+            "line": "INT. UBER - NIGHT",
+            "line_number": 2539
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "DARTHY'S FLAT",
+            "time_of_day": "NIGHT",
+            "line": "EXT. DARTHY'S FLAT - NIGHT",
+            "line_number": 2566
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "UBER",
+            "time_of_day": "NIGHT",
+            "line": "INT. UBER - NIGHT",
+            "line_number": 2568
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "DARTHY'S BEDROOM",
+            "time_of_day": "NIGHT",
+            "line": "INT. DARTHY'S BEDROOM - NIGHT",
+            "line_number": 2581
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "DARTHY'S BEDROOM",
+            "time_of_day": "MORNING",
+            "line": "INT. DARTHY'S BEDROOM - MORNING",
+            "line_number": 2584
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "DARTHY'S LIVING / DINING ROOM",
+            "time_of_day": "MORNING",
+            "line": "INT. DARTHY'S LIVING / DINING ROOM - MORNING",
+            "line_number": 2589
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "DARTHY'S LIVING / DINING ROOM",
+            "time_of_day": "MORNING",
+            "line": "INT. DARTHY'S LIVING / DINING ROOM - MORNING",
+            "line_number": 2600
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "CLYDES BEDROOM",
+            "time_of_day": "MORNING",
+            "line": "INT. CLYDES BEDROOM - MORNING",
+            "line_number": 2642
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "CLYDES LIVING ROOM / ENTRANCE TO HOUSE",
+            "time_of_day": "DAY",
+            "line": "INT. CLYDES LIVING ROOM / ENTRANCE TO HOUSE - DAY",
+            "line_number": 2645
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "DARTHY'S BEDROOM",
+            "time_of_day": "MORNING",
+            "line": "EXT. DARTHY'S BEDROOM - MORNING",
+            "line_number": 2655
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "DARHTY'S LOUNGE",
+            "time_of_day": "DAY",
+            "line": "INT. DARHTY'S LOUNGE - DAY",
+            "line_number": 2662
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "CITY STREETS",
+            "time_of_day": "MORNING",
+            "line": "EXT. CITY STREETS - MORNING",
+            "line_number": 2666
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "COFFEE SHOP",
+            "time_of_day": "MORNING",
+            "line": "INT. COFFEE SHOP - MORNING",
+            "line_number": 2669
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "STREET CORNER LIQUOR STORE",
+            "time_of_day": "MORNING",
+            "line": "EXT. STREET CORNER LIQUOR STORE - MORNING",
+            "line_number": 2687
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "MUIZENBERG BEACH",
+            "time_of_day": "MORNING",
+            "line": "EXT. MUIZENBERG BEACH - MORNING",
+            "line_number": 2700
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "CLYDES KITCHEN",
+            "time_of_day": "DAY",
+            "line": "INT. CLYDES KITCHEN - DAY",
+            "line_number": 2706
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "CLYDES ROOM",
+            "time_of_day": "DAY",
+            "line": "INT. CLYDES ROOM - DAY",
+            "line_number": 2710
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "CLYDE'S LIVING ROOM / ENTRANCE TO HOUSE",
+            "time_of_day": "DAY",
+            "line": "INT. CLYDE'S LIVING ROOM / ENTRANCE TO HOUSE - DAY",
+            "line_number": 2712
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "PETROL STATION",
+            "time_of_day": "DAY",
+            "line": "EXT. PETROL STATION - DAY",
+            "line_number": 2720
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "STRANGE MAN'S CAR",
+            "time_of_day": "DAY",
+            "line": "INT. STRANGE MAN'S CAR - DAY",
+            "line_number": 2723
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "DARTHY'S LIVING / DINING ROOM",
+            "time_of_day": "MORNING",
+            "line": "INT. DARTHY'S LIVING / DINING ROOM - MORNING",
+            "line_number": 2727
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "CLYDES BEDROOM",
+            "time_of_day": "DAY",
+            "line": "INT. CLYDES BEDROOM - DAY",
+            "line_number": 2751
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "TUMI'S ROOM",
+            "time_of_day": "DAY",
+            "line": "INT. TUMI'S ROOM - DAY",
+            "line_number": 2757
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "CLYDES BEDROOM",
+            "time_of_day": "DAY",
+            "line": "INT. CLYDES BEDROOM - DAY",
+            "line_number": 2761
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "CLYDES CAR",
+            "time_of_day": "DAY",
+            "line": "INT. CLYDES CAR - DAY",
+            "line_number": 2766
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "PETROL STATION",
+            "time_of_day": "DAY",
+            "line": "EXT. PETROL STATION - DAY",
+            "line_number": 2769
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "STRANGE MAN'S CAR",
+            "time_of_day": "DAY",
+            "line": "INT. STRANGE MAN'S CAR - DAY",
+            "line_number": 2771
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "CLYDE'S BEDROOM",
+            "time_of_day": "DAY",
+            "line": "INT. CLYDE'S BEDROOM - DAY",
+            "line_number": 2780
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "SILVERMINES",
+            "time_of_day": "DAY",
+            "line": "EXT. SILVERMINES - DAY",
+            "line_number": 2793
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "BOAT",
+            "time_of_day": "DAY",
+            "line": "EXT. BOAT - DAY",
+            "line_number": 2800
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "AQUERIAM",
+            "time_of_day": "DAY",
+            "line": "INT. AQUERIAM - DAY",
+            "line_number": 2807
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "DARTHY'S APARTMENT",
+            "time_of_day": "MORNING",
+            "line": "EXT. DARTHY'S APARTMENT - MORNING",
+            "line_number": 2823
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "DARTHY'S CAR ROAD OUT OF TOWN",
+            "time_of_day": "DAY",
+            "line": "INT. DARTHY'S CAR ROAD OUT OF TOWN - DAY",
+            "line_number": 2826
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "COUNTRY ROAD",
+            "time_of_day": "DAY",
+            "line": "EXT. COUNTRY ROAD - DAY",
+            "line_number": 2832
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "COUNTRY ROAD",
+            "time_of_day": "DAY",
+            "line": "INT. COUNTRY ROAD - DAY",
+            "line_number": 2835
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "ROAD OUT BEFOR GARAGE",
+            "time_of_day": "DAY",
+            "line": "EXT. ROAD OUT BEFOR GARAGE - DAY",
+            "line_number": 2843
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "SHELL GARAGE",
+            "time_of_day": "DAY",
+            "line": "EXT. SHELL GARAGE - DAY",
+            "line_number": 2853
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "COUNTRY ROAD",
+            "time_of_day": "DAY",
+            "line": "EXT. COUNTRY ROAD - DAY",
+            "line_number": 2879
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "DARTHY'S CAR",
+            "time_of_day": "DAY",
+            "line": "INT. DARTHY'S CAR - DAY",
+            "line_number": 2881
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "COUNTRY ROAD",
+            "time_of_day": "DAY",
+            "line": "EXT. COUNTRY ROAD - DAY",
+            "line_number": 2884
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "DARTHY'S CAR",
+            "time_of_day": "DAY",
+            "line": "INT. DARTHY'S CAR - DAY",
+            "line_number": 2888
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "COUNTRY ROAD",
+            "time_of_day": "DAY",
+            "line": "EXT. COUNTRY ROAD - DAY",
+            "line_number": 2891
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "COUNTRY ROAD",
+            "time_of_day": "DAY",
+            "line": "EXT. COUNTRY ROAD - DAY",
+            "line_number": 2895
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "GARAGE",
+            "time_of_day": "DAY",
+            "line": "EXT. GARAGE - DAY",
+            "line_number": 2897
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "ENGINE GARAGE",
+            "time_of_day": "DAY",
+            "line": "EXT. ENGINE GARAGE - DAY",
+            "line_number": 2904
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "COUNTRY ROAD",
+            "time_of_day": "DAY",
+            "line": "EXT. COUNTRY ROAD - DAY",
+            "line_number": 2911
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "DRTHY'S CAR",
+            "time_of_day": "DAY",
+            "line": "EXT. DRTHY'S CAR - DAY",
+            "line_number": 2914
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "DARTHY'S CAR",
+            "time_of_day": "DAY",
+            "line": "INT. DARTHY'S CAR - DAY",
+            "line_number": 2934
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "DARTH'S CAR",
+            "time_of_day": "DAY",
+            "line": "EXT. DARTH'S CAR - DAY",
+            "line_number": 2939
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "DARTHY'S CAR",
+            "time_of_day": "DAY",
+            "line": "INT. DARTHY'S CAR - DAY",
+            "line_number": 2941
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "DARTHY'S CAR",
+            "time_of_day": "DAY",
+            "line": "EXT. DARTHY'S CAR - DAY",
+            "line_number": 2944
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "DARTHY'S CARV",
+            "time_of_day": "DAY",
+            "line": "INT. DARTHY'S CARV - DAY",
+            "line_number": 2958
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "COUNTRY ROAD",
+            "time_of_day": "DAY",
+            "line": "EXT. COUNTRY ROAD - DAY",
+            "line_number": 2974
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "DARTHY'S CAR",
+            "time_of_day": "DAY",
+            "line": "INT. DARTHY'S CAR - DAY",
+            "line_number": 2976
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "ROAD COMING INTO TOWN",
+            "time_of_day": "DAY",
+            "line": "EXT. ROAD COMING INTO TOWN - DAY",
+            "line_number": 2980
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "DARTHY'S CAR",
+            "time_of_day": "DAY",
+            "line": "INT. DARTHY'S CAR - DAY",
+            "line_number": 2982
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "DARTHY'S CAR OUT SIDE FATIMA'S FLAT",
+            "time_of_day": "DAY",
+            "line": "EXT. DARTHY'S CAR OUT SIDE FATIMA'S FLAT - DAY",
+            "line_number": 3009
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "DARTHY'S CAR",
+            "time_of_day": "DAY",
+            "line": "INT. DARTHY'S CAR - DAY",
+            "line_number": 3016
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "CLYDE'S HOUSE",
+            "time_of_day": "DAY",
+            "line": "EXT. CLYDE'S HOUSE - DAY",
+            "line_number": 3019
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "CLYDE'S FRONT DOOR",
+            "time_of_day": "DAY",
+            "line": "EXT. CLYDE'S FRONT DOOR - DAY",
+            "line_number": 3022
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "CLYDE'S LIVING ROOM / ENTRANCE TO HOUSE",
+            "time_of_day": "DAY",
+            "line": "INT. CLYDE'S LIVING ROOM / ENTRANCE TO HOUSE - DAY",
+            "line_number": 3036
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "CLYDE'S PASSAGE WAY",
+            "time_of_day": "DAY",
+            "line": "INT. CLYDE'S PASSAGE WAY - DAY",
+            "line_number": 3038
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "CLYDE'S BEDROOM",
+            "time_of_day": "DAY",
+            "line": "INT. CLYDE'S BEDROOM - DAY",
+            "line_number": 3041
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "CLYDES DRIVE WAY",
+            "time_of_day": "DAY",
+            "line": "EXT. CLYDES DRIVE WAY - DAY",
+            "line_number": 3050
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "CHURCH",
+            "time_of_day": "DAY",
+            "line": "INT. CHURCH - DAY",
+            "line_number": 3055
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "MUIZENBERG STREET",
+            "time_of_day": "DAY",
+            "line": "EXT. MUIZENBERG STREET - DAY",
+            "line_number": 3098
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "CHAPLE",
+            "time_of_day": "DAY",
+            "line": "INT. CHAPLE - DAY",
+            "line_number": 3103
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "BOAT",
+            "time_of_day": "DAY",
+            "line": "EXT. BOAT - DAY",
+            "line_number": 3119
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "AQUERIAM",
+            "time_of_day": "DAY",
+            "line": "INT. AQUERIAM - DAY",
+            "line_number": 3124
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "SILVERMINES",
+            "time_of_day": "DAY",
+            "line": "EXT. SILVERMINES - DAY",
+            "line_number": 3127
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "GRAVE YARD",
+            "time_of_day": "DAY",
+            "line": "EXT. GRAVE YARD - DAY",
+            "line_number": 3152
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "DARTHY'S CAR",
+            "time_of_day": "DAY",
+            "line": "INT. DARTHY'S CAR - DAY",
+            "line_number": 3159
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "DARTHY'S LIVING ROOM",
+            "time_of_day": "DAY",
+            "line": "INT. DARTHY'S LIVING ROOM - DAY",
+            "line_number": 3167
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "DEARTH'S BLOCK OF FLATS",
+            "time_of_day": "DAY",
+            "line": "EXT. DEARTH'S BLOCK OF FLATS - DAY",
+            "line_number": 3177
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "DARTH'S LIVING ROOM",
+            "time_of_day": "DAY",
+            "line": "INT.DARTH'S LIVING ROOM - DAY",
+            "line_number": 3179
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "DARTHYS APARTMENT",
+            "time_of_day": "DAY",
+            "line": "EXT. DARTHYS APARTMENT - DAY",
+            "line_number": 3201
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "DARTHY'S LIVING ROOM",
+            "time_of_day": "DAY",
+            "line": "INT. DARTHY'S LIVING ROOM - DAY",
+            "line_number": 3203
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "DARTHYS APARTMENT",
+            "time_of_day": "DAY",
+            "line": "EXT. DARTHYS APARTMENT - DAY",
+            "line_number": 3206
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "DARTHY'S LIVING ROOM",
+            "time_of_day": "DAY",
+            "line": "INT. DARTHY'S LIVING ROOM - DAY",
+            "line_number": 3212
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "DARTHY'S LIVING / DINING ROOM",
+            "time_of_day": "MORNING",
+            "line": "INT. DARTHY'S LIVING / DINING ROOM - MORNING",
+            "line_number": 3264
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "DARTHY'S BEDROOM",
+            "time_of_day": "MORNING",
+            "line": "INT. DARTHY'S BEDROOM - MORNING",
+            "line_number": 3268
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "DARTHY'S BEDROOM",
+            "time_of_day": "NIGHT",
+            "line": "INT. DARTHY'S BEDROOM - NIGHT",
+            "line_number": 3270
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "BEACH PROMINARD",
+            "time_of_day": "DAY",
+            "line": "EXT. BEACH PROMINARD - DAY",
+            "line_number": 3274
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "GRAVE YARD",
+            "time_of_day": "DAY",
+            "line": "EXT. GRAVE YARD - DAY",
+            "line_number": 3289
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "BEACH PROMINARD",
+            "time_of_day": "DAY",
+            "line": "EXT. BEACH PROMINARD - DAY",
+            "line_number": 3313
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "STREET WITH RESTURANTS AND BARS",
+            "time_of_day": "EVENING",
+            "line": "EXT. STREET WITH RESTURANTS AND BARS - EVENING",
+            "line_number": 3351
+          },
+          {
+            "scene_number": null,
+            "int_ext": "EXT",
+            "setting": "MUIZENBERG STREET",
+            "time_of_day": "EVENING",
+            "line": "EXT. MUIZENBERG STREET - EVENING",
+            "line_number": 3361
+          },
+          {
+            "scene_number": null,
+            "int_ext": "INT",
+            "setting": "MUIZENBERG CHAPEL",
+            "time_of_day": "EVENING",
+            "line": "INT. MUIZENBERG CHAPEL - EVENING",
+            "line_number": 3390
+          }
+        ]
+      },
+      "indentation": {
+        "pages_sampled": 20,
+        "total_lines_analyzed": 764,
+        "x_clusters": [
+          {
+            "x_position": 110,
+            "count": 323,
+            "likely_element": "parenthetical/dialogue"
+          },
+          {
+            "x_position": 170,
+            "count": 323,
+            "likely_element": "parenthetical/dialogue"
+          },
+          {
+            "x_position": 210,
+            "count": 8,
+            "likely_element": "character_name"
+          },
+          {
+            "x_position": 240,
+            "count": 110,
+            "likely_element": "character_name"
+          }
+        ],
+        "indent_samples": {
+          "15": "INT. STUDY - DAY",
+          "24": "God give me the strength to except the",
+          "34": "DARTHY",
+          "63": "CREDITS ROLL",
+          "72": "2."
+        },
+        "screenpy_alignment": {
+          "center_indent_20plus": true,
+          "dialogue_indent_10_30": true,
+          "right_indent_40plus": true
+        },
+        "all_thresholds_met": true
+      },
+      "locations": {
+        "total_headers": 189,
+        "multi_level": 2,
+        "unique_parents": 111
+      }
+    }
+  ],
+  "checks": {
+    "1": {
+      "name": "pdfplumber kerning \u2264 PyPDF2 kerning",
+      "detail": "PyPDF2=32, pdfplumber=31",
+      "passed": true
+    },
+    "2": {
+      "name": "pdfplumber layout=True < 20s",
+      "detail": "Max time: 2.68s",
+      "passed": true
+    },
+    "3": {
+      "name": "Normalizer produces parseable output",
+      "detail": "All scripts normalized successfully",
+      "passed": true
+    },
+    "4": {
+      "name": "Dual text path validation",
+      "detail": "No divergence \u2014 normalizer is regex-safe, but dual paths still recommended",
+      "passed": true
+    },
+    "5": {
+      "name": "ScreenPy indent thresholds met",
+      "detail": "All met",
+      "passed": true
+    },
+    "6": {
+      "name": "Location hierarchy splits correctly",
+      "detail": "2 multi-level out of 258 headers",
+      "passed": true
+    },
+    "7": {
+      "name": "ScreenPy parser isolated (no spacy/sense2vec)",
+      "detail": "Verified: parser/ uses only pyparsing + models.py. VSD is separate module.",
+      "passed": true
+    },
+    "8": {
+      "name": "pyparsing available",
+      "detail": "Version: NOT INSTALLED",
+      "passed": false
+    }
+  },
+  "verdict": "NO-GO",
+  "blocking_fails": 1
+}

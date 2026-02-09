@@ -16,9 +16,10 @@ KEY DESIGN DECISIONS:
 import json
 import time
 import os
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 import google.generativeai as genai
 from utils.scene_calculations import calculate_eighths_from_content
+from services.entity_resolver import merge_to_character_list
 
 # Rate limiting
 RATE_LIMIT_SECONDS = 4  # Gemini free tier: 15 RPM = 4 seconds between calls
@@ -50,98 +51,47 @@ def rate_limit_wait():
     _last_request_time = time.time()
 
 
-def enhance_scene(scene_text: str, scene_header: Dict) -> Dict:
+def enhance_scene(
+    scene_text: str,
+    scene_header: Dict,
+    known_speakers: Optional[Dict[str, int]] = None,
+    shot_type: Optional[str] = None,
+    location_hierarchy: Optional[List[str]] = None,
+) -> Dict:
     """
     Use AI to extract detailed breakdown from a single scene.
+    
+    Phase 2 optimization: When known_speakers are provided (from ScreenPy
+    grammar parsing), the prompt is smaller and more focused — AI only
+    extracts non-speaking characters from action lines instead of guessing
+    ALL characters from scratch.
     
     Args:
         scene_text: The full text of the scene
         scene_header: Dict with scene_number, setting, int_ext, time_of_day
+        known_speakers: Dict of speaker_name → dialogue_count from grammar
+                       parsing. If provided, character extraction is optimized.
+        shot_type: Pre-extracted shot type (e.g., "CLOSE ON", "WIDE SHOT")
+        location_hierarchy: Pre-extracted location hierarchy list
     
     Returns:
-        Dict with characters, props, wardrobe, vehicles, atmosphere, description
+        Dict with characters, props, wardrobe, vehicles, atmosphere, description.
+        When known_speakers are provided, characters list is the merged result
+        of speakers + AI-extracted non-speaking characters.
     """
     # Truncate very long scenes
     max_chars = 4000
     if len(scene_text) > max_chars:
         scene_text = scene_text[:max_chars] + "\n[... scene continues ...]"
     
-    prompt = f"""
-Analyze this screenplay scene and extract COMPLETE production breakdown details for all departments.
-
-SCENE HEADER:
-Scene {scene_header.get('scene_number', '?')}: {scene_header.get('int_ext', '')}. {scene_header.get('setting', '')} - {scene_header.get('time_of_day', '')}
-
-SCENE TEXT:
-{scene_text}
-
-Extract the following (be thorough but accurate - only include what's ACTUALLY in the scene):
-
-**CAST & CHARACTERS:**
-1. CHARACTERS: ALL character names that appear or speak (UPPERCASE names only)
-2. EXTRAS: Background actors, crowd requirements (e.g., "Restaurant patrons (8)", "Crowd (20-30)")
-
-**PROPS & SET DRESSING:**
-3. PROPS: Physical objects characters interact with or that are important
-
-**WARDROBE DEPARTMENT:**
-4. WARDROBE: Specific clothing, costumes, accessories mentioned
-
-**MAKEUP & HAIR DEPARTMENT:**
-5. MAKEUP_HAIR: Makeup, hair styling, special makeup effects (e.g., "Bruised face", "Period hairstyle")
-
-**SPECIAL EFFECTS DEPARTMENT:**
-6. SPECIAL_FX: Visual/practical effects (e.g., "Gunshot squib", "Rain effect", "Explosion")
-
-**STUNTS DEPARTMENT:**
-7. STUNTS: Stunt requirements, fight choreography, dangerous actions (e.g., "Car crash", "Fight choreography", "Fall from height")
-
-**VEHICLES & TRANSPORTATION:**
-8. VEHICLES: ALL vehicles appearing or mentioned (e.g., "Police car", "Motorcycle")
-
-**ANIMALS & WRANGLERS:**
-9. ANIMALS: ALL animals appearing (e.g., "German Shepherd", "Horses (3)")
-
-**LOCATIONS:**
-10. LOCATIONS: Specific areas, rooms, or sub-locations within main setting (e.g., "kitchen", "rooftop")
-
-**SOUND DEPARTMENT:**
-11. SOUND: Sound effects, music cues, ambient sounds (e.g., "Thunder SFX", "Jazz music", "Gunshots")
-
-**SCENE DESCRIPTIONS:**
-12. DESCRIPTION: 2-3 sentence summary of what happens
-13. ACTION_DESCRIPTION: Summary of physical action (what characters DO physically)
-14. EMOTIONAL_TONE: Emotional mood (e.g., "Tense", "Romantic", "Suspenseful")
-15. TECHNICAL_NOTES: Camera, lighting, equipment requirements (e.g., "Crane shot", "Low-light")
-16. ATMOSPHERE: Overall mood, lighting, weather details
-
-Return ONLY valid JSON in this exact format:
-{{
-    "characters": ["CHARACTER1", "CHARACTER2"],
-    "extras": ["Restaurant patrons (8)"],
-    "props": ["coffee cup", "laptop"],
-    "wardrobe": ["Business suit"],
-    "makeup_hair": ["Natural makeup"],
-    "special_fx": ["Rain on window"],
-    "stunts": [],
-    "vehicles": ["BMW sedan"],
-    "animals": [],
-    "locations": ["kitchen", "living room"],
-    "sound": ["Ambient coffee shop noise"],
-    "description": "What happens in this scene",
-    "action_description": "Physical actions characters perform",
-    "emotional_tone": "Tense and melancholic",
-    "technical_notes": "Close-ups for emotional beats",
-    "atmosphere": "Intimate, slightly uncomfortable"
-}}
-
-IMPORTANT:
-- Only include items ACTUALLY in the scene text
-- Character names in UPPERCASE
-- Separate stunts from special_fx (stunts = performed by people, special_fx = technical effects)
-- If a category has nothing, use empty array [] or empty string ""
-- Return ONLY the JSON, no markdown formatting
-"""
+    has_speakers = known_speakers and len(known_speakers) > 0
+    
+    prompt = _build_prompt(
+        scene_text, scene_header,
+        known_speakers=known_speakers,
+        shot_type=shot_type,
+        location_hierarchy=location_hierarchy,
+    )
     
     try:
         rate_limit_wait()
@@ -159,9 +109,16 @@ IMPORTANT:
         
         result = json.loads(response_text)
         
+        # Phase 2: Entity resolution — merge speakers with AI characters
+        if has_speakers:
+            ai_characters = result.get('characters', []) + result.get('non_speaking_characters', [])
+            merged_characters = merge_to_character_list(known_speakers, ai_characters)
+        else:
+            merged_characters = result.get('characters', [])
+        
         # Validate and normalize - include all new fields
         return {
-            'characters': result.get('characters', []),
+            'characters': merged_characters,
             'extras': result.get('extras', []),
             'props': result.get('props', []),
             'wardrobe': result.get('wardrobe', []),
@@ -181,10 +138,144 @@ IMPORTANT:
         
     except json.JSONDecodeError as e:
         print(f"[Enhancer] JSON parse error: {e}")
-        return extract_fallback(scene_text)
+        fallback = extract_fallback(scene_text)
+        if has_speakers:
+            fallback['characters'] = merge_to_character_list(known_speakers, fallback['characters'])
+        return fallback
     except Exception as e:
         print(f"[Enhancer] AI error: {e}")
         raise
+
+
+def _build_prompt(
+    scene_text: str,
+    scene_header: Dict,
+    known_speakers: Optional[Dict[str, int]] = None,
+    shot_type: Optional[str] = None,
+    location_hierarchy: Optional[List[str]] = None,
+) -> str:
+    """
+    Build the AI prompt, optimized based on available pre-extracted data.
+    
+    When known_speakers are available:
+    - Replaces full character extraction with focused non-speaking character extraction
+    - Injects known speaker context to reduce hallucination
+    - ~30-40% smaller prompt = fewer tokens = faster + cheaper
+    """
+    has_speakers = known_speakers and len(known_speakers) > 0
+    
+    # Build context header
+    header_line = (
+        f"Scene {scene_header.get('scene_number', '?')}: "
+        f"{scene_header.get('int_ext', '')}. "
+        f"{scene_header.get('setting', '')} - "
+        f"{scene_header.get('time_of_day', '')}"
+    )
+    
+    # Build pre-extracted context block
+    context_lines = []
+    if has_speakers:
+        speaker_list = ", ".join(sorted(known_speakers.keys()))
+        context_lines.append(f"KNOWN SPEAKING CHARACTERS (already identified from dialogue): [{speaker_list}]")
+    if shot_type:
+        context_lines.append(f"SHOT TYPE: {shot_type}")
+    if location_hierarchy and len(location_hierarchy) > 1:
+        context_lines.append(f"LOCATION HIERARCHY: {' > '.join(location_hierarchy)}")
+    
+    context_block = ""
+    if context_lines:
+        context_block = "\nPRE-EXTRACTED CONTEXT:\n" + "\n".join(context_lines) + "\n"
+    
+    # Build character extraction section based on available data
+    if has_speakers:
+        character_section = (
+            "**NON-SPEAKING CHARACTERS:**\n"
+            "1. NON_SPEAKING_CHARACTERS: Characters who appear in ACTION LINES but are NOT in the known speakers list above. "
+            "Look for named characters in stage directions, descriptions, and action paragraphs. UPPERCASE names only.\n"
+            "2. EXTRAS: Background actors, crowd requirements (e.g., \"Restaurant patrons (8)\", \"Crowd (20-30)\")"
+        )
+    else:
+        character_section = (
+            "**CAST & CHARACTERS:**\n"
+            "1. CHARACTERS: ALL character names that appear or speak (UPPERCASE names only)\n"
+            "2. EXTRAS: Background actors, crowd requirements (e.g., \"Restaurant patrons (8)\", \"Crowd (20-30)\")"
+        )
+    
+    # Build JSON schema based on available data
+    if has_speakers:
+        char_json = '    "non_speaking_characters": ["BOUNCER", "WAITRESS #2"],'
+    else:
+        char_json = '    "characters": ["CHARACTER1", "CHARACTER2"],'
+    
+    prompt = f"""Analyze this screenplay scene and extract production breakdown details.
+
+SCENE HEADER:
+{header_line}
+{context_block}
+SCENE TEXT:
+{scene_text}
+
+Extract the following (be thorough but accurate - only include what's ACTUALLY in the scene):
+
+{character_section}
+
+**PROPS & SET DRESSING:**
+3. PROPS: Physical objects characters interact with or that are important
+
+**WARDROBE DEPARTMENT:**
+4. WARDROBE: Specific clothing, costumes, accessories mentioned
+
+**MAKEUP & HAIR DEPARTMENT:**
+5. MAKEUP_HAIR: Makeup, hair styling, special makeup effects (e.g., "Bruised face", "Period hairstyle")
+
+**SPECIAL EFFECTS DEPARTMENT:**
+6. SPECIAL_FX: Visual/practical effects (e.g., "Gunshot squib", "Rain effect", "Explosion")
+
+**STUNTS DEPARTMENT:**
+7. STUNTS: Stunt requirements, fight choreography, dangerous actions
+
+**VEHICLES & TRANSPORTATION:**
+8. VEHICLES: ALL vehicles appearing or mentioned
+
+**ANIMALS & WRANGLERS:**
+9. ANIMALS: ALL animals appearing
+
+**SOUND DEPARTMENT:**
+10. SOUND: Sound effects, music cues, ambient sounds
+
+**SCENE DESCRIPTIONS:**
+11. DESCRIPTION: 2-3 sentence summary of what happens
+12. ACTION_DESCRIPTION: Summary of physical action
+13. EMOTIONAL_TONE: Emotional mood
+14. TECHNICAL_NOTES: Camera, lighting, equipment requirements
+15. ATMOSPHERE: Overall mood, lighting, weather details
+
+Return ONLY valid JSON in this exact format:
+{{
+{char_json}
+    "extras": ["Restaurant patrons (8)"],
+    "props": ["coffee cup", "laptop"],
+    "wardrobe": ["Business suit"],
+    "makeup_hair": ["Natural makeup"],
+    "special_fx": ["Rain on window"],
+    "stunts": [],
+    "vehicles": ["BMW sedan"],
+    "animals": [],
+    "sound": ["Ambient coffee shop noise"],
+    "description": "What happens in this scene",
+    "action_description": "Physical actions characters perform",
+    "emotional_tone": "Tense and melancholic",
+    "technical_notes": "Close-ups for emotional beats",
+    "atmosphere": "Intimate, slightly uncomfortable"
+}}
+
+IMPORTANT:
+- Only include items ACTUALLY in the scene text
+- Character names in UPPERCASE
+- If a category has nothing, use empty array [] or empty string ""
+- Return ONLY the JSON, no markdown formatting
+"""
+    return prompt
 
 
 def extract_fallback(scene_text: str) -> Dict:
@@ -361,9 +452,26 @@ def process_scene_candidate(script_id: int, candidate: Dict, db_conn) -> Optiona
             'time_of_day': candidate['time_of_day'],
         }
         
+        # Phase 2: Extract pre-parsed data from candidate for prompt optimization
+        known_speakers = candidate.get('speaker_list') or candidate.get('speakers')
+        if isinstance(known_speakers, str):
+            known_speakers = json.loads(known_speakers)
+        candidate_shot_type = candidate.get('shot_type')
+        candidate_location_hierarchy = candidate.get('location_hierarchy')
+        if isinstance(candidate_location_hierarchy, str):
+            candidate_location_hierarchy = json.loads(candidate_location_hierarchy)
+        
+        has_speakers = known_speakers and len(known_speakers) > 0
+        opt_label = "optimized" if has_speakers else "full"
+        
         # Enhance with AI
-        print(f"[Enhancer] Enhancing scene {candidate['scene_number_original']} (pages {candidate['page_start']}-{candidate['page_end']})")
-        enhancement = enhance_scene(scene_text, scene_header)
+        print(f"[Enhancer] Enhancing scene {candidate['scene_number_original']} (pages {candidate['page_start']}-{candidate['page_end']}, prompt={opt_label})")
+        enhancement = enhance_scene(
+            scene_text, scene_header,
+            known_speakers=known_speakers if has_speakers else None,
+            shot_type=candidate_shot_type,
+            location_hierarchy=candidate_location_hierarchy,
+        )
         
         # Save to database (pass scene_text for eighths calculation)
         scene_id = save_enhanced_scene(script_id, candidate, enhancement, db_conn, scene_text)

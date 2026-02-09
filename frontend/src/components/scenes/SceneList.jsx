@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, ChevronRight, CheckCircle, Clock, Loader, FileText } from 'lucide-react';
+import { Users, ChevronRight, CheckCircle, Clock, Loader, FileText, ArrowDownUp } from 'lucide-react';
 import { getSceneEighthsDisplay } from '../../utils/sceneUtils';
 import './SceneList.css';
 
@@ -32,9 +32,20 @@ const SceneList = ({ scenes, selectedId, onSelect, analyzingScenes = new Set(), 
         return scene.analysis_status === 'complete' ? 'complete' : 'pending';
     };
 
+    // Extract the last transition from a scene's transitions array
+    const getLastTransition = (scene) => {
+        if (!scene.transitions || scene.transitions.length === 0) return null;
+        const last = scene.transitions[scene.transitions.length - 1];
+        // Handle both string and object formats
+        if (typeof last === 'string') return last;
+        if (last.type) return last.type;
+        if (last.transition) return last.transition;
+        return null;
+    };
+
     return (
         <div className="scene-list">
-            {scenes.map((scene) => {
+            {scenes.map((scene, index) => {
                 const charCount = scene.characters?.length || 0;
                 const propCount = scene.props?.length || 0;
                 const status = getAnalysisStatus(scene);
@@ -52,53 +63,70 @@ const SceneList = ({ scenes, selectedId, onSelect, analyzingScenes = new Set(), 
                 const isRecentlyCompleted = recentlyCompletedScenes.has(scene.scene_id) || 
                                             recentlyCompletedScenes.has(scene.id);
 
+                // Get transition from previous scene to this one
+                const prevScene = index > 0 ? scenes[index - 1] : null;
+                const transitionLabel = prevScene ? getLastTransition(prevScene) : null;
+
                 return (
-                    <div 
-                        key={scene.scene_id} 
-                        className={`scene-item scene-item-card ${selectedId === scene.scene_id ? 'selected' : ''} status-${status}`}
-                        onClick={() => onSelect(scene)}
-                    >
-                        {/* Scene Number - Top Left */}
-                        <span className="scene-number">{displaySceneNum}</span>
-                        
-                        {/* Status Indicator - fades out for completed scenes */}
-                        <div className={`status-indicator status-${status} ${isRecentlyCompleted ? 'fade-out' : ''} ${status === 'complete' && !isRecentlyCompleted ? 'hidden' : ''}`}>
-                            {status === 'complete' && <CheckCircle size={14} />}
-                            {status === 'pending' && <Clock size={14} />}
-                            {status === 'analyzing' && <Loader size={14} className="spin" />}
-                        </div>
-                        
-                        <div className="scene-item-content">
-                            <div className="entity-header">
-                                <div className="entity-name" title={scene.setting}>
-                                    {scene.int_ext && <span className="int-ext-badge">{scene.int_ext}</span>}
-                                    {scene.setting}
-                                </div>
-                                <span className="entity-count">{scene.time_of_day || 'DAY'}</span>
+                    <React.Fragment key={scene.scene_id}>
+                        {/* Transition divider between scenes */}
+                        {transitionLabel && (
+                            <div className="transition-divider">
+                                <span className="transition-line" />
+                                <span className="transition-label">
+                                    <ArrowDownUp size={10} />
+                                    {transitionLabel}
+                                </span>
+                                <span className="transition-line" />
+                            </div>
+                        )}
+
+                        <div 
+                            className={`scene-item scene-item-card ${selectedId === scene.scene_id ? 'selected' : ''} status-${status}`}
+                            onClick={() => onSelect(scene)}
+                        >
+                            {/* Scene Number - Top Left */}
+                            <span className="scene-number">{displaySceneNum}</span>
+                            
+                            {/* Status Indicator - fades out for completed scenes */}
+                            <div className={`status-indicator status-${status} ${isRecentlyCompleted ? 'fade-out' : ''} ${status === 'complete' && !isRecentlyCompleted ? 'hidden' : ''}`}>
+                                {status === 'complete' && <CheckCircle size={14} />}
+                                {status === 'pending' && <Clock size={14} />}
+                                {status === 'analyzing' && <Loader size={14} className="spin" />}
                             </div>
                             
-                            <div className="entity-meta-row">
-                                {status === 'complete' && metaText && (
-                                    <div className="entity-meta">
-                                        <Users size={12} className="meta-icon" />
-                                        <span className="meta-value">{metaText}</span>
+                            <div className="scene-item-content">
+                                <div className="entity-header">
+                                    <div className="entity-name" title={scene.setting}>
+                                        {scene.int_ext && <span className="int-ext-badge">{scene.int_ext}</span>}
+                                        {scene.setting}
                                     </div>
-                                )}
-                                {status === 'pending' && (
-                                    <div className="entity-meta pending-label">
-                                        <span className="meta-value">Click to analyze</span>
-                                    </div>
-                                )}
-                                {status === 'analyzing' && (
-                                    <div className="entity-meta analyzing-label">
-                                        <span className="meta-value">Analyzing...</span>
-                                    </div>
-                                )}
+                                    <span className="entity-count">{scene.time_of_day || 'DAY'}</span>
+                                </div>
+                                
+                                <div className="entity-meta-row">
+                                    {status === 'complete' && metaText && (
+                                        <div className="entity-meta">
+                                            <Users size={12} className="meta-icon" />
+                                            <span className="meta-value">{metaText}</span>
+                                        </div>
+                                    )}
+                                    {status === 'pending' && (
+                                        <div className="entity-meta pending-label">
+                                            <span className="meta-value">Click to analyze</span>
+                                        </div>
+                                    )}
+                                    {status === 'analyzing' && (
+                                        <div className="entity-meta analyzing-label">
+                                            <span className="meta-value">Analyzing...</span>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
+                            
+                            <ChevronRight size={16} className="arrow-icon" />
                         </div>
-                        
-                        <ChevronRight size={16} className="arrow-icon" />
-                    </div>
+                    </React.Fragment>
                 );
             })}
         </div>

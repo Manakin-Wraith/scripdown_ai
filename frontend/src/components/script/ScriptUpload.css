@@ -255,6 +255,15 @@
     letter-spacing: 0.05em;
 }
 
+.parse-method-badge {
+    font-size: 0.9rem !important;
+    padding: 0.15rem 0.6rem;
+    border-radius: 6px;
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981 !important;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
 /* Primary button with icon */
 .btn-primary {
     display: inline-flex;

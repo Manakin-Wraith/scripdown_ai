@@ -19,7 +19,12 @@ import {
     Flame,
     Activity,
     Heart,
-    Camera
+    Camera,
+    Mic2,
+    Video,
+    ChevronRight,
+    ShieldCheck,
+    ShieldAlert
 } from 'lucide-react';
 import NoteDrawer from '../notes/NoteDrawer';
 import { getScriptNotes } from '../../services/apiService';
@@ -176,12 +181,38 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
         <div className="scene-detail">
             {/* Header */}
             <div className="detail-header">
-                <span className="scene-number-label">Scene {scene.scene_number_original || scene.scene_number}</span>
+                <div className="scene-header-row">
+                    <span className="scene-number-label">Scene {scene.scene_number_original || scene.scene_number}</span>
+                    {scene.shot_type && (
+                        <span className="shot-type-badge">
+                            <Video size={12} />
+                            {scene.shot_type}
+                        </span>
+                    )}
+                    {scene.parse_method && (
+                        <span className={`parse-method-badge ${scene.parse_method === 'grammar' ? 'grammar' : 'regex'}`} title={`Parsed via ${scene.parse_method}`}>
+                            {scene.parse_method === 'grammar' ? <ShieldCheck size={12} /> : <ShieldAlert size={12} />}
+                            {scene.parse_method === 'grammar' ? 'ScreenPy' : 'Regex'}
+                        </span>
+                    )}
+                </div>
                 <h2 className="scene-title">
                     <MapPin size={24} className="inline-icon" />
                     {scene.int_ext && <span className="int-ext-label">{scene.int_ext}.</span>}
                     {scene.setting}
                 </h2>
+                {/* Location Hierarchy Breadcrumb */}
+                {scene.location_hierarchy && scene.location_hierarchy.length > 1 && (
+                    <div className="location-breadcrumb">
+                        <Building2 size={14} className="breadcrumb-icon" />
+                        {scene.location_hierarchy.map((loc, idx) => (
+                            <span key={idx} className="breadcrumb-segment">
+                                {idx > 0 && <ChevronRight size={12} className="breadcrumb-separator" />}
+                                <span className={idx === scene.location_hierarchy.length - 1 ? 'breadcrumb-current' : 'breadcrumb-parent'}>{loc}</span>
+                            </span>
+                        ))}
+                    </div>
+                )}
                 {scene.atmosphere && (
                     <div className="scene-atmosphere">
                         <span className="label">Atmosphere:</span>
@@ -247,6 +278,24 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
                             )}
                         </div>
                     </div>
+
+                    {/* Speakers (from ScreenPy grammar parsing) */}
+                    {scene.speakers && scene.speakers.length > 0 && (
+                        <div className="breakdown-card speakers-card">
+                            <div className="card-header">
+                                <Mic2 size={20} className="card-icon speakers-icon" />
+                                <h3>Speakers</h3>
+                                <span className="source-badge grammar-source">Dialogue</span>
+                            </div>
+                            <div className="card-content">
+                                <div className="tag-container">
+                                    {scene.speakers.map((speaker, idx) => (
+                                        <span key={idx} className="tag speaker-tag">{speaker}</span>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Props */}
                     <div 

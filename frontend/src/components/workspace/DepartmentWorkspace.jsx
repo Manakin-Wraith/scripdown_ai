@@ -45,6 +45,7 @@ import {
 import { getScriptMetadata } from '../../services/apiService';
 import AuthModal from '../auth/AuthModal';
 import DepartmentSelector from '../auth/DepartmentSelector';
+import CameraDeptView from './CameraDeptView';
 import './DepartmentWorkspace.css';
 
 // Icon mapping
@@ -268,6 +269,13 @@ const DepartmentWorkspace = () => {
                     <Bell size={18} />
                     Activity
                 </button>
+                <button 
+                    className={`tab ${activeTab === 'camera' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('camera')}
+                >
+                    <Camera size={18} />
+                    Camera
+                </button>
             </div>
 
             {/* Content */}
@@ -469,6 +477,10 @@ const DepartmentWorkspace = () => {
                             </div>
                         )}
                     </div>
+                )}
+
+                {activeTab === 'camera' && (
+                    <CameraDeptView scriptId={scriptId} />
                 )}
             </div>
         </div>

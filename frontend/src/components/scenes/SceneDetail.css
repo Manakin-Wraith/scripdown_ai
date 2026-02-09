@@ -432,3 +432,128 @@
 .breakdown-card {
     position: relative;
 }
+
+/* ============================================
+   Phase 3: ScreenPy UI Enrichments
+   ============================================ */
+
+/* Shot Type Badge */
+.shot-type-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.2rem 0.6rem;
+    background: rgba(168, 85, 247, 0.15);
+    border: 1px solid rgba(168, 85, 247, 0.4);
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #c084fc;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+/* Parse Method Badge */
+.parse-method-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+.parse-method-badge.grammar {
+    background: rgba(34, 197, 94, 0.12);
+    border: 1px solid rgba(34, 197, 94, 0.35);
+    color: #4ade80;
+}
+
+.parse-method-badge.regex {
+    background: rgba(245, 158, 11, 0.12);
+    border: 1px solid rgba(245, 158, 11, 0.35);
+    color: #fbbf24;
+}
+
+/* Location Hierarchy Breadcrumb */
+.location-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-top: 0.5rem;
+    padding: 0.4rem 0.75rem;
+    background: rgba(59, 130, 246, 0.06);
+    border: 1px solid rgba(59, 130, 246, 0.15);
+    border-radius: 6px;
+    font-size: 0.8rem;
+    width: fit-content;
+}
+
+.breadcrumb-icon {
+    color: var(--gray-400);
+    flex-shrink: 0;
+    margin-right: 0.25rem;
+}
+
+.breadcrumb-segment {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.breadcrumb-separator {
+    color: var(--gray-500);
+    flex-shrink: 0;
+}
+
+.breadcrumb-parent {
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.breadcrumb-current {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+/* Speakers Card */
+.speakers-card {
+    border-color: rgba(14, 165, 233, 0.3);
+}
+
+.speakers-card:hover {
+    border-color: rgba(14, 165, 233, 0.5);
+}
+
+.speakers-icon {
+    color: #38bdf8 !important;
+}
+
+.tag.speaker-tag {
+    background: rgba(14, 165, 233, 0.12);
+    color: #38bdf8;
+    border: 1px solid rgba(14, 165, 233, 0.3);
+    padding: 0.2rem 0.6rem;
+    border-radius: 4px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+/* Source Badge (Dialogue / AI) */
+.source-badge {
+    margin-left: auto;
+    padding: 0.15rem 0.5rem;
+    border-radius: 9999px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+.source-badge.grammar-source {
+    background: rgba(14, 165, 233, 0.15);
+    color: #38bdf8;
+}

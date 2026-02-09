@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import DropZone from './DropZone';
-import { AlertTriangle, X, CheckCircle, Loader, ArrowRight, Clapperboard, Sparkles, AlertCircle, FileText, Scissors, Lock } from 'lucide-react';
+import { AlertTriangle, X, CheckCircle, Loader, ArrowRight, Clapperboard, Sparkles, AlertCircle, FileText, Scissors, Lock, Zap } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 import { supabase } from '../../lib/supabase';
 import { useSubscription } from '../../hooks/useSubscription';
@@ -17,7 +17,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
  * ScriptUpload - Simplified upload flow
  * 
  * New behavior:
- * - Upload extracts scenes via regex (fast)
+ * - Upload runs grammar-first scene detection (ScreenPy) with regex fallback
  * - No automatic AI analysis
  * - User navigates to scene viewer to analyze on-demand
  * - Handles edge case: scripts without standard scene headers
@@ -100,19 +100,24 @@ const ScriptUpload = () => {
                         
                         // Simulate processing stages
                         setTimeout(() => {
-                            setProcessingStage('Parsing PDF pages...');
+                            setProcessingStage('Parsing PDF layout...');
                             setUploadProgress(55);
                         }, 300);
                         
                         setTimeout(() => {
-                            setProcessingStage('Detecting scenes...');
+                            setProcessingStage('Performing Structural Analysis...');
                             setUploadProgress(70);
                         }, 600);
                         
                         setTimeout(() => {
-                            setProcessingStage('Saving to database...');
-                            setUploadProgress(85);
-                        }, 900);
+                            setProcessingStage('Detecting scenes & speakers...');
+                            setUploadProgress(80);
+                        }, 1200);
+                        
+                        setTimeout(() => {
+                            setProcessingStage('Saving enriched data...');
+                            setUploadProgress(90);
+                        }, 1800);
                     }
                 }
             });
@@ -136,9 +141,10 @@ const ScriptUpload = () => {
             setUploading(false);
             
             // Show success message
+            const methodLabel = result.parse_method === 'grammar' ? 'Grammar parser' : 'Pattern matching';
             toast.success(
                 'Script Uploaded!', 
-                `Found ${result.scene_candidates || 0} scenes. Ready for analysis.`
+                `${methodLabel} found ${result.scene_candidates || 0} scenes. Ready for analysis.`
             );
 
         } catch (err) {
@@ -400,6 +406,15 @@ const ScriptUpload = () => {
                                     <span className="stat-value">{uploadResult?.scene_candidates || 0}</span>
                                     <span className="stat-label">Scenes Detected</span>
                                 </div>
+                                {uploadResult?.parse_method && (
+                                    <div className="stat-item">
+                                        <Zap size={20} />
+                                        <span className="stat-value parse-method-badge">
+                                            {uploadResult.parse_method === 'grammar' ? 'Grammar' : 'Regex'}
+                                        </span>
+                                        <span className="stat-label">Parse Method</span>
+                                    </div>
+                                )}
                             </div>
                             
                             <p className="success-message">

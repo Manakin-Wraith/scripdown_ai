@@ -90,6 +90,86 @@
     text-overflow: ellipsis;
 }
 
+/* Inline Rename UI */
+.script-name-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.rename-btn {
+    background: none;
+    border: none;
+    color: var(--gray-500);
+    cursor: pointer;
+    padding: 2px;
+    border-radius: 4px;
+    opacity: 0;
+    transition: opacity 0.15s, color 0.15s;
+    flex-shrink: 0;
+}
+
+.clickable-row:hover .rename-btn {
+    opacity: 1;
+}
+
+.rename-btn:hover {
+    color: var(--primary-500);
+    background: rgba(99, 102, 241, 0.1);
+}
+
+.name-edit-row {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.name-edit-input {
+    flex: 1;
+    background: var(--gray-800, #1F2937);
+    border: 1px solid var(--primary-500);
+    border-radius: 4px;
+    padding: 0.3rem 0.5rem;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    font-weight: 600;
+    outline: none;
+    min-width: 120px;
+}
+
+.name-edit-input:focus {
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25);
+}
+
+.name-edit-btn {
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    padding: 3px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.name-edit-btn.save {
+    color: #22c55e;
+}
+
+.name-edit-btn.save:hover {
+    background: rgba(34, 197, 94, 0.12);
+}
+
+.name-edit-btn.cancel {
+    color: var(--gray-400);
+}
+
+.name-edit-btn.cancel:hover {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+}
+
 .date-cell {
     color: var(--text-secondary);
 }

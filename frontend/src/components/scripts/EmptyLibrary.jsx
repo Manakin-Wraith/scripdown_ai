@@ -15,7 +15,7 @@ const EmptyLibrary = () => {
                 <h2>No scripts uploaded yet</h2>
                 <p>Upload your first screenplay to get an AI-powered breakdown of scenes, characters, and props.</p>
                 <button
-                    className="btn-primary"
+                    className="empty-upload-btn"
                     onClick={() => navigate('/upload')}
                 >
                     <Plus size={18} />

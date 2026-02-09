@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getScripts, deleteScript, reanalyzeScript } from '../../services/apiService';
+import { getScripts, deleteScript, reanalyzeScript, updateScript } from '../../services/apiService';
 import { useAnalysis } from '../../context/AnalysisContext';
 import ScriptTable from './ScriptTable';
 import EmptyLibrary from './EmptyLibrary';
@@ -114,6 +114,26 @@ const ScriptLibrary = () => {
         }
     };
 
+    const handleRename = async (scriptId, newName) => {
+        try {
+            await updateScript(scriptId, { title: newName });
+            toast.success('Script Renamed', `Title updated to "${newName}"`);
+            fetchScripts(false);
+        } catch (err) {
+            toast.error('Rename Failed', err.message);
+        }
+    };
+
+    const handleUpdateWriter = async (scriptId, writerName) => {
+        try {
+            await updateScript(scriptId, { writer_name: writerName });
+            toast.success('Writer Updated', writerName ? `Writer set to "${writerName}"` : 'Writer cleared');
+            fetchScripts(false);
+        } catch (err) {
+            toast.error('Update Failed', err.message);
+        }
+    };
+
     const handleDelete = async (scriptId, scriptName) => {
         const confirmed = await confirm({
             title: 'Delete Script',
@@ -170,6 +190,8 @@ const ScriptLibrary = () => {
                     onView={handleViewScenes} 
                     onReanalyze={handleReanalyze}
                     onDelete={handleDelete}
+                    onRename={handleRename}
+                    onUpdateWriter={handleUpdateWriter}
                     reanalyzingId={reanalyzing}
                 />
             )}

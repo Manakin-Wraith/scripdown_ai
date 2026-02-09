@@ -252,13 +252,20 @@ const SceneViewer = () => {
                 const pendingCount = fetchedScenes.filter(
                     s => s.analysis_status === 'pending' || s.analysis_status === 'analyzing'
                 ).length;
+                const errorCount = fetchedScenes.filter(
+                    s => s.analysis_status === 'error'
+                ).length;
                 
                 if (pendingCount === 0) {
                     clearInterval(intervalId);
                     setPollIntervalId(null);
                     setIsBulkAnalyzing(false);
                     setBulkAnalysisStartTime(null);
-                    toast.success('Bulk Analysis Complete', 'All scenes have been analyzed!');
+                    if (errorCount > 0) {
+                        toast.error('Bulk Analysis Finished', `${errorCount} scene${errorCount > 1 ? 's' : ''} failed. Try re-analyzing individually.`);
+                    } else {
+                        toast.success('Bulk Analysis Complete', 'All scenes have been analyzed!');
+                    }
                 }
             } catch (err) {
                 console.error('Polling error:', err);
