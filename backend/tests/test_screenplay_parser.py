@@ -514,5 +514,143 @@ class TestABParseMethod:
         assert grammar_total >= 250, f"Grammar total {grammar_total} below expected threshold"
 
 
+# ============================================
+# FDX (Final Draft Export) Scene Number Tests
+# ============================================
+
+class TestFDXSceneNumbers:
+    """Tests for Final Draft PDF export scene number handling.
+
+    FDX exports format headings as:
+        1      INT. COFFEE SHOP - DAY      1
+    Key differences from standard format:
+    - No period after scene number (just space)
+    - Scene number mirrored on the right side
+    """
+
+    def test_shot_parser_fdx_no_period(self):
+        """Scene number without period: '1 INT. COFFEE SHOP - DAY'"""
+        from lib.screenpy.parser.shot_parser import ShotHeadingParser
+        parser = ShotHeadingParser(locale_codes=["en"])
+        heading = parser.parse("1 INT. COFFEE SHOP - DAY")
+        assert heading is not None
+        assert heading.is_master is True
+        assert heading.locations == ["COFFEE SHOP"]
+        assert heading.time_of_day == "DAY"
+
+    def test_shot_parser_fdx_trailing_mirror(self):
+        """FDX mirrored scene number: '1 INT. COFFEE SHOP - DAY 1'"""
+        from lib.screenpy.parser.shot_parser import ShotHeadingParser
+        parser = ShotHeadingParser(locale_codes=["en"])
+        heading = parser.parse("1 INT. COFFEE SHOP - DAY 1")
+        assert heading is not None
+        assert heading.is_master is True
+        assert heading.locations == ["COFFEE SHOP"]
+        assert heading.time_of_day == "DAY"
+
+    def test_shot_parser_fdx_ext_night(self):
+        """FDX EXT heading: '42 EXT. PARKING LOT - NIGHT 42'"""
+        from lib.screenpy.parser.shot_parser import ShotHeadingParser
+        parser = ShotHeadingParser(locale_codes=["en"])
+        heading = parser.parse("42 EXT. PARKING LOT - NIGHT 42")
+        assert heading is not None
+        assert heading.is_master is True
+        assert heading.locations == ["PARKING LOT"]
+        assert heading.time_of_day == "NIGHT"
+
+    def test_shot_parser_fdx_letter_suffix(self):
+        """FDX scene with letter suffix: '15A INT. HALLWAY - DAY 15A'"""
+        from lib.screenpy.parser.shot_parser import ShotHeadingParser
+        parser = ShotHeadingParser(locale_codes=["en"])
+        heading = parser.parse("15A INT. HALLWAY - DAY 15A")
+        assert heading is not None
+        assert heading.is_master is True
+        assert heading.locations == ["HALLWAY"]
+
+    def test_shot_parser_standard_with_period_still_works(self):
+        """Standard format still works: '1. INT. COFFEE SHOP - DAY'"""
+        from lib.screenpy.parser.shot_parser import ShotHeadingParser
+        parser = ShotHeadingParser(locale_codes=["en"])
+        heading = parser.parse("1. INT. COFFEE SHOP - DAY")
+        assert heading is not None
+        assert heading.is_master is True
+        assert heading.locations == ["COFFEE SHOP"]
+        assert heading.time_of_day == "DAY"
+
+    def test_shot_parser_fdx_int_ext(self):
+        """FDX INT/EXT heading: '7 INT./EXT. CAR - CONTINUOUS 7'"""
+        from lib.screenpy.parser.shot_parser import ShotHeadingParser
+        parser = ShotHeadingParser(locale_codes=["en"])
+        heading = parser.parse("7 INT./EXT. CAR - CONTINUOUS 7")
+        assert heading is not None
+        assert heading.is_master is True
+
+    def test_core_parser_fdx_heading_recognized(self):
+        """Core parser should recognize FDX heading as a shot heading."""
+        from lib.screenpy.parser.core import ScreenplayParser
+        parser = ScreenplayParser(locale_codes=["en"])
+        heading = parser._parse_shot_heading("1 INT. COFFEE SHOP - DAY 1", 0)
+        assert heading is not None
+        assert heading.is_master is True
+
+    def test_core_parser_fdx_full_script(self):
+        """Full FDX-style script produces master segments via grammar."""
+        from lib.screenpy.parser.core import ScreenplayParser
+        parser = ScreenplayParser(locale_codes=["en"])
+
+        fdx_script = """1 INT. COFFEE SHOP - DAY 1
+
+John sits at the counter.
+
+                              JOHN
+                    I'll have a coffee.
+
+2 EXT. STREET - NIGHT 2
+
+Rain pours down on the empty sidewalk.
+
+                              SARAH
+                    Where did he go?
+
+3 INT. APARTMENT - DAY 3
+
+A messy room. Clothes everywhere.
+"""
+        screenplay = parser.parse(fdx_script)
+        master_segments = screenplay.master_segments
+        assert len(master_segments) == 3, f"Expected 3 master segments, got {len(master_segments)}"
+
+    def test_regex_pattern4_handles_fdx(self):
+        """Regex Pattern 4 should match FDX format without period."""
+        import re
+        from services.extraction_pipeline import SCENE_HEADER_PATTERNS
+        line = "1 INT. COFFEE SHOP - DAY 1"
+        matched = False
+        for pattern in SCENE_HEADER_PATTERNS:
+            match = re.match(pattern, line, re.IGNORECASE)
+            if match:
+                matched = True
+                groups = match.groups()
+                assert groups[0] == "1"
+                assert groups[1].upper() == "INT"
+                break
+        assert matched, "No regex pattern matched FDX heading"
+
+    def test_regex_pattern4_fdx_no_trailing(self):
+        """Regex Pattern 4 matches FDX without trailing number too."""
+        import re
+        from services.extraction_pipeline import SCENE_HEADER_PATTERNS
+        line = "42 EXT. BEACH - DUSK"
+        matched = False
+        for pattern in SCENE_HEADER_PATTERNS:
+            match = re.match(pattern, line, re.IGNORECASE)
+            if match:
+                matched = True
+                groups = match.groups()
+                assert groups[0] == "42"
+                break
+        assert matched, "No regex pattern matched FDX heading without trailing number"
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

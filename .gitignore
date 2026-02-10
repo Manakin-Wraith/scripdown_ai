@@ -11,6 +11,9 @@ downloads/
 eggs/
 .eggs/
 lib/
+!backend/lib/
+backend/lib/*
+!backend/lib/screenpy/
 lib64/
 parts/
 sdist/
