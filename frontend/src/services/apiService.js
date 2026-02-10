@@ -885,6 +885,113 @@ export const createReply = async (noteId, content) => {
 };
 
 // ============================================
+// Breakdown Items CRUD API
+// ============================================
+
+/**
+ * Get all breakdown items for a scene
+ * @param {string} scriptId - The script UUID
+ * @param {string} sceneId - The scene UUID
+ * @param {string} [itemType] - Optional filter by item_type (e.g., 'characters', 'props')
+ * @returns {Promise<{items: Array}>}
+ */
+export const getScriptItems = async (scriptId, includeRemoved = false) => {
+    try {
+        const params = new URLSearchParams();
+        if (includeRemoved) params.append('include_removed', 'true');
+        const query = params.toString() ? `?${params.toString()}` : '';
+        const response = await api.get(`/api/scripts/${scriptId}/items${query}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error getting script items:', error);
+        throw error;
+    }
+};
+
+export const getSceneItems = async (scriptId, sceneId, itemType = null, includeRemoved = false) => {
+    try {
+        const params = new URLSearchParams();
+        if (itemType) params.append('item_type', itemType);
+        if (includeRemoved) params.append('include_removed', 'true');
+        const query = params.toString() ? `?${params.toString()}` : '';
+        const response = await api.get(`/api/scripts/${scriptId}/scenes/${sceneId}/items${query}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error getting scene items:', error);
+        throw error;
+    }
+};
+
+/**
+ * Create a new breakdown item for a scene
+ * @param {string} scriptId - The script UUID
+ * @param {string} sceneId - The scene UUID
+ * @param {Object} itemData - { item_type, item_name, description?, priority?, status? }
+ * @returns {Promise<Object>} Created item
+ */
+export const createSceneItem = async (scriptId, sceneId, itemData) => {
+    try {
+        const response = await api.post(`/api/scripts/${scriptId}/scenes/${sceneId}/items`, itemData);
+        return response.data;
+    } catch (error) {
+        console.error('Error creating scene item:', error);
+        throw error;
+    }
+};
+
+/**
+ * Update a breakdown item
+ * @param {string} itemId - The item UUID
+ * @param {Object} updates - { item_name?, description?, status?, priority?, assigned_to?, due_date? }
+ * @returns {Promise<Object>} Updated item
+ */
+export const updateSceneItem = async (itemId, updates) => {
+    try {
+        const response = await api.put(`/api/items/${itemId}`, updates);
+        return response.data;
+    } catch (error) {
+        console.error('Error updating scene item:', error);
+        throw error;
+    }
+};
+
+/**
+ * Remove an AI-detected item from a scene's JSONB breakdown array
+ * @param {string} scriptId - The script UUID
+ * @param {string} sceneId - The scene UUID
+ * @param {string} itemType - The category column (e.g., 'vehicles', 'characters')
+ * @param {string} itemName - The exact item name to remove
+ * @returns {Promise<Object>} { remaining_items }
+ */
+export const removeAiItem = async (scriptId, sceneId, itemType, itemName) => {
+    try {
+        const response = await api.patch(`/api/scripts/${scriptId}/scenes/${sceneId}/remove-ai-item`, {
+            item_type: itemType,
+            item_name: itemName
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error removing AI item:', error);
+        throw error;
+    }
+};
+
+/**
+ * Delete a breakdown item
+ * @param {string} itemId - The item UUID
+ * @returns {Promise<Object>}
+ */
+export const deleteSceneItem = async (itemId) => {
+    try {
+        const response = await api.delete(`/api/items/${itemId}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error deleting scene item:', error);
+        throw error;
+    }
+};
+
+// ============================================
 // Scene Management API (Phase 1)
 // ============================================
 

@@ -372,6 +372,25 @@ class ReportService:
         # Get all scenes
         scenes = self.db.get_scenes(script_id)
         
+        # Get user-added items from department_items (exclude removed)
+        user_items_by_scene = {}
+        try:
+            items_result = self.db.client.table('department_items').select(
+                'scene_id, item_type, item_name'
+            ).eq('script_id', script_id).neq('status', 'removed').execute()
+            for item in (items_result.data or []):
+                sid = item.get('scene_id')
+                itype = item.get('item_type')
+                iname = item.get('item_name')
+                if sid and itype and iname:
+                    if sid not in user_items_by_scene:
+                        user_items_by_scene[sid] = {}
+                    if itype not in user_items_by_scene[sid]:
+                        user_items_by_scene[sid][itype] = []
+                    user_items_by_scene[sid][itype].append(iname)
+        except Exception as e:
+            print(f"Warning: Could not fetch department_items for report: {e}")
+        
         # Aggregate data - NO TRUNCATION
         characters = defaultdict(lambda: {'count': 0, 'scenes': [], 'eighths': 0})
         locations = defaultdict(lambda: {'count': 0, 'scenes': [], 'int_ext': set(), 'time_of_day': set()})
@@ -466,6 +485,31 @@ class ReportService:
                 item_name = item if isinstance(item, str) else item.get('type', str(item))
                 stunts[item_name]['count'] += 1
                 stunts[item_name]['scenes'].append(scene_num)
+            
+            # Merge user-added items from department_items for this scene
+            scene_id = scene.get('id') or scene.get('scene_id')
+            scene_user_items = user_items_by_scene.get(scene_id, {})
+            category_map = {
+                'characters': characters,
+                'props': props,
+                'wardrobe': wardrobe_items,
+                'makeup': makeup_items,
+                'special_fx': special_effects,
+                'special_effects': special_effects,
+                'vehicles': vehicles,
+                'animals': animals,
+                'extras': extras,
+                'stunts': stunts,
+                'sound': None,  # sound is handled differently (not aggregated)
+            }
+            for itype, names in scene_user_items.items():
+                target = category_map.get(itype)
+                if target is not None:
+                    for name in names:
+                        target[name]['count'] += 1
+                        target[name]['scenes'].append(scene_num)
+                        if itype == 'characters':
+                            target[name]['eighths'] += eighths
         
         # Calculate total pages from eighths
         total_pages = total_eighths / 8
@@ -500,6 +544,7 @@ class ReportService:
                 'total_pages': total_pages
             },
             'scenes': scenes,
+            'user_items_by_scene': user_items_by_scene,
             'characters': dict(characters),
             'locations': {k: {**v, 'int_ext': list(v['int_ext']), 'time_of_day': list(v['time_of_day'])} 
                          for k, v in locations.items()},
@@ -740,29 +785,33 @@ class ReportService:
     def _render_scene_breakdown(self, data: Dict) -> str:
         """Render scene breakdown HTML with complete data (no truncation)."""
         scenes = data.get('scenes', [])
+        user_items_map = data.get('user_items_by_scene', {})
         rows = []
         
         for scene in scenes:
-            # Helper function to format arrays
-            def format_list(items, key=None):
-                if not items:
-                    return '—'
-                if isinstance(items, list):
-                    if key and isinstance(items[0], dict):
-                        return ', '.join([item.get(key, str(item)) for item in items])
-                    return ', '.join([str(item) if isinstance(item, str) else item.get('name', str(item)) for item in items])
-                return str(items)
+            scene_id = scene.get('id') or scene.get('scene_id')
+            scene_user = user_items_map.get(scene_id, {})
             
-            # Get all breakdown data - NO TRUNCATION
-            chars = format_list(scene.get('characters'))
-            props = format_list(scene.get('props'))
-            wardrobe = format_list(scene.get('wardrobe'))
-            makeup = format_list(scene.get('makeup'))
-            sfx = format_list(scene.get('special_effects'))
-            vehicles = format_list(scene.get('vehicles'))
-            animals = format_list(scene.get('animals'))
-            extras = format_list(scene.get('extras'))
-            stunts = format_list(scene.get('stunts'))
+            # Helper to merge AI + user items, then format
+            def merge_and_format(ai_items, user_list):
+                combined = list(ai_items or []) + list(user_list or [])
+                if not combined:
+                    return '—'
+                return ', '.join([
+                    (item if isinstance(item, str) else item.get('name', str(item)))
+                    for item in combined
+                ])
+            
+            # Get all breakdown data - NO TRUNCATION (merged AI + user)
+            chars = merge_and_format(scene.get('characters'), scene_user.get('characters'))
+            props = merge_and_format(scene.get('props'), scene_user.get('props'))
+            wardrobe = merge_and_format(scene.get('wardrobe'), scene_user.get('wardrobe'))
+            makeup = merge_and_format(scene.get('makeup'), scene_user.get('makeup'))
+            sfx = merge_and_format(scene.get('special_effects'), scene_user.get('special_effects', scene_user.get('special_fx')))
+            vehicles = merge_and_format(scene.get('vehicles'), scene_user.get('vehicles'))
+            animals = merge_and_format(scene.get('animals'), scene_user.get('animals'))
+            extras = merge_and_format(scene.get('extras'), scene_user.get('extras'))
+            stunts = merge_and_format(scene.get('stunts'), scene_user.get('stunts'))
             
             # Scene description and notes
             description = scene.get('description', '') or scene.get('action_description', '')
@@ -937,12 +986,16 @@ class ReportService:
     def _render_one_liner(self, data: Dict) -> str:
         """Render one-liner/stripboard HTML."""
         scenes = data.get('scenes', [])
+        user_items_map = data.get('user_items_by_scene', {})
         rows = []
         
         for scene in scenes:
-            chars = ', '.join(scene.get('characters', [])[:3])
-            if len(scene.get('characters', [])) > 3:
-                chars += f" +{len(scene.get('characters', [])) - 3}"
+            scene_id = scene.get('id') or scene.get('scene_id')
+            scene_user = user_items_map.get(scene_id, {})
+            all_chars = list(scene.get('characters') or []) + list(scene_user.get('characters') or [])
+            chars = ', '.join(all_chars[:3])
+            if len(all_chars) > 3:
+                chars += f" +{len(all_chars) - 3}"
             
             # Scene length in eighths
             eighths = scene.get('page_length_eighths', 8)

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { getScenes, getScriptMetadata } from '../../services/apiService';
+import { getScenes, getScriptMetadata, getScriptItems } from '../../services/apiService';
 import SceneList from './SceneList';
 import SceneDetail from './SceneDetail';
 import ScriptHeader from '../metadata/ScriptHeader';
@@ -22,6 +22,7 @@ const SceneViewer = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [selectedScene, setSelectedScene] = useState(null);
+    const [userItemsByScene, setUserItemsByScene] = useState({});
     const [showSummary, setShowSummary] = useState(false);
     const [analyzingScenes, setAnalyzingScenes] = useState(new Set());
     const [isBulkAnalyzing, setIsBulkAnalyzing] = useState(false);
@@ -38,10 +39,23 @@ const SceneViewer = () => {
             try {
                 setLoading(true);
                 
-                // Fetch scenes
-                const sceneData = await getScenes(scriptId);
+                // Fetch scenes + user-added items in parallel
+                const [sceneData, itemsData] = await Promise.all([
+                    getScenes(scriptId),
+                    getScriptItems(scriptId).catch(() => ({ items: [] }))
+                ]);
                 const fetchedScenes = sceneData.scenes || [];
                 setScenes(fetchedScenes);
+                
+                // Index user items by scene_id → item_type
+                const itemMap = {};
+                (itemsData.items || []).forEach(item => {
+                    if (!item.scene_id || item.status === 'removed') return;
+                    if (!itemMap[item.scene_id]) itemMap[item.scene_id] = {};
+                    if (!itemMap[item.scene_id][item.item_type]) itemMap[item.scene_id][item.item_type] = [];
+                    itemMap[item.scene_id][item.item_type].push(item.item_name);
+                });
+                setUserItemsByScene(itemMap);
                 
                 // Auto-select first scene if available
                 if (fetchedScenes.length > 0) {
@@ -94,14 +108,15 @@ const SceneViewer = () => {
             const isAnalyzed = scene.analysis_status === 'complete';
             if (isAnalyzed) analyzedCount++;
 
-            // Aggregate Characters
-            if (scene.characters) {
-                scene.characters.forEach(char => {
-                    if (!chars[char]) chars[char] = { count: 0, scenes: [] };
-                    chars[char].count++;
-                    chars[char].scenes.push(scene.scene_number);
-                });
-            }
+            // Aggregate Characters (AI + user-added)
+            const sceneId = scene.id || scene.scene_id;
+            const sceneItems = userItemsByScene[sceneId] || {};
+            const allChars = [...(scene.characters || []), ...(sceneItems.characters || [])];
+            allChars.forEach(char => {
+                if (!chars[char]) chars[char] = { count: 0, scenes: [] };
+                chars[char].count++;
+                chars[char].scenes.push(scene.scene_number);
+            });
 
             // Aggregate Locations
             if (scene.setting) {
@@ -118,7 +133,7 @@ const SceneViewer = () => {
             analyzedScenes: analyzedCount,
             pendingScenes: scenes.length - analyzedCount
         };
-    }, [scenes]);
+    }, [scenes, userItemsByScene]);
 
     // Handle single scene analysis
     const handleAnalyzeScene = async (sceneId) => {
@@ -485,6 +500,7 @@ const SceneViewer = () => {
                         analyzingScenes={analyzingScenes}
                         recentlyCompletedScenes={recentlyCompletedScenes}
                         pageMapping={pageMapping}
+                        userItemsByScene={userItemsByScene}
                     />
                 </div>
 
@@ -496,6 +512,31 @@ const SceneViewer = () => {
                         onAnalyze={handleAnalyzeScene}
                         isAnalyzing={selectedScene && analyzingScenes.has(selectedScene.scene_id)}
                         pageMapping={pageMapping}
+                        onRefreshScene={async () => {
+                            try {
+                                const [sceneData, itemsData] = await Promise.all([
+                                    getScenes(scriptId),
+                                    getScriptItems(scriptId).catch(() => ({ items: [] }))
+                                ]);
+                                const fetched = sceneData.scenes || [];
+                                setScenes(fetched);
+                                // Re-index user items
+                                const itemMap = {};
+                                (itemsData.items || []).forEach(item => {
+                                    if (!item.scene_id || item.status === 'removed') return;
+                                    if (!itemMap[item.scene_id]) itemMap[item.scene_id] = {};
+                                    if (!itemMap[item.scene_id][item.item_type]) itemMap[item.scene_id][item.item_type] = [];
+                                    itemMap[item.scene_id][item.item_type].push(item.item_name);
+                                });
+                                setUserItemsByScene(itemMap);
+                                if (selectedScene) {
+                                    const refreshed = fetched.find(s => s.id === selectedScene.id || s.scene_id === selectedScene.scene_id);
+                                    if (refreshed) setSelectedScene(refreshed);
+                                }
+                            } catch (err) {
+                                console.error('Error refreshing scenes:', err);
+                            }
+                        }}
                     />
                 </div>
 

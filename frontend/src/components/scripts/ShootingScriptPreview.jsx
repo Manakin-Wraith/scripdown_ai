@@ -9,7 +9,7 @@ import {
     Loader,
     AlertCircle
 } from 'lucide-react';
-import { getShootingScriptData } from '../../services/apiService';
+import { getShootingScriptData, getScriptItems } from '../../services/apiService';
 import { useToast } from '../../context/ToastContext';
 import './ShootingScriptPreview.css';
 
@@ -26,6 +26,7 @@ const ShootingScriptPreview = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [data, setData] = useState(null);
+    const [userItemsByScene, setUserItemsByScene] = useState({});
     
     useEffect(() => {
         loadShootingScript();
@@ -35,8 +36,20 @@ const ShootingScriptPreview = () => {
         try {
             setLoading(true);
             setError(null);
-            const result = await getShootingScriptData(scriptId);
+            const [result, itemsData] = await Promise.all([
+                getShootingScriptData(scriptId),
+                getScriptItems(scriptId).catch(() => ({ items: [] }))
+            ]);
             setData(result);
+            // Index user items by scene_id → item_type
+            const itemMap = {};
+            (itemsData.items || []).forEach(item => {
+                if (!item.scene_id || item.status === 'removed') return;
+                if (!itemMap[item.scene_id]) itemMap[item.scene_id] = {};
+                if (!itemMap[item.scene_id][item.item_type]) itemMap[item.scene_id][item.item_type] = [];
+                itemMap[item.scene_id][item.item_type].push(item.item_name);
+            });
+            setUserItemsByScene(itemMap);
         } catch (err) {
             console.error('Error loading shooting script:', err);
             setError('Failed to load shooting script data');
@@ -177,11 +190,16 @@ const ShootingScriptPreview = () => {
                                         <div className="scene-header">
                                             {formatSceneHeader(scene)}
                                         </div>
-                                        {scene.characters?.length > 0 && (
-                                            <div className="scene-characters">
-                                                {scene.characters.join(', ')}
-                                            </div>
-                                        )}
+                                        {(() => {
+                                            const sceneId = scene.id || scene.scene_id;
+                                            const userChars = (userItemsByScene[sceneId] || {}).characters || [];
+                                            const allChars = [...(scene.characters || []), ...userChars];
+                                            return allChars.length > 0 ? (
+                                                <div className="scene-characters">
+                                                    {allChars.join(', ')}
+                                                </div>
+                                            ) : null;
+                                        })()}
                                     </>
                                 )}
                             </div>

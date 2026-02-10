@@ -2732,6 +2732,374 @@ def reextract_metadata(script_id):
 
 
 # ============================================
+# Department Items (Breakdown CRUD) Endpoints
+# ============================================
+
+@supabase_bp.route('/api/scripts/<script_id>/items', methods=['GET'])
+def get_script_items(script_id):
+    """
+    Get all department_items for an entire script (across all scenes).
+    Used by Stripboard and other views that need merged breakdown data.
+    
+    Query params:
+    - include_removed: 'true' to include soft-deleted items (default: false)
+    """
+    if not supabase:
+        return jsonify({'error': 'Supabase not configured'}), 500
+    
+    try:
+        query = supabase.table('department_items').select(
+            'id, script_id, scene_id, item_type, item_name, status, source_type, priority'
+        ).eq('script_id', script_id)
+        
+        include_removed = request.args.get('include_removed', 'false').lower() == 'true'
+        if not include_removed:
+            query = query.neq('status', 'removed')
+        
+        result = query.order('created_at', desc=True).execute()
+        
+        return jsonify({'items': result.data or []}), 200
+        
+    except Exception as e:
+        print(f"Error getting script items: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@supabase_bp.route('/api/scripts/<script_id>/scenes/<scene_id>/items', methods=['GET'])
+def get_scene_items(script_id, scene_id):
+    """
+    Get all department_items for a scene, optionally filtered by item_type.
+    
+    Query params:
+    - item_type: Filter by category (e.g., 'characters', 'props', 'wardrobe')
+    """
+    if not supabase:
+        return jsonify({'error': 'Supabase not configured'}), 500
+    
+    try:
+        query = supabase.table('department_items').select(
+            '*, departments!department_items_department_id_fkey(code, name, color, icon), '
+            'creator:profiles!department_items_created_by_fkey(id, full_name, email, avatar_url), '
+            'assignee:profiles!department_items_assigned_to_fkey(id, full_name, email, avatar_url)'
+        ).eq('script_id', script_id).eq('scene_id', scene_id)
+        
+        item_type = request.args.get('item_type')
+        if item_type:
+            query = query.eq('item_type', item_type)
+        
+        # By default exclude removed items; pass include_removed=true to see them
+        include_removed = request.args.get('include_removed', 'false').lower() == 'true'
+        if not include_removed:
+            query = query.neq('status', 'removed')
+        
+        result = query.order('created_at', desc=True).execute()
+        
+        items = []
+        for item in result.data:
+            dept = item.pop('departments', {}) or {}
+            creator = item.pop('creator', {}) or {}
+            assignee = item.pop('assignee', {}) or {}
+            
+            items.append({
+                **item,
+                'department_code': dept.get('code'),
+                'department_name': dept.get('name'),
+                'department_color': dept.get('color'),
+                'department_icon': dept.get('icon'),
+                'creator_name': creator.get('full_name') or (creator.get('email', '').split('@')[0] if creator.get('email') else None),
+                'creator_avatar': creator.get('avatar_url'),
+                'assignee_name': assignee.get('full_name') or (assignee.get('email', '').split('@')[0] if assignee.get('email') else None),
+                'assignee_avatar': assignee.get('avatar_url'),
+            })
+        
+        return jsonify({'items': items}), 200
+        
+    except Exception as e:
+        print(f"Error getting scene items: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@supabase_bp.route('/api/scripts/<script_id>/scenes/<scene_id>/items', methods=['POST'])
+@optional_auth
+def create_scene_item(script_id, scene_id):
+    """
+    Create a new breakdown item for a scene.
+    
+    Body:
+    {
+        "item_type": "characters" | "props" | "wardrobe" | etc.,
+        "item_name": "Item name",
+        "description": "Optional description",
+        "priority": "normal" | "high" | "low",
+        "status": "pending" | "in_progress" | "complete"
+    }
+    """
+    if not supabase:
+        return jsonify({'error': 'Supabase not configured'}), 500
+    
+    try:
+        data = request.get_json()
+        user_id = get_user_id()
+        
+        item_name = data.get('item_name', '').strip()
+        if not item_name:
+            return jsonify({'error': 'item_name is required'}), 400
+        
+        item_type = data.get('item_type', '').strip()
+        if not item_type:
+            return jsonify({'error': 'item_type is required'}), 400
+        
+        # Auto-detect user's department from script_members
+        department_id = None
+        if user_id:
+            try:
+                member_result = supabase.table('script_members').select(
+                    'department_code'
+                ).eq('script_id', script_id).eq('user_id', user_id).single().execute()
+                
+                if member_result.data and member_result.data.get('department_code'):
+                    dept_result = supabase.table('departments').select('id').eq(
+                        'code', member_result.data['department_code']
+                    ).single().execute()
+                    if dept_result.data:
+                        department_id = dept_result.data.get('id')
+            except Exception as member_err:
+                print(f"Note: User not a member, using production dept: {member_err}")
+        
+        # Fallback to 'production' department
+        if not department_id:
+            try:
+                prod_dept = supabase.table('departments').select('id').eq('code', 'production').single().execute()
+                if prod_dept.data:
+                    department_id = prod_dept.data['id']
+            except:
+                pass
+        
+        if not department_id:
+            return jsonify({'error': 'Could not determine department'}), 400
+        
+        item_data = {
+            'script_id': script_id,
+            'scene_id': scene_id,
+            'department_id': department_id,
+            'item_type': item_type,
+            'item_name': item_name,
+            'description': data.get('description', ''),
+            'status': data.get('status', 'pending'),
+            'priority': data.get('priority', 'normal'),
+            'source_type': 'manual',
+            'created_by': user_id,
+        }
+        
+        result = supabase.table('department_items').insert(item_data).execute()
+        
+        if result.data:
+            # Fetch the created item with joins
+            created = supabase.table('department_items').select(
+                '*, departments!department_items_department_id_fkey(code, name, color, icon), '
+                'creator:profiles!department_items_created_by_fkey(id, full_name, email, avatar_url)'
+            ).eq('id', result.data[0]['id']).single().execute()
+            
+            item = created.data
+            dept = item.pop('departments', {}) or {}
+            creator = item.pop('creator', {}) or {}
+            
+            return jsonify({
+                **item,
+                'department_code': dept.get('code'),
+                'department_name': dept.get('name'),
+                'department_color': dept.get('color'),
+                'department_icon': dept.get('icon'),
+                'creator_name': creator.get('full_name') or (creator.get('email', '').split('@')[0] if creator.get('email') else None),
+                'creator_avatar': creator.get('avatar_url'),
+            }), 201
+        
+        return jsonify({'error': 'Failed to create item'}), 500
+        
+    except Exception as e:
+        print(f"Error creating scene item: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@supabase_bp.route('/api/items/<item_id>', methods=['PUT'])
+@optional_auth
+def update_scene_item(item_id):
+    """
+    Update a breakdown item.
+    
+    Body (all optional):
+    {
+        "item_name": "Updated name",
+        "description": "Updated description",
+        "status": "pending" | "in_progress" | "complete",
+        "priority": "normal" | "high" | "low",
+        "assigned_to": "user_uuid" | null,
+        "due_date": "2026-03-01" | null
+    }
+    """
+    if not supabase:
+        return jsonify({'error': 'Supabase not configured'}), 500
+    
+    try:
+        data = request.get_json()
+        
+        allowed_fields = ['item_name', 'description', 'status', 'priority', 'assigned_to', 'due_date', 'metadata']
+        update_data = {k: v for k, v in data.items() if k in allowed_fields}
+        
+        if not update_data:
+            return jsonify({'error': 'No valid fields to update'}), 400
+        
+        result = supabase.table('department_items').update(update_data).eq('id', item_id).execute()
+        
+        if result.data:
+            updated = supabase.table('department_items').select(
+                '*, departments!department_items_department_id_fkey(code, name, color, icon), '
+                'creator:profiles!department_items_created_by_fkey(id, full_name, email, avatar_url), '
+                'assignee:profiles!department_items_assigned_to_fkey(id, full_name, email, avatar_url)'
+            ).eq('id', item_id).single().execute()
+            
+            item = updated.data
+            dept = item.pop('departments', {}) or {}
+            creator = item.pop('creator', {}) or {}
+            assignee = item.pop('assignee', {}) or {}
+            
+            return jsonify({
+                **item,
+                'department_code': dept.get('code'),
+                'department_name': dept.get('name'),
+                'department_color': dept.get('color'),
+                'department_icon': dept.get('icon'),
+                'creator_name': creator.get('full_name') or (creator.get('email', '').split('@')[0] if creator.get('email') else None),
+                'creator_avatar': creator.get('avatar_url'),
+                'assignee_name': assignee.get('full_name') or (assignee.get('email', '').split('@')[0] if assignee.get('email') else None),
+                'assignee_avatar': assignee.get('avatar_url'),
+            }), 200
+        
+        return jsonify({'error': 'Item not found'}), 404
+        
+    except Exception as e:
+        print(f"Error updating item: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@supabase_bp.route('/api/scripts/<script_id>/scenes/<scene_id>/remove-ai-item', methods=['PATCH'])
+@optional_auth
+def remove_ai_item(script_id, scene_id):
+    """
+    Remove an item from a scene's JSONB breakdown array.
+    
+    Body:
+    {
+        "item_type": "vehicles",   // matches the scene column name
+        "item_name": "stroller"    // exact string to remove
+    }
+    """
+    if not supabase:
+        return jsonify({'error': 'Supabase not configured'}), 500
+    
+    try:
+        data = request.get_json()
+        item_type = data.get('item_type', '').strip()
+        item_name = data.get('item_name', '').strip()
+        
+        if not item_type or not item_name:
+            return jsonify({'error': 'item_type and item_name are required'}), 400
+        
+        # Allowed JSONB array columns on scenes table
+        allowed_columns = [
+            'characters', 'props', 'wardrobe', 'makeup_hair', 'special_fx',
+            'vehicles', 'locations', 'sound', 'animals', 'extras', 'stunts', 'speakers'
+        ]
+        
+        if item_type not in allowed_columns:
+            return jsonify({'error': f'Invalid item_type: {item_type}'}), 400
+        
+        # Fetch current array
+        scene_result = supabase.table('scenes').select(item_type).eq('id', scene_id).single().execute()
+        
+        if not scene_result.data:
+            return jsonify({'error': 'Scene not found'}), 404
+        
+        current_items = scene_result.data.get(item_type) or []
+        
+        # Filter out the item (case-insensitive match for strings)
+        updated_items = [
+            i for i in current_items
+            if not (isinstance(i, str) and i.strip().lower() == item_name.lower())
+        ]
+        
+        if len(updated_items) == len(current_items):
+            return jsonify({'error': 'Item not found in list'}), 404
+        
+        # Update the scene JSONB
+        supabase.table('scenes').update({item_type: updated_items}).eq('id', scene_id).execute()
+        
+        # Create a tracking record in department_items so the drawer can show strikethrough
+        user_id = get_user_id()
+        tracking_record = {
+            'script_id': script_id,
+            'scene_id': scene_id,
+            'item_type': item_type,
+            'item_name': item_name,
+            'status': 'removed',
+            'source_type': 'ai_removed',
+            'priority': 'normal'
+        }
+        if user_id:
+            tracking_record['created_by'] = user_id
+        
+        # Try to find the user's department for this script
+        if user_id:
+            try:
+                member_result = supabase.table('script_members').select('department_id').eq('script_id', script_id).eq('user_id', user_id).limit(1).execute()
+                if member_result.data and member_result.data[0].get('department_id'):
+                    tracking_record['department_id'] = member_result.data[0]['department_id']
+            except Exception:
+                pass
+        
+        try:
+            supabase.table('department_items').insert(tracking_record).execute()
+        except Exception as track_err:
+            print(f"Warning: Could not create tracking record: {track_err}")
+        
+        return jsonify({
+            'message': 'Item removed',
+            'item_type': item_type,
+            'item_name': item_name,
+            'remaining_items': updated_items
+        }), 200
+        
+    except Exception as e:
+        print(f"Error removing AI item: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@supabase_bp.route('/api/items/<item_id>', methods=['DELETE'])
+@optional_auth
+def delete_scene_item(item_id):
+    """Soft-delete a breakdown item by setting status to 'removed'."""
+    if not supabase:
+        return jsonify({'error': 'Supabase not configured'}), 500
+    
+    try:
+        supabase.table('department_items').update({'status': 'removed'}).eq('id', item_id).execute()
+        return jsonify({'message': 'Item removed successfully'}), 200
+    except Exception as e:
+        print(f"Error removing item: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+# ============================================
 # Department Notes Endpoints
 # ============================================
 

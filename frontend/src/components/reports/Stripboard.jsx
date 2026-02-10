@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 import { useScript } from '../../context/ScriptContext';
-import { getScenes, getScriptMetadata } from '../../services/apiService';
+import { getScenes, getScriptMetadata, getScriptItems } from '../../services/apiService';
 import { getSceneEighthsDisplay, getSceneEighths, formatEighths } from '../../utils/sceneUtils';
 import './Stripboard.css';
 
@@ -22,6 +22,7 @@ const Stripboard = () => {
     const [scenes, setScenes] = useState([]);
     const [metadata, setMetadata] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [userItemsByScene, setUserItemsByScene] = useState({}); // { sceneId: { category: [items] } }
     const [sortBy, setSortBy] = useState('scene_order');
     const [sortDir, setSortDir] = useState('asc');
     const [filterIntExt, setFilterIntExt] = useState('all');
@@ -71,9 +72,22 @@ const Stripboard = () => {
             try {
                 setLoading(true);
                 
-                // Fetch scenes
-                const sceneData = await getScenes(scriptId);
+                // Fetch scenes + user-added items in parallel
+                const [sceneData, itemsData] = await Promise.all([
+                    getScenes(scriptId),
+                    getScriptItems(scriptId).catch(() => ({ items: [] }))
+                ]);
                 setScenes(sceneData.scenes || []);
+                
+                // Index user items by scene_id → item_type
+                const itemMap = {};
+                (itemsData.items || []).forEach(item => {
+                    if (!item.scene_id || item.status === 'removed') return;
+                    if (!itemMap[item.scene_id]) itemMap[item.scene_id] = {};
+                    if (!itemMap[item.scene_id][item.item_type]) itemMap[item.scene_id][item.item_type] = [];
+                    itemMap[item.scene_id][item.item_type].push(item.item_name);
+                });
+                setUserItemsByScene(itemMap);
                 
                 // Fetch metadata
                 try {
@@ -156,10 +170,13 @@ const Stripboard = () => {
         const totalEighths = scenes.reduce((sum, scene) => sum + getSceneEighths(scene), 0);
         const totalEighthsDisplay = formatEighths(totalEighths);
         
-        // Calculate unique characters count
+        // Calculate unique characters count (AI + user-added)
         const allChars = new Set();
         scenes.forEach(scene => {
+            const sceneId = scene.id || scene.scene_id;
+            const sceneItems = userItemsByScene[sceneId] || {};
             (scene.characters || []).forEach(char => allChars.add(char));
+            (sceneItems.characters || []).forEach(char => allChars.add(char));
         });
         const totalCharacters = allChars.size;
         
@@ -173,7 +190,7 @@ const Stripboard = () => {
         const totalLocations = allLocations.size;
         
         return { intCount, extCount, dayCount, nightCount, totalEighths, totalEighthsDisplay, totalCharacters, totalLocations };
-    }, [scenes]);
+    }, [scenes, userItemsByScene]);
 
 
     const toggleSort = (field) => {
@@ -395,7 +412,8 @@ const Stripboard = () => {
                     <tbody>
                         {filteredScenes.map((scene, index) => {
                             const sceneId = scene.id || scene.scene_id;
-                            const chars = scene.characters || [];
+                            const sceneUserItems = userItemsByScene[sceneId] || {};
+                            const chars = [...(scene.characters || []), ...(sceneUserItems.characters || [])];
                             const charDisplay = chars.slice(0, 3).join(', ');
                             const moreChars = chars.length > 3 ? ` +${chars.length - 3}` : '';
                             
@@ -409,12 +427,12 @@ const Stripboard = () => {
                             // Full cast list for print (second row)
                             const fullCast = chars.join(', ');
                             
-                            // Breakdown data
-                            const props = scene.props || [];
-                            const wardrobe = scene.wardrobe || [];
-                            const vehicles = scene.vehicles || [];
-                            const specialFx = scene.special_fx || [];
-                            const sound = scene.sound || [];
+                            // Breakdown data — merge AI items + user-added items
+                            const props = [...(scene.props || []), ...(sceneUserItems.props || [])];
+                            const wardrobe = [...(scene.wardrobe || []), ...(sceneUserItems.wardrobe || [])];
+                            const vehicles = [...(scene.vehicles || []), ...(sceneUserItems.vehicles || [])];
+                            const specialFx = [...(scene.special_fx || []), ...(sceneUserItems.special_fx || [])];
+                            const sound = [...(scene.sound || []), ...(sceneUserItems.sound || [])];
                             const atmosphere = scene.atmosphere || '';
                             
                             // Analysis status

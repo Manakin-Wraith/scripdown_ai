@@ -13,7 +13,7 @@ import './SceneList.css';
  * 
  * Page info from pageMapping shows which PDF pages each scene spans
  */
-const SceneList = ({ scenes, selectedId, onSelect, analyzingScenes = new Set(), recentlyCompletedScenes = new Set(), pageMapping = null }) => {
+const SceneList = ({ scenes, selectedId, onSelect, analyzingScenes = new Set(), recentlyCompletedScenes = new Set(), pageMapping = null, userItemsByScene = {} }) => {
     if (!scenes || scenes.length === 0) {
         return (
             <div className="list-empty">
@@ -46,8 +46,10 @@ const SceneList = ({ scenes, selectedId, onSelect, analyzingScenes = new Set(), 
     return (
         <div className="scene-list">
             {scenes.map((scene, index) => {
-                const charCount = scene.characters?.length || 0;
-                const propCount = scene.props?.length || 0;
+                const sceneId = scene.id || scene.scene_id;
+                const sceneUserItems = userItemsByScene[sceneId] || {};
+                const charCount = (scene.characters?.length || 0) + (sceneUserItems.characters?.length || 0);
+                const propCount = (scene.props?.length || 0) + (sceneUserItems.props?.length || 0);
                 const status = getAnalysisStatus(scene);
                 
                 // Build meta text

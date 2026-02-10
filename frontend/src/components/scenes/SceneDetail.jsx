@@ -26,8 +26,8 @@ import {
     ShieldCheck,
     ShieldAlert
 } from 'lucide-react';
-import NoteDrawer from '../notes/NoteDrawer';
-import { getScriptNotes } from '../../services/apiService';
+import BreakdownDrawer from '../breakdown/BreakdownDrawer';
+import { getScriptNotes, getSceneItems } from '../../services/apiService';
 import { getSceneEighthsDisplay } from '../../utils/sceneUtils';
 import './SceneDetail.css';
 
@@ -49,36 +49,63 @@ const CATEGORY_DEPARTMENTS = {
 /**
  * SceneDetail - Shows scene breakdown with clickable cards for notes
  */
-const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapping = null }) => {
+// Map category key to scene JSONB field name
+const CATEGORY_FIELD_MAP = {
+    characters: 'characters',
+    props: 'props',
+    wardrobe: 'wardrobe',
+    makeup_hair: 'makeup_hair',
+    special_fx: 'special_fx',
+    vehicles: 'vehicles',
+    locations: 'locations',
+    sound: 'sound',
+    animals: 'animals',
+    extras: 'extras',
+    stunts: 'stunts',
+};
+
+const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapping = null, onRefreshScene = null }) => {
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [activeCategory, setActiveCategory] = useState(null);
     const [noteCounts, setNoteCounts] = useState({});
+    const [itemCounts, setItemCounts] = useState({});
+    const [userItems, setUserItems] = useState([]);  // Full items for card tag merging
 
-    // Fetch note counts for badges
-    useEffect(() => {
-        const fetchNoteCounts = async () => {
-            if (!scene || !scriptId) return;
+    // Fetch notes, items (for badges + card tags)
+    const refreshData = async () => {
+        if (!scene || !scriptId) return;
+        try {
+            const sceneId = scene.id || scene.scene_id;
+            const [notesRes, itemsRes] = await Promise.all([
+                getScriptNotes(scriptId, { scene_id: sceneId }),
+                getSceneItems(scriptId, sceneId)  // excludes removed by default
+            ]);
+            const notes = notesRes.notes || [];
+            const items = itemsRes.items || [];
             
-            try {
-                const sceneId = scene.id || scene.scene_id;
-                const response = await getScriptNotes(scriptId, { scene_id: sceneId });
-                const notes = response.notes || [];
-                
-                // Count notes per category using note_type field
-                const counts = {};
-                Object.keys(CATEGORY_DEPARTMENTS).forEach(category => {
-                    // Filter by note_type (category) - this is the correct way
-                    counts[category] = notes.filter(n => n.note_type === category).length;
-                });
-                
-                setNoteCounts(counts);
-            } catch (err) {
-                console.error('Error fetching note counts:', err);
-            }
-        };
-        
-        fetchNoteCounts();
+            const nCounts = {};
+            const iCounts = {};
+            Object.keys(CATEGORY_DEPARTMENTS).forEach(category => {
+                nCounts[category] = notes.filter(n => n.note_type === category).length;
+                iCounts[category] = items.filter(i => i.item_type === category).length;
+            });
+            
+            setNoteCounts(nCounts);
+            setItemCounts(iCounts);
+            setUserItems(items);
+        } catch (err) {
+            console.error('Error fetching data:', err);
+        }
+    };
+
+    useEffect(() => {
+        refreshData();
     }, [scene, scriptId]);
+
+    // Get active (non-removed) user items for a given category
+    const getUserItemsForCategory = (categoryKey) => {
+        return userItems.filter(i => i.item_type === categoryKey && i.status !== 'removed');
+    };
 
     const openDrawer = (category, title) => {
         setActiveCategory({ key: category, title });
@@ -88,19 +115,40 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
     const closeDrawer = () => {
         setDrawerOpen(false);
         setActiveCategory(null);
-        // Refresh note counts after closing
-        if (scene && scriptId) {
-            const sceneId = scene.id || scene.scene_id;
-            getScriptNotes(scriptId, { scene_id: sceneId }).then(response => {
-                const notes = response.notes || [];
-                const counts = {};
-                Object.keys(CATEGORY_DEPARTMENTS).forEach(category => {
-                    // Filter by note_type (category)
-                    counts[category] = notes.filter(n => n.note_type === category).length;
-                });
-                setNoteCounts(counts);
-            }).catch(console.error);
-        }
+        // Refresh data after closing (items may have been added/removed)
+        refreshData();
+        if (onRefreshScene) onRefreshScene();
+    };
+
+    // Get AI items array for the active category from scene JSONB
+    const getAiItems = (categoryKey) => {
+        if (!scene || !categoryKey) return [];
+        const field = CATEGORY_FIELD_MAP[categoryKey];
+        return (field && scene[field]) || [];
+    };
+
+    // Render merged tags: AI items + user-added items for a card
+    const renderMergedTags = (categoryKey, tagClass, emptyText) => {
+        const aiItems = getAiItems(categoryKey);
+        const addedItems = getUserItemsForCategory(categoryKey);
+        const hasAny = aiItems.length > 0 || addedItems.length > 0;
+
+        if (!hasAny) return <p className="empty-text">{emptyText}</p>;
+
+        return (
+            <div className="tag-container">
+                {aiItems.map((item, idx) => (
+                    <span key={`ai-${idx}`} className={`tag ${tagClass}`}>
+                        {typeof item === 'string' ? item : item.name || JSON.stringify(item)}
+                    </span>
+                ))}
+                {addedItems.map((item) => (
+                    <span key={`user-${item.id}`} className={`tag ${tagClass} user-added-tag`}>
+                        {item.item_name}
+                    </span>
+                ))}
+            </div>
+        );
     };
     
     if (!scene) {
@@ -254,11 +302,17 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
                     <div 
                         className="breakdown-card clickable"
                         onClick={() => openDrawer('characters', 'Characters')}
-                        title="Click to add notes"
+                        title="Click to manage items & notes"
                     >
                         <div className="card-header">
                             <Users size={20} className="card-icon" />
                             <h3>Characters</h3>
+                            {itemCounts.characters > 0 && (
+                                <span className="item-badge">
+                                    <Zap size={10} />
+                                    {itemCounts.characters}
+                                </span>
+                            )}
                             {noteCounts.characters > 0 && (
                                 <span className="note-badge">
                                     <MessageSquare size={12} />
@@ -267,15 +321,7 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
                             )}
                         </div>
                         <div className="card-content">
-                            {scene.characters && scene.characters.length > 0 ? (
-                                <div className="tag-container">
-                                    {scene.characters.map((char, idx) => (
-                                        <span key={idx} className="tag character-tag">{char}</span>
-                                    ))}
-                                </div>
-                            ) : (
-                                <p className="empty-text">No characters detected</p>
-                            )}
+                            {renderMergedTags('characters', 'character-tag', 'No characters detected')}
                         </div>
                     </div>
 
@@ -301,11 +347,17 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
                     <div 
                         className="breakdown-card clickable"
                         onClick={() => openDrawer('props', 'Props')}
-                        title="Click to add notes"
+                        title="Click to manage items & notes"
                     >
                         <div className="card-header">
                             <Package size={20} className="card-icon" />
                             <h3>Props</h3>
+                            {itemCounts.props > 0 && (
+                                <span className="item-badge">
+                                    <Zap size={10} />
+                                    {itemCounts.props}
+                                </span>
+                            )}
                             {noteCounts.props > 0 && (
                                 <span className="note-badge">
                                     <MessageSquare size={12} />
@@ -314,15 +366,7 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
                             )}
                         </div>
                         <div className="card-content">
-                            {scene.props && scene.props.length > 0 ? (
-                                <div className="tag-container">
-                                    {scene.props.map((prop, idx) => (
-                                        <span key={idx} className="tag prop-tag">{prop}</span>
-                                    ))}
-                                </div>
-                            ) : (
-                                <p className="empty-text">No props detected</p>
-                            )}
+                            {renderMergedTags('props', 'prop-tag', 'No props detected')}
                         </div>
                     </div>
 
@@ -330,11 +374,17 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
                     <div 
                         className="breakdown-card clickable"
                         onClick={() => openDrawer('wardrobe', 'Wardrobe')}
-                        title="Click to add notes"
+                        title="Click to manage items & notes"
                     >
                         <div className="card-header">
                             <Shirt size={20} className="card-icon" />
                             <h3>Wardrobe</h3>
+                            {itemCounts.wardrobe > 0 && (
+                                <span className="item-badge">
+                                    <Zap size={10} />
+                                    {itemCounts.wardrobe}
+                                </span>
+                            )}
                             {noteCounts.wardrobe > 0 && (
                                 <span className="note-badge">
                                     <MessageSquare size={12} />
@@ -343,15 +393,7 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
                             )}
                         </div>
                         <div className="card-content">
-                            {scene.wardrobe && scene.wardrobe.length > 0 ? (
-                                <ul className="detail-list">
-                                    {scene.wardrobe.map((item, idx) => (
-                                        <li key={idx}>{item}</li>
-                                    ))}
-                                </ul>
-                            ) : (
-                                <p className="empty-text">No wardrobe notes</p>
-                            )}
+                            {renderMergedTags('wardrobe', 'wardrobe-tag', 'No wardrobe notes')}
                         </div>
                     </div>
 
@@ -359,11 +401,17 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
                     <div 
                         className="breakdown-card clickable"
                         onClick={() => openDrawer('makeup_hair', 'Makeup & Hair')}
-                        title="Click to add notes"
+                        title="Click to manage items & notes"
                     >
                         <div className="card-header">
                             <Palette size={20} className="card-icon" />
                             <h3>Makeup & Hair</h3>
+                            {itemCounts.makeup_hair > 0 && (
+                                <span className="item-badge">
+                                    <Zap size={10} />
+                                    {itemCounts.makeup_hair}
+                                </span>
+                            )}
                             {noteCounts.makeup_hair > 0 && (
                                 <span className="note-badge">
                                     <MessageSquare size={12} />
@@ -372,15 +420,7 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
                             )}
                         </div>
                         <div className="card-content">
-                            {scene.makeup_hair && scene.makeup_hair.length > 0 ? (
-                                <ul className="detail-list">
-                                    {scene.makeup_hair.map((item, idx) => (
-                                        <li key={idx}>{item}</li>
-                                    ))}
-                                </ul>
-                            ) : (
-                                <p className="empty-text">No makeup/hair notes</p>
-                            )}
+                            {renderMergedTags('makeup_hair', 'makeup-tag', 'No makeup/hair notes')}
                         </div>
                     </div>
 
@@ -388,11 +428,17 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
                     <div 
                         className="breakdown-card clickable"
                         onClick={() => openDrawer('special_fx', 'Special FX')}
-                        title="Click to add notes"
+                        title="Click to manage items & notes"
                     >
                         <div className="card-header">
                             <Sparkles size={20} className="card-icon" />
                             <h3>Special FX</h3>
+                            {itemCounts.special_fx > 0 && (
+                                <span className="item-badge">
+                                    <Zap size={10} />
+                                    {itemCounts.special_fx}
+                                </span>
+                            )}
                             {noteCounts.special_fx > 0 && (
                                 <span className="note-badge">
                                     <MessageSquare size={12} />
@@ -401,15 +447,7 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
                             )}
                         </div>
                         <div className="card-content">
-                            {scene.special_fx && scene.special_fx.length > 0 ? (
-                                <div className="tag-container">
-                                    {scene.special_fx.map((fx, idx) => (
-                                        <span key={idx} className="tag fx-tag">{fx}</span>
-                                    ))}
-                                </div>
-                            ) : (
-                                <p className="empty-text">No special FX detected</p>
-                            )}
+                            {renderMergedTags('special_fx', 'fx-tag', 'No special FX detected')}
                         </div>
                     </div>
 
@@ -417,11 +455,17 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
                     <div 
                         className="breakdown-card clickable"
                         onClick={() => openDrawer('vehicles', 'Vehicles')}
-                        title="Click to add notes"
+                        title="Click to manage items & notes"
                     >
                         <div className="card-header">
                             <Car size={20} className="card-icon" />
                             <h3>Vehicles</h3>
+                            {itemCounts.vehicles > 0 && (
+                                <span className="item-badge">
+                                    <Zap size={10} />
+                                    {itemCounts.vehicles}
+                                </span>
+                            )}
                             {noteCounts.vehicles > 0 && (
                                 <span className="note-badge">
                                     <MessageSquare size={12} />
@@ -430,15 +474,7 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
                             )}
                         </div>
                         <div className="card-content">
-                            {scene.vehicles && scene.vehicles.length > 0 ? (
-                                <div className="tag-container">
-                                    {scene.vehicles.map((v, idx) => (
-                                        <span key={idx} className="tag vehicle-tag">{v}</span>
-                                    ))}
-                                </div>
-                            ) : (
-                                <p className="empty-text">No vehicles detected</p>
-                            )}
+                            {renderMergedTags('vehicles', 'vehicle-tag', 'No vehicles detected')}
                         </div>
                     </div>
 
@@ -446,11 +482,17 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
                     <div 
                         className="breakdown-card clickable"
                         onClick={() => openDrawer('locations', 'Locations')}
-                        title="Click to add notes"
+                        title="Click to manage items & notes"
                     >
                         <div className="card-header">
                             <Building2 size={20} className="card-icon" />
                             <h3>Locations</h3>
+                            {itemCounts.locations > 0 && (
+                                <span className="item-badge">
+                                    <Zap size={10} />
+                                    {itemCounts.locations}
+                                </span>
+                            )}
                             {noteCounts.locations > 0 && (
                                 <span className="note-badge">
                                     <MessageSquare size={12} />
@@ -459,15 +501,7 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
                             )}
                         </div>
                         <div className="card-content">
-                            {scene.locations && scene.locations.length > 0 ? (
-                                <div className="tag-container">
-                                    {scene.locations.map((loc, idx) => (
-                                        <span key={idx} className="tag location-tag">{loc}</span>
-                                    ))}
-                                </div>
-                            ) : (
-                                <p className="empty-text">No sub-locations detected</p>
-                            )}
+                            {renderMergedTags('locations', 'location-tag', 'No sub-locations detected')}
                         </div>
                     </div>
 
@@ -475,11 +509,17 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
                     <div 
                         className="breakdown-card clickable"
                         onClick={() => openDrawer('sound', 'Sound')}
-                        title="Click to add notes"
+                        title="Click to manage items & notes"
                     >
                         <div className="card-header">
                             <Volume2 size={20} className="card-icon" />
                             <h3>Sound</h3>
+                            {itemCounts.sound > 0 && (
+                                <span className="item-badge">
+                                    <Zap size={10} />
+                                    {itemCounts.sound}
+                                </span>
+                            )}
                             {noteCounts.sound > 0 && (
                                 <span className="note-badge">
                                     <MessageSquare size={12} />
@@ -488,15 +528,7 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
                             )}
                         </div>
                         <div className="card-content">
-                            {scene.sound && scene.sound.length > 0 ? (
-                                <div className="tag-container">
-                                    {scene.sound.map((s, idx) => (
-                                        <span key={idx} className="tag sound-tag">{s}</span>
-                                    ))}
-                                </div>
-                            ) : (
-                                <p className="empty-text">No sound cues detected</p>
-                            )}
+                            {renderMergedTags('sound', 'sound-tag', 'No sound cues detected')}
                         </div>
                     </div>
 
@@ -504,11 +536,17 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
                     <div 
                         className="breakdown-card clickable"
                         onClick={() => openDrawer('animals', 'Animals')}
-                        title="Click to add notes"
+                        title="Click to manage items & notes"
                     >
                         <div className="card-header">
                             <Dog size={20} className="card-icon" />
                             <h3>Animals</h3>
+                            {itemCounts.animals > 0 && (
+                                <span className="item-badge">
+                                    <Zap size={10} />
+                                    {itemCounts.animals}
+                                </span>
+                            )}
                             {noteCounts.animals > 0 && (
                                 <span className="note-badge">
                                     <MessageSquare size={12} />
@@ -517,15 +555,7 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
                             )}
                         </div>
                         <div className="card-content">
-                            {scene.animals && scene.animals.length > 0 ? (
-                                <div className="tag-container">
-                                    {scene.animals.map((animal, idx) => (
-                                        <span key={idx} className="tag animal-tag">{animal}</span>
-                                    ))}
-                                </div>
-                            ) : (
-                                <p className="empty-text">No animals detected</p>
-                            )}
+                            {renderMergedTags('animals', 'animal-tag', 'No animals detected')}
                         </div>
                     </div>
 
@@ -533,11 +563,17 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
                     <div 
                         className="breakdown-card clickable"
                         onClick={() => openDrawer('extras', 'Extras')}
-                        title="Click to add notes"
+                        title="Click to manage items & notes"
                     >
                         <div className="card-header">
                             <UserPlus size={20} className="card-icon" />
                             <h3>Extras</h3>
+                            {itemCounts.extras > 0 && (
+                                <span className="item-badge">
+                                    <Zap size={10} />
+                                    {itemCounts.extras}
+                                </span>
+                            )}
                             {noteCounts.extras > 0 && (
                                 <span className="note-badge">
                                     <MessageSquare size={12} />
@@ -546,15 +582,7 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
                             )}
                         </div>
                         <div className="card-content">
-                            {scene.extras && scene.extras.length > 0 ? (
-                                <div className="tag-container">
-                                    {scene.extras.map((extra, idx) => (
-                                        <span key={idx} className="tag extra-tag">{extra}</span>
-                                    ))}
-                                </div>
-                            ) : (
-                                <p className="empty-text">No extras detected</p>
-                            )}
+                            {renderMergedTags('extras', 'extra-tag', 'No extras detected')}
                         </div>
                     </div>
 
@@ -562,11 +590,17 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
                     <div 
                         className="breakdown-card clickable"
                         onClick={() => openDrawer('stunts', 'Stunts')}
-                        title="Click to add notes"
+                        title="Click to manage items & notes"
                     >
                         <div className="card-header">
                             <Flame size={20} className="card-icon" />
                             <h3>Stunts</h3>
+                            {itemCounts.stunts > 0 && (
+                                <span className="item-badge">
+                                    <Zap size={10} />
+                                    {itemCounts.stunts}
+                                </span>
+                            )}
                             {noteCounts.stunts > 0 && (
                                 <span className="note-badge">
                                     <MessageSquare size={12} />
@@ -575,22 +609,14 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
                             )}
                         </div>
                         <div className="card-content">
-                            {scene.stunts && scene.stunts.length > 0 ? (
-                                <div className="tag-container">
-                                    {scene.stunts.map((stunt, idx) => (
-                                        <span key={idx} className="tag stunt-tag">{stunt}</span>
-                                    ))}
-                                </div>
-                            ) : (
-                                <p className="empty-text">No stunts detected</p>
-                            )}
+                            {renderMergedTags('stunts', 'stunt-tag', 'No stunts detected')}
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Note Drawer */}
-            <NoteDrawer
+            {/* Breakdown Drawer (Items CRUD + Notes) */}
+            <BreakdownDrawer
                 isOpen={drawerOpen}
                 onClose={closeDrawer}
                 category={activeCategory?.key}
@@ -601,6 +627,9 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
                 sceneSetting={scene.setting || `${scene.int_ext || ''} ${scene.location || ''}`.trim()}
                 pageStart={pageMapping?.scene_pages?.[scene.id || scene.scene_id]?.page_start || scene.page_start}
                 pageEnd={pageMapping?.scene_pages?.[scene.id || scene.scene_id]?.page_end || scene.page_end}
+                aiItems={getAiItems(activeCategory?.key)}
+                onAiItemRemoved={onRefreshScene}
+                sceneText={scene.scene_text || ''}
             />
         </div>
     );
