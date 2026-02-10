@@ -277,10 +277,16 @@ class ScreenplayParser:
                 line_upper.startswith(kw)
                 for kw in ["INT.", "INT ", "EXT.", "EXT "]
             )
-            # Also allow scene-numbered lines: "1. INT." / "14A. EXT." / FDX "1 INT."
+            # Also allow scene-numbered lines: "1. INT." / "14A. EXT." / FDX "1 INT." / revision "A1 INT."
             import re as _re
-            has_numbered_loc = bool(_re.match(r"^\d+[A-Z]?\.?\s+(INT|EXT)", line_upper))
-            if not has_loc_prefix and not has_numbered_loc:
+            has_numbered_loc = bool(_re.match(r"^[A-Z]?\d+[A-Z]?\.?\s+(INT|EXT)", line_upper))
+            # Also allow structural prefixes: "FLASHBACK - INT." / "DREAM SEQUENCE - EXT."
+            has_structural_prefix = bool(_re.match(
+                r"^(?:FLASHBACK|DREAM SEQUENCE|FANTASY|NIGHTMARE|VISION|HALLUCINATION)"
+                r"\s*[-\u2013\u2014:]\s*(?:INT|EXT)",
+                line_upper,
+            ))
+            if not has_loc_prefix and not has_numbered_loc and not has_structural_prefix:
                 return None
 
         return self.shot_parser.parse(line, line_num)

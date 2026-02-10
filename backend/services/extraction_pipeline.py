@@ -101,20 +101,32 @@ class SceneCandidate:
 TIME_OF_DAY = r"(DAY|NIGHT|DUSK|DAWN|MORNING|EVENING|AFTERNOON|CONTINUOUS|LATER|SAME|MOMENT'?S?\s*LATER|MOMENTS?\s*LATER)"
 
 SCENE_HEADER_PATTERNS = [
-    # Pattern 1: "42. INT. COFFEE SHOP - DAY" (standard format)
+    # Pattern 1: "42. INT. COFFEE SHOP - DAY" (standard numbered + TOD)
     rf'^(\d+[A-Z]?)\.\s*(INT|EXT|INT\.?/EXT|EXT\.?/INT|I/E|E/I)[.\s]+(.+?)\s*[-–—]\s*{TIME_OF_DAY}',
-    
-    # Pattern 2: "42. INT. COFFEE SHOP - DAY" with flexible time (may be missing)
+
+    # Pattern 2: "42. INT. COFFEE SHOP" (numbered + optional TOD)
     r'^(\d+[A-Z]?)\.\s*(INT|EXT|INT\.?/EXT|EXT\.?/INT|I/E|E/I)[.\s]+(.+?)(?:\s*[-–—]\s*(.+?))?$',
-    
+
     # Pattern 3: "SCENE 42 - INT. COFFEE SHOP - DAY"
     rf'^SCENE\s+(\d+[A-Z]?)\s*[-–—:]\s*(INT|EXT|INT\.?/EXT|EXT\.?/INT)[.\s]+(.+?)\s*[-–—]\s*{TIME_OF_DAY}',
-    
-    # Pattern 4: "42 INT. COFFEE SHOP - DAY" (no period after number)
-    rf'^(\d+[A-Z]?)\s+(INT|EXT|INT\.?/EXT|EXT\.?/INT)[.\s]+(.+?)\s*[-–—]\s*{TIME_OF_DAY}',
-    
-    # Pattern 5: Just "INT. COFFEE SHOP - DAY" (no scene number)
-    rf'^()(INT|EXT|INT\.?/EXT|EXT\.?/INT)[.\s]+(.+?)\s*[-–—]\s*{TIME_OF_DAY}',
+
+    # Pattern 4: "42 INT. COFFEE SHOP - DAY" (FDX no period + TOD)
+    rf'^(\d+[A-Z]?)\s+(INT|EXT|INT\.?/EXT|EXT\.?/INT|I/E|E/I)[.\s]+(.+?)\s*[-–—]\s*{TIME_OF_DAY}',
+
+    # Pattern 5: "INT. COFFEE SHOP - DAY" (no scene number + TOD)
+    rf'^()(INT|EXT|INT\.?/EXT|EXT\.?/INT|I/E|E/I)[.\s]+(.+?)\s*[-–—]\s*{TIME_OF_DAY}',
+
+    # Pattern 6: "A1 INT. COFFEE SHOP - DAY" (alpha-prefix scene number, e.g. revision scenes)
+    rf'^([A-Z]\d+[A-Z]?)\.?\s+(INT|EXT|INT\.?/EXT|EXT\.?/INT|I/E|E/I)[.\s]+(.+?)\s*[-–—]\s*{TIME_OF_DAY}',
+
+    # Pattern 7: "FLASHBACK - INT. COFFEE SHOP - DAY" / "DREAM SEQUENCE - EXT. PARK - NIGHT"
+    rf'^(?:FLASHBACK|DREAM SEQUENCE)\s*[-–—:]\s*()(INT|EXT|INT\.?/EXT|EXT\.?/INT|I/E|E/I)[.\s]+(.+?)\s*[-–—]\s*{TIME_OF_DAY}',
+
+    # Pattern 8: "42 INT. COFFEE SHOP" (FDX no period, no TOD)
+    r'^(\d+[A-Z]?)\s+(INT|EXT|INT\.?/EXT|EXT\.?/INT|I/E|E/I)[.\s]+(.+?)()$',
+
+    # Pattern 9: "INT. COFFEE SHOP" (no scene number, no TOD — catch-all)
+    r'^()(INT|EXT|INT\.?/EXT|EXT\.?/INT|I/E|E/I)[.\s]+(.+?)()$',
 ]
 
 

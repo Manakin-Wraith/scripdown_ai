@@ -32,8 +32,15 @@ class ShotHeadingParser:
         self.locale_codes = locale_codes
         self._init_patterns()
 
-        # Scene number prefix pattern: "1." or "14A." or FDX "1 " (no period)
-        self.scene_number_prefix = re.compile(r"^(\d+[A-Z]?)\.?\s+")
+        # Scene number prefix pattern: "1." or "14A." or FDX "1 " or revision "A1"
+        self.scene_number_prefix = re.compile(r"^([A-Z]?\d+[A-Z]?)\.?\s+")
+
+        # Structural prefixes that precede a real scene heading
+        self.structural_prefix = re.compile(
+            r"^(?:FLASHBACK|DREAM SEQUENCE|FANTASY|NIGHTMARE|VISION|HALLUCINATION)"
+            r"\s*[-–—:]\s*",
+            re.IGNORECASE,
+        )
 
     def _init_patterns(self):
         """Initialize parsing patterns."""
@@ -122,6 +129,13 @@ class ShotHeadingParser:
         # Strip trailing mirrored scene number (FDX format: "INT. SHOP - DAY  42")
         if scene_number:
             text = re.sub(rf"\s+{re.escape(scene_number)}\s*$", "", text)
+
+        # Strip structural prefix (e.g., "FLASHBACK - INT. SHOP" → "INT. SHOP")
+        sp_match = self.structural_prefix.match(text)
+        if sp_match:
+            remainder = text[sp_match.end():]
+            if any(remainder.upper().startswith(kw) for kw in ["INT", "EXT", "I/E", "E/I"]):
+                text = remainder
 
         # Extract components
         location_type = self._extract_location_type(text)

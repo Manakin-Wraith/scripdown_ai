@@ -416,13 +416,19 @@ def _location_type_to_str(location_type) -> str:
 
 
 def _extract_scene_number(heading_text: str) -> Optional[str]:
-    """Extract scene number from a heading line (e.g., '42. INT. BAR')."""
+    """Extract scene number from a heading line (e.g., '42. INT. BAR' or 'A1 INT. BAR')."""
+    # Standard: "42." or "14A."
     match = re.match(r"^\s*(\d+[A-Z]?)\.\s", heading_text)
     if match:
         return match.group(1)
 
-    # Also try without period: "42 INT."
+    # FDX without period: "42 INT."
     match = re.match(r"^\s*(\d+[A-Z]?)\s+(?:INT|EXT)", heading_text)
+    if match:
+        return match.group(1)
+
+    # Alpha-prefix revision numbers: "A1 INT." or "A1. INT."
+    match = re.match(r"^\s*([A-Z]\d+[A-Z]?)\.?\s+(?:INT|EXT)", heading_text)
     if match:
         return match.group(1)
 

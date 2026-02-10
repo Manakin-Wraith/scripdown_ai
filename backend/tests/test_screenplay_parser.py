@@ -652,5 +652,161 @@ A messy room. Clothes everywhere.
         assert matched, "No regex pattern matched FDX heading without trailing number"
 
 
+# ============================================
+# Robust Scene Detection Tests
+# ============================================
+
+class TestNoTimeOfDay:
+    """Headings without time of day — very common in real scripts."""
+
+    def test_grammar_int_no_tod(self):
+        from lib.screenpy.parser.core import ScreenplayParser
+        parser = ScreenplayParser(locale_codes=["en"])
+        h = parser._parse_shot_heading("INT. COFFEE SHOP", 0)
+        assert h is not None and h.is_master
+
+    def test_grammar_ext_no_tod(self):
+        from lib.screenpy.parser.core import ScreenplayParser
+        parser = ScreenplayParser(locale_codes=["en"])
+        h = parser._parse_shot_heading("EXT. BEACH", 0)
+        assert h is not None and h.is_master
+
+    def test_grammar_multiloc_no_tod(self):
+        from lib.screenpy.parser.core import ScreenplayParser
+        parser = ScreenplayParser(locale_codes=["en"])
+        h = parser._parse_shot_heading("INT. APARTMENT - BEDROOM", 0)
+        assert h is not None and h.is_master
+
+    def test_regex_int_no_tod(self):
+        import re
+        from services.extraction_pipeline import SCENE_HEADER_PATTERNS
+        matched = any(re.match(p, "INT. COFFEE SHOP", re.IGNORECASE) for p in SCENE_HEADER_PATTERNS)
+        assert matched, "Regex should match INT. heading without time of day"
+
+    def test_regex_ext_no_tod(self):
+        import re
+        from services.extraction_pipeline import SCENE_HEADER_PATTERNS
+        matched = any(re.match(p, "EXT. BEACH", re.IGNORECASE) for p in SCENE_HEADER_PATTERNS)
+        assert matched, "Regex should match EXT. heading without time of day"
+
+    def test_regex_fdx_no_tod(self):
+        import re
+        from services.extraction_pipeline import SCENE_HEADER_PATTERNS
+        matched = any(re.match(p, "42 INT. COFFEE SHOP", re.IGNORECASE) for p in SCENE_HEADER_PATTERNS)
+        assert matched, "Regex should match FDX numbered heading without time of day"
+
+
+class TestFlashbackPrefix:
+    """Flashback/dream prefixes before standard INT/EXT headings."""
+
+    def test_grammar_flashback_prefix(self):
+        from lib.screenpy.parser.core import ScreenplayParser
+        parser = ScreenplayParser(locale_codes=["en"])
+        h = parser._parse_shot_heading("FLASHBACK - INT. COFFEE SHOP - DAY", 0)
+        assert h is not None and h.is_master
+
+    def test_grammar_flashback_suffix_still_works(self):
+        from lib.screenpy.parser.core import ScreenplayParser
+        parser = ScreenplayParser(locale_codes=["en"])
+        h = parser._parse_shot_heading("INT. COFFEE SHOP - DAY (FLASHBACK)", 0)
+        assert h is not None and h.is_master
+
+    def test_regex_flashback_prefix(self):
+        import re
+        from services.extraction_pipeline import SCENE_HEADER_PATTERNS
+        matched = any(
+            re.match(p, "FLASHBACK - INT. COFFEE SHOP - DAY", re.IGNORECASE)
+            for p in SCENE_HEADER_PATTERNS
+        )
+        assert matched, "Regex should match FLASHBACK prefix heading"
+
+    def test_grammar_dream_sequence_prefix(self):
+        from lib.screenpy.parser.core import ScreenplayParser
+        parser = ScreenplayParser(locale_codes=["en"])
+        h = parser._parse_shot_heading("DREAM SEQUENCE - EXT. PARK - NIGHT", 0)
+        assert h is not None and h.is_master
+
+    def test_regex_dream_sequence_prefix(self):
+        import re
+        from services.extraction_pipeline import SCENE_HEADER_PATTERNS
+        matched = any(
+            re.match(p, "DREAM SEQUENCE - EXT. PARK - NIGHT", re.IGNORECASE)
+            for p in SCENE_HEADER_PATTERNS
+        )
+        assert matched, "Regex should match DREAM SEQUENCE prefix heading"
+
+
+class TestAlphaSceneNumbers:
+    """Revision scene numbers with alpha prefix (A1, B2, etc.)."""
+
+    def test_grammar_alpha_prefix(self):
+        from lib.screenpy.parser.core import ScreenplayParser
+        parser = ScreenplayParser(locale_codes=["en"])
+        h = parser._parse_shot_heading("A1 INT. COFFEE SHOP - DAY", 0)
+        assert h is not None and h.is_master
+
+    def test_regex_alpha_prefix(self):
+        import re
+        from services.extraction_pipeline import SCENE_HEADER_PATTERNS
+        line = "A1 INT. COFFEE SHOP - DAY"
+        matched = False
+        for p in SCENE_HEADER_PATTERNS:
+            m = re.match(p, line, re.IGNORECASE)
+            if m:
+                matched = True
+                assert m.groups()[0] == "A1"
+                break
+        assert matched, "Regex should match alpha-prefix scene number"
+
+    def test_extract_scene_number_alpha(self):
+        from services.screenplay_parser import _extract_scene_number
+        assert _extract_scene_number("A1 INT. COFFEE SHOP - DAY") == "A1"
+        assert _extract_scene_number("B2. EXT. BEACH - NIGHT") == "B2"
+
+    def test_grammar_alpha_prefix_with_period(self):
+        from lib.screenpy.parser.core import ScreenplayParser
+        parser = ScreenplayParser(locale_codes=["en"])
+        h = parser._parse_shot_heading("A1. INT. COFFEE SHOP - DAY", 0)
+        assert h is not None and h.is_master
+
+
+class TestMixedFormatScript:
+    """Full script with a mix of heading formats produces correct scene count."""
+
+    def test_mixed_format_full_script(self):
+        from lib.screenpy.parser.core import ScreenplayParser
+        parser = ScreenplayParser(locale_codes=["en"])
+
+        script = """INT. COFFEE SHOP - DAY
+
+John sits at the counter.
+
+                              JOHN
+                    I'll have a coffee.
+
+EXT. BEACH
+
+Waves crash on the empty shore.
+
+FLASHBACK - INT. CHILDHOOD HOME - NIGHT
+
+A young boy sits on the stairs.
+
+A1 INT. HALLWAY - DAY
+
+Added in revision.
+
+42 EXT. PARKING LOT - DUSK 42
+
+Cars fill the lot.
+"""
+        sp = parser.parse(script)
+        masters = sp.master_segments
+        assert len(masters) == 5, (
+            f"Expected 5 master segments from mixed formats, got {len(masters)}: "
+            f"{[m.heading.raw_text for m in masters if m.heading]}"
+        )
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
