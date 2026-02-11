@@ -6,7 +6,7 @@ import SceneDetail from './SceneDetail';
 import ScriptHeader from '../metadata/ScriptHeader';
 import ScriptSummary from './ScriptSummary';
 import PdfViewerPanel from '../pdf/PdfViewerPanel';
-import { AlertCircle, ChevronDown, ChevronUp, Zap, FileText, List, Loader, XCircle, BookOpen } from 'lucide-react';
+import { AlertCircle, ChevronDown, ChevronUp, Zap, FileText, List, Loader, XCircle, BookOpen, CalendarDays } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 import { useScript } from '../../context/ScriptContext';
 import { analyzeBulkScenes, analyzeScene, getPageMapping } from '../../services/apiService';
@@ -32,6 +32,7 @@ const SceneViewer = () => {
     const [pageMapping, setPageMapping] = useState(null);
     const [currentPdfPage, setCurrentPdfPage] = useState(1);
     const [recentlyCompletedScenes, setRecentlyCompletedScenes] = useState(new Set());
+    const [storyDayFilter, setStoryDayFilter] = useState(null);
 
     // Fetch scenes data
     useEffect(() => {
@@ -96,6 +97,43 @@ const SceneViewer = () => {
             fetchData();
         }
     }, [scriptId]);
+
+    // Compute unique story days for filter dropdown
+    const uniqueStoryDays = useMemo(() => {
+        const days = new Map();
+        scenes.forEach(scene => {
+            if (scene.story_day) {
+                if (!days.has(scene.story_day)) {
+                    days.set(scene.story_day, {
+                        day: scene.story_day,
+                        label: scene.story_day_label || `Day ${scene.story_day}`,
+                        timeline: scene.timeline_code || 'PRESENT',
+                        count: 0
+                    });
+                }
+                days.get(scene.story_day).count++;
+            }
+        });
+        return Array.from(days.values()).sort((a, b) => a.day - b.day);
+    }, [scenes]);
+
+    // Filtered scenes based on story day filter
+    const filteredScenes = useMemo(() => {
+        if (!storyDayFilter) return scenes;
+        return scenes.filter(s => s.story_day === storyDayFilter);
+    }, [scenes, storyDayFilter]);
+
+    // Clear selected scene if it's no longer in the filtered list
+    useEffect(() => {
+        if (storyDayFilter && selectedScene) {
+            const stillVisible = filteredScenes.some(
+                s => s.scene_id === selectedScene.scene_id
+            );
+            if (!stillVisible) {
+                setSelectedScene(filteredScenes[0] || null);
+            }
+        }
+    }, [storyDayFilter, filteredScenes]);
 
     // Aggregate data for summary panel
     const summaryData = useMemo(() => {
@@ -485,16 +523,33 @@ const SceneViewer = () => {
                 <div className="viewer-sidebar">
                     <div className="sidebar-header">
                         <span>Scenes</span>
-                        <button 
-                            className={`pdf-toggle-btn ${showPdfPanel ? 'active' : ''}`}
-                            onClick={() => setShowPdfPanel(!showPdfPanel)}
-                            title={showPdfPanel ? 'Hide PDF' : 'View Original PDF'}
-                        >
-                            <BookOpen size={16} />
-                        </button>
+                        <div className="sidebar-header-actions">
+                            {uniqueStoryDays.length > 0 && (
+                                <select
+                                    className={`story-day-filter-select ${storyDayFilter ? 'filter-active' : ''}`}
+                                    value={storyDayFilter || ''}
+                                    onChange={(e) => setStoryDayFilter(e.target.value ? parseInt(e.target.value, 10) : null)}
+                                    title="Filter by story day"
+                                >
+                                    <option value="">All Days</option>
+                                    {uniqueStoryDays.map(d => (
+                                        <option key={d.day} value={d.day}>
+                                            {d.label} ({d.count})
+                                        </option>
+                                    ))}
+                                </select>
+                            )}
+                            <button 
+                                className={`pdf-toggle-btn ${showPdfPanel ? 'active' : ''}`}
+                                onClick={() => setShowPdfPanel(!showPdfPanel)}
+                                title={showPdfPanel ? 'Hide PDF' : 'View Original PDF'}
+                            >
+                                <BookOpen size={16} />
+                            </button>
+                        </div>
                     </div>
                     <SceneList 
-                        scenes={scenes} 
+                        scenes={filteredScenes} 
                         selectedId={selectedScene?.scene_id} 
                         onSelect={setSelectedScene}
                         analyzingScenes={analyzingScenes}

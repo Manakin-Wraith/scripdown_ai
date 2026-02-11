@@ -353,6 +353,127 @@
    Phase 3: Transition Dividers Between Scenes
    ============================================ */
 
+/* ============================================
+   Story Day Dividers & Pills
+   ============================================ */
+
+.story-day-divider {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0.5rem;
+    margin: 0.1rem 0;
+}
+
+.story-day-divider-line {
+    flex: 1;
+    height: 1px;
+    background: rgba(20, 184, 166, 0.3);
+}
+
+.story-day-divider-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.15rem 0.6rem;
+    font-size: 0.6rem;
+    font-weight: 700;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.story-day-divider-label.timeline-present {
+    color: #5eead4;
+    background: rgba(20, 184, 166, 0.3);
+    border: 1px solid rgba(20, 184, 166, 0.5);
+}
+
+.story-day-divider-label.timeline-flashback {
+    color: #d8b4fe;
+    background: rgba(168, 85, 247, 0.3);
+    border: 1px solid rgba(168, 85, 247, 0.5);
+}
+
+.story-day-divider-label.timeline-dream {
+    color: #93c5fd;
+    background: rgba(59, 130, 246, 0.3);
+    border: 1px solid rgba(59, 130, 246, 0.5);
+}
+
+.story-day-divider-label.timeline-fantasy {
+    color: #f9a8d4;
+    background: rgba(236, 72, 153, 0.3);
+    border: 1px solid rgba(236, 72, 153, 0.5);
+}
+
+.story-day-divider-label.timeline-montage {
+    color: #fcd34d;
+    background: rgba(245, 158, 11, 0.3);
+    border: 1px solid rgba(245, 158, 11, 0.5);
+}
+
+.story-day-divider-label.timeline-title_card {
+    color: #cbd5e1;
+    background: rgba(148, 163, 184, 0.3);
+    border: 1px solid rgba(148, 163, 184, 0.5);
+}
+
+/* Story Day pill on scene item */
+.story-day-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.1rem 0.35rem;
+    border-radius: 3px;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    flex-shrink: 0;
+}
+
+.story-day-pill.timeline-present {
+    background: rgba(20, 184, 166, 0.15);
+    color: #5eead4;
+}
+
+.story-day-pill.timeline-flashback {
+    background: rgba(168, 85, 247, 0.35);
+    color: #d8b4fe;
+}
+
+.story-day-pill.timeline-dream {
+    background: rgba(59, 130, 246, 0.35);
+    color: #93c5fd;
+}
+
+.story-day-pill.timeline-fantasy {
+    background: rgba(236, 72, 153, 0.35);
+    color: #f9a8d4;
+}
+
+.story-day-pill.timeline-montage {
+    background: rgba(245, 158, 11, 0.35);
+    color: #fcd34d;
+}
+
+.story-day-pill.timeline-title_card {
+    background: rgba(148, 163, 184, 0.35);
+    color: #cbd5e1;
+}
+
+.entity-header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-shrink: 0;
+}
+
+/* ============================================
+   Phase 3: Transition Dividers Between Scenes
+   ============================================ */
+
 .transition-divider {
     display: flex;
     align-items: center;

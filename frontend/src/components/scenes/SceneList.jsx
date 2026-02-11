@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, ChevronRight, CheckCircle, Clock, Loader, FileText, ArrowDownUp } from 'lucide-react';
+import { Users, ChevronRight, CheckCircle, Clock, Loader, FileText, ArrowDownUp, CalendarDays } from 'lucide-react';
 import { getSceneEighthsDisplay } from '../../utils/sceneUtils';
 import './SceneList.css';
 
@@ -69,8 +69,24 @@ const SceneList = ({ scenes, selectedId, onSelect, analyzingScenes = new Set(), 
                 const prevScene = index > 0 ? scenes[index - 1] : null;
                 const transitionLabel = prevScene ? getLastTransition(prevScene) : null;
 
+                // Story day separator: show when story_day changes from previous scene
+                const prevStoryDay = prevScene ? prevScene.story_day : null;
+                const showDaySeparator = scene.story_day && prevStoryDay && scene.story_day !== prevStoryDay;
+
                 return (
                     <React.Fragment key={scene.scene_id}>
+                        {/* Story Day separator */}
+                        {showDaySeparator && (
+                            <div className="story-day-divider">
+                                <span className="story-day-divider-line" />
+                                <span className={`story-day-divider-label timeline-${(scene.timeline_code || 'PRESENT').toLowerCase()}`}>
+                                    <CalendarDays size={10} />
+                                    {scene.story_day_label || `Day ${scene.story_day}`}
+                                </span>
+                                <span className="story-day-divider-line" />
+                            </div>
+                        )}
+
                         {/* Transition divider between scenes */}
                         {transitionLabel && (
                             <div className="transition-divider">
@@ -103,7 +119,14 @@ const SceneList = ({ scenes, selectedId, onSelect, analyzingScenes = new Set(), 
                                         {scene.int_ext && <span className="int-ext-badge">{scene.int_ext}</span>}
                                         {scene.setting}
                                     </div>
-                                    <span className="entity-count">{scene.time_of_day || 'DAY'}</span>
+                                    <div className="entity-header-right">
+                                        {scene.story_day && (
+                                            <span className={`story-day-pill timeline-${(scene.timeline_code || 'PRESENT').toLowerCase()}`}>
+                                                D{scene.story_day}
+                                            </span>
+                                        )}
+                                        <span className="entity-count">{scene.time_of_day || 'DAY'}</span>
+                                    </div>
                                 </div>
                                 
                                 <div className="entity-meta-row">

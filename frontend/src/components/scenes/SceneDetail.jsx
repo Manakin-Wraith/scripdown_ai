@@ -24,7 +24,8 @@ import {
     Video,
     ChevronRight,
     ShieldCheck,
-    ShieldAlert
+    ShieldAlert,
+    CalendarDays
 } from 'lucide-react';
 import BreakdownDrawer from '../breakdown/BreakdownDrawer';
 import { getScriptNotes, getSceneItems } from '../../services/apiService';
@@ -241,6 +242,12 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
                         <span className={`parse-method-badge ${scene.parse_method === 'grammar' ? 'grammar' : 'regex'}`} title={`Parsed via ${scene.parse_method}`}>
                             {scene.parse_method === 'grammar' ? <ShieldCheck size={12} /> : <ShieldAlert size={12} />}
                             {scene.parse_method === 'grammar' ? 'ScreenPy' : 'Regex'}
+                        </span>
+                    )}
+                    {scene.story_day && (
+                        <span className={`story-day-badge timeline-${(scene.timeline_code || 'PRESENT').toLowerCase()}`} title={`Story Day ${scene.story_day}${scene.timeline_code && scene.timeline_code !== 'PRESENT' ? ` (${scene.timeline_code})` : ''}`}>
+                            <CalendarDays size={12} />
+                            {scene.story_day_label || `Day ${scene.story_day}`}
                         </span>
                     )}
                 </div>

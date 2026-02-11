@@ -534,6 +534,148 @@
     background: var(--gray-500);
 }
 
+/* Story Day Column */
+.story-day-column {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    min-width: 80px;
+    flex-shrink: 0;
+    padding: 0 0.5rem;
+}
+
+.story-day-badge-sm {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    min-width: 32px;
+    text-align: center;
+}
+
+.story-day-badge-sm.timeline-present {
+    background: rgba(20, 184, 166, 0.15);
+    color: #2dd4bf;
+}
+
+.story-day-badge-sm.timeline-flashback {
+    background: rgba(168, 85, 247, 0.15);
+    color: #c084fc;
+}
+
+.story-day-badge-sm.timeline-dream {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+}
+
+.story-day-badge-sm.timeline-fantasy {
+    background: rgba(236, 72, 153, 0.15);
+    color: #f472b6;
+}
+
+.story-day-badge-sm.timeline-montage {
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+}
+
+.story-day-badge-sm.timeline-title_card {
+    background: rgba(148, 163, 184, 0.15);
+    color: #94a3b8;
+}
+
+.story-day-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.sd-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    background: transparent;
+    border: 1px solid var(--gray-600);
+    border-radius: 4px;
+    color: var(--gray-400);
+    cursor: pointer;
+    transition: all 0.2s;
+    padding: 0;
+}
+
+.sd-btn:hover {
+    background: var(--gray-700);
+    color: var(--text-primary);
+    border-color: var(--gray-500);
+}
+
+.sd-btn.active {
+    background: rgba(245, 158, 11, 0.15);
+    border-color: rgba(245, 158, 11, 0.4);
+    color: #fbbf24;
+}
+
+.sd-btn.locked {
+    background: rgba(20, 184, 166, 0.15);
+    border-color: rgba(20, 184, 166, 0.4);
+    color: #2dd4bf;
+}
+
+.sd-timeline-select {
+    height: 22px;
+    padding: 0 0.25rem;
+    background: var(--gray-800);
+    border: 1px solid var(--gray-600);
+    border-radius: 4px;
+    color: var(--text-secondary);
+    font-size: 0.6rem;
+    cursor: pointer;
+    max-width: 70px;
+}
+
+.sd-timeline-select:focus {
+    outline: none;
+    border-color: var(--primary-500);
+}
+
+/* Story Day Stat */
+.story-day-stat .stat-value {
+    color: #2dd4bf;
+}
+
+/* Recalculate Button */
+.btn-recalculate {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.75rem;
+    background: rgba(20, 184, 166, 0.1);
+    border: 1px solid rgba(20, 184, 166, 0.3);
+    border-radius: 6px;
+    color: #2dd4bf;
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-left: auto;
+}
+
+.btn-recalculate:hover:not(:disabled) {
+    background: rgba(20, 184, 166, 0.2);
+    border-color: rgba(20, 184, 166, 0.5);
+}
+
+.btn-recalculate:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 /* Scene Actions */
 .scene-actions {
     display: flex;
@@ -753,6 +895,61 @@
 .floating-action-bar .btn-clear:hover {
     background: var(--gray-700);
     color: var(--text-primary);
+}
+
+/* Bulk Day Assign */
+.bulk-day-assign {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: #2dd4bf;
+}
+
+.bulk-day-input {
+    width: 60px;
+    height: 32px;
+    padding: 0 0.5rem;
+    background: var(--gray-800);
+    border: 1px solid var(--gray-600);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 0.8rem;
+    text-align: center;
+}
+
+.bulk-day-input:focus {
+    outline: none;
+    border-color: #2dd4bf;
+}
+
+.bulk-day-input::placeholder {
+    color: var(--gray-500);
+}
+
+.btn-bulk-day {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 0.75rem;
+    background: rgba(20, 184, 166, 0.15);
+    border: 1px solid rgba(20, 184, 166, 0.4);
+    border-radius: 6px;
+    color: #2dd4bf;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.btn-bulk-day:hover:not(:disabled) {
+    background: rgba(20, 184, 166, 0.25);
+    border-color: rgba(20, 184, 166, 0.6);
+}
+
+.btn-bulk-day:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
 }
 
 /* Scrollbar */

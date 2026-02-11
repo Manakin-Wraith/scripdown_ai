@@ -57,6 +57,7 @@ def enhance_scene(
     known_speakers: Optional[Dict[str, int]] = None,
     shot_type: Optional[str] = None,
     location_hierarchy: Optional[List[str]] = None,
+    prev_scene_context: Optional[Dict] = None,
 ) -> Dict:
     """
     Use AI to extract detailed breakdown from a single scene.
@@ -66,6 +67,10 @@ def enhance_scene(
     extracts non-speaking characters from action lines instead of guessing
     ALL characters from scratch.
     
+    Story Days (Phase 1): When prev_scene_context is provided, the prompt
+    includes the previous scene's header/time_of_day so the AI can detect
+    day transitions (e.g., NIGHT→MORNING = new day).
+    
     Args:
         scene_text: The full text of the scene
         scene_header: Dict with scene_number, setting, int_ext, time_of_day
@@ -73,9 +78,13 @@ def enhance_scene(
                        parsing. If provided, character extraction is optimized.
         shot_type: Pre-extracted shot type (e.g., "CLOSE ON", "WIDE SHOT")
         location_hierarchy: Pre-extracted location hierarchy list
+        prev_scene_context: Dict with previous scene's header info for story
+                           day detection. Keys: scene_number, int_ext, setting,
+                           time_of_day, description. None if first scene.
     
     Returns:
-        Dict with characters, props, wardrobe, vehicles, atmosphere, description.
+        Dict with characters, props, wardrobe, vehicles, atmosphere, description,
+        plus story day fields: time_transition, is_new_story_day, timeline_code.
         When known_speakers are provided, characters list is the merged result
         of speakers + AI-extracted non-speaking characters.
     """
@@ -91,6 +100,7 @@ def enhance_scene(
         known_speakers=known_speakers,
         shot_type=shot_type,
         location_hierarchy=location_hierarchy,
+        prev_scene_context=prev_scene_context,
     )
     
     try:
@@ -134,6 +144,10 @@ def enhance_scene(
             'emotional_tone': result.get('emotional_tone', ''),
             'technical_notes': result.get('technical_notes', ''),
             'atmosphere': result.get('atmosphere', ''),
+            # Story Days (Phase 1)
+            'time_transition': result.get('time_transition', ''),
+            'is_new_story_day': bool(result.get('is_new_story_day', False)),
+            'timeline_code': result.get('timeline_code', 'PRESENT'),
         }
         
     except json.JSONDecodeError as e:
@@ -153,6 +167,7 @@ def _build_prompt(
     known_speakers: Optional[Dict[str, int]] = None,
     shot_type: Optional[str] = None,
     location_hierarchy: Optional[List[str]] = None,
+    prev_scene_context: Optional[Dict] = None,
 ) -> str:
     """
     Build the AI prompt, optimized based on available pre-extracted data.
@@ -161,6 +176,9 @@ def _build_prompt(
     - Replaces full character extraction with focused non-speaking character extraction
     - Injects known speaker context to reduce hallucination
     - ~30-40% smaller prompt = fewer tokens = faster + cheaper
+    
+    Story Days (Phase 1): When prev_scene_context is provided, injects the
+    previous scene's header so the AI can detect day transitions.
     """
     has_speakers = known_speakers and len(known_speakers) > 0
     
@@ -171,6 +189,19 @@ def _build_prompt(
         f"{scene_header.get('setting', '')} - "
         f"{scene_header.get('time_of_day', '')}"
     )
+    
+    # Build previous scene context block (Story Days Phase 1)
+    prev_context_block = ""
+    if prev_scene_context:
+        prev_context_block = (
+            f"\nCONTEXT — PREVIOUS SCENE:\n"
+            f"  Scene {prev_scene_context.get('scene_number_original', prev_scene_context.get('scene_number', '?'))}: "
+            f"{prev_scene_context.get('int_ext', '')}. {prev_scene_context.get('setting', '')} "
+            f"- {prev_scene_context.get('time_of_day', '')}\n"
+            f"  Summary: {prev_scene_context.get('description', 'N/A')}\n"
+        )
+    else:
+        prev_context_block = "\nCONTEXT: This is the FIRST scene of the script.\n"
     
     # Build pre-extracted context block
     context_lines = []
@@ -211,7 +242,7 @@ def _build_prompt(
 
 SCENE HEADER:
 {header_line}
-{context_block}
+{prev_context_block}{context_block}
 SCENE TEXT:
 {scene_text}
 
@@ -250,6 +281,15 @@ Extract the following (be thorough but accurate - only include what's ACTUALLY i
 14. TECHNICAL_NOTES: Camera, lighting, equipment requirements
 15. ATMOSPHERE: Overall mood, lighting, weather details
 
+**STORY TIMELINE:**
+16. TIME_TRANSITION: Any time-transition cue at the START of this scene relative to the previous scene
+    (e.g., "THE NEXT MORNING", "CONTINUOUS", "LATER THAT DAY", "THREE WEEKS LATER", "SAME TIME", "MOMENTS LATER")
+    Return empty string "" if no transition is indicated.
+17. IS_NEW_STORY_DAY: true/false — Does this scene start a NEW narrative day compared to the previous scene?
+    Consider: NIGHT→MORNING = new day, CONTINUOUS = same day, explicit "NEXT DAY" = new day, DAY→NIGHT = usually same day.
+18. TIMELINE_CODE: One of: PRESENT, FLASHBACK, DREAM, FANTASY, MONTAGE, TITLE_CARD
+    Default to PRESENT unless scene text explicitly indicates a flashback, dream, etc.
+
 Return ONLY valid JSON in this exact format:
 {{
 {char_json}
@@ -266,7 +306,10 @@ Return ONLY valid JSON in this exact format:
     "action_description": "Physical actions characters perform",
     "emotional_tone": "Tense and melancholic",
     "technical_notes": "Close-ups for emotional beats",
-    "atmosphere": "Intimate, slightly uncomfortable"
+    "atmosphere": "Intimate, slightly uncomfortable",
+    "time_transition": "",
+    "is_new_story_day": false,
+    "timeline_code": "PRESENT"
 }}
 
 IMPORTANT:
@@ -311,6 +354,10 @@ def extract_fallback(scene_text: str) -> Dict:
         'emotional_tone': '',
         'technical_notes': '',
         'atmosphere': '',
+        # Story Days (Phase 1) — safe defaults for fallback
+        'time_transition': '',
+        'is_new_story_day': False,
+        'timeline_code': 'PRESENT',
     }
 
 
@@ -356,9 +403,10 @@ def save_enhanced_scene(script_id: int, candidate: Dict, enhancement: Dict, db_c
             makeup_hair, vehicles, animals, extras, stunts,
             locations, sound, atmosphere,
             action_description, emotional_tone, technical_notes, sound_notes,
-            content_hash
+            content_hash,
+            time_transition, is_new_story_day, story_day_confidence, timeline_code
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         script_id,
         candidate['scene_order'],  # Sequential number for ordering
@@ -384,7 +432,12 @@ def save_enhanced_scene(script_id: int, candidate: Dict, enhancement: Dict, db_c
         enhancement.get('emotional_tone', ''),
         enhancement.get('technical_notes', ''),
         enhancement.get('sound', ''),  # sound_notes uses sound field
-        candidate.get('content_hash', '')
+        candidate.get('content_hash', ''),
+        # Story Days (Phase 1)
+        enhancement.get('time_transition', ''),
+        1 if enhancement.get('is_new_story_day') else 0,
+        0.7,  # Default confidence for AI-determined values
+        enhancement.get('timeline_code', 'PRESENT'),
     ))
     
     scene_id = cursor.lastrowid
@@ -464,6 +517,28 @@ def process_scene_candidate(script_id: int, candidate: Dict, db_conn) -> Optiona
         has_speakers = known_speakers and len(known_speakers) > 0
         opt_label = "optimized" if has_speakers else "full"
         
+        # Story Days Phase 1: Fetch previous scene for context injection
+        prev_scene_context = None
+        current_order = candidate.get('scene_order', 0)
+        if current_order > 1:
+            cursor = db_conn.cursor()
+            cursor.execute("""
+                SELECT scene_number_original, int_ext, setting, time_of_day, description
+                FROM scenes
+                WHERE script_id = ? AND scene_number = ?
+                ORDER BY scene_number ASC
+                LIMIT 1
+            """, (script_id, current_order - 1))
+            prev_row = cursor.fetchone()
+            if prev_row:
+                prev_scene_context = {
+                    'scene_number_original': prev_row[0],
+                    'int_ext': prev_row[1] or '',
+                    'setting': prev_row[2] or '',
+                    'time_of_day': prev_row[3] or '',
+                    'description': prev_row[4] or 'N/A',
+                }
+        
         # Enhance with AI
         print(f"[Enhancer] Enhancing scene {candidate['scene_number_original']} (pages {candidate['page_start']}-{candidate['page_end']}, prompt={opt_label})")
         enhancement = enhance_scene(
@@ -471,6 +546,7 @@ def process_scene_candidate(script_id: int, candidate: Dict, db_conn) -> Optiona
             known_speakers=known_speakers if has_speakers else None,
             shot_type=candidate_shot_type,
             location_hierarchy=candidate_location_hierarchy,
+            prev_scene_context=prev_scene_context,
         )
         
         # Save to database (pass scene_text for eighths calculation)
@@ -532,6 +608,15 @@ def process_all_candidates(script_id: int, db_conn, progress_callback=None) -> D
                 skipped += 1
         else:
             processed += 1
+    
+    # Story Days Phase 1: Trigger recalculation after all candidates processed
+    if processed > 0:
+        try:
+            from services.story_day_service import recalculate_story_days
+            sd_result = recalculate_story_days(str(script_id))
+            print(f"[Enhancer] Story days recalculated: {sd_result.get('total_days', 0)} days")
+        except Exception as sd_err:
+            print(f"[Enhancer] Story days recalculation skipped (non-fatal): {sd_err}")
     
     return {
         'processed': processed,

@@ -3,6 +3,7 @@
 **Ticket**: Story Days Feature — Phase 1: Data Model + Previous Context Injection
 **Source Spec**: `docs/STORY_DAYS_BRAINSTORM.md` → Phase 1 (Revised)
 **Branch**: `feature/story-days-phase1`
+**Status**: ✅ **COMPLETED** (2026-02-11)
 
 ---
 
@@ -15,12 +16,12 @@
   "subtasks": [
     {
       "id": 1,
-      "description": "Create Supabase migration 026_story_days.sql — add all story day columns to scenes + total_story_days to scripts",
+      "description": "Create Supabase migration 028_story_days.sql — add all story day columns to scenes + total_story_days to scripts",
       "agent": "Coder (Backend)",
       "dependencies": [],
       "effort": "S",
       "files": [
-        "backend/db/migrations/026_story_days.sql"
+        "backend/db/migrations/028_story_days.sql"
       ],
       "details": "Add columns: story_day (INT nullable), story_day_label (TEXT), time_transition (TEXT), is_new_story_day (BOOL), story_day_confidence (FLOAT), story_day_is_manual (BOOL), story_day_is_locked (BOOL), timeline_code (VARCHAR DEFAULT 'PRESENT'). Add indexes. Add total_story_days to scripts table. Add column comments."
     },
@@ -148,7 +149,7 @@
 
 | File | Change Type | Subtask |
 |------|-------------|---------|
-| `backend/db/migrations/026_story_days.sql` | **New** | 1 |
+| `backend/db/migrations/028_story_days.sql` | **New** | 1 |
 | `backend/db/supabase_client.py` | Modified — add 2 helper methods | 3 |
 | `backend/services/scene_enhancer.py` | Modified — prompt, return dict, save logic, wiring | 4, 5, 6, 9 |
 | `backend/services/story_day_service.py` | **New** — recalculation service | 8 |
@@ -166,15 +167,15 @@
 
 ## Acceptance Criteria
 
-- [ ] `scenes` table has all 8 new columns (`story_day`, `story_day_label`, `time_transition`, `is_new_story_day`, `story_day_confidence`, `story_day_is_manual`, `story_day_is_locked`, `timeline_code`)
-- [ ] `scripts` table has `total_story_days` column
-- [ ] AI prompt includes previous scene context (header + time_of_day + description)
-- [ ] AI prompt extracts `time_transition`, `is_new_story_day`, `timeline_code`
-- [ ] `save_enhanced_scene()` persists all new fields
-- [ ] `analyze_scene_with_gemini()` (Supabase path) persists all new fields
-- [ ] `recalculate_story_days()` service exists and correctly assigns sequential day numbers
-- [ ] Recalculation respects `story_day_is_locked` values
-- [ ] Recalculation handles `timeline_code` (FLASHBACK/DREAM get labeled differently)
-- [ ] Recalculation is triggered after: full enhancement, single-scene analysis, bulk analysis
-- [ ] `scripts.total_story_days` is updated after recalculation
-- [ ] No regressions — existing scene analysis still works for scripts without story day data
+- [x] `scenes` table has all 8 new columns (`story_day`, `story_day_label`, `time_transition`, `is_new_story_day`, `story_day_confidence`, `story_day_is_manual`, `story_day_is_locked`, `timeline_code`)
+- [x] `scripts` table has `total_story_days` column
+- [x] AI prompt includes previous scene context (header + time_of_day + description)
+- [x] AI prompt extracts `time_transition`, `is_new_story_day`, `timeline_code`
+- [x] `save_enhanced_scene()` persists all new fields
+- [x] `analyze_scene_with_gemini()` (Supabase path) persists all new fields
+- [x] `recalculate_story_days()` service exists and correctly assigns sequential day numbers
+- [x] Recalculation respects `story_day_is_locked` values
+- [x] Recalculation handles `timeline_code` (FLASHBACK/DREAM get labeled differently)
+- [x] Recalculation is triggered after: full enhancement, single-scene analysis, bulk analysis
+- [x] `scripts.total_story_days` is updated after recalculation
+- [ ] No regressions — existing scene analysis still works for scripts without story day data (requires live test)

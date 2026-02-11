@@ -19,13 +19,22 @@ import {
     FileText,
     Plus,
     Merge,
-    Upload
+    Upload,
+    CalendarDays,
+    Sun,
+    LockKeyhole,
+    UnlockKeyhole
 } from 'lucide-react';
 import { 
     getScenesForManagement, 
     reorderScenes, 
     omitScene, 
-    updateSceneHeader 
+    updateSceneHeader,
+    toggleNewDay,
+    lockStoryDay,
+    setTimelineCode,
+    calculateStoryDays,
+    bulkUpdateStoryDays
 } from '../../services/apiService';
 import { useToast } from '../../context/ToastContext';
 import SceneSplitModal from './SceneSplitModal';
@@ -79,6 +88,10 @@ const SceneManager = () => {
     
     // Revision import state (Phase 3)
     const [revisionImportOpen, setRevisionImportOpen] = useState(false);
+    
+    // Story day state
+    const [storyDaySaving, setStoryDaySaving] = useState(null);
+    const [bulkDayInput, setBulkDayInput] = useState('');
     
     // Load data
     useEffect(() => {
@@ -349,6 +362,94 @@ const SceneManager = () => {
     };
     
     // ============================================
+    // Story Day Handlers
+    // ============================================
+    
+    const handleToggleNewDay = async (scene) => {
+        if (script?.is_locked) return;
+        setStoryDaySaving(scene.id);
+        try {
+            await toggleNewDay(scriptId, scene.id);
+            await loadScenes();
+            toast.success('Updated', 'Story day toggled');
+        } catch (err) {
+            console.error('Error toggling new day:', err);
+            toast.error('Error', 'Failed to toggle story day');
+        } finally {
+            setStoryDaySaving(null);
+        }
+    };
+    
+    const handleLockStoryDay = async (scene) => {
+        if (script?.is_locked) return;
+        setStoryDaySaving(scene.id);
+        try {
+            await lockStoryDay(scriptId, scene.id);
+            await loadScenes();
+            toast.success('Updated', scene.story_day_is_locked ? 'Story day unlocked' : 'Story day locked');
+        } catch (err) {
+            console.error('Error locking story day:', err);
+            toast.error('Error', 'Failed to lock/unlock story day');
+        } finally {
+            setStoryDaySaving(null);
+        }
+    };
+    
+    const handleTimelineCodeChange = async (scene, code) => {
+        if (script?.is_locked) return;
+        setStoryDaySaving(scene.id);
+        try {
+            await setTimelineCode(scriptId, scene.id, code);
+            await loadScenes();
+            toast.success('Updated', `Timeline set to ${code}`);
+        } catch (err) {
+            console.error('Error setting timeline code:', err);
+            toast.error('Error', 'Failed to update timeline code');
+        } finally {
+            setStoryDaySaving(null);
+        }
+    };
+    
+    const handleBulkAssignDay = async () => {
+        const dayNum = parseInt(bulkDayInput, 10);
+        if (!dayNum || dayNum < 1) {
+            toast.error('Invalid', 'Enter a valid day number (1 or higher)');
+            return;
+        }
+        try {
+            setSaving(true);
+            const updates = [...selectedSceneIds].map(sceneId => ({
+                scene_id: sceneId,
+                story_day: dayNum
+            }));
+            await bulkUpdateStoryDays(scriptId, updates);
+            await loadScenes();
+            setBulkDayInput('');
+            clearSelection();
+            toast.success('Bulk Updated', `Assigned Day ${dayNum} to ${updates.length} scenes`);
+        } catch (err) {
+            console.error('Error bulk assigning day:', err);
+            toast.error('Error', 'Failed to bulk assign story day');
+        } finally {
+            setSaving(false);
+        }
+    };
+    
+    const handleRecalculateStoryDays = async () => {
+        try {
+            setSaving(true);
+            await calculateStoryDays(scriptId);
+            await loadScenes();
+            toast.success('Recalculated', 'Story days recalculated');
+        } catch (err) {
+            console.error('Error recalculating story days:', err);
+            toast.error('Error', 'Failed to recalculate story days');
+        } finally {
+            setSaving(false);
+        }
+    };
+    
+    // ============================================
     // Render Helpers
     // ============================================
     
@@ -502,6 +603,23 @@ const SceneManager = () => {
                     </span>
                     <span className="stat-label">Analyzed</span>
                 </div>
+                <div className="stat story-day-stat">
+                    <span className="stat-value">
+                        {script?.total_story_days || '—'}
+                    </span>
+                    <span className="stat-label">Story Days</span>
+                </div>
+                {!script?.is_locked && (
+                    <button 
+                        className="btn-recalculate"
+                        onClick={handleRecalculateStoryDays}
+                        disabled={saving}
+                        title="Recalculate all story days"
+                    >
+                        <CalendarDays size={14} />
+                        Recalculate Days
+                    </button>
+                )}
             </div>
             
             {/* Scene List */}
@@ -635,6 +753,52 @@ const SceneManager = () => {
                                 )}
                             </div>
                             
+                            {/* Story Day Column */}
+                            {!scene.is_omitted && (
+                                <div className="story-day-column">
+                                    {storyDaySaving === scene.id ? (
+                                        <Loader size={14} className="spin" style={{ color: '#94a3b8' }} />
+                                    ) : (
+                                        <>
+                                            <span className={`story-day-badge-sm timeline-${(scene.timeline_code || 'PRESENT').toLowerCase()}`}>
+                                                {scene.story_day ? `D${scene.story_day}` : '—'}
+                                            </span>
+                                            {!script?.is_locked && scene.story_day && (
+                                                <div className="story-day-controls">
+                                                    <button
+                                                        className={`sd-btn ${scene.is_new_story_day ? 'active' : ''}`}
+                                                        onClick={() => handleToggleNewDay(scene)}
+                                                        title={scene.is_new_story_day ? 'This scene starts a new day (click to toggle)' : 'Mark as new day'}
+                                                    >
+                                                        <Sun size={12} />
+                                                    </button>
+                                                    <button
+                                                        className={`sd-btn ${scene.story_day_is_locked ? 'locked' : ''}`}
+                                                        onClick={() => handleLockStoryDay(scene)}
+                                                        title={scene.story_day_is_locked ? 'Unlock story day' : 'Lock story day'}
+                                                    >
+                                                        {scene.story_day_is_locked ? <LockKeyhole size={12} /> : <UnlockKeyhole size={12} />}
+                                                    </button>
+                                                    <select
+                                                        className="sd-timeline-select"
+                                                        value={scene.timeline_code || 'PRESENT'}
+                                                        onChange={(e) => handleTimelineCodeChange(scene, e.target.value)}
+                                                        title="Timeline code"
+                                                    >
+                                                        <option value="PRESENT">Present</option>
+                                                        <option value="FLASHBACK">Flashback</option>
+                                                        <option value="DREAM">Dream</option>
+                                                        <option value="FANTASY">Fantasy</option>
+                                                        <option value="MONTAGE">Montage</option>
+                                                        <option value="TITLE_CARD">Title Card</option>
+                                                    </select>
+                                                </div>
+                                            )}
+                                        </>
+                                    )}
+                                </div>
+                            )}
+                            
                             {/* Actions */}
                             {editingScene !== scene.id && (
                                 <div className="scene-actions" style={{ display: 'flex', gap: '0.5rem' }}>
@@ -756,6 +920,25 @@ const SceneManager = () => {
                         {selectedSceneIds.size} scenes selected
                     </span>
                     <div className="action-buttons">
+                        <div className="bulk-day-assign">
+                            <CalendarDays size={14} />
+                            <input
+                                type="number"
+                                min="1"
+                                placeholder="Day #"
+                                value={bulkDayInput}
+                                onChange={(e) => setBulkDayInput(e.target.value)}
+                                className="bulk-day-input"
+                                onKeyDown={(e) => e.key === 'Enter' && handleBulkAssignDay()}
+                            />
+                            <button 
+                                className="btn-bulk-day"
+                                onClick={handleBulkAssignDay}
+                                disabled={saving || !bulkDayInput}
+                            >
+                                Assign Day
+                            </button>
+                        </div>
                         <button 
                             className="btn-merge"
                             onClick={openMultiMergeModal}

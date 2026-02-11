@@ -331,6 +331,67 @@ class SupabaseDB:
         ).order('version_number', desc=True).limit(1).execute()
         
         return result.data[0] if result.data else None
+    
+    # ============================================
+    # Story Days (Phase 1)
+    # ============================================
+    
+    def get_scene_by_order(self, script_id: str, scene_order: int) -> dict:
+        """
+        Get a scene by its scene_order position within a script.
+        Used to fetch Scene X-1 for previous-scene context injection.
+        
+        Returns:
+            Scene dict with header fields + story day fields, or None.
+        """
+        result = self.client.table('scenes').select(
+            'id, script_id, scene_number, scene_number_original, scene_order, '
+            'int_ext, setting, time_of_day, description, '
+            'story_day, is_new_story_day, story_day_label, time_transition, timeline_code'
+        ).eq('script_id', script_id).eq('scene_order', scene_order).limit(1).execute()
+        
+        return result.data[0] if result.data else None
+    
+    def get_scenes_ordered(self, script_id: str) -> list:
+        """
+        Get all scenes for a script ordered by scene_order, with story day fields.
+        Used by recalculate_story_days() and story day summary.
+        
+        Returns:
+            List of scene dicts ordered by scene_order.
+        """
+        result = self.client.table('scenes').select(
+            'id, script_id, scene_number, scene_number_original, scene_order, '
+            'int_ext, setting, time_of_day, description, '
+            'story_day, story_day_label, time_transition, '
+            'is_new_story_day, story_day_confidence, '
+            'story_day_is_manual, story_day_is_locked, timeline_code'
+        ).eq('script_id', script_id).order('scene_order').execute()
+        
+        return result.data or []
+    
+    def bulk_update_story_days(self, scenes: list) -> bool:
+        """
+        Batch update story_day, story_day_label for a list of scenes.
+        Each scene dict must have 'id', 'story_day', 'story_day_label'.
+        
+        Returns:
+            True if successful.
+        """
+        for scene in scenes:
+            self.client.table('scenes').update({
+                'story_day': scene.get('story_day'),
+                'story_day_label': scene.get('story_day_label'),
+            }).eq('id', scene['id']).execute()
+        
+        return True
+    
+    def update_script_total_story_days(self, script_id: str, total_days: int) -> dict:
+        """Update total_story_days on the scripts table."""
+        result = self.client.table('scripts').update({
+            'total_story_days': total_days
+        }).eq('id', script_id).execute()
+        return result.data[0] if result.data else None
 
 
 # Singleton instance for easy import

@@ -923,6 +923,15 @@ def get_scenes(script_id):
                 'speakers': scene.get('speakers', []),
                 'transitions': scene.get('transitions', []),
                 'parse_method': scene.get('parse_method', 'regex'),
+                # Story Days (Phase 2)
+                'story_day': scene.get('story_day'),
+                'story_day_label': scene.get('story_day_label'),
+                'time_transition': scene.get('time_transition'),
+                'is_new_story_day': scene.get('is_new_story_day', False),
+                'story_day_confidence': scene.get('story_day_confidence'),
+                'story_day_is_manual': scene.get('story_day_is_manual', False),
+                'story_day_is_locked': scene.get('story_day_is_locked', False),
+                'timeline_code': scene.get('timeline_code', 'PRESENT'),
             })
         
         return jsonify({'script_id': script_id, 'scenes': scenes}), 200
@@ -1004,7 +1013,20 @@ def delete_scene(scene_id):
         return jsonify({'error': 'Supabase not configured'}), 500
     
     try:
+        # Get script_id before deleting for cascade recalculation
+        scene_result = supabase.table('scenes').select('script_id').eq('id', scene_id).single().execute()
+        script_id_for_recalc = scene_result.data.get('script_id') if scene_result.data else None
+        
         supabase.table('scenes').delete().eq('id', scene_id).execute()
+        
+        # Cascade: recalculate story days
+        if script_id_for_recalc:
+            try:
+                from services.story_day_service import recalculate_story_days
+                recalculate_story_days(script_id_for_recalc)
+            except Exception as recalc_err:
+                print(f"Warning: Story day recalculation failed after delete: {recalc_err}")
+        
         return jsonify({'message': 'Scene deleted successfully'}), 200
     except Exception as e:
         print(f"Error deleting scene: {e}")
@@ -1054,6 +1076,15 @@ def get_scenes_for_management(script_id):
                 'analysis_status': scene.get('analysis_status', 'pending'),
                 'character_count': len(scene.get('characters') or []),
                 'prop_count': len(scene.get('props') or []),
+                # Story Days (Phase 2)
+                'story_day': scene.get('story_day'),
+                'story_day_label': scene.get('story_day_label'),
+                'time_transition': scene.get('time_transition'),
+                'is_new_story_day': scene.get('is_new_story_day', False),
+                'story_day_confidence': scene.get('story_day_confidence'),
+                'story_day_is_manual': scene.get('story_day_is_manual', False),
+                'story_day_is_locked': scene.get('story_day_is_locked', False),
+                'timeline_code': scene.get('timeline_code', 'PRESENT'),
             })
         
         return jsonify({
@@ -1063,7 +1094,8 @@ def get_scenes_for_management(script_id):
                 'title': script['title'],
                 'is_locked': script.get('is_locked', False),
                 'locked_at': script.get('locked_at'),
-                'current_revision_color': script.get('current_revision_color', 'white')
+                'current_revision_color': script.get('current_revision_color', 'white'),
+                'total_story_days': script.get('total_story_days', 0)
             },
             'scenes': scenes,
             'total_scenes': len(scenes),
@@ -1128,6 +1160,13 @@ def reorder_scenes(script_id):
                     }).execute()
                 except Exception as hist_err:
                     print(f"Warning: Failed to record history: {hist_err}")
+        
+        # Cascade: recalculate story days after reorder
+        try:
+            from services.story_day_service import recalculate_story_days
+            recalculate_story_days(script_id)
+        except Exception as recalc_err:
+            print(f"Warning: Story day recalculation failed after reorder: {recalc_err}")
         
         return jsonify({
             'message': 'Scenes reordered successfully',
@@ -1298,6 +1337,224 @@ def get_scene_history(script_id, scene_id):
 
 
 # ============================================
+# Story Day Management Endpoints (Phase 2)
+# ============================================
+
+@supabase_bp.route('/api/scripts/<script_id>/scenes/<scene_id>/toggle-new-day', methods=['PATCH'])
+@optional_auth
+def toggle_new_day(script_id, scene_id):
+    """Toggle is_new_story_day on a scene, then recalculate."""
+    if not supabase:
+        return jsonify({'error': 'Supabase not configured'}), 500
+    try:
+        scene_result = supabase.table('scenes').select('is_new_story_day, scene_order').eq('id', scene_id).single().execute()
+        if not scene_result.data:
+            return jsonify({'error': 'Scene not found'}), 404
+
+        current = scene_result.data.get('is_new_story_day', False)
+        new_val = not current
+        supabase.table('scenes').update({
+            'is_new_story_day': new_val,
+            'story_day_is_manual': True
+        }).eq('id', scene_id).execute()
+
+        from services.story_day_service import recalculate_story_days
+        result = recalculate_story_days(script_id, start_from_order=scene_result.data.get('scene_order', 0))
+
+        return jsonify({
+            'message': f"Scene {'starts' if new_val else 'no longer starts'} a new day",
+            'is_new_story_day': new_val,
+            'recalculation': result
+        }), 200
+    except Exception as e:
+        print(f"Error toggling new day: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@supabase_bp.route('/api/scripts/<script_id>/scenes/<scene_id>/lock-story-day', methods=['PATCH'])
+@optional_auth
+def lock_story_day(script_id, scene_id):
+    """Toggle story_day_is_locked on a scene."""
+    if not supabase:
+        return jsonify({'error': 'Supabase not configured'}), 500
+    try:
+        data = request.get_json() or {}
+        locked = data.get('locked')
+
+        if locked is None:
+            scene_result = supabase.table('scenes').select('story_day_is_locked').eq('id', scene_id).single().execute()
+            if not scene_result.data:
+                return jsonify({'error': 'Scene not found'}), 404
+            locked = not scene_result.data.get('story_day_is_locked', False)
+
+        supabase.table('scenes').update({
+            'story_day_is_locked': locked
+        }).eq('id', scene_id).execute()
+
+        return jsonify({
+            'message': f"Story day {'locked' if locked else 'unlocked'}",
+            'story_day_is_locked': locked
+        }), 200
+    except Exception as e:
+        print(f"Error locking story day: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@supabase_bp.route('/api/scripts/<script_id>/scenes/<scene_id>/timeline-code', methods=['PATCH'])
+@optional_auth
+def set_timeline_code(script_id, scene_id):
+    """Set timeline_code on a scene, then recalculate."""
+    if not supabase:
+        return jsonify({'error': 'Supabase not configured'}), 500
+    try:
+        data = request.get_json() or {}
+        code = data.get('timeline_code', 'PRESENT')
+        valid_codes = ['PRESENT', 'FLASHBACK', 'DREAM', 'FANTASY', 'MONTAGE', 'TITLE_CARD']
+        if code not in valid_codes:
+            return jsonify({'error': f'Invalid timeline_code. Must be one of: {valid_codes}'}), 400
+
+        scene_result = supabase.table('scenes').select('scene_order').eq('id', scene_id).single().execute()
+        if not scene_result.data:
+            return jsonify({'error': 'Scene not found'}), 404
+
+        supabase.table('scenes').update({
+            'timeline_code': code,
+            'story_day_is_manual': True
+        }).eq('id', scene_id).execute()
+
+        from services.story_day_service import recalculate_story_days
+        result = recalculate_story_days(script_id, start_from_order=scene_result.data.get('scene_order', 0))
+
+        return jsonify({
+            'message': f"Timeline code set to {code}",
+            'timeline_code': code,
+            'recalculation': result
+        }), 200
+    except Exception as e:
+        print(f"Error setting timeline code: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@supabase_bp.route('/api/scripts/<script_id>/scenes/<scene_id>/story-day', methods=['PATCH'])
+@optional_auth
+def set_story_day(script_id, scene_id):
+    """Manually set story_day on a scene, lock it, then recalculate."""
+    if not supabase:
+        return jsonify({'error': 'Supabase not configured'}), 500
+    try:
+        data = request.get_json() or {}
+        story_day = data.get('story_day')
+        if story_day is None or not isinstance(story_day, int) or story_day < 1:
+            return jsonify({'error': 'story_day must be a positive integer'}), 400
+
+        scene_result = supabase.table('scenes').select('scene_order').eq('id', scene_id).single().execute()
+        if not scene_result.data:
+            return jsonify({'error': 'Scene not found'}), 404
+
+        supabase.table('scenes').update({
+            'story_day': story_day,
+            'story_day_is_manual': True,
+            'story_day_is_locked': True
+        }).eq('id', scene_id).execute()
+
+        from services.story_day_service import recalculate_story_days
+        result = recalculate_story_days(script_id, start_from_order=scene_result.data.get('scene_order', 0))
+
+        return jsonify({
+            'message': f"Story day set to {story_day} and locked",
+            'story_day': story_day,
+            'recalculation': result
+        }), 200
+    except Exception as e:
+        print(f"Error setting story day: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@supabase_bp.route('/api/scripts/<script_id>/story-days/calculate', methods=['POST'])
+@optional_auth
+def calculate_story_days(script_id):
+    """Trigger full recalculation of story days for a script."""
+    if not supabase:
+        return jsonify({'error': 'Supabase not configured'}), 500
+    try:
+        from services.story_day_service import recalculate_story_days
+        result = recalculate_story_days(script_id, start_from_order=0)
+        return jsonify({
+            'message': 'Story days recalculated',
+            **result
+        }), 200
+    except Exception as e:
+        print(f"Error calculating story days: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@supabase_bp.route('/api/scripts/<script_id>/story-days/summary', methods=['GET'])
+@optional_auth
+def story_day_summary(script_id):
+    """Get story day summary for a script."""
+    if not supabase:
+        return jsonify({'error': 'Supabase not configured'}), 500
+    try:
+        from services.story_day_service import get_story_day_summary
+        summary = get_story_day_summary(script_id)
+        return jsonify(summary), 200
+    except Exception as e:
+        print(f"Error getting story day summary: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@supabase_bp.route('/api/scripts/<script_id>/story-days/bulk-update', methods=['POST'])
+@optional_auth
+def bulk_update_story_days(script_id):
+    """
+    Bulk update story day fields on multiple scenes.
+    
+    Request body:
+    {
+        "updates": [
+            {"scene_id": "uuid", "story_day": 2, "is_new_story_day": true, "timeline_code": "PRESENT"},
+            ...
+        ]
+    }
+    """
+    if not supabase:
+        return jsonify({'error': 'Supabase not configured'}), 500
+    try:
+        data = request.get_json() or {}
+        updates = data.get('updates', [])
+        if not updates:
+            return jsonify({'error': 'updates array is required'}), 400
+
+        valid_codes = ['PRESENT', 'FLASHBACK', 'DREAM', 'FANTASY', 'MONTAGE', 'TITLE_CARD']
+
+        for update in updates:
+            scene_id = update.get('scene_id')
+            if not scene_id:
+                continue
+            patch = {'story_day_is_manual': True}
+            if 'story_day' in update:
+                patch['story_day'] = update['story_day']
+                patch['story_day_is_locked'] = True
+            if 'is_new_story_day' in update:
+                patch['is_new_story_day'] = update['is_new_story_day']
+            if 'timeline_code' in update and update['timeline_code'] in valid_codes:
+                patch['timeline_code'] = update['timeline_code']
+            supabase.table('scenes').update(patch).eq('id', scene_id).eq('script_id', script_id).execute()
+
+        from services.story_day_service import recalculate_story_days
+        result = recalculate_story_days(script_id, start_from_order=0)
+
+        return jsonify({
+            'message': f"Updated {len(updates)} scenes",
+            'scenes_updated': len(updates),
+            'recalculation': result
+        }), 200
+    except Exception as e:
+        print(f"Error bulk updating story days: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+# ============================================
 # Scene Operations (Phase 2)
 # ============================================
 
@@ -1399,6 +1656,13 @@ def split_scene(script_id, scene_id):
             }).execute()
         except Exception as hist_err:
             print(f"Warning: Failed to record history: {hist_err}")
+        
+        # Cascade: recalculate story days after split
+        try:
+            from services.story_day_service import recalculate_story_days
+            recalculate_story_days(script_id)
+        except Exception as recalc_err:
+            print(f"Warning: Story day recalculation failed after split: {recalc_err}")
         
         return jsonify({
             'message': f"Scene {original_number} split into {first_number} and {second_number}",
@@ -1525,6 +1789,13 @@ def merge_scenes(script_id, scene_id):
         except Exception as hist_err:
             print(f"Warning: Failed to record history: {hist_err}")
         
+        # Cascade: recalculate story days after merge
+        try:
+            from services.story_day_service import recalculate_story_days
+            recalculate_story_days(script_id)
+        except Exception as recalc_err:
+            print(f"Warning: Story day recalculation failed after merge: {recalc_err}")
+        
         return jsonify({
             'message': f"Scenes merged successfully",
             'merged_scene': {
@@ -1632,6 +1903,13 @@ def add_manual_scene(script_id):
                 }).execute()
             except Exception as hist_err:
                 print(f"Warning: Failed to record history: {hist_err}")
+        
+        # Cascade: recalculate story days after adding scene
+        try:
+            from services.story_day_service import recalculate_story_days
+            recalculate_story_days(script_id)
+        except Exception as recalc_err:
+            print(f"Warning: Story day recalculation failed after add: {recalc_err}")
         
         return jsonify({
             'message': 'Scene created successfully',
@@ -1759,6 +2037,13 @@ def merge_multiple_scenes(script_id):
             }).execute()
         except Exception as hist_err:
             print(f"Warning: Failed to record history: {hist_err}")
+        
+        # Cascade: recalculate story days after multi-merge
+        try:
+            from services.story_day_service import recalculate_story_days
+            recalculate_story_days(script_id)
+        except Exception as recalc_err:
+            print(f"Warning: Story day recalculation failed after multi-merge: {recalc_err}")
         
         return jsonify({
             'message': f"{len(scene_ids)} scenes merged successfully",
@@ -2233,12 +2518,22 @@ def analyze_scene(scene_id):
         
         has_speakers = known_speakers and len(known_speakers) > 0
         
+        # Story Days Phase 1: Fetch previous scene for context injection
+        prev_scene_context = None
+        current_order = scene.get('scene_order') or scene.get('scene_number', 0)
+        if current_order and current_order > 1:
+            from db.supabase_client import db as supa_db
+            prev_scene = supa_db.get_scene_by_order(scene['script_id'], current_order - 1)
+            if prev_scene:
+                prev_scene_context = prev_scene
+        
         # Call Gemini for analysis with pre-extracted context
         analysis = analyze_scene_with_gemini(
             scene_text, scene.get('setting', ''),
             known_speakers=known_speakers if has_speakers else None,
             shot_type=scene_shot_type,
             location_hierarchy=scene_location_hierarchy,
+            prev_scene_context=prev_scene_context,
         )
         
         # Recalculate scene length in eighths with full scene text
@@ -2263,10 +2558,22 @@ def analyze_scene(scene_id):
             'atmosphere': analysis.get('atmosphere', ''),
             'description': analysis.get('description', ''),
             'page_length_eighths': page_length_eighths,
-            'analysis_status': 'complete'
+            'analysis_status': 'complete',
+            # Story Days (Phase 1)
+            'time_transition': analysis.get('time_transition', ''),
+            'is_new_story_day': analysis.get('is_new_story_day', False),
+            'story_day_confidence': 0.7,
+            'timeline_code': analysis.get('timeline_code', 'PRESENT'),
         }
         
         supabase.table('scenes').update(update_data).eq('id', scene_id).execute()
+        
+        # Story Days: Trigger cascade recalculation from this scene onward
+        try:
+            from services.story_day_service import recalculate_story_days
+            recalculate_story_days(scene['script_id'], start_from_order=current_order or 0)
+        except Exception as recalc_err:
+            print(f"[StoryDays] Recalculation after single-scene analysis failed (non-fatal): {recalc_err}")
         
         return jsonify({
             'message': 'Scene analyzed successfully',
@@ -2286,13 +2593,16 @@ def analyze_scene(scene_id):
         return jsonify({'error': str(e)}), 500
 
 
-def analyze_scene_with_gemini(scene_text, setting, known_speakers=None, shot_type=None, location_hierarchy=None):
+def analyze_scene_with_gemini(scene_text, setting, known_speakers=None, shot_type=None, location_hierarchy=None, prev_scene_context=None):
     """
     Use Gemini to analyze a single scene.
     
     Phase 2 optimization: When known_speakers are provided (from ScreenPy
     grammar parsing), the prompt is optimized — AI only extracts non-speaking
     characters from action lines instead of guessing ALL characters.
+    
+    Story Days (Phase 1): When prev_scene_context is provided, injects the
+    previous scene's header so the AI can detect day transitions.
     """
     import google.generativeai as genai
     from services.entity_resolver import merge_to_character_list
@@ -2305,6 +2615,19 @@ def analyze_scene_with_gemini(scene_text, setting, known_speakers=None, shot_typ
     model = genai.GenerativeModel('gemini-2.0-flash')
     
     has_speakers = known_speakers and len(known_speakers) > 0
+    
+    # Build previous scene context block (Story Days Phase 1)
+    prev_context_block = ""
+    if prev_scene_context:
+        prev_context_block = (
+            f"\nCONTEXT — PREVIOUS SCENE:\n"
+            f"  Scene {prev_scene_context.get('scene_number_original', prev_scene_context.get('scene_number', '?'))}: "
+            f"{prev_scene_context.get('int_ext', '')}. {prev_scene_context.get('setting', '')} "
+            f"- {prev_scene_context.get('time_of_day', '')}\n"
+            f"  Summary: {prev_scene_context.get('description', 'N/A')}\n"
+        )
+    else:
+        prev_context_block = "\nCONTEXT: This is the FIRST scene of the script.\n"
     
     # Build pre-extracted context block
     context_block = ""
@@ -2336,7 +2659,7 @@ def analyze_scene_with_gemini(scene_text, setting, known_speakers=None, shot_typ
     prompt = f"""Analyze this screenplay scene and extract detailed breakdown information.
 
 Scene Setting: {setting}
-{context_block}
+{prev_context_block}{context_block}
 Scene Text:
 {scene_text[:8000]}
 
@@ -2352,6 +2675,15 @@ Extract and return ONLY valid JSON:
 - ATMOSPHERE: Mood, lighting, weather
 - DESCRIPTION: 2-3 sentence summary
 
+**STORY TIMELINE:**
+- TIME_TRANSITION: Any time-transition cue at the START of this scene relative to the previous scene
+  (e.g., "THE NEXT MORNING", "CONTINUOUS", "LATER THAT DAY", "THREE WEEKS LATER", "SAME TIME", "MOMENTS LATER")
+  Return empty string "" if no transition is indicated.
+- IS_NEW_STORY_DAY: true/false — Does this scene start a NEW narrative day compared to the previous scene?
+  Consider: NIGHT→MORNING = new day, CONTINUOUS = same day, explicit "NEXT DAY" = new day, DAY→NIGHT = usually same day.
+- TIMELINE_CODE: One of: PRESENT, FLASHBACK, DREAM, FANTASY, MONTAGE, TITLE_CARD
+  Default to PRESENT unless scene text explicitly indicates a flashback, dream, etc.
+
 Return format:
 {{
 {char_json}
@@ -2364,7 +2696,10 @@ Return format:
     "locations": [],
     "sound": [],
     "atmosphere": "Description of mood",
-    "description": "Scene summary"
+    "description": "Scene summary",
+    "time_transition": "",
+    "is_new_story_day": false,
+    "timeline_code": "PRESENT"
 }}
 
 IMPORTANT:
@@ -2394,6 +2729,11 @@ IMPORTANT:
             ai_characters = result.get('characters', []) + result.get('non_speaking_characters', [])
             result['characters'] = merge_to_character_list(known_speakers, ai_characters)
         
+        # Normalize story day fields
+        result['time_transition'] = result.get('time_transition', '')
+        result['is_new_story_day'] = bool(result.get('is_new_story_day', False))
+        result['timeline_code'] = result.get('timeline_code', 'PRESENT')
+        
         return result
         
     except Exception as e:
@@ -2408,7 +2748,10 @@ IMPORTANT:
             'locations': [],
             'sound': [],
             'atmosphere': '',
-            'description': f'Analysis failed: {str(e)}'
+            'description': f'Analysis failed: {str(e)}',
+            'time_transition': '',
+            'is_new_story_day': False,
+            'timeline_code': 'PRESENT',
         }
         # Still merge speakers into fallback if available
         if has_speakers:
@@ -2550,6 +2893,15 @@ def process_bulk_analysis_job(job_id, script_id, scene_ids):
             if i < total - 1:
                 time.sleep(current_delay)
         
+        # Story Days: Trigger full recalculation after bulk analysis completes
+        if analyzed > 0:
+            try:
+                from services.story_day_service import recalculate_story_days
+                result = recalculate_story_days(script_id)
+                print(f"✓ Story days recalculated: {result.get('total_days', 0)} days, {result.get('scenes_updated', 0)} scenes updated")
+            except Exception as recalc_err:
+                print(f"⚠ Story days recalculation failed (non-fatal): {recalc_err}")
+        
         # Job completed
         final_status = 'completed' if failed == 0 else 'completed_with_errors'
         supabase.table('analysis_jobs').update({
@@ -2628,12 +2980,22 @@ def analyze_scene_internal(scene_id):
     opt_label = "optimized" if has_speakers else "full"
     print(f"  → Analyzing scene {scene_id} (prompt={opt_label}, speakers={len(known_speakers) if known_speakers else 0})")
     
+    # Story Days Phase 1: Fetch previous scene for context injection
+    prev_scene_context = None
+    current_order = scene.get('scene_order') or scene.get('scene_number', 0)
+    if current_order and current_order > 1:
+        from db.supabase_client import db as supa_db
+        prev_scene = supa_db.get_scene_by_order(scene['script_id'], current_order - 1)
+        if prev_scene:
+            prev_scene_context = prev_scene
+    
     # Call Gemini for analysis with pre-extracted context
     analysis = analyze_scene_with_gemini(
         scene_text, scene.get('setting', ''),
         known_speakers=known_speakers if has_speakers else None,
         shot_type=scene_shot_type,
         location_hierarchy=scene_location_hierarchy,
+        prev_scene_context=prev_scene_context,
     )
     
     # Recalculate scene length in eighths with full scene text
@@ -2658,7 +3020,12 @@ def analyze_scene_internal(scene_id):
         'atmosphere': analysis.get('atmosphere', ''),
         'description': analysis.get('description', ''),
         'page_length_eighths': page_length_eighths,
-        'analysis_status': 'complete'
+        'analysis_status': 'complete',
+        # Story Days (Phase 1)
+        'time_transition': analysis.get('time_transition', ''),
+        'is_new_story_day': analysis.get('is_new_story_day', False),
+        'story_day_confidence': 0.7,
+        'timeline_code': analysis.get('timeline_code', 'PRESENT'),
     }
     
     supabase.table('scenes').update(update_data).eq('id', scene_id).execute()

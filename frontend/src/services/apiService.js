@@ -1159,6 +1159,131 @@ export const mergeMultipleScenes = async (scriptId, sceneIds, keepSceneId) => {
 };
 
 // ============================================
+// Story Day Management API (Phase 2)
+// ============================================
+
+/**
+ * Toggle is_new_story_day on a scene, triggering cascade recalculation
+ * @param {string} scriptId - The script UUID
+ * @param {string} sceneId - The scene UUID
+ * @returns {Promise<Object>} Toggle result with recalculation info
+ */
+export const toggleNewDay = async (scriptId, sceneId) => {
+    try {
+        const response = await api.patch(`/api/scripts/${scriptId}/scenes/${sceneId}/toggle-new-day`);
+        return response.data;
+    } catch (error) {
+        console.error('Error toggling new day:', error);
+        throw error;
+    }
+};
+
+/**
+ * Toggle or set story_day_is_locked on a scene
+ * @param {string} scriptId - The script UUID
+ * @param {string} sceneId - The scene UUID
+ * @param {boolean|null} locked - Explicit lock state, or null to toggle
+ * @returns {Promise<Object>} Lock result
+ */
+export const lockStoryDay = async (scriptId, sceneId, locked = null) => {
+    try {
+        const response = await api.patch(`/api/scripts/${scriptId}/scenes/${sceneId}/lock-story-day`, {
+            locked
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error locking story day:', error);
+        throw error;
+    }
+};
+
+/**
+ * Set timeline_code on a scene (PRESENT, FLASHBACK, DREAM, etc.)
+ * @param {string} scriptId - The script UUID
+ * @param {string} sceneId - The scene UUID
+ * @param {string} timelineCode - Timeline code
+ * @returns {Promise<Object>} Result with recalculation info
+ */
+export const setTimelineCode = async (scriptId, sceneId, timelineCode) => {
+    try {
+        const response = await api.patch(`/api/scripts/${scriptId}/scenes/${sceneId}/timeline-code`, {
+            timeline_code: timelineCode
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error setting timeline code:', error);
+        throw error;
+    }
+};
+
+/**
+ * Manually set story_day on a scene (locks it automatically)
+ * @param {string} scriptId - The script UUID
+ * @param {string} sceneId - The scene UUID
+ * @param {number} storyDay - Day number (positive integer)
+ * @returns {Promise<Object>} Result with recalculation info
+ */
+export const setStoryDay = async (scriptId, sceneId, storyDay) => {
+    try {
+        const response = await api.patch(`/api/scripts/${scriptId}/scenes/${sceneId}/story-day`, {
+            story_day: storyDay
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error setting story day:', error);
+        throw error;
+    }
+};
+
+/**
+ * Trigger full recalculation of story days for a script
+ * @param {string} scriptId - The script UUID
+ * @returns {Promise<Object>} Recalculation result
+ */
+export const calculateStoryDays = async (scriptId) => {
+    try {
+        const response = await api.post(`/api/scripts/${scriptId}/story-days/calculate`);
+        return response.data;
+    } catch (error) {
+        console.error('Error calculating story days:', error);
+        throw error;
+    }
+};
+
+/**
+ * Get story day summary for a script
+ * @param {string} scriptId - The script UUID
+ * @returns {Promise<Object>} Summary with day counts, timeline breakdown
+ */
+export const getStoryDaySummary = async (scriptId) => {
+    try {
+        const response = await api.get(`/api/scripts/${scriptId}/story-days/summary`);
+        return response.data;
+    } catch (error) {
+        console.error('Error getting story day summary:', error);
+        throw error;
+    }
+};
+
+/**
+ * Bulk update story day fields on multiple scenes
+ * @param {string} scriptId - The script UUID
+ * @param {Array<Object>} updates - Array of {scene_id, story_day?, is_new_story_day?, timeline_code?}
+ * @returns {Promise<Object>} Update result with recalculation info
+ */
+export const bulkUpdateStoryDays = async (scriptId, updates) => {
+    try {
+        const response = await api.post(`/api/scripts/${scriptId}/story-days/bulk-update`, {
+            updates
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error bulk updating story days:', error);
+        throw error;
+    }
+};
+
+// ============================================
 // Script Lock & Export API (Phase 4)
 // ============================================
 

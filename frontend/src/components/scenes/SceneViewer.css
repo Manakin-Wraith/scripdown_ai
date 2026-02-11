@@ -250,6 +250,38 @@
     color: var(--primary-500);
 }
 
+.sidebar-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Story Day Filter */
+.story-day-filter-select {
+    height: 30px;
+    padding: 0 0.4rem;
+    background: var(--gray-800);
+    border: 1px solid var(--gray-600);
+    border-radius: 6px;
+    color: var(--text-secondary);
+    font-size: 0.7rem;
+    font-weight: 500;
+    cursor: pointer;
+    max-width: 110px;
+}
+
+.story-day-filter-select:focus {
+    outline: none;
+    border-color: #2dd4bf;
+    color: #2dd4bf;
+}
+
+.story-day-filter-select.filter-active {
+    border-color: rgba(20, 184, 166, 0.5);
+    color: #2dd4bf;
+    background: rgba(20, 184, 166, 0.08);
+}
+
 /* PDF Toggle Button */
 .pdf-toggle-btn {
     display: flex;
