@@ -392,9 +392,9 @@ class ReportService:
             print(f"Warning: Could not fetch department_items for report: {e}")
         
         # Aggregate data - NO TRUNCATION
-        characters = defaultdict(lambda: {'count': 0, 'scenes': [], 'eighths': 0})
-        locations = defaultdict(lambda: {'count': 0, 'scenes': [], 'int_ext': set(), 'time_of_day': set()})
-        props = defaultdict(lambda: {'count': 0, 'scenes': []})
+        characters = defaultdict(lambda: {'count': 0, 'scenes': [], 'eighths': 0, 'story_days': set()})
+        locations = defaultdict(lambda: {'count': 0, 'scenes': [], 'int_ext': set(), 'time_of_day': set(), 'story_days': set()})
+        props = defaultdict(lambda: {'count': 0, 'scenes': [], 'story_days': set()})
         wardrobe_items = defaultdict(lambda: {'count': 0, 'scenes': [], 'characters': set()})
         makeup_items = defaultdict(lambda: {'count': 0, 'scenes': [], 'characters': set()})
         special_effects = defaultdict(lambda: {'count': 0, 'scenes': [], 'type': set()})
@@ -405,6 +405,7 @@ class ReportService:
         
         total_eighths = 0
         analyzed_scenes = 0
+        all_story_days = set()
         
         for scene in scenes:
             scene_num = scene.get('scene_number', '')
@@ -414,12 +415,19 @@ class ReportService:
             if scene.get('analysis_status') == 'complete':
                 analyzed_scenes += 1
             
+            # Track story day
+            scene_story_day = scene.get('story_day')
+            if scene_story_day:
+                all_story_days.add(scene_story_day)
+            
             # Characters
             for char in (scene.get('characters') or []):
                 char_name = char if isinstance(char, str) else char.get('name', str(char))
                 characters[char_name]['count'] += 1
                 characters[char_name]['scenes'].append(scene_num)
                 characters[char_name]['eighths'] += eighths
+                if scene_story_day:
+                    characters[char_name]['story_days'].add(scene_story_day)
             
             # Locations
             setting = scene.get('setting', 'UNKNOWN')
@@ -427,12 +435,16 @@ class ReportService:
             locations[setting]['scenes'].append(scene_num)
             locations[setting]['int_ext'].add(scene.get('int_ext', 'INT'))
             locations[setting]['time_of_day'].add(scene.get('time_of_day', 'DAY'))
+            if scene_story_day:
+                locations[setting]['story_days'].add(scene_story_day)
             
             # Props
             for prop in (scene.get('props') or []):
                 prop_name = prop if isinstance(prop, str) else prop.get('name', str(prop))
                 props[prop_name]['count'] += 1
                 props[prop_name]['scenes'].append(scene_num)
+                if scene_story_day:
+                    props[prop_name]['story_days'].add(scene_story_day)
             
             # Wardrobe
             for item in (scene.get('wardrobe') or []):
@@ -541,14 +553,15 @@ class ReportService:
                 'total_extras': len(extras),
                 'total_stunts': len(stunts),
                 'total_eighths': total_eighths,
-                'total_pages': total_pages
+                'total_pages': total_pages,
+                'total_story_days': len(all_story_days)
             },
             'scenes': scenes,
             'user_items_by_scene': user_items_by_scene,
-            'characters': dict(characters),
-            'locations': {k: {**v, 'int_ext': list(v['int_ext']), 'time_of_day': list(v['time_of_day'])} 
+            'characters': {k: {**v, 'story_days': sorted(v['story_days'])} for k, v in characters.items()},
+            'locations': {k: {**v, 'int_ext': list(v['int_ext']), 'time_of_day': list(v['time_of_day']), 'story_days': sorted(v['story_days'])} 
                          for k, v in locations.items()},
-            'props': dict(props),
+            'props': {k: {**v, 'story_days': sorted(v['story_days'])} for k, v in props.items()},
             'wardrobe': {k: {**v, 'characters': list(v['characters'])} for k, v in wardrobe_items.items()},
             'makeup': {k: {**v, 'characters': list(v['characters'])} for k, v in makeup_items.items()},
             'special_effects': {k: {**v, 'type': list(v['type'])} for k, v in special_effects.items()},
@@ -822,16 +835,19 @@ class ReportService:
             eighths = scene.get('page_length_eighths', 8)
             length_display = format_eighths(eighths)
             
+            story_day_display = f"D{scene.get('story_day')}" if scene.get('story_day') else '—'
+            
             rows.append(f"""
             <tr>
                 <td class="scene-num"><strong>{scene.get('scene_number', '')}</strong></td>
                 <td class="int-ext">{scene.get('int_ext', '')}</td>
                 <td class="setting"><strong>{scene.get('setting', '')}</strong></td>
                 <td class="time">{scene.get('time_of_day', '')}</td>
+                <td class="day-cell">{story_day_display}</td>
                 <td class="length-cell">{length_display}</td>
             </tr>
             <tr class="breakdown-details">
-                <td colspan="5">
+                <td colspan="6">
                     <div class="breakdown-grid">
                         {f'<div class="breakdown-item"><span class="label">Description:</span> <span class="value">{description[:200]}...</span></div>' if description and len(description) > 200 else f'<div class="breakdown-item"><span class="label">Description:</span> <span class="value">{description}</span></div>' if description else ''}
                         {f'<div class="breakdown-item"><span class="label">Tone:</span> <span class="value">{emotional_tone}</span></div>' if emotional_tone else ''}
@@ -859,6 +875,7 @@ class ReportService:
                     <th>I/E</th>
                     <th>Setting</th>
                     <th>D/N</th>
+                    <th>Day</th>
                     <th>Length</th>
                 </tr>
             </thead>
@@ -877,15 +894,17 @@ class ReportService:
         sorted_chars = sorted(characters.items(), key=lambda x: x[1]['count'], reverse=True)
         
         for name, info in sorted_chars:
-            scenes_str = ', '.join(info['scenes'][:10])
-            if len(info['scenes']) > 10:
-                scenes_str += '...'
+            scenes_str = ', '.join(info['scenes'])
+            
+            story_days = info.get('story_days', [])
+            days_str = ', '.join([f'D{d}' for d in sorted(story_days)]) if story_days else '—'
             
             rows.append(f"""
             <tr>
                 <td><strong>{name}</strong></td>
                 <td>{info['count']}</td>
                 <td>{info.get('pages', info['count'])}</td>
+                <td>{days_str}</td>
                 <td class="scenes-cell">{scenes_str}</td>
             </tr>
             """)
@@ -898,6 +917,7 @@ class ReportService:
                     <th>Character</th>
                     <th>Scenes</th>
                     <th>Pages</th>
+                    <th>Story Days</th>
                     <th>Scene Numbers</th>
                 </tr>
             </thead>
@@ -917,9 +937,10 @@ class ReportService:
         for name, info in sorted_locs:
             int_ext = '/'.join(info.get('int_ext', []))
             time = '/'.join(info.get('time_of_day', []))
-            scenes_str = ', '.join(info['scenes'][:8])
-            if len(info['scenes']) > 8:
-                scenes_str += '...'
+            scenes_str = ', '.join(info['scenes'])
+            
+            story_days = info.get('story_days', [])
+            days_str = ', '.join([f'D{d}' for d in sorted(story_days)]) if story_days else '—'
             
             rows.append(f"""
             <tr>
@@ -927,6 +948,7 @@ class ReportService:
                 <td>{int_ext}</td>
                 <td>{time}</td>
                 <td>{info['count']}</td>
+                <td>{days_str}</td>
                 <td class="scenes-cell">{scenes_str}</td>
             </tr>
             """)
@@ -940,6 +962,7 @@ class ReportService:
                     <th>INT/EXT</th>
                     <th>D/N</th>
                     <th>Scenes</th>
+                    <th>Story Days</th>
                     <th>Scene Numbers</th>
                 </tr>
             </thead>
@@ -959,10 +982,14 @@ class ReportService:
         for name, info in sorted_props:
             scenes_str = ', '.join(info['scenes'])
             
+            story_days = info.get('story_days', [])
+            days_str = ', '.join([f'D{d}' for d in sorted(story_days)]) if story_days else '—'
+            
             rows.append(f"""
             <tr>
                 <td><strong>{name}</strong></td>
                 <td>{info['count']}</td>
+                <td>{days_str}</td>
                 <td class="scenes-cell">{scenes_str}</td>
             </tr>
             """)
@@ -974,6 +1001,7 @@ class ReportService:
                 <tr>
                     <th>Prop</th>
                     <th>Appearances</th>
+                    <th>Story Days</th>
                     <th>Scenes</th>
                 </tr>
             </thead>
@@ -988,6 +1016,7 @@ class ReportService:
         scenes = data.get('scenes', [])
         user_items_map = data.get('user_items_by_scene', {})
         rows = []
+        prev_story_day = None
         
         for scene in scenes:
             scene_id = scene.get('id') or scene.get('scene_id')
@@ -1001,12 +1030,27 @@ class ReportService:
             eighths = scene.get('page_length_eighths', 8)
             length_display = format_eighths(eighths)
             
+            # Story day separator
+            scene_story_day = scene.get('story_day')
+            story_day_display = f"D{scene_story_day}" if scene_story_day else '—'
+            if scene_story_day and scene_story_day != prev_story_day:
+                day_label = scene.get('story_day_label') or f'Day {scene_story_day}'
+                rows.append(f"""
+                <tr class="day-separator-row">
+                    <td colspan="7" class="day-separator-cell">
+                        <strong>{day_label}</strong>
+                    </td>
+                </tr>
+                """)
+            prev_story_day = scene_story_day
+            
             rows.append(f"""
             <tr class="one-liner-row">
                 <td class="scene-num">{scene.get('scene_number', '')}</td>
                 <td class="int-ext">{scene.get('int_ext', '')}</td>
                 <td class="setting">{scene.get('setting', '')}</td>
                 <td class="time">{scene.get('time_of_day', '')}</td>
+                <td class="day-cell">{story_day_display}</td>
                 <td class="chars">{chars}</td>
                 <td class="length">{length_display}</td>
             </tr>
@@ -1021,6 +1065,7 @@ class ReportService:
                     <th>I/E</th>
                     <th>Setting</th>
                     <th>D/N</th>
+                    <th>Day</th>
                     <th>Cast</th>
                     <th>Len</th>
                 </tr>
@@ -1072,6 +1117,10 @@ class ReportService:
                 <div class="summary-item">
                     <span class="label">Locations</span>
                     <span class="value">{summary.get('total_locations', 0)}</span>
+                </div>
+                <div class="summary-item">
+                    <span class="label">Story Days</span>
+                    <span class="value">{summary.get('total_story_days', 0)}</span>
                 </div>
                 <div class="summary-item">
                     <span class="label">Props</span>
@@ -1271,7 +1320,6 @@ class ReportService:
         .scenes-cell {
             font-size: 8pt;
             color: #666;
-            max-width: 200px;
             word-wrap: break-word;
         }
         
@@ -1298,6 +1346,26 @@ class ReportService:
             text-align: center;
             font-family: 'Courier New', monospace;
             font-weight: 600;
+        }
+        
+        /* Story Day cells */
+        .day-cell {
+            width: 45px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 8pt;
+            color: #0d9488;
+        }
+        
+        .day-separator-row td {
+            background: #e8f5f3 !important;
+            padding: 4px 8px;
+            border-left: 3px solid #14b8a6;
+            font-size: 8pt;
+            font-weight: 700;
+            color: #0d9488;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         
         /* Summary section */

@@ -319,6 +319,22 @@ const SceneViewer = () => {
                     } else {
                         toast.success('Bulk Analysis Complete', 'All scenes have been analyzed!');
                     }
+                    // Final re-fetch after 2s to pick up story day recalculation
+                    setTimeout(async () => {
+                        try {
+                            const freshData = await getScenes(scriptId);
+                            const freshScenes = freshData.scenes || [];
+                            setScenes(freshScenes);
+                            if (selectedScene) {
+                                const updated = freshScenes.find(
+                                    s => s.id === selectedScene.id || s.scene_id === selectedScene.scene_id
+                                );
+                                if (updated) setSelectedScene(updated);
+                            }
+                        } catch (e) {
+                            console.warn('Post-analysis refresh failed:', e);
+                        }
+                    }, 2000);
                 }
             } catch (err) {
                 console.error('Polling error:', err);

@@ -2569,16 +2569,24 @@ def analyze_scene(scene_id):
         supabase.table('scenes').update(update_data).eq('id', scene_id).execute()
         
         # Story Days: Trigger cascade recalculation from this scene onward
+        story_day_fields = {}
         try:
             from services.story_day_service import recalculate_story_days
             recalculate_story_days(scene['script_id'], start_from_order=current_order or 0)
+            # Re-read scene to get recalculated story_day values
+            refreshed = supabase.table('scenes').select(
+                'story_day, story_day_label, is_new_story_day, story_day_is_locked, '
+                'story_day_is_manual, story_day_confidence, timeline_code, time_transition'
+            ).eq('id', scene_id).single().execute()
+            if refreshed.data:
+                story_day_fields = refreshed.data
         except Exception as recalc_err:
             print(f"[StoryDays] Recalculation after single-scene analysis failed (non-fatal): {recalc_err}")
         
         return jsonify({
             'message': 'Scene analyzed successfully',
             'scene_id': scene_id,
-            'analysis': analysis
+            'analysis': {**analysis, **story_day_fields}
         }), 200
         
     except Exception as e:

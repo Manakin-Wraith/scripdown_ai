@@ -4,7 +4,7 @@ import {
     FileText, Download, Share2, Printer, ChevronRight, 
     Users, MapPin, Package, Shirt, Film, List, BookOpen,
     Loader, Check, AlertCircle, Clock, Trash2, ExternalLink,
-    UserPlus, Zap, Flame
+    UserPlus, Zap, Flame, CalendarDays
 } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 import { useScript } from '../../context/ScriptContext';
@@ -284,6 +284,12 @@ const ReportBuilder = () => {
                                     <span className="stat-value">{previewData.summary?.total_props || 0}</span>
                                     <span className="stat-label">Props</span>
                                 </div>
+                                {(previewData.summary?.total_story_days > 0) && (
+                                    <div className="stat-item">
+                                        <span className="stat-value">{previewData.summary.total_story_days}</span>
+                                        <span className="stat-label">Story Days</span>
+                                    </div>
+                                )}
                             </div>
                             
                             {selectedType === 'day_out_of_days' && previewData.characters && (
@@ -294,18 +300,24 @@ const ReportBuilder = () => {
                                             <tr>
                                                 <th>Character</th>
                                                 <th>Scenes</th>
+                                                <th>Story Days</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {Object.entries(previewData.characters)
                                                 .sort((a, b) => b[1].count - a[1].count)
                                                 .slice(0, 5)
-                                                .map(([name, info]) => (
-                                                    <tr key={name}>
-                                                        <td>{name}</td>
-                                                        <td>{info.count}</td>
-                                                    </tr>
-                                                ))
+                                                .map(([name, info]) => {
+                                                    const days = info.story_days || [];
+                                                    const daysStr = days.length > 0 ? days.sort((a, b) => a - b).map(d => `D${d}`).join(', ') : '-';
+                                                    return (
+                                                        <tr key={name}>
+                                                            <td>{name}</td>
+                                                            <td>{info.count}</td>
+                                                            <td>{daysStr}</td>
+                                                        </tr>
+                                                    );
+                                                })
                                             }
                                         </tbody>
                                     </table>
@@ -320,18 +332,24 @@ const ReportBuilder = () => {
                                             <tr>
                                                 <th>Location</th>
                                                 <th>Scenes</th>
+                                                <th>Story Days</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {Object.entries(previewData.locations)
                                                 .sort((a, b) => b[1].count - a[1].count)
                                                 .slice(0, 5)
-                                                .map(([name, info]) => (
-                                                    <tr key={name}>
-                                                        <td>{name}</td>
-                                                        <td>{info.count}</td>
-                                                    </tr>
-                                                ))
+                                                .map(([name, info]) => {
+                                                    const days = info.story_days || [];
+                                                    const daysStr = days.length > 0 ? days.sort((a, b) => a - b).map(d => `D${d}`).join(', ') : '-';
+                                                    return (
+                                                        <tr key={name}>
+                                                            <td>{name}</td>
+                                                            <td>{info.count}</td>
+                                                            <td>{daysStr}</td>
+                                                        </tr>
+                                                    );
+                                                })
                                             }
                                         </tbody>
                                     </table>

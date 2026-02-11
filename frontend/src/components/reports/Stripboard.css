@@ -199,6 +199,7 @@
 .col-ie { width: 60px; text-align: center; }
 .col-setting { text-align: left; }
 .col-time { width: 80px; text-align: center; }
+.col-day { width: 55px; text-align: center; }
 .col-cast { width: 220px; text-align: left; }
 .col-pages { width: 60px; text-align: center; }
 
@@ -473,6 +474,121 @@
     padding: 3rem;
     color: var(--text-secondary);
     gap: 0.5rem;
+}
+
+/* Story Day Badge in table rows */
+.sb-day-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.15rem 0.35rem;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.sb-day-badge.timeline-present {
+    background: rgba(20, 184, 166, 0.3);
+    color: #5eead4;
+}
+.sb-day-badge.timeline-flashback {
+    background: rgba(168, 85, 247, 0.3);
+    color: #d8b4fe;
+}
+.sb-day-badge.timeline-dream {
+    background: rgba(59, 130, 246, 0.3);
+    color: #93c5fd;
+}
+.sb-day-badge.timeline-fantasy {
+    background: rgba(236, 72, 153, 0.3);
+    color: #f9a8d4;
+}
+.sb-day-badge.timeline-montage {
+    background: rgba(245, 158, 11, 0.3);
+    color: #fcd34d;
+}
+.sb-day-badge.timeline-title_card {
+    background: rgba(148, 163, 184, 0.3);
+    color: #cbd5e1;
+}
+
+/* Story Day Separator Row */
+.sb-day-separator-row td {
+    padding: 0 !important;
+    border-bottom: none !important;
+}
+
+.sb-day-separator {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0.75rem;
+}
+
+.sb-day-separator-line {
+    flex: 1;
+    height: 1px;
+    background: rgba(20, 184, 166, 0.25);
+}
+
+.sb-day-separator.timeline-flashback .sb-day-separator-line {
+    background: rgba(168, 85, 247, 0.25);
+}
+.sb-day-separator.timeline-dream .sb-day-separator-line {
+    background: rgba(59, 130, 246, 0.25);
+}
+.sb-day-separator.timeline-fantasy .sb-day-separator-line {
+    background: rgba(236, 72, 153, 0.25);
+}
+.sb-day-separator.timeline-montage .sb-day-separator-line {
+    background: rgba(245, 158, 11, 0.25);
+}
+.sb-day-separator.timeline-title_card .sb-day-separator-line {
+    background: rgba(148, 163, 184, 0.25);
+}
+
+.sb-day-separator-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.65rem;
+    font-weight: 700;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+}
+
+.sb-day-separator-label.timeline-present {
+    color: #5eead4;
+    background: rgba(20, 184, 166, 0.3);
+    border: 1px solid rgba(20, 184, 166, 0.5);
+}
+.sb-day-separator-label.timeline-flashback {
+    color: #d8b4fe;
+    background: rgba(168, 85, 247, 0.3);
+    border: 1px solid rgba(168, 85, 247, 0.5);
+}
+.sb-day-separator-label.timeline-dream {
+    color: #93c5fd;
+    background: rgba(59, 130, 246, 0.3);
+    border: 1px solid rgba(59, 130, 246, 0.5);
+}
+.sb-day-separator-label.timeline-fantasy {
+    color: #f9a8d4;
+    background: rgba(236, 72, 153, 0.3);
+    border: 1px solid rgba(236, 72, 153, 0.5);
+}
+.sb-day-separator-label.timeline-montage {
+    color: #fcd34d;
+    background: rgba(245, 158, 11, 0.3);
+    border: 1px solid rgba(245, 158, 11, 0.5);
+}
+.sb-day-separator-label.timeline-title_card {
+    color: #cbd5e1;
+    background: rgba(148, 163, 184, 0.3);
+    border: 1px solid rgba(148, 163, 184, 0.5);
 }
 
 /* Row color coding based on INT/EXT - applied to first cell */
@@ -780,9 +896,17 @@
         padding: 0.4rem;
     }
     
-    .ie-badge, .time-badge {
+    .ie-badge, .time-badge, .sb-day-badge, .sb-day-separator-label {
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
+    }
+    
+    .sb-day-badge {
+        font-size: 7pt;
+    }
+    
+    .sb-day-separator-label {
+        font-size: 7pt;
     }
     
     /* Two-line row layout for print - show cast on second line */

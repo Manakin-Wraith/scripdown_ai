@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { 
     FileText, Download, Printer, Clock, AlertCircle, 
-    Users, MapPin, Package, Film, Loader
+    Users, MapPin, Package, Film, Loader, CalendarDays
 } from 'lucide-react';
 import { 
     getSharedReport, 
@@ -117,6 +117,13 @@ const SharedReportView = () => {
                     <span className="stat-value">{summary.total_props || 0}</span>
                     <span className="stat-label">Props</span>
                 </div>
+                {(summary.total_story_days > 0) && (
+                    <div className="summary-stat">
+                        <CalendarDays size={20} />
+                        <span className="stat-value">{summary.total_story_days}</span>
+                        <span className="stat-label">Story Days</span>
+                    </div>
+                )}
             </div>
 
             {/* Report Content */}
@@ -170,6 +177,7 @@ const SceneBreakdownTable = ({ scenes }) => (
                 <th>I/E</th>
                 <th>Setting</th>
                 <th>D/N</th>
+                <th>Day</th>
                 <th>Characters</th>
                 <th>Props</th>
                 <th>Page</th>
@@ -182,6 +190,7 @@ const SceneBreakdownTable = ({ scenes }) => (
                     <td>{scene.int_ext}</td>
                     <td>{scene.setting}</td>
                     <td>{scene.time_of_day}</td>
+                    <td>{scene.story_day ? `D${scene.story_day}` : '-'}</td>
                     <td>{(scene.characters || []).slice(0, 5).join(', ')}</td>
                     <td>{(scene.props || []).slice(0, 3).join(', ')}</td>
                     <td>{scene.page_start || '-'}</td>
@@ -197,19 +206,25 @@ const DayOutOfDaysTable = ({ characters }) => (
             <tr>
                 <th>Character</th>
                 <th>Scenes</th>
+                <th>Story Days</th>
                 <th>Scene Numbers</th>
             </tr>
         </thead>
         <tbody>
             {Object.entries(characters)
                 .sort((a, b) => b[1].count - a[1].count)
-                .map(([name, info]) => (
-                    <tr key={name}>
-                        <td><strong>{name}</strong></td>
-                        <td>{info.count}</td>
-                        <td>{info.scenes.slice(0, 10).join(', ')}{info.scenes.length > 10 ? '...' : ''}</td>
-                    </tr>
-                ))
+                .map(([name, info]) => {
+                    const days = info.story_days || [];
+                    const daysStr = days.length > 0 ? days.sort((a, b) => a - b).map(d => `D${d}`).join(', ') : '-';
+                    return (
+                        <tr key={name}>
+                            <td><strong>{name}</strong></td>
+                            <td>{info.count}</td>
+                            <td>{daysStr}</td>
+                            <td>{info.scenes.join(', ')}</td>
+                        </tr>
+                    );
+                })
             }
         </tbody>
     </table>
@@ -223,19 +238,27 @@ const LocationTable = ({ locations }) => (
                 <th>INT/EXT</th>
                 <th>D/N</th>
                 <th>Scenes</th>
+                <th>Story Days</th>
+                <th>Scene Numbers</th>
             </tr>
         </thead>
         <tbody>
             {Object.entries(locations)
                 .sort((a, b) => b[1].count - a[1].count)
-                .map(([name, info]) => (
-                    <tr key={name}>
-                        <td><strong>{name}</strong></td>
-                        <td>{(info.int_ext || []).join('/')}</td>
-                        <td>{(info.time_of_day || []).join('/')}</td>
-                        <td>{info.count}</td>
-                    </tr>
-                ))
+                .map(([name, info]) => {
+                    const days = info.story_days || [];
+                    const daysStr = days.length > 0 ? days.sort((a, b) => a - b).map(d => `D${d}`).join(', ') : '-';
+                    return (
+                        <tr key={name}>
+                            <td><strong>{name}</strong></td>
+                            <td>{(info.int_ext || []).join('/')}</td>
+                            <td>{(info.time_of_day || []).join('/')}</td>
+                            <td>{info.count}</td>
+                            <td>{daysStr}</td>
+                            <td>{(info.scenes || []).join(', ')}</td>
+                        </tr>
+                    );
+                })
             }
         </tbody>
     </table>
@@ -247,55 +270,77 @@ const PropsTable = ({ props }) => (
             <tr>
                 <th>Prop</th>
                 <th>Appearances</th>
+                <th>Story Days</th>
                 <th>Scenes</th>
             </tr>
         </thead>
         <tbody>
             {Object.entries(props)
                 .sort((a, b) => b[1].count - a[1].count)
-                .map(([name, info]) => (
-                    <tr key={name}>
-                        <td><strong>{name}</strong></td>
-                        <td>{info.count}</td>
-                        <td>{info.scenes.join(', ')}</td>
-                    </tr>
-                ))
+                .map(([name, info]) => {
+                    const days = info.story_days || [];
+                    const daysStr = days.length > 0 ? days.sort((a, b) => a - b).map(d => `D${d}`).join(', ') : '-';
+                    return (
+                        <tr key={name}>
+                            <td><strong>{name}</strong></td>
+                            <td>{info.count}</td>
+                            <td>{daysStr}</td>
+                            <td>{info.scenes.join(', ')}</td>
+                        </tr>
+                    );
+                })
             }
         </tbody>
     </table>
 );
 
-const OneLinerTable = ({ scenes }) => (
-    <table className="report-table one-liner">
-        <thead>
-            <tr>
-                <th>#</th>
-                <th>I/E</th>
-                <th>Setting</th>
-                <th>D/N</th>
-                <th>Cast</th>
-                <th>Pg</th>
-            </tr>
-        </thead>
-        <tbody>
-            {scenes.map(scene => {
-                const chars = scene.characters || [];
-                const charDisplay = chars.slice(0, 3).join(', ');
-                const more = chars.length > 3 ? ` +${chars.length - 3}` : '';
-                
-                return (
-                    <tr key={scene.id || scene.scene_id}>
-                        <td>{scene.scene_number}</td>
-                        <td>{scene.int_ext}</td>
-                        <td>{scene.setting}</td>
-                        <td>{scene.time_of_day}</td>
-                        <td>{charDisplay}{more}</td>
-                        <td>{scene.page_start || '-'}</td>
-                    </tr>
-                );
-            })}
-        </tbody>
-    </table>
-);
+const OneLinerTable = ({ scenes }) => {
+    let prevDay = null;
+    return (
+        <table className="report-table one-liner">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>I/E</th>
+                    <th>Setting</th>
+                    <th>D/N</th>
+                    <th>Day</th>
+                    <th>Cast</th>
+                    <th>Pg</th>
+                </tr>
+            </thead>
+            <tbody>
+                {scenes.map(scene => {
+                    const chars = scene.characters || [];
+                    const charDisplay = chars.slice(0, 3).join(', ');
+                    const more = chars.length > 3 ? ` +${chars.length - 3}` : '';
+                    const showSeparator = scene.story_day && scene.story_day !== prevDay;
+                    prevDay = scene.story_day;
+                    
+                    return (
+                        <React.Fragment key={scene.id || scene.scene_id}>
+                            {showSeparator && (
+                                <tr className="day-separator-row">
+                                    <td colSpan="7" style={{ background: 'rgba(20,184,166,0.08)', borderLeft: '3px solid #14b8a6', fontWeight: 700, fontSize: '0.75rem', color: '#0d9488', textTransform: 'uppercase', letterSpacing: '0.05em', padding: '0.25rem 0.5rem' }}>
+                                        {scene.story_day_label || `Day ${scene.story_day}`}
+                                    </td>
+                                </tr>
+                            )}
+                            <tr>
+                                <td>{scene.scene_number}</td>
+                                <td>{scene.int_ext}</td>
+                                <td>{scene.setting}</td>
+                                <td>{scene.time_of_day}</td>
+                                <td>{scene.story_day ? `D${scene.story_day}` : '-'}</td>
+                                <td>{charDisplay}{more}</td>
+                                <td>{scene.page_start || '-'}</td>
+                            </tr>
+                        </React.Fragment>
+                    );
+                })}
+            </tbody>
+        </table>
+    );
+};
 
 export default SharedReportView;

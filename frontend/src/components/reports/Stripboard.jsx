@@ -5,7 +5,8 @@ import {
     GripVertical, ArrowLeft,
     Loader, Filter, SortAsc, SortDesc,
     Package, Shirt, Sparkles, Car, Volume2, Cloud,
-    CheckCircle, AlertCircle, Clock, FileText, MessageSquare
+    CheckCircle, AlertCircle, Clock, FileText, MessageSquare,
+    CalendarDays
 } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 import { useScript } from '../../context/ScriptContext';
@@ -28,6 +29,7 @@ const Stripboard = () => {
     const [filterIntExt, setFilterIntExt] = useState('all');
     const [filterTimeOfDay, setFilterTimeOfDay] = useState('all');
     const [filterAnalysisStatus, setFilterAnalysisStatus] = useState('all');
+    const [filterStoryDay, setFilterStoryDay] = useState('all');
     const [expandedRows, setExpandedRows] = useState(new Set());
 
     // Helper function to determine scene analysis status
@@ -111,6 +113,25 @@ const Stripboard = () => {
         fetchData();
     }, [scriptId]);
 
+    // Compute unique story days for filter dropdown
+    const uniqueStoryDays = useMemo(() => {
+        const days = new Map();
+        scenes.forEach(scene => {
+            if (scene.story_day) {
+                if (!days.has(scene.story_day)) {
+                    days.set(scene.story_day, {
+                        day: scene.story_day,
+                        label: scene.story_day_label || `Day ${scene.story_day}`,
+                        timeline: scene.timeline_code || 'PRESENT',
+                        count: 0
+                    });
+                }
+                days.get(scene.story_day).count++;
+            }
+        });
+        return Array.from(days.values()).sort((a, b) => a.day - b.day);
+    }, [scenes]);
+
     // Filter and sort scenes
     const filteredScenes = useMemo(() => {
         let result = [...scenes];
@@ -124,6 +145,9 @@ const Stripboard = () => {
         }
         if (filterAnalysisStatus !== 'all') {
             result = result.filter(s => getSceneAnalysisStatus(s) === filterAnalysisStatus);
+        }
+        if (filterStoryDay !== 'all') {
+            result = result.filter(s => s.story_day === parseInt(filterStoryDay));
         }
         
         // Apply sorting
@@ -157,7 +181,7 @@ const Stripboard = () => {
         });
         
         return result;
-    }, [scenes, filterIntExt, filterTimeOfDay, filterAnalysisStatus, sortBy, sortDir]);
+    }, [scenes, filterIntExt, filterTimeOfDay, filterAnalysisStatus, filterStoryDay, sortBy, sortDir]);
 
     // Calculate stats
     const stats = useMemo(() => {
@@ -189,7 +213,14 @@ const Stripboard = () => {
         });
         const totalLocations = allLocations.size;
         
-        return { intCount, extCount, dayCount, nightCount, totalEighths, totalEighthsDisplay, totalCharacters, totalLocations };
+        // Calculate unique story days
+        const storyDays = new Set();
+        scenes.forEach(scene => {
+            if (scene.story_day) storyDays.add(scene.story_day);
+        });
+        const totalStoryDays = storyDays.size;
+
+        return { intCount, extCount, dayCount, nightCount, totalEighths, totalEighthsDisplay, totalCharacters, totalLocations, totalStoryDays };
     }, [scenes, userItemsByScene]);
 
 
@@ -279,6 +310,9 @@ const Stripboard = () => {
                     <span><strong>{stats.nightCount}</strong> NIGHT</span>
                     <span><strong>{stats.totalCharacters}</strong> Cast</span>
                     <span><strong>{stats.totalLocations}</strong> Locations</span>
+                    {stats.totalStoryDays > 0 && (
+                        <span><strong>{stats.totalStoryDays}</strong> Story Days</span>
+                    )}
                     <span className="print-stats-highlight"><strong>{stats.totalEighthsDisplay}</strong> Pages</span>
                 </div>
             </div>
@@ -321,6 +355,12 @@ const Stripboard = () => {
                     <MapPin size={14} />
                     <span className="stat-value">{stats.totalLocations} Locations</span>
                 </div>
+                {stats.totalStoryDays > 0 && (
+                    <div className="stat-group">
+                        <CalendarDays size={14} />
+                        <span className="stat-value">{stats.totalStoryDays} Story Days</span>
+                    </div>
+                )}
                 <div className="stat-group stat-eighths">
                     <span className="stat-label">Length:</span>
                     <span className="stat-value eighths-total">{stats.totalEighthsDisplay} pages</span>
@@ -362,6 +402,21 @@ const Stripboard = () => {
                         <option value="pending">Pending</option>
                     </select>
                 </div>
+                {uniqueStoryDays.length > 0 && (
+                    <div className="filter-group">
+                        <select
+                            value={filterStoryDay}
+                            onChange={(e) => setFilterStoryDay(e.target.value)}
+                        >
+                            <option value="all">All Days</option>
+                            {uniqueStoryDays.map(d => (
+                                <option key={d.day} value={d.day}>
+                                    {d.label} ({d.count})
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                )}
                 <div className="filter-group">
                     <select 
                         value={sortBy}
@@ -400,6 +455,7 @@ const Stripboard = () => {
                                 )}
                             </th>
                             <th className="col-time">D/N</th>
+                            <th className="col-day">Day</th>
                             <th className="col-cast" onClick={() => toggleSort('characters')}>
                                 Cast
                                 {sortBy === 'characters' && (
@@ -441,8 +497,30 @@ const Stripboard = () => {
                             const notesByDept = getNotesByDepartment(notes);
                             const totalNotes = notes.length;
                             
+                            // Story day separator: show when day changes from previous scene
+                            const prevScene = index > 0 ? filteredScenes[index - 1] : null;
+                            const showDaySeparator = scene.story_day && (
+                                !prevScene || prevScene.story_day !== scene.story_day
+                            );
+                            const timelineClass = (scene.timeline_code || 'PRESENT').toLowerCase();
+                            
                             return (
                                 <React.Fragment key={sceneId}>
+                                    {/* Story Day Separator */}
+                                    {showDaySeparator && (
+                                        <tr className="sb-day-separator-row">
+                                            <td colSpan="7">
+                                                <div className={`sb-day-separator timeline-${timelineClass}`}>
+                                                    <div className="sb-day-separator-line"></div>
+                                                    <span className={`sb-day-separator-label timeline-${timelineClass}`}>
+                                                        <CalendarDays size={11} />
+                                                        {scene.story_day_label || `Day ${scene.story_day}`}
+                                                    </span>
+                                                    <div className="sb-day-separator-line"></div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
                                     <tr 
                                         className={`stripboard-row ${isInt ? 'int' : 'ext'} ${isDay ? 'day' : 'night'} ${isExpanded ? 'expanded' : ''} status-${analysisStatus}`}
                                         onClick={() => toggleRowExpand(sceneId)}
@@ -473,6 +551,13 @@ const Stripboard = () => {
                                                 {scene.time_of_day}
                                             </span>
                                         </td>
+                                        <td className="col-day">
+                                            {scene.story_day && (
+                                                <span className={`sb-day-badge timeline-${timelineClass}`}>
+                                                    D{scene.story_day}
+                                                </span>
+                                            )}
+                                        </td>
                                         <td className="col-cast">
                                             <span className="cast-text">
                                                 {charDisplay}{moreChars}
@@ -488,7 +573,7 @@ const Stripboard = () => {
                                     {/* Expanded Breakdown Row */}
                                     {isExpanded && (
                                         <tr className="breakdown-row">
-                                            <td colSpan="6">
+                                            <td colSpan="7">
                                                 <div className="breakdown-content">
                                                     <div className="breakdown-grid">
                                                         {/* Cast */}
@@ -657,7 +742,7 @@ const Stripboard = () => {
                                     {/* Print-only row for full cast list */}
                                     {chars.length > 0 && (
                                         <tr className="print-cast-row">
-                                            <td colSpan="6">
+                                            <td colSpan="7">
                                                 <span className="print-cast-label">Cast: </span>
                                                 <span className="print-cast-list">{fullCast}</span>
                                             </td>
