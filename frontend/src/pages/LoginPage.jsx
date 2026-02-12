@@ -34,11 +34,15 @@ const LoginPage = () => {
     const location = useLocation();
     const { login, signup, isAuthenticated, loading: authLoading, user, profile } = useAuth();
     
+    // Landing page URL for signup
+    const LANDING_SIGNUP_URL = 'https://www.slateone.studio';
+
     // Check for mode in query params (for invite flow)
     const getInitialMode = () => {
         const params = new URLSearchParams(location.search);
         const modeParam = params.get('mode');
-        if (modeParam === 'signup') return 'signup';
+        // Allow signup mode only for invite flows (have a redirect param)
+        if (modeParam === 'signup' && params.get('redirect')) return 'signup';
         return 'login';
     };
     
@@ -62,6 +66,19 @@ const LoginPage = () => {
         if (redirectParam) return redirectParam;
         return location.state?.from?.pathname || '/scripts';
     };
+
+    // Redirect ?mode=signup (without invite context) to landing page
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        const modeParam = params.get('mode');
+        const hasRedirect = params.get('redirect');
+        
+        // If someone hits ?mode=signup without an invite redirect, send them to landing page
+        if (modeParam === 'signup' && !hasRedirect && !isAuthenticated) {
+            window.location.href = LANDING_SIGNUP_URL;
+            return;
+        }
+    }, [location.search, isAuthenticated]);
 
     // Redirect if already authenticated (unless showing signup completion)
     useEffect(() => {
@@ -462,9 +479,9 @@ const LoginPage = () => {
                         {mode === 'login' && (
                             <>
                                 <span>Don't have an account?</span>
-                                <button type="button" className="link-btn" onClick={() => switchMode('signup')}>
+                                <a href={LANDING_SIGNUP_URL} className="link-btn">
                                     Sign up
-                                </button>
+                                </a>
                             </>
                         )}
                         {mode === 'signup' && (
