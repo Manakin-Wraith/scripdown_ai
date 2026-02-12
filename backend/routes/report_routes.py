@@ -6,6 +6,7 @@ API endpoints for report generation, management, and sharing.
 
 from flask import Blueprint, request, jsonify, Response
 from services.report_service import report_service
+from middleware.auth import optional_auth, get_user_id
 
 report_bp = Blueprint('reports', __name__)
 
@@ -44,6 +45,107 @@ def get_template(template_id):
 
 
 # ============================================
+# Filter Options Endpoint
+# ============================================
+
+@report_bp.route('/scripts/<script_id>/filter-options', methods=['GET'])
+def get_filter_options(script_id):
+    """
+    Get unique values for each filter dimension.
+    Used by frontend to populate filter dropdowns.
+    """
+    try:
+        options = report_service.get_filter_options(script_id)
+        return jsonify({
+            'success': True,
+            'options': options
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ============================================
+# Filter Preset Endpoints
+# ============================================
+
+@report_bp.route('/scripts/<script_id>/filter-presets', methods=['GET'])
+@optional_auth
+def get_filter_presets(script_id):
+    """Get filter presets (default + user's own) for a script."""
+    try:
+        user_id = get_user_id()
+        presets = report_service.get_filter_presets(script_id, user_id=user_id)
+        return jsonify({
+            'success': True,
+            'presets': presets
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@report_bp.route('/scripts/<script_id>/filter-presets', methods=['POST'])
+@optional_auth
+def save_filter_preset(script_id):
+    """
+    Save a new filter preset.
+    
+    Request body:
+    {
+        "name": "My Preset",
+        "filters": { ... },
+        "categories": ["props", "wardrobe"],
+        "group_by": "location"
+    }
+    """
+    try:
+        data = request.get_json() or {}
+        name = data.get('name')
+        user_id = get_user_id()
+        filters = data.get('filters', {})
+        categories = data.get('categories', [])
+        group_by = data.get('group_by', 'scene_number')
+        
+        if not name:
+            return jsonify({'success': False, 'error': 'Preset name is required'}), 400
+        if not user_id:
+            return jsonify({'success': False, 'error': 'Authentication required to save presets'}), 401
+        
+        preset = report_service.save_filter_preset(
+            script_id=script_id,
+            user_id=user_id,
+            name=name,
+            filters=filters,
+            categories=categories,
+            group_by=group_by
+        )
+        
+        if not preset:
+            return jsonify({'success': False, 'error': 'Failed to save preset'}), 500
+        
+        return jsonify({
+            'success': True,
+            'preset': preset
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@report_bp.route('/filter-presets/<preset_id>', methods=['DELETE'])
+@optional_auth
+def delete_filter_preset(preset_id):
+    """Delete a user's filter preset."""
+    try:
+        user_id = get_user_id()
+        if not user_id:
+            return jsonify({'success': False, 'error': 'Authentication required to delete presets'}), 401
+        
+        report_service.delete_filter_preset(preset_id, user_id)
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ============================================
 # Report Generation Endpoints
 # ============================================
 
@@ -76,7 +178,16 @@ def generate_report(script_id):
         data = request.get_json() or {}
         report_type = data.get('report_type', 'scene_breakdown')
         title = data.get('title')
-        config = data.get('config')
+        config = data.get('config') or {}
+        filters = data.get('filters')
+        group_by = data.get('group_by')
+        categories = data.get('categories')
+        
+        # Merge group_by and categories into config for rendering
+        if group_by:
+            config['group_by'] = group_by
+        if categories:
+            config['categories'] = categories
         
         # Validate report type
         if report_type not in report_service.REPORT_TYPES:
@@ -89,7 +200,8 @@ def generate_report(script_id):
             script_id=script_id,
             report_type=report_type,
             config=config,
-            title=title
+            title=title,
+            filters=filters
         )
         
         if not report:
@@ -114,9 +226,10 @@ def preview_report(script_id):
     try:
         data = request.get_json() or {}
         report_type = data.get('report_type', 'scene_breakdown')
+        filters = data.get('filters')
         
-        # Get aggregated data
-        aggregated_data = report_service.aggregate_scene_data(script_id)
+        # Get aggregated data with optional filters
+        aggregated_data = report_service.aggregate_scene_data(script_id, filters=filters)
         
         return jsonify({
             'success': True,

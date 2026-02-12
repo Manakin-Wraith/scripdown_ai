@@ -1,24 +1,29 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
     FileText, Download, Share2, Printer, ChevronRight, 
     Users, MapPin, Package, Shirt, Film, List, BookOpen,
-    Loader, Check, AlertCircle, Clock, Trash2, ExternalLink,
+    Loader, Check, Clock, Trash2, ExternalLink,
     UserPlus, Zap, Flame, CalendarDays
 } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 import { useScript } from '../../context/ScriptContext';
+import { useAuth } from '../../context/AuthContext';
 import { 
     getReportTypes, 
     generateReport, 
-    previewReport,
     getScriptReports,
     deleteReport,
     getReportPdfUrl,
     getReportPrintUrl,
-    getScriptMetadata
+    getScriptMetadata,
+    getFilterOptions,
+    getFilterPresets,
+    saveFilterPreset,
+    deleteFilterPreset
 } from '../../services/apiService';
 import ShareModal from './ShareModal';
+import ReportFilterPanel from './ReportFilterPanel';
 import { SubscriptionGate } from '../subscription';
 import { useSubscription } from '../../hooks/useSubscription';
 import './ReportBuilder.css';
@@ -48,12 +53,28 @@ const ReportBuilder = () => {
     const [selectedType, setSelectedType] = useState('scene_breakdown');
     const [customTitle, setCustomTitle] = useState('');
     const [scriptMetadata, setScriptMetadata] = useState(null);
-    const [previewData, setPreviewData] = useState(null);
     const [existingReports, setExistingReports] = useState([]);
     const [isGenerating, setIsGenerating] = useState(false);
-    const [isLoadingPreview, setIsLoadingPreview] = useState(false);
     const [shareModalReport, setShareModalReport] = useState(null);
     const [loading, setLoading] = useState(true);
+    
+    // Filter state
+    const [filterOptions, setFilterOptions] = useState(null);
+    const [filterPresets, setFilterPresets] = useState([]);
+    const [filterPanelCollapsed, setFilterPanelCollapsed] = useState(false);
+    const [filters, setFilters] = useState({
+        locations: [],
+        location_parents: [],
+        characters: [],
+        int_ext: [],
+        time_of_day: [],
+        story_days: [],
+        scene_numbers: [],
+        scene_range: { from: '', to: '' },
+        timeline_codes: [],
+        categories: [],
+        group_by: 'scene_number'
+    });
 
     // Fetch initial data
     useEffect(() => {
@@ -85,6 +106,25 @@ const ReportBuilder = () => {
                 if (reportsRes.success) {
                     setExistingReports(reportsRes.reports);
                 }
+                
+                // Fetch filter options and presets
+                try {
+                    const filterRes = await getFilterOptions(scriptId);
+                    if (filterRes.success) {
+                        setFilterOptions(filterRes.options);
+                    }
+                } catch (e) {
+                    console.warn('Could not fetch filter options:', e);
+                }
+                
+                try {
+                    const presetsRes = await getFilterPresets(scriptId);
+                    if (presetsRes.success) {
+                        setFilterPresets(presetsRes.presets);
+                    }
+                } catch (e) {
+                    console.warn('Could not fetch filter presets:', e);
+                }
             } catch (error) {
                 toast.error('Error', 'Failed to load report data');
             } finally {
@@ -95,32 +135,29 @@ const ReportBuilder = () => {
         fetchData();
     }, [scriptId]);
 
-    // Load preview when type changes
-    useEffect(() => {
-        const loadPreview = async () => {
-            if (!selectedType) return;
-            
-            setIsLoadingPreview(true);
-            try {
-                const res = await previewReport(scriptId, selectedType);
-                if (res.success) {
-                    setPreviewData(res.data);
-                }
-            } catch (error) {
-                console.error('Preview error:', error);
-            } finally {
-                setIsLoadingPreview(false);
-            }
-        };
-        
-        loadPreview();
-    }, [scriptId, selectedType]);
+    // Build clean filters object (strip empty values)
+    const buildActiveFilters = useCallback(() => {
+        const active = {};
+        if (filters.locations?.length) active.locations = filters.locations;
+        if (filters.location_parents?.length) active.location_parents = filters.location_parents;
+        if (filters.characters?.length) active.characters = filters.characters;
+        if (filters.int_ext?.length) active.int_ext = filters.int_ext;
+        if (filters.time_of_day?.length) active.time_of_day = filters.time_of_day;
+        if (filters.story_days?.length) active.story_days = filters.story_days;
+        if (filters.scene_numbers?.length) active.scene_numbers = filters.scene_numbers;
+        if (filters.scene_range?.from || filters.scene_range?.to) active.scene_range = filters.scene_range;
+        if (filters.timeline_codes?.length) active.timeline_codes = filters.timeline_codes;
+        return Object.keys(active).length > 0 ? active : null;
+    }, [filters]);
 
     const handleGenerate = async () => {
         setIsGenerating(true);
         try {
             const title = customTitle || null;
-            const res = await generateReport(scriptId, selectedType, title);
+            const activeFilters = buildActiveFilters();
+            const groupBy = filters.group_by !== 'scene_number' ? filters.group_by : null;
+            const categories = filters.categories?.length > 0 ? filters.categories : null;
+            const res = await generateReport(scriptId, selectedType, title, null, activeFilters, groupBy, categories);
             
             if (res.success) {
                 toast.success('Report Generated', 'Your report is ready!');
@@ -197,233 +234,180 @@ const ReportBuilder = () => {
                 </h1>
             </div>
 
-            <div className="report-builder-content">
-                {/* Report Type Selection */}
-                <div className="report-type-section">
-                    <h2>Select Report Type</h2>
-                    <div className="report-type-grid">
-                        {Object.entries(reportTypes).map(([type, info]) => {
-                            const Icon = REPORT_ICONS[type] || FileText;
-                            const isSelected = selectedType === type;
-                            
-                            return (
-                                <button
-                                    key={type}
-                                    className={`report-type-card ${isSelected ? 'selected' : ''}`}
-                                    onClick={() => setSelectedType(type)}
-                                >
-                                    <Icon size={24} />
-                                    <span className="type-name">{info.name}</span>
-                                    <span className="type-desc">{info.description}</span>
-                                    {isSelected && <Check size={16} className="check-icon" />}
-                                </button>
-                            );
-                        })}
-                    </div>
+            {/* Report Type Selection — Full Width */}
+            <div className="report-type-section">
+                <h2>Select Report Type</h2>
+                <div className="report-type-grid">
+                    {Object.entries(reportTypes).map(([type, info]) => {
+                        const Icon = REPORT_ICONS[type] || FileText;
+                        const isSelected = selectedType === type;
+                        
+                        return (
+                            <button
+                                key={type}
+                                className={`report-type-card ${isSelected ? 'selected' : ''}`}
+                                onClick={() => setSelectedType(type)}
+                            >
+                                <Icon size={24} />
+                                <span className="type-name">{info.name}</span>
+                                <span className="type-desc">{info.description}</span>
+                                {isSelected && <Check size={16} className="check-icon" />}
+                            </button>
+                        );
+                    })}
                 </div>
+            </div>
 
-                {/* Configuration */}
-                <div className="report-config-section">
-                    <h2>Report Options</h2>
-                    <div className="config-form">
-                        <div className="form-group">
-                            <label htmlFor="customTitle">Custom Title (optional)</label>
+            {/* Two-Column: Filters (left) | Config + Reports (right) */}
+            <div className="report-builder-layout">
+                {/* Filter Panel */}
+                <ReportFilterPanel
+                    filterOptions={filterOptions}
+                    filters={filters}
+                    onFilterChange={setFilters}
+                    isCollapsed={filterPanelCollapsed}
+                    onToggleCollapse={() => setFilterPanelCollapsed(!filterPanelCollapsed)}
+                    presets={filterPresets}
+                    onLoadPreset={(preset) => {
+                        const newFilters = {
+                            locations: [],
+                            location_parents: [],
+                            characters: [],
+                            int_ext: [],
+                            time_of_day: [],
+                            story_days: [],
+                            scene_numbers: [],
+                            scene_range: { from: '', to: '' },
+                            timeline_codes: [],
+                            ...(preset.filters || {}),
+                            categories: preset.categories || [],
+                            group_by: preset.group_by || 'scene_number'
+                        };
+                        setFilters(newFilters);
+                        toast.success('Preset Loaded', `Applied "${preset.name}"`);
+                    }}
+                    onSavePreset={async (name) => {
+                        try {
+                            const activeFilters = buildActiveFilters();
+                            const res = await saveFilterPreset(scriptId, {
+                                name,
+                                filters: activeFilters || {},
+                                categories: filters.categories || [],
+                                group_by: filters.group_by || 'scene_number'
+                            });
+                            if (res.success) {
+                                setFilterPresets(prev => [...prev, res.preset]);
+                                toast.success('Preset Saved', `"${name}" saved`);
+                            }
+                        } catch (e) {
+                            toast.error('Error', 'Failed to save preset');
+                        }
+                    }}
+                    onDeletePreset={async (presetId) => {
+                        try {
+                            await deleteFilterPreset(presetId);
+                            setFilterPresets(prev => prev.filter(p => p.id !== presetId));
+                            toast.success('Deleted', 'Preset deleted');
+                        } catch (e) {
+                            toast.error('Error', 'Failed to delete preset');
+                        }
+                    }}
+                />
+
+                {/* Right Column: Config + Generated Reports */}
+                <div className="report-builder-sidebar">
+                    {/* Compact Config Bar */}
+                    <div className="report-config-section">
+                        <div className="config-inline">
                             <input
                                 type="text"
                                 id="customTitle"
                                 value={customTitle}
                                 onChange={(e) => setCustomTitle(e.target.value)}
-                                placeholder={`${scriptMetadata?.title || 'Script'} - ${reportTypes[selectedType]?.name || 'Report'}`}
+                                placeholder={`Custom title (optional)`}
+                                className="config-title-input"
                             />
+                            <button 
+                                className="btn-primary generate-btn"
+                                onClick={handleGenerate}
+                                disabled={isGenerating}
+                            >
+                                {isGenerating ? (
+                                    <>
+                                        <Loader size={16} className="spin" />
+                                        Generating...
+                                    </>
+                                ) : (
+                                    <>
+                                        <FileText size={16} />
+                                        Generate Report
+                                    </>
+                                )}
+                            </button>
                         </div>
                     </div>
-                    
-                    <button 
-                        className="btn-primary generate-btn"
-                        onClick={handleGenerate}
-                        disabled={isGenerating}
-                    >
-                        {isGenerating ? (
-                            <>
-                                <Loader size={16} className="spin" />
-                                Generating...
-                            </>
-                        ) : (
-                            <>
-                                <FileText size={16} />
-                                Generate Report
-                            </>
-                        )}
-                    </button>
-                </div>
 
-                {/* Preview Section */}
-                <div className="report-preview-section">
-                    <h2>Preview</h2>
-                    {isLoadingPreview ? (
-                        <div className="preview-loading">
-                            <Loader className="spin" size={24} />
-                            <span>Loading preview...</span>
-                        </div>
-                    ) : previewData ? (
-                        <div className="preview-content">
-                            <div className="preview-stats">
-                                <div className="stat-item">
-                                    <span className="stat-value">{previewData.summary?.total_scenes || 0}</span>
-                                    <span className="stat-label">Scenes</span>
-                                </div>
-                                <div className="stat-item">
-                                    <span className="stat-value">{previewData.summary?.total_characters || 0}</span>
-                                    <span className="stat-label">Characters</span>
-                                </div>
-                                <div className="stat-item">
-                                    <span className="stat-value">{previewData.summary?.total_locations || 0}</span>
-                                    <span className="stat-label">Locations</span>
-                                </div>
-                                <div className="stat-item">
-                                    <span className="stat-value">{previewData.summary?.total_props || 0}</span>
-                                    <span className="stat-label">Props</span>
-                                </div>
-                                {(previewData.summary?.total_story_days > 0) && (
-                                    <div className="stat-item">
-                                        <span className="stat-value">{previewData.summary.total_story_days}</span>
-                                        <span className="stat-label">Story Days</span>
-                                    </div>
-                                )}
+                    {/* Existing Reports */}
+                    <div className="existing-reports-section">
+                        <h2>Generated Reports</h2>
+                        {existingReports.length === 0 ? (
+                            <div className="no-reports">
+                                <FileText size={32} />
+                                <p>No reports generated yet</p>
                             </div>
-                            
-                            {selectedType === 'day_out_of_days' && previewData.characters && (
-                                <div className="preview-table">
-                                    <h4>Top Characters</h4>
-                                    <table>
-                                        <thead>
-                                            <tr>
-                                                <th>Character</th>
-                                                <th>Scenes</th>
-                                                <th>Story Days</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {Object.entries(previewData.characters)
-                                                .sort((a, b) => b[1].count - a[1].count)
-                                                .slice(0, 5)
-                                                .map(([name, info]) => {
-                                                    const days = info.story_days || [];
-                                                    const daysStr = days.length > 0 ? days.sort((a, b) => a - b).map(d => `D${d}`).join(', ') : '-';
-                                                    return (
-                                                        <tr key={name}>
-                                                            <td>{name}</td>
-                                                            <td>{info.count}</td>
-                                                            <td>{daysStr}</td>
-                                                        </tr>
-                                                    );
-                                                })
-                                            }
-                                        </tbody>
-                                    </table>
-                                </div>
-                            )}
-                            
-                            {selectedType === 'location' && previewData.locations && (
-                                <div className="preview-table">
-                                    <h4>Top Locations</h4>
-                                    <table>
-                                        <thead>
-                                            <tr>
-                                                <th>Location</th>
-                                                <th>Scenes</th>
-                                                <th>Story Days</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {Object.entries(previewData.locations)
-                                                .sort((a, b) => b[1].count - a[1].count)
-                                                .slice(0, 5)
-                                                .map(([name, info]) => {
-                                                    const days = info.story_days || [];
-                                                    const daysStr = days.length > 0 ? days.sort((a, b) => a - b).map(d => `D${d}`).join(', ') : '-';
-                                                    return (
-                                                        <tr key={name}>
-                                                            <td>{name}</td>
-                                                            <td>{info.count}</td>
-                                                            <td>{daysStr}</td>
-                                                        </tr>
-                                                    );
-                                                })
-                                            }
-                                        </tbody>
-                                    </table>
-                                </div>
-                            )}
-                        </div>
-                    ) : (
-                        <div className="preview-empty">
-                            <AlertCircle size={24} />
-                            <span>No preview available</span>
-                        </div>
-                    )}
-                </div>
-
-                {/* Existing Reports */}
-                <div className="existing-reports-section">
-                    <h2>Generated Reports</h2>
-                    {existingReports.length === 0 ? (
-                        <div className="no-reports">
-                            <FileText size={32} />
-                            <p>No reports generated yet</p>
-                        </div>
-                    ) : (
-                        <div className="reports-list">
-                            {existingReports.map(report => {
-                                const Icon = REPORT_ICONS[report.report_type] || FileText;
-                                const generatedDate = new Date(report.generated_at).toLocaleDateString();
-                                
-                                return (
-                                    <div key={report.id} className="report-item">
-                                        <div className="report-item-info">
-                                            <Icon size={20} />
-                                            <div className="report-details">
-                                                <span className="report-title">{report.title}</span>
-                                                <span className="report-meta">
-                                                    <Clock size={12} />
-                                                    {generatedDate}
-                                                    {report.is_public && (
-                                                        <span className="shared-badge">
-                                                            <Share2 size={10} />
-                                                            Shared
-                                                        </span>
-                                                    )}
-                                                </span>
+                        ) : (
+                            <div className="reports-list">
+                                {existingReports.map(report => {
+                                    const Icon = REPORT_ICONS[report.report_type] || FileText;
+                                    const generatedDate = new Date(report.generated_at).toLocaleDateString();
+                                    
+                                    return (
+                                        <div key={report.id} className="report-item">
+                                            <div className="report-item-info">
+                                                <Icon size={20} />
+                                                <div className="report-details">
+                                                    <span className="report-title">{report.title}</span>
+                                                    <span className="report-meta">
+                                                        <Clock size={12} />
+                                                        {generatedDate}
+                                                        {report.is_public && (
+                                                            <span className="shared-badge">
+                                                                <Share2 size={10} />
+                                                                Shared
+                                                            </span>
+                                                        )}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className="report-item-actions">
+                                                <button 
+                                                    className="action-btn"
+                                                    onClick={() => handlePrint(report.id)}
+                                                    title="Download/Print"
+                                                >
+                                                    <Download size={16} />
+                                                </button>
+                                                <button 
+                                                    className="action-btn"
+                                                    onClick={() => setShareModalReport(report)}
+                                                    title="Share"
+                                                >
+                                                    <Share2 size={16} />
+                                                </button>
+                                                <button 
+                                                    className="action-btn danger"
+                                                    onClick={() => handleDelete(report.id)}
+                                                    title="Delete"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
                                             </div>
                                         </div>
-                                        <div className="report-item-actions">
-                                            <button 
-                                                className="action-btn"
-                                                onClick={() => handlePrint(report.id)}
-                                                title="Download/Print"
-                                            >
-                                                <Download size={16} />
-                                            </button>
-                                            <button 
-                                                className="action-btn"
-                                                onClick={() => setShareModalReport(report)}
-                                                title="Share"
-                                            >
-                                                <Share2 size={16} />
-                                            </button>
-                                            <button 
-                                                className="action-btn danger"
-                                                onClick={() => handleDelete(report.id)}
-                                                title="Delete"
-                                            >
-                                                <Trash2 size={16} />
-                                            </button>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    )}
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
 

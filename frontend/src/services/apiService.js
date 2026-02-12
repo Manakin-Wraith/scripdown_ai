@@ -571,19 +571,86 @@ export const getReportPresets = async () => {
 };
 
 /**
+ * Get available filter options for a script's reports
+ * @param {string} scriptId - The script UUID
+ * @returns {Promise<Object>} Filter options (locations, characters, etc.)
+ */
+export const getFilterOptions = async (scriptId) => {
+    try {
+        const response = await api.get(`/api/reports/scripts/${scriptId}/filter-options`);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching filter options:', error);
+        throw error;
+    }
+};
+
+/**
+ * Get saved filter presets (default + user's) for a script
+ * @param {string} scriptId - The script UUID
+ * @returns {Promise<Object>} Presets list
+ */
+export const getFilterPresets = async (scriptId) => {
+    try {
+        const response = await api.get(`/api/reports/scripts/${scriptId}/filter-presets`);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching filter presets:', error);
+        throw error;
+    }
+};
+
+/**
+ * Save a new filter preset
+ * @param {string} scriptId - The script UUID
+ * @param {Object} preset - Preset data { name, filters, categories, group_by }
+ * @returns {Promise<Object>} Saved preset
+ */
+export const saveFilterPreset = async (scriptId, preset) => {
+    try {
+        const response = await api.post(`/api/reports/scripts/${scriptId}/filter-presets`, preset);
+        return response.data;
+    } catch (error) {
+        console.error('Error saving filter preset:', error);
+        throw error;
+    }
+};
+
+/**
+ * Delete a user's filter preset
+ * @param {string} presetId - The preset UUID
+ * @returns {Promise<Object>} Success response
+ */
+export const deleteFilterPreset = async (presetId) => {
+    try {
+        const response = await api.delete(`/api/reports/filter-presets/${presetId}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error deleting filter preset:', error);
+        throw error;
+    }
+};
+
+/**
  * Generate a new report
  * @param {string} scriptId - The script UUID
  * @param {string} reportType - Type of report to generate
  * @param {string} title - Optional custom title
  * @param {Object} config - Optional configuration overrides
+ * @param {Object} filters - Optional filters to restrict scenes
+ * @param {string} groupBy - Optional grouping dimension (location, character, story_day)
+ * @param {Array} categories - Optional list of breakdown categories to include
  * @returns {Promise<Object>} Generated report
  */
-export const generateReport = async (scriptId, reportType, title = null, config = null) => {
+export const generateReport = async (scriptId, reportType, title = null, config = null, filters = null, groupBy = null, categories = null) => {
     try {
         const response = await api.post(`/api/reports/scripts/${scriptId}/reports/generate`, {
             report_type: reportType,
             title,
-            config
+            config,
+            filters,
+            group_by: groupBy,
+            categories
         });
         return response.data;
     } catch (error) {
@@ -596,12 +663,18 @@ export const generateReport = async (scriptId, reportType, title = null, config 
  * Preview report data without saving
  * @param {string} scriptId - The script UUID
  * @param {string} reportType - Type of report to preview
+ * @param {Object} filters - Optional filters to restrict scenes
+ * @param {string} groupBy - Optional grouping dimension
+ * @param {Array} categories - Optional breakdown categories
  * @returns {Promise<Object>} Aggregated report data
  */
-export const previewReport = async (scriptId, reportType) => {
+export const previewReport = async (scriptId, reportType, filters = null, groupBy = null, categories = null) => {
     try {
         const response = await api.post(`/api/reports/scripts/${scriptId}/reports/preview`, {
-            report_type: reportType
+            report_type: reportType,
+            filters,
+            group_by: groupBy,
+            categories
         });
         return response.data;
     } catch (error) {

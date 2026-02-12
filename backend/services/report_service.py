@@ -7,6 +7,7 @@ location reports, props lists, and one-liner/stripboard views.
 """
 
 import os
+import re
 import secrets
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
@@ -22,6 +23,47 @@ except ImportError:
 
 from db.supabase_client import db
 from utils.scene_calculations import format_eighths, calculate_total_script_length
+
+
+# ============================================
+# Scene Number Helpers (for range filtering)
+# ============================================
+
+def _parse_scene_number(scene_num: str) -> tuple:
+    """
+    Parse a scene number into (numeric_prefix, alpha_suffix) for comparison.
+    Examples: '5' -> (5, ''), '5A' -> (5, 'A'), '12B' -> (12, 'B'), 'A1' -> (0, 'A1')
+    """
+    if not scene_num:
+        return (0, '')
+    match = re.match(r'^(\d+)(.*)', str(scene_num).strip())
+    if match:
+        return (int(match.group(1)), match.group(2).upper())
+    return (0, str(scene_num).upper())
+
+
+def _in_scene_range(scene_num: str, scene_range: Dict) -> bool:
+    """
+    Check if scene_num falls within scene_range {'from': '1', 'to': '20'}.
+    Compares numeric prefix; alpha suffixes are included (e.g., '5A' is within 1-20).
+    """
+    if not scene_range:
+        return True
+    parsed = _parse_scene_number(scene_num)
+    range_from = scene_range.get('from')
+    range_to = scene_range.get('to')
+    if range_from:
+        from_parsed = _parse_scene_number(range_from)
+        if parsed < from_parsed:
+            return False
+    if range_to:
+        to_parsed = _parse_scene_number(range_to)
+        # Include the 'to' number and all its suffixes (e.g., 20, 20A, 20B)
+        if parsed[0] > to_parsed[0]:
+            return False
+        if parsed[0] == to_parsed[0] and to_parsed[1] and parsed[1] > to_parsed[1]:
+            return False
+    return True
 
 
 # ============================================
@@ -355,14 +397,166 @@ class ReportService:
         return result.data
     
     # ============================================
+    # Scene Filtering
+    # ============================================
+    
+    def _filter_scenes(self, scenes: List[Dict], filters: Dict) -> List[Dict]:
+        """
+        Filter scenes based on criteria. All filters AND-combined.
+        Multiple values within a single filter are OR-combined.
+        Returns subset of scenes matching all active filters.
+        """
+        if not filters:
+            return scenes
+        
+        filtered = list(scenes)
+        
+        # Location filter (exact match on setting)
+        if filters.get('locations'):
+            locs = [l.upper() for l in filters['locations']]
+            filtered = [s for s in filtered if (s.get('setting') or '').upper() in locs]
+        
+        # Location parent filter (matches if location_hierarchy contains parent)
+        if filters.get('location_parents'):
+            parents = [p.upper() for p in filters['location_parents']]
+            def _matches_parent(scene):
+                hierarchy = scene.get('location_hierarchy') or []
+                if isinstance(hierarchy, list) and hierarchy:
+                    return any(h.upper() in parents for h in hierarchy)
+                setting = (scene.get('setting') or '').upper()
+                return any(setting.startswith(p) for p in parents)
+            filtered = [s for s in filtered if _matches_parent(s)]
+        
+        # Character filter (scene must contain at least one of the characters)
+        if filters.get('characters'):
+            chars = [c.upper() for c in filters['characters']]
+            def _has_character(scene):
+                scene_chars = scene.get('characters') or []
+                for c in scene_chars:
+                    name = c.upper() if isinstance(c, str) else (c.get('name', '') or '').upper()
+                    if name in chars:
+                        return True
+                return False
+            filtered = [s for s in filtered if _has_character(s)]
+        
+        # INT/EXT filter
+        if filters.get('int_ext'):
+            vals = [v.upper() for v in filters['int_ext']]
+            filtered = [s for s in filtered if (s.get('int_ext') or '').upper() in vals]
+        
+        # Time of day filter
+        if filters.get('time_of_day'):
+            vals = [v.upper() for v in filters['time_of_day']]
+            filtered = [s for s in filtered if (s.get('time_of_day') or '').upper() in vals]
+        
+        # Story day filter
+        if filters.get('story_days'):
+            days = filters['story_days']
+            filtered = [s for s in filtered if s.get('story_day') in days]
+        
+        # Scene numbers filter (specific scenes)
+        if filters.get('scene_numbers'):
+            nums = [str(n) for n in filters['scene_numbers']]
+            filtered = [s for s in filtered if str(s.get('scene_number', '')) in nums]
+        
+        # Scene range filter
+        if filters.get('scene_range'):
+            sr = filters['scene_range']
+            if sr.get('from') or sr.get('to'):
+                filtered = [s for s in filtered if _in_scene_range(s.get('scene_number', ''), sr)]
+        
+        # Timeline code filter
+        if filters.get('timeline_codes'):
+            codes = [c.upper() for c in filters['timeline_codes']]
+            filtered = [s for s in filtered 
+                        if (s.get('timeline_code') or 'PRESENT').upper() in codes]
+        
+        # Exclude omitted scenes (default True)
+        if filters.get('exclude_omitted', True):
+            filtered = [s for s in filtered if not s.get('is_omitted')]
+        
+        return filtered
+    
+    def get_filter_options(self, script_id: str) -> Dict[str, Any]:
+        """
+        Return unique values for each filter dimension.
+        Used by frontend to populate filter dropdowns.
+        """
+        scenes = self.db.get_scenes(script_id)
+        
+        locations = set()
+        location_parents = set()
+        characters = set()
+        int_ext_values = set()
+        time_of_day_values = set()
+        story_days = set()
+        timeline_codes = set()
+        scene_numbers = []
+        
+        for scene in scenes:
+            # Locations
+            setting = scene.get('setting')
+            if setting:
+                locations.add(setting)
+            
+            # Location parents (from hierarchy)
+            hierarchy = scene.get('location_hierarchy')
+            if isinstance(hierarchy, list) and len(hierarchy) > 1:
+                location_parents.add(hierarchy[0])
+            
+            # Characters
+            for c in (scene.get('characters') or []):
+                name = c if isinstance(c, str) else c.get('name', '')
+                if name:
+                    characters.add(name)
+            
+            # INT/EXT
+            ie = scene.get('int_ext')
+            if ie:
+                int_ext_values.add(ie)
+            
+            # Time of day
+            tod = scene.get('time_of_day')
+            if tod:
+                time_of_day_values.add(tod)
+            
+            # Story days
+            sd = scene.get('story_day')
+            if sd is not None:
+                story_days.add(sd)
+            
+            # Timeline codes
+            tc = scene.get('timeline_code')
+            if tc:
+                timeline_codes.add(tc)
+            
+            # Scene numbers (preserve order)
+            sn = scene.get('scene_number')
+            if sn is not None:
+                scene_numbers.append(str(sn))
+        
+        return {
+            'locations': sorted(locations),
+            'location_parents': sorted(location_parents),
+            'characters': sorted(characters),
+            'int_ext_values': sorted(int_ext_values),
+            'time_of_day_values': sorted(time_of_day_values),
+            'story_days': sorted(story_days),
+            'timeline_codes': sorted(timeline_codes),
+            'scene_numbers': scene_numbers,
+            'total_scenes': len(scenes)
+        }
+    
+    # ============================================
     # Data Aggregation
     # ============================================
     
-    def aggregate_scene_data(self, script_id: str) -> Dict[str, Any]:
+    def aggregate_scene_data(self, script_id: str, filters: Optional[Dict] = None) -> Dict[str, Any]:
         """
         Aggregate all scene data for a script.
         Returns structured data for report generation.
         Collects ALL breakdown categories without truncation.
+        When filters are provided, only matching scenes are aggregated.
         """
         # Get script metadata
         script = self.db.get_script(script_id)
@@ -370,7 +564,10 @@ class ReportService:
             raise ValueError(f"Script not found: {script_id}")
         
         # Get all scenes
-        scenes = self.db.get_scenes(script_id)
+        all_scenes = self.db.get_scenes(script_id)
+        
+        # Apply filters if provided
+        scenes = self._filter_scenes(all_scenes, filters) if filters else all_scenes
         
         # Get user-added items from department_items (exclude removed)
         user_items_by_scene = {}
@@ -569,6 +766,12 @@ class ReportService:
             'animals': dict(animals),
             'extras': dict(extras),
             'stunts': dict(stunts),
+            'filter_summary': {
+                'total_scenes_unfiltered': len(all_scenes),
+                'total_scenes_filtered': len(scenes),
+                'is_filtered': filters is not None and len(scenes) != len(all_scenes),
+                'active_filters': [k for k, v in (filters or {}).items() if v] if filters else []
+            },
             'generated_at': datetime.utcnow().isoformat()
         }
     
@@ -582,28 +785,35 @@ class ReportService:
         report_type: str,
         config: Optional[Dict] = None,
         title: Optional[str] = None,
-        user_id: Optional[str] = None
+        user_id: Optional[str] = None,
+        filters: Optional[Dict] = None
     ) -> Dict:
         """
         Generate a report and store it in the database.
         Returns the report record with data snapshot.
+        Accepts optional filters to restrict which scenes are included.
         """
         if report_type not in self.REPORT_TYPES:
             raise ValueError(f"Invalid report type: {report_type}")
         
-        # Aggregate data
-        data = self.aggregate_scene_data(script_id)
+        # Aggregate data with optional filters
+        data = self.aggregate_scene_data(script_id, filters=filters)
         
         # Generate title if not provided
         if not title:
             title = f"{data['script']['title']} - {self.REPORT_TYPES[report_type]['name']}"
+        
+        # Merge filters into config for persistence
+        merged_config = config or {}
+        if filters:
+            merged_config['filters'] = filters
         
         # Create report record
         report_data = {
             'script_id': script_id,
             'report_type': report_type,
             'title': title,
-            'config': config or {},
+            'config': merged_config,
             'data_snapshot': data,
             'generated_by': user_id,
             'generated_at': datetime.utcnow().isoformat()
@@ -625,6 +835,63 @@ class ReportService:
     def delete_report(self, report_id: str) -> bool:
         """Delete a report."""
         self.db.client.table('reports').delete().eq('id', report_id).execute()
+        return True
+    
+    # ============================================
+    # Filter Presets
+    # ============================================
+    
+    def get_filter_presets(self, script_id: str, user_id: Optional[str] = None) -> List[Dict]:
+        """
+        Get filter presets: default (global) + user's own for this script.
+        """
+        presets = []
+        
+        # Get default presets (no script_id, is_default=True)
+        default_result = self.db.client.table('report_filter_presets').select('*').eq('is_default', True).order('name').execute()
+        presets.extend(default_result.data or [])
+        
+        # Get user's custom presets for this script
+        if user_id:
+            user_result = (
+                self.db.client.table('report_filter_presets')
+                .select('*')
+                .eq('user_id', user_id)
+                .eq('script_id', script_id)
+                .eq('is_default', False)
+                .order('name')
+                .execute()
+            )
+            presets.extend(user_result.data or [])
+        
+        return presets
+    
+    def save_filter_preset(
+        self,
+        script_id: str,
+        user_id: str,
+        name: str,
+        filters: Dict,
+        categories: Optional[List[str]] = None,
+        group_by: str = 'scene_number'
+    ) -> Dict:
+        """Save a new filter preset for a user."""
+        preset_data = {
+            'user_id': user_id,
+            'script_id': script_id,
+            'name': name,
+            'filters': filters or {},
+            'categories': categories or [],
+            'group_by': group_by,
+            'is_default': False
+        }
+        
+        result = self.db.client.table('report_filter_presets').insert(preset_data).execute()
+        return result.data[0] if result.data else None
+    
+    def delete_filter_preset(self, preset_id: str, user_id: str) -> bool:
+        """Delete a user's filter preset. Cannot delete default presets."""
+        self.db.client.table('report_filter_presets').delete().eq('id', preset_id).eq('user_id', user_id).eq('is_default', False).execute()
         return True
     
     # ============================================
@@ -752,8 +1019,16 @@ class ReportService:
         </div>
         """
         
-        # Render based on type
-        if report_type == 'scene_breakdown':
+        # Check for grouped rendering via config
+        config = report.get('config', {})
+        group_by = config.get('group_by')
+        categories = config.get('categories')
+        
+        # If group_by is set to a non-default value, use grouped renderer
+        if group_by and group_by != 'scene_number':
+            body = self._render_grouped_report(data, group_by, categories if categories else None)
+        # Otherwise render based on type
+        elif report_type == 'scene_breakdown':
             body = self._render_scene_breakdown(data)
         elif report_type == 'day_out_of_days':
             body = self._render_day_out_of_days(data)
@@ -1427,6 +1702,60 @@ class ReportService:
             }
         }
         
+        /* Grouped report styles */
+        .report-group {
+            margin-bottom: 2rem;
+            page-break-inside: avoid;
+        }
+        
+        .report-group + .page-break + .report-group {
+            page-break-before: always;
+        }
+        
+        .group-header {
+            font-size: 13pt;
+            font-weight: 700;
+            color: #1a1a1a;
+            background: #f0f4f8;
+            padding: 10px 14px;
+            margin: 0 0 4px 0;
+            border-left: 4px solid #4f46e5;
+            page-break-after: avoid;
+        }
+        
+        .group-meta {
+            font-size: 8.5pt;
+            color: #666;
+            margin: 0 0 0.75rem 0;
+            padding: 0 0 0 18px;
+        }
+        
+        .grouped-breakdown {
+            font-size: 8.5pt;
+            line-height: 1.5;
+        }
+        
+        .grouped-breakdown strong {
+            color: #555;
+        }
+        
+        .grouped-table {
+            margin-top: 0;
+        }
+        
+        .filter-note {
+            font-size: 9pt;
+            color: #b45309;
+            font-style: italic;
+            margin: 0.25rem 0 0.75rem 0;
+        }
+        
+        .category-note {
+            font-size: 8.5pt;
+            color: #666;
+            margin: 0 0 1rem 0;
+        }
+        
         /* Department-specific report styles */
         .department-header {
             background: #e8f4f8;
@@ -1440,6 +1769,204 @@ class ReportService:
             font-size: 12pt;
             color: #0066cc;
         }
+        """
+    
+    # ============================================
+    # Grouped Report Renderer
+    # ============================================
+    
+    def _render_grouped_report(self, data: Dict, group_by: str, categories: Optional[List[str]] = None) -> str:
+        """
+        Render a report grouped by a dimension (location, character, story_day).
+        Only selected categories are shown in each group's breakdown table.
+        """
+        scenes = data.get('scenes', [])
+        user_items_map = data.get('user_items_by_scene', {})
+        
+        # Default categories if none specified
+        all_categories = ['characters', 'props', 'wardrobe', 'makeup', 'special_effects', 'vehicles', 'animals', 'extras', 'stunts']
+        active_cats = categories if categories else all_categories
+        
+        # Category display labels
+        cat_labels = {
+            'characters': 'Characters', 'props': 'Props', 'wardrobe': 'Wardrobe',
+            'makeup': 'Makeup/Hair', 'special_effects': 'Special FX',
+            'vehicles': 'Vehicles', 'animals': 'Animals', 'extras': 'Extras', 'stunts': 'Stunts'
+        }
+        
+        def merge_items(scene, scene_user, category):
+            """Merge AI + user items for a given category."""
+            ai_key = category
+            user_key = category if category != 'special_effects' else 'special_fx'
+            ai_items = scene.get(ai_key) or []
+            user_items = scene_user.get(category, scene_user.get(user_key, [])) or []
+            combined = list(ai_items) + list(user_items)
+            return [item if isinstance(item, str) else item.get('name', str(item)) for item in combined]
+        
+        # Build groups based on dimension
+        groups = {}  # key -> { 'label': str, 'meta': str, 'scenes': [scene_dicts] }
+        
+        if group_by == 'location':
+            for scene in scenes:
+                setting = scene.get('setting', 'UNKNOWN')
+                if setting not in groups:
+                    groups[setting] = {
+                        'scenes': [],
+                        'int_ext': set(),
+                        'time_of_day': set(),
+                        'story_days': set()
+                    }
+                groups[setting]['scenes'].append(scene)
+                groups[setting]['int_ext'].add(scene.get('int_ext', ''))
+                groups[setting]['time_of_day'].add(scene.get('time_of_day', ''))
+                if scene.get('story_day'):
+                    groups[setting]['story_days'].add(scene['story_day'])
+            
+            # Sort by scene count descending
+            sorted_keys = sorted(groups.keys(), key=lambda k: len(groups[k]['scenes']), reverse=True)
+        
+        elif group_by == 'character':
+            # Build character -> scenes mapping
+            char_scenes = {}
+            for scene in scenes:
+                scene_id = scene.get('id') or scene.get('scene_id')
+                scene_user = user_items_map.get(scene_id, {})
+                all_chars = merge_items(scene, scene_user, 'characters')
+                for char_name in all_chars:
+                    if char_name not in char_scenes:
+                        char_scenes[char_name] = {
+                            'scenes': [],
+                            'int_ext': set(),
+                            'time_of_day': set(),
+                            'story_days': set()
+                        }
+                    # Avoid duplicate scenes for same character
+                    scene_nums = [s.get('scene_number') for s in char_scenes[char_name]['scenes']]
+                    if scene.get('scene_number') not in scene_nums:
+                        char_scenes[char_name]['scenes'].append(scene)
+                        char_scenes[char_name]['int_ext'].add(scene.get('int_ext', ''))
+                        char_scenes[char_name]['time_of_day'].add(scene.get('time_of_day', ''))
+                        if scene.get('story_day'):
+                            char_scenes[char_name]['story_days'].add(scene['story_day'])
+            
+            groups = char_scenes
+            sorted_keys = sorted(groups.keys(), key=lambda k: len(groups[k]['scenes']), reverse=True)
+        
+        elif group_by == 'story_day':
+            for scene in scenes:
+                day = scene.get('story_day') or 0
+                day_key = f"Day {day}" if day else "Unassigned"
+                if day_key not in groups:
+                    groups[day_key] = {
+                        'scenes': [],
+                        'int_ext': set(),
+                        'time_of_day': set(),
+                        'story_days': {day} if day else set(),
+                        'sort_key': day
+                    }
+                groups[day_key]['scenes'].append(scene)
+                groups[day_key]['int_ext'].add(scene.get('int_ext', ''))
+                groups[day_key]['time_of_day'].add(scene.get('time_of_day', ''))
+            
+            sorted_keys = sorted(groups.keys(), key=lambda k: groups[k].get('sort_key', 0))
+        
+        else:
+            # Default: scene_number — just render the standard breakdown
+            return self._render_scene_breakdown(data)
+        
+        # Render each group
+        group_sections = []
+        for key in sorted_keys:
+            group = groups[key]
+            group_scenes = group['scenes']
+            scene_count = len(group_scenes)
+            
+            # Build meta line
+            meta_parts = [f"{scene_count} scene{'s' if scene_count != 1 else ''}"]
+            int_ext_vals = sorted([v for v in group.get('int_ext', set()) if v])
+            if int_ext_vals:
+                meta_parts.append('/'.join(int_ext_vals))
+            tod_vals = sorted([v for v in group.get('time_of_day', set()) if v])
+            if tod_vals:
+                meta_parts.append('/'.join(tod_vals))
+            story_days = sorted(group.get('story_days', set()))
+            if story_days:
+                meta_parts.append('Story Days: ' + ', '.join(f'D{d}' for d in story_days))
+            
+            meta_str = ' · '.join(meta_parts)
+            
+            # Build breakdown rows for scenes in this group
+            rows = []
+            for scene in group_scenes:
+                scene_id = scene.get('id') or scene.get('scene_id')
+                scene_user = user_items_map.get(scene_id, {})
+                
+                # Collect items per active category
+                cat_cells = []
+                for cat in active_cats:
+                    items = merge_items(scene, scene_user, cat)
+                    if items:
+                        cat_cells.append(f"<strong>{cat_labels.get(cat, cat)}:</strong> {', '.join(items)}")
+                
+                breakdown_str = '<br>'.join(cat_cells) if cat_cells else '—'
+                
+                eighths = scene.get('page_length_eighths', 8)
+                length_display = format_eighths(eighths)
+                story_day_display = f"D{scene.get('story_day')}" if scene.get('story_day') else '—'
+                
+                rows.append(f"""
+                <tr>
+                    <td class="scene-num"><strong>{scene.get('scene_number', '')}</strong></td>
+                    <td class="int-ext">{scene.get('int_ext', '')}</td>
+                    <td class="setting">{scene.get('setting', '')}</td>
+                    <td class="time">{scene.get('time_of_day', '')}</td>
+                    <td class="day-cell">{story_day_display}</td>
+                    <td class="length-cell">{length_display}</td>
+                </tr>
+                <tr class="breakdown-details">
+                    <td colspan="6">
+                        <div class="grouped-breakdown">{breakdown_str}</div>
+                    </td>
+                </tr>
+                """)
+            
+            group_sections.append(f"""
+            <div class="report-group">
+                <h3 class="group-header">{key}</h3>
+                <p class="group-meta">{meta_str}</p>
+                <table class="breakdown-table grouped-table">
+                    <thead>
+                        <tr>
+                            <th>Scene</th>
+                            <th>I/E</th>
+                            <th>Setting</th>
+                            <th>D/N</th>
+                            <th>Day</th>
+                            <th>Length</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {''.join(rows)}
+                    </tbody>
+                </table>
+            </div>
+            """)
+        
+        group_label = {'location': 'Location', 'character': 'Character', 'story_day': 'Story Day'}.get(group_by, group_by)
+        filter_note = ''
+        filter_summary = data.get('filter_summary', {})
+        if filter_summary.get('is_filtered'):
+            filter_note = f'<p class="filter-note">Filtered: showing {filter_summary["total_scenes_filtered"]} of {filter_summary["total_scenes_unfiltered"]} scenes</p>'
+        
+        cat_note = ''
+        if categories and len(categories) < len(all_categories):
+            cat_note = f'<p class="category-note">Categories: {", ".join(cat_labels.get(c, c) for c in active_cats)}</p>'
+        
+        return f"""
+        <h2>Grouped by {group_label}</h2>
+        {filter_note}
+        {cat_note}
+        {'<div class="page-break"></div>'.join(group_sections)}
         """
     
     # ============================================

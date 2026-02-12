@@ -383,14 +383,21 @@ def upload_script():
             supabase.table('scripts').insert(script_data).execute()
             print(f"✓ Script saved to Supabase: {script_id}")
             
-            # Create page records
-            for page in pages_data:
-                page_data = {
+            # Create page records (batch insert for performance)
+            page_records = [
+                {
                     'script_id': script_id,
                     'page_number': page['page_number'],
                     'page_text': page['text']
                 }
-                supabase.table('script_pages').insert(page_data).execute()
+                for page in pages_data
+            ]
+            # Supabase supports batch insert — send all pages in one request
+            # Chunk into batches of 50 to avoid payload size limits
+            BATCH_SIZE = 50
+            for i in range(0, len(page_records), BATCH_SIZE):
+                batch = page_records[i:i + BATCH_SIZE]
+                supabase.table('script_pages').insert(batch).execute()
             
             # Run grammar-first scene detection with regex fallback
             scenes_detected, parse_meta = detect_and_create_scenes_v2(
@@ -621,9 +628,9 @@ def detect_and_create_scenes_v2(script_id, pdf_path, full_text, pages_data):
         })
         current_pos += len(page_text) + 2
 
-    # Write to both tables
-    scenes_created = 0
-    candidates_created = 0
+    # Build all records first, then batch insert for performance
+    scene_records = []
+    candidate_records = []
 
     for idx, ps in enumerate(parsed_scenes):
         # Use scene text from parser (correct text source) with fallback
@@ -641,8 +648,7 @@ def detect_and_create_scenes_v2(script_id, pdf_path, full_text, pages_data):
         loc_parent = ps.location_hierarchy[0] if ps.location_hierarchy else None
         loc_specific = ps.location_hierarchy[-1] if len(ps.location_hierarchy) > 1 else None
 
-        # --- Insert into scenes table (UI-facing) ---
-        scene_data = {
+        scene_records.append({
             'script_id': script_id,
             'scene_number': ps.scene_number_original,
             'scene_order': ps.scene_order,
@@ -665,16 +671,9 @@ def detect_and_create_scenes_v2(script_id, pdf_path, full_text, pages_data):
             'speakers': list(ps.speakers.keys()) if ps.speakers else [],
             'transitions': ps.transitions or [],
             'parse_method': ps.parse_method or 'grammar',
-        }
+        })
 
-        try:
-            supabase.table('scenes').insert(scene_data).execute()
-            scenes_created += 1
-        except Exception as e:
-            print(f"Error creating scene {ps.scene_order}: {e}")
-
-        # --- Insert into scene_candidates table (tracking/audit) ---
-        candidate_data = {
+        candidate_records.append({
             'script_id': script_id,
             'scene_number_original': ps.scene_number_original,
             'scene_order': ps.scene_order,
@@ -692,13 +691,42 @@ def detect_and_create_scenes_v2(script_id, pdf_path, full_text, pages_data):
             'shot_type': ps.shot_type,
             'transitions': ps.transitions,
             'parse_method': ps.parse_method,
-        }
+        })
 
+    # Batch insert scenes and candidates (chunks of 25 to avoid payload limits)
+    BATCH_SIZE = 25
+    scenes_created = 0
+    candidates_created = 0
+
+    for i in range(0, len(scene_records), BATCH_SIZE):
+        batch = scene_records[i:i + BATCH_SIZE]
         try:
-            supabase.table('scene_candidates').insert(candidate_data).execute()
-            candidates_created += 1
+            supabase.table('scenes').insert(batch).execute()
+            scenes_created += len(batch)
         except Exception as e:
-            print(f"Error creating candidate {ps.scene_order}: {e}")
+            print(f"Error batch-inserting scenes {i}-{i+len(batch)}: {e}")
+            # Fallback: insert one-by-one for this batch
+            for rec in batch:
+                try:
+                    supabase.table('scenes').insert(rec).execute()
+                    scenes_created += 1
+                except Exception as inner_e:
+                    print(f"Error creating scene {rec.get('scene_order')}: {inner_e}")
+
+    for i in range(0, len(candidate_records), BATCH_SIZE):
+        batch = candidate_records[i:i + BATCH_SIZE]
+        try:
+            supabase.table('scene_candidates').insert(batch).execute()
+            candidates_created += len(batch)
+        except Exception as e:
+            print(f"Error batch-inserting candidates {i}-{i+len(batch)}: {e}")
+            # Fallback: insert one-by-one for this batch
+            for rec in batch:
+                try:
+                    supabase.table('scene_candidates').insert(rec).execute()
+                    candidates_created += 1
+                except Exception as inner_e:
+                    print(f"Error creating candidate {rec.get('scene_order')}: {inner_e}")
 
     print(f"✓ Created {scenes_created} scenes + {candidates_created} candidates ({parse_method})")
     return scenes_created, parse_meta
@@ -825,7 +853,10 @@ def detect_and_create_scenes(script_id, full_text, pages_data=None):
                 current_pos = text_start + len(line_stripped) if text_start >= 0 else current_pos
                 break
     
-    # Create scene records
+    # Build scene records for batch insert
+    from utils.scene_calculations import calculate_eighths_from_content, calculate_eighths_from_pages
+    scene_records = []
+    
     for idx, scene in enumerate(scenes):
         # Calculate text_end (start of next scene or end of text)
         if idx + 1 < len(scenes):
@@ -840,25 +871,21 @@ def detect_and_create_scenes(script_id, full_text, pages_data=None):
         page_end = get_page_for_position(text_end - 1) if text_end > 0 else page_start
         
         # Calculate scene length in eighths
-        from utils.scene_calculations import calculate_eighths_from_content, calculate_eighths_from_pages
         if scene_text and len(scene_text.strip()) > 50:
-            # Use content-based calculation if we have substantial text
             page_length_eighths = calculate_eighths_from_content(scene_text)
         elif page_start and page_end:
-            # Fallback to page-based calculation
             page_length_eighths = calculate_eighths_from_pages(page_start, page_end)
         else:
-            # Default to 1 page
             page_length_eighths = 8
         
-        scene_data = {
+        scene_records.append({
             'script_id': script_id,
             'scene_number': str(idx + 1),
             'scene_order': idx + 1,
             'int_ext': scene['int_ext'],
             'setting': scene['setting'],
             'time_of_day': scene['time_of_day'],
-            'scene_text': scene_text[:5000],  # Limit text length
+            'scene_text': scene_text[:5000],
             'text_start': scene['text_start'],
             'text_end': text_end,
             'page_start': page_start,
@@ -866,14 +893,26 @@ def detect_and_create_scenes(script_id, full_text, pages_data=None):
             'page_length_eighths': page_length_eighths,
             'is_manual': False,
             'analysis_status': 'pending'
-        }
-        
-        try:
-            supabase.table('scenes').insert(scene_data).execute()
-        except Exception as e:
-            print(f"Error creating scene {idx + 1}: {e}")
+        })
     
-    return len(scenes)
+    # Batch insert scenes (chunks of 25)
+    BATCH_SIZE = 25
+    scenes_created = 0
+    for i in range(0, len(scene_records), BATCH_SIZE):
+        batch = scene_records[i:i + BATCH_SIZE]
+        try:
+            supabase.table('scenes').insert(batch).execute()
+            scenes_created += len(batch)
+        except Exception as e:
+            print(f"Error batch-inserting scenes {i}-{i+len(batch)}: {e}")
+            for rec in batch:
+                try:
+                    supabase.table('scenes').insert(rec).execute()
+                    scenes_created += 1
+                except Exception as inner_e:
+                    print(f"Error creating scene {rec.get('scene_order')}: {inner_e}")
+    
+    return scenes_created
 
 
 # ============================================
