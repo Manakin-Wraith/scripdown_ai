@@ -10,7 +10,9 @@ import {
     FileText,
     List,
     Clock,
-    ClipboardList
+    ClipboardList,
+    LayoutGrid,
+    CalendarDays
 } from 'lucide-react';
 import './ScriptHeader.css';
 
@@ -143,11 +145,29 @@ const ScriptHeader = ({ metadata, sceneCount = 0 }) => {
 
                 <button 
                     className="header-action-btn primary" 
+                    title="Zoomable Board"
+                    onClick={() => navigate(`/scripts/${scriptId}/board`)}
+                >
+                    <LayoutGrid size={18} />
+                    <span>Board</span>
+                </button>
+
+                <button 
+                    className="header-action-btn primary" 
                     title="Generate Reports"
                     onClick={() => navigate(`/scripts/${scriptId}/reports`)}
                 >
                     <ClipboardList size={18} />
                     <span>Reports</span>
+                </button>
+
+                <button 
+                    className="header-action-btn primary" 
+                    title="Shooting Schedule"
+                    onClick={() => navigate(`/scripts/${scriptId}/schedule`)}
+                >
+                    <CalendarDays size={18} />
+                    <span>Schedule</span>
                 </button>
 
                 {/* Phase 2+: Team button - deferred

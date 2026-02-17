@@ -1932,4 +1932,77 @@ export const getCampaignRecipients = async (campaignId, params = {}) => {
     }
 };
 
+// ============================================
+// Shooting Schedules
+// ============================================
+
+export const getSchedules = async (scriptId) => {
+    const response = await api.get(`/api/scripts/${scriptId}/schedules`);
+    return response.data;
+};
+
+export const createSchedule = async (scriptId, name = 'Schedule 1') => {
+    const response = await api.post(`/api/scripts/${scriptId}/schedules`, { name });
+    return response.data;
+};
+
+export const getShootingDays = async (scheduleId) => {
+    const response = await api.get(`/api/schedules/${scheduleId}/days`);
+    return response.data;
+};
+
+export const createShootingDay = async (scheduleId, sceneIds = [], notes = '') => {
+    const response = await api.post(`/api/schedules/${scheduleId}/days`, {
+        scene_ids: sceneIds,
+        notes,
+    });
+    return response.data;
+};
+
+export const addScenesToDay = async (dayId, sceneIds) => {
+    const response = await api.post(`/api/shooting-days/${dayId}/scenes`, {
+        scene_ids: sceneIds,
+    });
+    return response.data;
+};
+
+export const removeSceneFromDay = async (dayId, sceneId) => {
+    const response = await api.delete(`/api/shooting-days/${dayId}/scenes/${sceneId}`);
+    return response.data;
+};
+
+export const deleteSchedule = async (scheduleId) => {
+    const response = await api.delete(`/api/schedules/${scheduleId}`);
+    return response.data;
+};
+
+export const deleteShootingDay = async (dayId) => {
+    const response = await api.delete(`/api/shooting-days/${dayId}`);
+    return response.data;
+};
+
+export const reorderDayScenes = async (dayId, sceneIds) => {
+    const response = await api.patch(`/api/shooting-days/${dayId}/scenes/reorder`, {
+        scene_ids: sceneIds,
+    });
+    return response.data;
+};
+
+export const moveSceneToDay = async (fromDayId, sceneId, targetDayId, targetIndex = null) => {
+    const response = await api.post(`/api/shooting-days/${fromDayId}/scenes/${sceneId}/move`, {
+        target_day_id: targetDayId,
+        target_index: targetIndex,
+    });
+    return response.data;
+};
+
+export const quickAddToSchedule = async (scriptId, sceneIds, scheduleId = null, shootingDayId = null) => {
+    const response = await api.post(`/api/scripts/${scriptId}/schedule/quick-add`, {
+        scene_ids: sceneIds,
+        schedule_id: scheduleId,
+        shooting_day_id: shootingDayId,
+    });
+    return response.data;
+};
+
 export default api;

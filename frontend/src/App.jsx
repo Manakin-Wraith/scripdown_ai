@@ -10,6 +10,7 @@ import ScriptUpload from './components/script/ScriptUpload';
 import SceneViewer from './components/scenes/SceneViewer';
 import ScriptLibrary from './components/scripts/ScriptLibrary';
 import Stripboard from './components/reports/Stripboard';
+import ZoomableStripboard from './components/board/ZoomableStripboard';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import LoginPage from './pages/LoginPage';
 import ProfilePage from './pages/ProfilePage';
@@ -28,6 +29,7 @@ import './App.css';
 
 // Active imports
 import ReportBuilder from './components/reports/ReportBuilder';
+import ShootingSchedulePage from './components/schedule/ShootingSchedulePage';
 import SharedReportView from './components/reports/SharedReportView';
 
 // Phase 2+ imports (deferred)
@@ -61,7 +63,9 @@ function App() {
                     <Route path="scripts" element={<ScriptLibrary />} />
                     <Route path="scenes/:scriptId" element={<SceneViewer />} />
                     <Route path="scripts/:scriptId/stripboard" element={<Stripboard />} />
-                    <Route path="scripts/:scriptId/reports" element={<ReportBuilder />} /> 
+                    <Route path="scripts/:scriptId/reports" element={<ReportBuilder />} />
+                    <Route path="scripts/:scriptId/board" element={<ZoomableStripboard />} />
+                    <Route path="scripts/:scriptId/schedule" element={<ShootingSchedulePage />} />
                     
                     {/* Phase 2+ routes (deferred - commented out) */}
                     {/* <Route path="scenes/:scriptId/workspace/:departmentCode" element={<DepartmentWorkspace />} /> */}

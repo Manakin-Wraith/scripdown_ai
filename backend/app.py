@@ -17,6 +17,7 @@ from routes.credit_routes import credit_bp
 from routes.feedback_routes import feedback_bp
 from routes.email_campaign_routes import campaign_bp
 from routes.campaign_webhook_routes import webhook_bp
+from routes.schedule_routes import schedule_bp
 
 load_dotenv()
 
@@ -50,6 +51,7 @@ app.register_blueprint(credit_bp)  # Credit system routes at /api/credits/*
 app.register_blueprint(feedback_bp)  # Feedback routes at /api/feedback/*
 app.register_blueprint(campaign_bp)  # Email campaign routes at /api/campaigns/* (superuser only)
 app.register_blueprint(webhook_bp)  # Campaign webhook routes at /api/campaigns/webhooks/*
+app.register_blueprint(schedule_bp)  # Shooting schedule routes at /api/scripts/:id/schedules/*
 
 @app.route('/health')
 def health_check():

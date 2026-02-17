@@ -1,0 +1,63 @@
+/* ViewSwitcher — Board | Schedule toggle pill */
+
+.view-switcher {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.vs-back {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: var(--gray-700, #334155);
+    border: none;
+    border-radius: 8px;
+    color: var(--text-secondary, #94a3b8);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.vs-back:hover {
+    background: var(--gray-600, #475569);
+    color: var(--text-primary, #f1f5f9);
+}
+
+.vs-pills {
+    display: flex;
+    align-items: center;
+    gap: 0.15rem;
+    background: var(--gray-700, #334155);
+    border-radius: 8px;
+    padding: 0.15rem;
+}
+
+.vs-pill {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.7rem;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    color: var(--text-secondary, #94a3b8);
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+}
+
+.vs-pill:hover:not(.active) {
+    color: var(--text-primary, #f1f5f9);
+    background: var(--gray-600, #475569);
+}
+
+.vs-pill.active {
+    background: var(--primary-600, #4f46e5);
+    color: white;
+    box-shadow: 0 1px 3px rgba(79, 70, 229, 0.3);
+    cursor: default;
+}

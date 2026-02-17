@@ -1,0 +1,610 @@
+/* ============================================
+   Shooting Schedule — Page + Kanban
+   ============================================ */
+
+/* Page container */
+.schedule-page {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+    background: var(--gray-900, #0f172a);
+}
+
+.schedule-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    height: 100%;
+    color: var(--text-secondary, #94a3b8);
+}
+
+/* ── Header ── */
+.schedule-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.6rem 1rem;
+    background: var(--gray-800, #1e293b);
+    border-bottom: 1px solid var(--border-color, #334155);
+    flex-shrink: 0;
+    min-height: 52px;
+}
+
+.schedule-header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.schedule-back-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    background: var(--gray-700, #334155);
+    border: none;
+    border-radius: 8px;
+    color: var(--text-secondary, #94a3b8);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.schedule-back-btn:hover {
+    background: var(--gray-600, #475569);
+    color: var(--text-primary, #f1f5f9);
+}
+
+.schedule-title-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+
+.schedule-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary, #f1f5f9);
+    margin: 0;
+}
+
+.schedule-script-name {
+    font-size: 0.72rem;
+    color: var(--text-secondary, #94a3b8);
+}
+
+.schedule-header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Schedule tabs */
+.schedule-tabs {
+    display: flex;
+    align-items: center;
+    gap: 0.15rem;
+    background: var(--gray-700, #334155);
+    border-radius: 8px;
+    padding: 0.15rem;
+}
+
+.schedule-tab {
+    padding: 0.35rem 0.75rem;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    color: var(--text-secondary, #94a3b8);
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+}
+
+.schedule-tab:hover {
+    color: var(--text-primary, #f1f5f9);
+    background: var(--gray-600, #475569);
+}
+
+.schedule-tab.active {
+    background: var(--primary-600, #4f46e5);
+    color: white;
+    box-shadow: 0 1px 3px rgba(79, 70, 229, 0.3);
+}
+
+.schedule-tab-add {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    padding: 0.35rem 0;
+}
+
+/* Tab wrapper for delete button */
+.schedule-tab-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    position: relative;
+}
+
+.schedule-tab-delete {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: var(--text-secondary, #94a3b8);
+    cursor: pointer;
+    opacity: 0;
+    transition: all 0.15s;
+    margin-left: -0.2rem;
+}
+
+.schedule-tab-wrapper.active .schedule-tab-delete {
+    opacity: 0.6;
+}
+
+.schedule-tab-delete:hover {
+    opacity: 1 !important;
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.15);
+}
+
+/* ── Empty state ── */
+.schedule-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    height: 100%;
+    color: var(--text-secondary, #94a3b8);
+    text-align: center;
+    padding: 2rem;
+}
+
+.schedule-empty h2 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary, #f1f5f9);
+    margin: 0;
+}
+
+.schedule-empty p {
+    font-size: 0.82rem;
+    max-width: 360px;
+    line-height: 1.5;
+    margin: 0;
+}
+
+.schedule-create-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 1rem;
+    background: var(--primary-600, #4f46e5);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-top: 0.5rem;
+}
+
+.schedule-create-btn:hover {
+    background: var(--primary-500, #6366f1);
+    box-shadow: 0 4px 16px rgba(99, 102, 241, 0.3);
+}
+
+/* ============================================
+   Kanban Board
+   ============================================ */
+
+.kanban-board {
+    flex: 1;
+    overflow: hidden;
+    padding: 1rem;
+}
+
+.kanban-columns {
+    display: flex;
+    gap: 0.75rem;
+    height: 100%;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+}
+
+/* Scrollbar styling */
+.kanban-columns::-webkit-scrollbar {
+    height: 6px;
+}
+.kanban-columns::-webkit-scrollbar-track {
+    background: transparent;
+}
+.kanban-columns::-webkit-scrollbar-thumb {
+    background: var(--gray-600, #475569);
+    border-radius: 3px;
+}
+
+/* ── Day Column ── */
+.kanban-column {
+    display: flex;
+    flex-direction: column;
+    min-width: 260px;
+    max-width: 300px;
+    width: 280px;
+    background: var(--gray-800, #1e293b);
+    border: 1px solid var(--border-color, #334155);
+    border-radius: 12px;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+.kanban-column.confirmed {
+    border-color: rgba(52, 211, 153, 0.3);
+}
+
+.kanban-column.wrapped {
+    border-color: rgba(99, 102, 241, 0.3);
+    opacity: 0.7;
+}
+
+/* Column header */
+.kanban-col-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.65rem 0.75rem;
+    border-bottom: 1px solid var(--border-color, #334155);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.kanban-col-title {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+}
+
+.kanban-day-number {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text-primary, #f1f5f9);
+}
+
+.kanban-day-date {
+    font-size: 0.68rem;
+    color: var(--text-secondary, #94a3b8);
+}
+
+.kanban-col-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.kanban-scene-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 0.3rem;
+    background: var(--gray-700, #334155);
+    color: var(--text-secondary, #94a3b8);
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.kanban-delete-day {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background: transparent;
+    border: none;
+    border-radius: 5px;
+    color: var(--text-secondary, #94a3b8);
+    cursor: pointer;
+    opacity: 0;
+    transition: all 0.15s;
+}
+
+.kanban-column:hover .kanban-delete-day {
+    opacity: 0.5;
+}
+
+.kanban-delete-day:hover {
+    opacity: 1 !important;
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.15);
+}
+
+/* Column body (scrollable scene cards) */
+.kanban-col-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    min-height: 120px;
+}
+
+.kanban-col-body::-webkit-scrollbar {
+    width: 4px;
+}
+.kanban-col-body::-webkit-scrollbar-thumb {
+    background: var(--gray-600, #475569);
+    border-radius: 2px;
+}
+
+.kanban-col-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 80px;
+    color: var(--text-secondary, #94a3b8);
+    font-size: 0.75rem;
+    font-style: italic;
+    border: 1px dashed var(--border-color, #334155);
+    border-radius: 8px;
+}
+
+/* Column footer stats */
+.kanban-col-footer {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    border-top: 1px solid var(--border-color, #334155);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.kanban-stat {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.68rem;
+    color: var(--text-secondary, #94a3b8);
+}
+
+/* ── Add Day button column ── */
+.kanban-add-col {
+    display: flex;
+    align-items: flex-start;
+    padding-top: 0.5rem;
+    min-width: 120px;
+    flex-shrink: 0;
+}
+
+.kanban-add-day-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.6rem 1rem;
+    background: transparent;
+    border: 2px dashed var(--border-color, #334155);
+    border-radius: 10px;
+    color: var(--text-secondary, #94a3b8);
+    font-size: 0.78rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+}
+
+.kanban-add-day-btn:hover {
+    border-color: var(--primary-500, #6366f1);
+    color: var(--primary-400, #818cf8);
+    background: rgba(99, 102, 241, 0.05);
+}
+
+/* ============================================
+   Schedule Scene Card (mini)
+   ============================================ */
+
+.schedule-scene-card {
+    background: var(--gray-750, #253044);
+    border: 1px solid var(--border-color, #334155);
+    border-radius: 8px;
+    padding: 0.5rem 0.6rem;
+    transition: all 0.15s;
+    cursor: default;
+    touch-action: none;
+}
+
+.schedule-scene-card:hover {
+    border-color: var(--gray-500, #64748b);
+    background: var(--gray-700, #334155);
+}
+
+.schedule-scene-card.dragging {
+    opacity: 0.35;
+    border-style: dashed;
+}
+
+.schedule-scene-card.overlay {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    border-color: var(--primary-500, #6366f1);
+    transform: rotate(1.5deg);
+}
+
+.schedule-scene-card-overlay {
+    pointer-events: none;
+}
+
+.schedule-scene-card.selected {
+    border-color: var(--primary-500, #6366f1);
+    background: rgba(99, 102, 241, 0.1);
+    box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.3);
+}
+
+.schedule-scene-card.selected:hover {
+    background: rgba(99, 102, 241, 0.15);
+}
+
+.schedule-scene-card.int {
+    border-left: 3px solid #f59e0b;
+}
+
+.schedule-scene-card.ext {
+    border-left: 3px solid #3b82f6;
+}
+
+/* Drag handle */
+.ssc-drag-handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    color: var(--text-secondary, #94a3b8);
+    cursor: grab;
+    opacity: 0.4;
+    transition: opacity 0.15s;
+    flex-shrink: 0;
+}
+
+.ssc-drag-handle:active {
+    cursor: grabbing;
+}
+
+.schedule-scene-card:hover .ssc-drag-handle {
+    opacity: 0.8;
+}
+
+/* Drop-over highlight for columns */
+.kanban-col-body.kanban-col-over {
+    background: rgba(99, 102, 241, 0.06);
+    border-radius: 8px;
+    outline: 2px dashed rgba(99, 102, 241, 0.3);
+    outline-offset: -2px;
+}
+
+/* Card header row */
+.ssc-header {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-bottom: 0.25rem;
+}
+
+.ssc-number {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text-primary, #f1f5f9);
+}
+
+.ssc-ie {
+    font-size: 0.6rem;
+    font-weight: 700;
+    padding: 0.08rem 0.3rem;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.ssc-ie.int {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+}
+
+.ssc-ie.ext {
+    background: rgba(59, 130, 246, 0.15);
+    color: #3b82f6;
+}
+
+.ssc-eighths {
+    font-size: 0.65rem;
+    color: var(--text-secondary, #94a3b8);
+    margin-left: auto;
+}
+
+.ssc-remove {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: var(--text-secondary, #94a3b8);
+    cursor: pointer;
+    opacity: 0;
+    transition: all 0.15s;
+}
+
+.schedule-scene-card:hover .ssc-remove {
+    opacity: 1;
+}
+
+.ssc-remove:hover {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+}
+
+/* Setting / location */
+.ssc-setting {
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: var(--text-primary, #e2e8f0);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 0.2rem;
+}
+
+/* Meta row */
+.ssc-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: var(--text-secondary, #94a3b8);
+    font-size: 0.65rem;
+}
+
+.ssc-time {
+    font-weight: 500;
+}
+
+.ssc-story-day {
+    padding: 0.05rem 0.3rem;
+    background: var(--gray-700, #334155);
+    border-radius: 3px;
+    font-weight: 600;
+}
+
+.ssc-cast {
+    margin-left: auto;
+    font-weight: 500;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+    .schedule-header {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .kanban-column {
+        min-width: 240px;
+        width: 240px;
+    }
+}

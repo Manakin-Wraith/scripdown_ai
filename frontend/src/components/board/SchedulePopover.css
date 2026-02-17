@@ -1,0 +1,179 @@
+/* SchedulePopover — floating dropdown for adding scenes to schedule */
+
+.schedule-popover {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: 100;
+    min-width: 260px;
+    max-width: 320px;
+    background: var(--bg-surface, #1e293b);
+    border: 1px solid var(--border-color, #334155);
+    border-radius: 10px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    overflow: hidden;
+    animation: sp-fadeIn 0.15s ease;
+}
+
+@keyframes sp-fadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.sp-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 0.75rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-primary, #f1f5f9);
+    border-bottom: 1px solid var(--border-color, #334155);
+}
+
+.sp-loading {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 1rem;
+    font-size: 0.75rem;
+    color: var(--text-secondary, #94a3b8);
+}
+
+.sp-spin {
+    animation: sp-rotate 0.8s linear infinite;
+}
+
+@keyframes sp-rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.sp-body {
+    padding: 0.35rem;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+/* Option buttons */
+.sp-option {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    width: 100%;
+    padding: 0.5rem 0.6rem;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-secondary, #94a3b8);
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: all 0.1s;
+    text-align: left;
+}
+
+.sp-option:hover:not(:disabled) {
+    background: var(--gray-700, #334155);
+    color: var(--text-primary, #f1f5f9);
+}
+
+.sp-option:disabled {
+    opacity: 0.5;
+    cursor: wait;
+}
+
+/* New schedule action — highlighted */
+.sp-option.sp-new {
+    color: var(--primary-400, #818cf8);
+    font-weight: 600;
+    border-bottom: 1px solid var(--border-color, #334155);
+    border-radius: 6px 6px 0 0;
+    margin-bottom: 0.2rem;
+}
+
+.sp-option.sp-new:hover:not(:disabled) {
+    background: rgba(99, 102, 241, 0.1);
+    color: var(--primary-300, #a5b4fc);
+}
+
+/* Schedule row */
+.sp-schedule-group {
+    margin-bottom: 0.15rem;
+}
+
+.sp-option.sp-schedule {
+    font-weight: 600;
+    color: var(--text-primary, #f1f5f9);
+}
+
+.sp-chevron {
+    transition: transform 0.15s;
+    flex-shrink: 0;
+}
+
+.sp-chevron.open {
+    transform: rotate(180deg);
+}
+
+.sp-badge {
+    margin-left: auto;
+    font-size: 0.65rem;
+    font-weight: 500;
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    background: var(--gray-700, #334155);
+    color: var(--text-secondary, #94a3b8);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+/* Days list */
+.sp-days {
+    padding-left: 0.75rem;
+    border-left: 2px solid var(--primary-600, #4f46e5);
+    margin-left: 0.75rem;
+    margin-bottom: 0.25rem;
+}
+
+.sp-option.sp-day-new {
+    color: var(--primary-400, #818cf8);
+    font-size: 0.75rem;
+}
+
+.sp-option.sp-day {
+    justify-content: space-between;
+}
+
+.sp-day-num {
+    font-weight: 600;
+    color: var(--text-primary, #f1f5f9);
+}
+
+.sp-day-count {
+    font-size: 0.7rem;
+    color: var(--text-secondary, #94a3b8);
+}
+
+.sp-empty, .sp-empty-msg {
+    padding: 0.5rem 0.6rem;
+    font-size: 0.72rem;
+    color: var(--text-secondary, #94a3b8);
+    font-style: italic;
+}
+
+/* Success state */
+.sp-success {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    color: #34d399;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.sp-skipped {
+    font-weight: 400;
+    font-size: 0.72rem;
+    color: var(--text-secondary, #94a3b8);
+}
