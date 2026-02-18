@@ -24,6 +24,14 @@
   width: 100%;
 }
 
+/* Full-bleed: no padding, no scroll — for board/schedule pages */
+.main-content--full-bleed {
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
 /* Constrained content for text-heavy pages (Dashboard, Library) */
 .main-content--contained {
   max-width: 1600px;

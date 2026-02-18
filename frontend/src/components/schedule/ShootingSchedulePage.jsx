@@ -1,12 +1,13 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Loader, Plus, CalendarDays, Trash2 } from 'lucide-react';
+import { Loader, Plus, CalendarDays, Trash2, Pencil, Check, X, ZoomIn, ZoomOut, Maximize, RotateCcw, Printer } from 'lucide-react';
+import SchedulePrintView from './SchedulePrintView';
 import ViewSwitcher from '../shared/ViewSwitcher';
 import { useToast } from '../../context/ToastContext';
 import { useScript } from '../../context/ScriptContext';
 import {
     getSchedules, createSchedule, getShootingDays,
-    getScriptMetadata, deleteSchedule,
+    getScriptMetadata, deleteSchedule, updateSchedule,
 } from '../../services/apiService';
 import ScheduleKanban from './ScheduleKanban';
 import './ShootingSchedule.css';
@@ -22,6 +23,17 @@ const ShootingSchedulePage = () => {
     const [days, setDays] = useState([]);
     const [loading, setLoading] = useState(true);
     const [metadata, setMetadata] = useState(null);
+    const [editingScheduleId, setEditingScheduleId] = useState(null);
+    const [editingScheduleName, setEditingScheduleName] = useState('');
+    const [showPrintPreview, setShowPrintPreview] = useState(false);
+    const scheduleNameInputRef = useRef(null);
+    const zoomApiRef = useRef(null);
+
+    // Lock body scroll when print preview is open
+    useEffect(() => {
+        document.body.style.overflow = showPrintPreview ? 'hidden' : '';
+        return () => { document.body.style.overflow = ''; };
+    }, [showPrintPreview]);
 
     // Load schedules + script metadata
     useEffect(() => {
@@ -73,6 +85,18 @@ const ShootingSchedulePage = () => {
         }
     }, [activeScheduleId]);
 
+    // Keyboard shortcuts for zoom
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+            if (e.key === '=' || e.key === '+') zoomApiRef.current?.zoomIn(0.3);
+            if (e.key === '-') zoomApiRef.current?.zoomOut(0.3);
+            if (e.key === '0') zoomApiRef.current?.setTransform(0, 0, 1);
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, []);
+
     const handleCreateSchedule = async () => {
         try {
             const name = `Schedule ${schedules.length + 1}`;
@@ -100,6 +124,33 @@ const ShootingSchedulePage = () => {
         }
     };
 
+    const startEditingScheduleName = (sched, e) => {
+        e.stopPropagation();
+        setEditingScheduleId(sched.id);
+        setEditingScheduleName(sched.name);
+        setTimeout(() => scheduleNameInputRef.current?.select(), 0);
+    };
+
+    const commitScheduleRename = async () => {
+        const trimmed = editingScheduleName.trim();
+        if (!trimmed || !editingScheduleId) { cancelScheduleRename(); return; }
+        const sched = schedules.find(s => s.id === editingScheduleId);
+        if (sched?.name === trimmed) { cancelScheduleRename(); return; }
+        try {
+            await updateSchedule(editingScheduleId, { name: trimmed });
+            setSchedules(prev => prev.map(s => s.id === editingScheduleId ? { ...s, name: trimmed } : s));
+            toast.success('Renamed', `Schedule renamed to "${trimmed}"`);
+        } catch (err) {
+            toast.error('Error', 'Failed to rename schedule');
+        }
+        setEditingScheduleId(null);
+    };
+
+    const cancelScheduleRename = () => {
+        setEditingScheduleId(null);
+        setEditingScheduleName('');
+    };
+
     const activeSchedule = schedules.find(s => s.id === activeScheduleId);
 
     if (loading) {
@@ -125,24 +176,86 @@ const ShootingSchedulePage = () => {
                 </div>
 
                 <div className="schedule-header-right">
+                    {/* Print / Export button */}
+                    {activeScheduleId && days.length > 0 && (
+                        <button
+                            className="schedule-print-btn"
+                            onClick={() => setShowPrintPreview(true)}
+                            title="Print / Export PDF"
+                        >
+                            <Printer size={14} />
+                            Print / Export
+                        </button>
+                    )}
+
+                    {/* Zoom controls */}
+                    <div className="schedule-zoom-controls">
+                        <button className="schedule-zoom-btn" onClick={() => zoomApiRef.current?.zoomOut(0.3)} title="Zoom Out">
+                            <ZoomOut size={15} />
+                        </button>
+                        <button className="schedule-zoom-btn" onClick={() => zoomApiRef.current?.zoomIn(0.3)} title="Zoom In">
+                            <ZoomIn size={15} />
+                        </button>
+                        <button className="schedule-zoom-btn" onClick={() => zoomApiRef.current?.resetTransform()} title="Fit">
+                            <Maximize size={14} />
+                        </button>
+                        <button className="schedule-zoom-btn" onClick={() => zoomApiRef.current?.setTransform(0, 0, 1)} title="Reset to 100%">
+                            <RotateCcw size={13} />
+                        </button>
+                    </div>
+
                     {/* Schedule tabs */}
                     <div className="schedule-tabs">
                         {schedules.map(sched => (
                             <div key={sched.id} className={`schedule-tab-wrapper ${sched.id === activeScheduleId ? 'active' : ''}`}>
-                                <button
-                                    className={`schedule-tab ${sched.id === activeScheduleId ? 'active' : ''}`}
-                                    onClick={() => setActiveScheduleId(sched.id)}
-                                >
-                                    {sched.name}
-                                </button>
-                                {sched.id === activeScheduleId && (
+                                {editingScheduleId === sched.id ? (
+                                    <div className="schedule-tab-edit">
+                                        <input
+                                            ref={scheduleNameInputRef}
+                                            className="schedule-tab-input"
+                                            value={editingScheduleName}
+                                            onChange={e => setEditingScheduleName(e.target.value)}
+                                            onKeyDown={e => {
+                                                if (e.key === 'Enter') commitScheduleRename();
+                                                if (e.key === 'Escape') cancelScheduleRename();
+                                            }}
+                                            onBlur={commitScheduleRename}
+                                            autoFocus
+                                        />
+                                        <button className="schedule-tab-confirm" onClick={commitScheduleRename} title="Save">
+                                            <Check size={12} />
+                                        </button>
+                                        <button className="schedule-tab-cancel" onClick={cancelScheduleRename} title="Cancel">
+                                            <X size={12} />
+                                        </button>
+                                    </div>
+                                ) : (
                                     <button
-                                        className="schedule-tab-delete"
-                                        onClick={() => handleDeleteSchedule(sched.id)}
-                                        title="Delete this schedule"
+                                        className={`schedule-tab ${sched.id === activeScheduleId ? 'active' : ''}`}
+                                        onClick={() => setActiveScheduleId(sched.id)}
+                                        onDoubleClick={e => startEditingScheduleName(sched, e)}
+                                        title="Double-click to rename"
                                     >
-                                        <Trash2 size={12} />
+                                        {sched.name}
                                     </button>
+                                )}
+                                {sched.id === activeScheduleId && editingScheduleId !== sched.id && (
+                                    <>
+                                        <button
+                                            className="schedule-tab-rename"
+                                            onClick={e => startEditingScheduleName(sched, e)}
+                                            title="Rename schedule"
+                                        >
+                                            <Pencil size={11} />
+                                        </button>
+                                        <button
+                                            className="schedule-tab-delete"
+                                            onClick={() => handleDeleteSchedule(sched.id)}
+                                            title="Delete this schedule"
+                                        >
+                                            <Trash2 size={12} />
+                                        </button>
+                                    </>
                                 )}
                             </div>
                         ))}
@@ -153,12 +266,55 @@ const ShootingSchedulePage = () => {
                 </div>
             </div>
 
+            {/* Print Preview Modal */}
+            {showPrintPreview && (
+                <div className="print-preview-overlay" onClick={(e) => { if (e.target === e.currentTarget) setShowPrintPreview(false); }}>
+                    <div className="print-preview-toolbar">
+                        <span className="print-preview-toolbar-title">
+                            {metadata?.title || 'Untitled'} — {activeSchedule?.name || 'Schedule'}
+                        </span>
+                        <button
+                            className="print-action-btn primary"
+                            onClick={() => {
+                                const printContent = document.getElementById('schedule-print-view');
+                                if (!printContent) return;
+                                const clone = printContent.cloneNode(true);
+                                clone.id = 'schedule-print-clone';
+                                clone.style.display = 'block';
+                                document.body.appendChild(clone);
+                                document.body.classList.add('printing-schedule');
+                                window.print();
+                                document.body.removeChild(clone);
+                                document.body.classList.remove('printing-schedule');
+                            }}
+                        >
+                            <Printer size={13} /> Print / Save PDF
+                        </button>
+                        <button
+                            className="print-action-btn secondary"
+                            onClick={() => setShowPrintPreview(false)}
+                        >
+                            <X size={13} /> Close
+                        </button>
+                    </div>
+
+                    <div className="print-preview-paper">
+                        <SchedulePrintView
+                            days={days}
+                            scheduleName={activeSchedule?.name}
+                            metadata={metadata}
+                        />
+                    </div>
+                </div>
+            )}
+
             {/* Kanban body */}
             {activeScheduleId ? (
                 <ScheduleKanban
                     scheduleId={activeScheduleId}
                     days={days}
                     refreshDays={refreshDays}
+                    zoomApiRef={zoomApiRef}
                 />
             ) : (
                 <div className="schedule-empty">

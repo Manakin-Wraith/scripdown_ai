@@ -1,5 +1,5 @@
 import React from 'react';
-import { GripVertical, Users, Package, Shirt, Car, Sparkles, Volume2 } from 'lucide-react';
+import { GripVertical, Users, Package, Shirt, Car, Sparkles, Volume2, CalendarCheck } from 'lucide-react';
 import { formatEighths } from '../../utils/sceneUtils';
 import './StripCard.css';
 
@@ -8,7 +8,7 @@ import './StripCard.css';
  * Renders ALL detail sections; CSS controls visibility via [data-zoom-level].
  * Explicit data attributes for drag resolution (§7.2).
  */
-const StripCard = ({ strip, index, laneId, dispatch, dragState, handlePointerDown, userItems, didPan, toolMode, isSelected }) => {
+const StripCard = ({ strip, index, laneId, dispatch, dragState, handlePointerDown, userItems, didPan, toolMode, isSelected, isScheduled, scheduledDayLabel }) => {
     const isDragging = dragState?.status === 'dragging' && dragState?.stripId === strip.id;
     const isPendingApi = dragState?.status === 'pending_api';
     const isAnyDragging = dragState?.status === 'dragging';
@@ -70,6 +70,7 @@ const StripCard = ({ strip, index, laneId, dispatch, dragState, handlePointerDow
         isDragging ? 'dragging' : '',
         strip.isOmitted ? 'omitted' : '',
         isSelected ? 'selected' : '',
+        (isScheduled || strip.isScheduled) ? 'scheduled' : '',
         toolMode === 'move' ? 'move-mode' : '',
         dropPos === 'above' ? 'drop-above' : '',
         dropPos === 'below' ? 'drop-below' : '',
@@ -102,6 +103,15 @@ const StripCard = ({ strip, index, laneId, dispatch, dragState, handlePointerDow
                 <span className={`strip-ie-badge ${strip.intExt === 'INT' ? 'int' : 'ext'}`}>
                     {strip.intExt}
                 </span>
+                {(isScheduled || strip.isScheduled) && (
+                    <span
+                        className="strip-scheduled-badge"
+                        title={(scheduledDayLabel || strip.scheduledDayLabel) ? `Scheduled: ${scheduledDayLabel || strip.scheduledDayLabel}` : 'Scheduled'}
+                    >
+                        <CalendarCheck size={9} />
+                        {(scheduledDayLabel || strip.scheduledDayLabel) || 'Sched'}
+                    </span>
+                )}
             </div>
 
             {/* Body — hidden at micro zoom */}

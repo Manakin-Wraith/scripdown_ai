@@ -115,6 +115,11 @@ const ZoomableStripboard = () => {
         [state.scenes]
     );
 
+    // Optimistic update: mark scenes as scheduled on the board without a full reload
+    const handleScheduled = useCallback((sceneIds, dayLabel) => {
+        dispatch({ type: 'MARK_SCENES_SCHEDULED', payload: { sceneIds, dayLabel } });
+    }, []);
+
     // Reorder handler for drag
     const handleReorder = useCallback(async (reorderedSceneIds) => {
         try {
@@ -150,6 +155,7 @@ const ZoomableStripboard = () => {
                 selectedCount={state.selectedStripIds.length}
                 scriptId={scriptId}
                 selectedSceneIds={state.selectedStripIds}
+                onScheduled={handleScheduled}
             />
 
             <BoardCanvas

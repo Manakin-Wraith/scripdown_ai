@@ -19,6 +19,7 @@ export const initialBoardState = {
         intExt: 'all',
         timeOfDay: 'all',
         storyDay: 'all',
+        scheduledStatus: 'all',  // 'all' | 'unscheduled' | 'scheduled'
     },
 
     // Tool mode: 'select' | 'grab' | 'move'
@@ -68,8 +69,22 @@ export function boardReducer(state, action) {
         case 'CLEAR_FILTERS':
             return {
                 ...state,
-                filters: { intExt: 'all', timeOfDay: 'all', storyDay: 'all' },
+                filters: { intExt: 'all', timeOfDay: 'all', storyDay: 'all', scheduledStatus: 'all' },
             };
+
+        // Optimistic update: mark a set of scene IDs as scheduled
+        case 'MARK_SCENES_SCHEDULED': {
+            const { sceneIds, dayLabel } = action.payload;
+            const idSet = new Set(sceneIds);
+            return {
+                ...state,
+                scenes: state.scenes.map(s =>
+                    idSet.has(s.id)
+                        ? { ...s, is_scheduled: true, scheduled_day_label: dayLabel || s.scheduled_day_label || 'Scheduled' }
+                        : s
+                ),
+            };
+        }
 
         case 'OPEN_DRAWER':
             return { ...state, activeStrip: action.payload };
@@ -175,7 +190,6 @@ export function boardReducer(state, action) {
             return {
                 ...state,
                 toolMode: action.payload,
-                selectedStripIds: action.payload !== 'select' ? [] : state.selectedStripIds,
             };
 
         // --- Selection ---

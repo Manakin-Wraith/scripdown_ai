@@ -1971,6 +1971,16 @@ export const removeSceneFromDay = async (dayId, sceneId) => {
     return response.data;
 };
 
+export const updateSchedule = async (scheduleId, updates) => {
+    const response = await api.patch(`/api/schedules/${scheduleId}`, updates);
+    return response.data;
+};
+
+export const updateShootingDay = async (dayId, updates) => {
+    const response = await api.patch(`/api/shooting-days/${dayId}`, updates);
+    return response.data;
+};
+
 export const deleteSchedule = async (scheduleId) => {
     const response = await api.delete(`/api/schedules/${scheduleId}`);
     return response.data;

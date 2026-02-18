@@ -5,7 +5,7 @@ import SchedulePopover from './SchedulePopover';
 import ViewSwitcher from '../shared/ViewSwitcher';
 import './BoardToolbar.css';
 
-const BoardToolbar = ({ groupBy, filters, uniqueDays, totalVisible, totalScenes, zoomApiRef, dispatch, toolMode, selectedCount, scriptId, selectedSceneIds }) => {
+const BoardToolbar = ({ groupBy, filters, uniqueDays, totalVisible, totalScenes, zoomApiRef, dispatch, toolMode, selectedCount, scriptId, selectedSceneIds, onScheduled }) => {
     const activeFilterCount = countActiveFilters(filters);
     const [showSchedule, setShowSchedule] = useState(false);
 
@@ -65,6 +65,7 @@ const BoardToolbar = ({ groupBy, filters, uniqueDays, totalVisible, totalScenes,
                                         dispatch({ type: 'CLEAR_SELECTION' });
                                     }}
                                     onClose={() => setShowSchedule(false)}
+                                    onScheduled={onScheduled}
                                 />
                             )}
                         </div>
@@ -160,6 +161,16 @@ const BoardToolbar = ({ groupBy, filters, uniqueDays, totalVisible, totalScenes,
                         ))}
                     </select>
                 )}
+
+                <select
+                    className="toolbar-select"
+                    value={filters.scheduledStatus || 'all'}
+                    onChange={(e) => dispatch({ type: 'SET_FILTER', payload: { scheduledStatus: e.target.value } })}
+                >
+                    <option value="all">All Scenes</option>
+                    <option value="unscheduled">Unscheduled</option>
+                    <option value="scheduled">Scheduled</option>
+                </select>
 
                 {activeFilterCount > 0 && (
                     <button

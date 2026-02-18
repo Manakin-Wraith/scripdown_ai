@@ -34,6 +34,14 @@ export function filterScenes(scenes, filters) {
         }
     }
 
+    if (filters.scheduledStatus && filters.scheduledStatus !== 'all') {
+        if (filters.scheduledStatus === 'scheduled') {
+            result = result.filter(s => s.is_scheduled === true);
+        } else if (filters.scheduledStatus === 'unscheduled') {
+            result = result.filter(s => !s.is_scheduled);
+        }
+    }
+
     return result;
 }
 
@@ -129,6 +137,8 @@ export function buildBoardViewModel(scenes, filters, groupBy) {
             timelineCode: scene.timeline_code || 'PRESENT',
             pageLengthEighths: getSceneEighths(scene),
             isOmitted: scene.is_omitted,
+            isScheduled: scene.is_scheduled || false,
+            scheduledDayLabel: scene.scheduled_day_label || null,
             shotType: scene.shot_type,
             locationHierarchy: scene.location_hierarchy,
             parseMethod: scene.parse_method,

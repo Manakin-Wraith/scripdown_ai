@@ -927,12 +927,34 @@ def get_scenes(script_id):
     
     try:
         result = supabase.table('scenes').select('*').eq('script_id', script_id).order('scene_order').execute()
-        
+
+        # Build a map of scene_id → scheduled day label from shooting_day_scenes
+        scheduled_map = {}  # { scene_id: "Day 3" }
+        try:
+            sds_result = supabase.table('shooting_day_scenes') \
+                .select('scene_id, shooting_days(day_number)') \
+                .execute()
+            for row in (sds_result.data or []):
+                sid = row.get('scene_id')
+                day_info = row.get('shooting_days') or {}
+                day_num = day_info.get('day_number')
+                if sid and day_num is not None:
+                    # Keep the lowest day number if scene appears in multiple days
+                    existing = scheduled_map.get(sid)
+                    if existing is None or day_num < int(existing.replace('Day ', '')):
+                        scheduled_map[sid] = f'Day {day_num}'
+        except Exception as sched_err:
+            print(f"Warning: Could not fetch schedule data for scenes: {sched_err}")
+
         scenes = []
         for scene in result.data:
+            scene_id = scene['id']
+            scheduled_day_label = scheduled_map.get(scene_id)
             scenes.append({
-                'id': scene['id'],
-                'scene_id': scene['id'],  # Alias for compatibility
+                'id': scene_id,
+                'scene_id': scene_id,  # Alias for compatibility
+                'is_scheduled': scheduled_day_label is not None,
+                'scheduled_day_label': scheduled_day_label,
                 'scene_number': scene['scene_number'],
                 'int_ext': scene.get('int_ext', 'INT'),
                 'setting': scene.get('setting', ''),

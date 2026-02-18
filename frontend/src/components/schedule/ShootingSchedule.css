@@ -2,10 +2,42 @@
    Shooting Schedule — Page + Kanban
    ============================================ */
 
-/* Page container */
+/* ── Print: hide all app chrome, show only print view ── */
+@media print {
+    body,
+    #root,
+    .app-layout,
+    .main-content {
+        overflow: visible !important;
+        height: auto !important;
+    }
+
+    .schedule-page {
+        overflow: visible !important;
+        height: auto !important;
+        background: #fff !important;
+    }
+
+    .schedule-header,
+    .schedule-tabs,
+    .schedule-zoom-controls,
+    .kanban-board-wrapper,
+    .schedule-empty,
+    .print-controls-bar,
+    .print-preview-overlay {
+        display: none !important;
+    }
+
+    #schedule-print-view {
+        display: block !important;
+    }
+}
+
+/* Page container — fills main-content--full-bleed which has no padding */
 .schedule-page {
     display: flex;
     flex-direction: column;
+    flex: 1;
     height: 100%;
     overflow: hidden;
     background: var(--gray-900, #0f172a);
@@ -128,6 +160,67 @@
     padding: 0.35rem 0;
 }
 
+/* ── Zoom controls ── */
+.schedule-zoom-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.15rem;
+    background: var(--gray-700, #334155);
+    border-radius: 8px;
+    padding: 0.15rem;
+}
+
+.schedule-zoom-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    color: var(--text-secondary, #94a3b8);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.schedule-zoom-btn:hover {
+    background: var(--gray-600, #475569);
+    color: var(--text-primary, #f1f5f9);
+}
+
+/* Print CTA button — visually distinct from icon-only zoom controls */
+.schedule-print-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem 0.85rem;
+    height: 32px;
+    background: #4f46e5;
+    border: 1px solid #6366f1;
+    border-radius: 7px;
+    color: #fff;
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.schedule-print-btn:hover {
+    background: #4338ca;
+    border-color: #818cf8;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
+    transform: translateY(-1px);
+}
+
+.schedule-print-btn:active {
+    transform: translateY(0);
+    box-shadow: none;
+}
+
 /* Tab wrapper for delete button */
 .schedule-tab-wrapper {
     display: flex;
@@ -136,12 +229,13 @@
     position: relative;
 }
 
-.schedule-tab-delete {
+.schedule-tab-delete,
+.schedule-tab-rename {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
-    height: 24px;
+    width: 22px;
+    height: 22px;
     background: transparent;
     border: none;
     border-radius: 4px;
@@ -149,17 +243,75 @@
     cursor: pointer;
     opacity: 0;
     transition: all 0.15s;
-    margin-left: -0.2rem;
 }
 
-.schedule-tab-wrapper.active .schedule-tab-delete {
-    opacity: 0.6;
+.schedule-tab-wrapper.active .schedule-tab-delete,
+.schedule-tab-wrapper.active .schedule-tab-rename {
+    opacity: 0.5;
+}
+
+.schedule-tab-rename:hover {
+    opacity: 1 !important;
+    color: var(--text-primary, #f1f5f9);
+    background: var(--gray-600, #475569);
 }
 
 .schedule-tab-delete:hover {
     opacity: 1 !important;
     color: #ef4444;
     background: rgba(239, 68, 68, 0.15);
+}
+
+/* Inline schedule name edit */
+.schedule-tab-edit {
+    display: flex;
+    align-items: center;
+    gap: 0.15rem;
+    padding: 0.1rem 0.25rem;
+}
+
+.schedule-tab-input {
+    background: var(--gray-900, #0f172a);
+    border: 1px solid var(--primary-500, #6366f1);
+    border-radius: 4px;
+    color: var(--text-primary, #f1f5f9);
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 0.2rem 0.4rem;
+    width: 110px;
+    outline: none;
+}
+
+.schedule-tab-confirm,
+.schedule-tab-cancel {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+    flex-shrink: 0;
+}
+
+.schedule-tab-confirm {
+    color: #34d399;
+}
+
+.schedule-tab-confirm:hover {
+    background: rgba(52, 211, 153, 0.15);
+}
+
+.schedule-tab-cancel {
+    color: var(--text-secondary, #94a3b8);
+}
+
+.schedule-tab-cancel:hover {
+    background: var(--gray-600, #475569);
+    color: var(--text-primary, #f1f5f9);
 }
 
 /* ── Empty state ── */
@@ -217,27 +369,18 @@
 .kanban-board {
     flex: 1;
     overflow: hidden;
-    padding: 1rem;
+    position: relative;
+    display: flex;
+    flex-direction: column;
 }
 
 .kanban-columns {
     display: flex;
     gap: 0.75rem;
-    height: 100%;
-    overflow-x: auto;
-    padding-bottom: 0.5rem;
-}
-
-/* Scrollbar styling */
-.kanban-columns::-webkit-scrollbar {
-    height: 6px;
-}
-.kanban-columns::-webkit-scrollbar-track {
-    background: transparent;
-}
-.kanban-columns::-webkit-scrollbar-thumb {
-    background: var(--gray-600, #475569);
-    border-radius: 3px;
+    padding: 1rem;
+    align-items: flex-start;
+    min-width: max-content;
+    min-height: max-content;
 }
 
 /* ── Day Column ── */
@@ -245,13 +388,13 @@
     display: flex;
     flex-direction: column;
     min-width: 260px;
-    max-width: 300px;
-    width: 280px;
-    background: var(--gray-800, #1e293b);
+    width: 260px;
+    background: var(--bg-card, #1e293b);
     border: 1px solid var(--border-color, #334155);
     border-radius: 12px;
     flex-shrink: 0;
-    overflow: hidden;
+    overflow: visible;
+    position: relative;
 }
 
 .kanban-column.confirmed {
@@ -271,6 +414,7 @@
     padding: 0.65rem 0.75rem;
     border-bottom: 1px solid var(--border-color, #334155);
     background: rgba(255, 255, 255, 0.02);
+    border-radius: 12px 12px 0 0;
 }
 
 .kanban-col-title {
@@ -288,6 +432,42 @@
 .kanban-day-date {
     font-size: 0.68rem;
     color: var(--text-secondary, #94a3b8);
+}
+
+.kanban-day-date-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: var(--text-secondary, #94a3b8);
+    font-size: 0.67rem;
+    cursor: pointer;
+    padding: 0.1rem 0.3rem;
+    transition: all 0.15s;
+    white-space: nowrap;
+}
+
+.kanban-day-date-btn:hover {
+    background: var(--gray-700, #334155);
+    color: var(--text-primary, #f1f5f9);
+}
+
+.kanban-day-date-btn span {
+    font-size: 0.67rem;
+}
+
+.kanban-date-input {
+    background: var(--gray-900, #0f172a);
+    border: 1px solid var(--primary-500, #6366f1);
+    border-radius: 4px;
+    color: var(--text-primary, #f1f5f9);
+    font-size: 0.67rem;
+    padding: 0.15rem 0.3rem;
+    outline: none;
+    width: 120px;
+    color-scheme: dark;
 }
 
 .kanban-col-actions {
@@ -339,6 +519,7 @@
 .kanban-col-body {
     flex: 1;
     overflow-y: auto;
+    overflow-x: hidden;
     padding: 0.5rem;
     display: flex;
     flex-direction: column;
@@ -374,6 +555,7 @@
     padding: 0.5rem 0.75rem;
     border-top: 1px solid var(--border-color, #334155);
     background: rgba(255, 255, 255, 0.02);
+    border-radius: 0 0 12px 12px;
 }
 
 .kanban-stat {
@@ -594,6 +776,257 @@
 .ssc-cast {
     margin-left: auto;
     font-weight: 500;
+}
+
+/* ============================================
+   Scene Card Hover Tooltip
+   ============================================ */
+
+.schedule-scene-card {
+    position: relative;
+}
+
+.ssc-tooltip {
+    position: absolute;
+    left: calc(100% + 10px);
+    top: 0;
+    z-index: 9999;
+    width: 260px;
+    background: var(--gray-900, #0f172a);
+    border: 1px solid var(--border-color, #334155);
+    border-radius: 10px;
+    padding: 0.65rem 0.75rem;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(99, 102, 241, 0.1);
+    pointer-events: none;
+    opacity: 0;
+    transform: translateX(-4px);
+    transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+/* Show on card hover (CSS-only fallback) */
+.schedule-scene-card:hover .ssc-tooltip {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+/* Portal tooltip — always visible when rendered, positioned via inline style */
+.ssc-tooltip-portal {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+}
+
+/* Flip to left side if card is in the last column (handled via CSS fallback) */
+.kanban-column:last-child .ssc-tooltip,
+.kanban-column:nth-last-child(2) .ssc-tooltip {
+    left: auto;
+    right: calc(100% + 10px);
+    transform: translateX(4px);
+}
+
+.kanban-column:last-child .schedule-scene-card:hover .ssc-tooltip,
+.kanban-column:nth-last-child(2) .schedule-scene-card:hover .ssc-tooltip {
+    transform: translateX(0);
+}
+
+/* Arrow pointer */
+.ssc-tooltip::before {
+    content: '';
+    position: absolute;
+    left: -6px;
+    top: 14px;
+    width: 10px;
+    height: 10px;
+    background: var(--gray-900, #0f172a);
+    border-left: 1px solid var(--border-color, #334155);
+    border-bottom: 1px solid var(--border-color, #334155);
+    transform: rotate(45deg);
+}
+
+.kanban-column:last-child .ssc-tooltip::before,
+.kanban-column:nth-last-child(2) .ssc-tooltip::before {
+    left: auto;
+    right: -6px;
+    border-left: none;
+    border-bottom: none;
+    border-right: 1px solid var(--border-color, #334155);
+    border-top: 1px solid var(--border-color, #334155);
+}
+
+/* Tooltip header */
+.ssc-tt-header {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-bottom: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.ssc-tt-scene-num {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-primary, #f1f5f9);
+    flex: 1;
+}
+
+.ssc-tt-ie {
+    font-size: 0.6rem;
+    font-weight: 700;
+    padding: 0.08rem 0.3rem;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.ssc-tt-ie.int {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+}
+
+.ssc-tt-ie.ext {
+    background: rgba(59, 130, 246, 0.15);
+    color: #3b82f6;
+}
+
+.ssc-tt-timeline {
+    font-size: 0.6rem;
+    font-weight: 600;
+    padding: 0.08rem 0.3rem;
+    border-radius: 3px;
+    background: rgba(139, 92, 246, 0.15);
+    color: #a78bfa;
+    text-transform: uppercase;
+}
+
+.ssc-tt-pages {
+    font-size: 0.65rem;
+    color: var(--text-secondary, #94a3b8);
+    font-weight: 500;
+    margin-left: auto;
+}
+
+/* Info rows */
+.ssc-tt-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.35rem;
+    font-size: 0.72rem;
+    color: var(--text-primary, #e2e8f0);
+    margin-bottom: 0.3rem;
+    line-height: 1.4;
+}
+
+.ssc-tt-row svg {
+    color: var(--text-secondary, #94a3b8);
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+.ssc-tt-sub {
+    padding-left: 1.2rem;
+    color: var(--text-secondary, #94a3b8);
+    font-size: 0.67rem;
+}
+
+.ssc-tt-label {
+    font-weight: 600;
+    color: var(--text-secondary, #94a3b8);
+    flex-shrink: 0;
+}
+
+.ssc-tt-badge {
+    margin-left: auto;
+    padding: 0.05rem 0.35rem;
+    background: var(--gray-700, #334155);
+    border-radius: 4px;
+    font-size: 0.62rem;
+    font-weight: 600;
+    color: var(--text-secondary, #94a3b8);
+    flex-shrink: 0;
+}
+
+/* Synopsis */
+.ssc-tt-synopsis {
+    font-size: 0.7rem;
+    color: var(--text-secondary, #94a3b8);
+    line-height: 1.5;
+    margin: 0.35rem 0;
+    padding: 0.35rem 0.5rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 6px;
+    border-left: 2px solid var(--border-color, #334155);
+    max-height: 72px;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    line-clamp: 4;
+    -webkit-box-orient: vertical;
+}
+
+/* Sections (cast, props, etc.) */
+.ssc-tt-section {
+    margin-top: 0.4rem;
+    padding-top: 0.4rem;
+    border-top: 1px solid rgba(51, 65, 85, 0.6);
+}
+
+.ssc-tt-section-label {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--text-secondary, #94a3b8);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.3rem;
+}
+
+.ssc-tt-section-label svg {
+    color: var(--text-secondary, #94a3b8);
+}
+
+.ssc-tt-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.2rem;
+}
+
+.ssc-tt-tag {
+    display: inline-block;
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+    font-size: 0.62rem;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.ssc-tt-cast {
+    background: rgba(99, 102, 241, 0.12);
+    color: #a5b4fc;
+}
+
+.ssc-tt-prop {
+    background: rgba(245, 158, 11, 0.1);
+    color: #fbbf24;
+}
+
+.ssc-tt-wardrobe {
+    background: rgba(236, 72, 153, 0.1);
+    color: #f472b6;
+}
+
+.ssc-tt-vehicle {
+    background: rgba(52, 211, 153, 0.1);
+    color: #6ee7b7;
+}
+
+.ssc-tt-more {
+    font-size: 0.62rem;
+    color: var(--text-secondary, #94a3b8);
+    padding: 0.1rem 0.3rem;
+    background: var(--gray-700, #334155);
+    border-radius: 4px;
 }
 
 /* ── Responsive ── */

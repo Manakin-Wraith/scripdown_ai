@@ -1,13 +1,15 @@
-import React, { useState, useMemo } from 'react';
-import { Trash2, MoreHorizontal, FileText, Users, MapPin } from 'lucide-react';
+import React, { useState, useMemo, useRef } from 'react';
+import { Trash2, FileText, Users, MapPin, CalendarDays } from 'lucide-react';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
-import { removeSceneFromDay, deleteShootingDay } from '../../services/apiService';
+import { removeSceneFromDay, deleteShootingDay, updateShootingDay } from '../../services/apiService';
 import ScheduleSceneCard from './ScheduleSceneCard';
 import { formatEighths, getSceneEighths } from '../../utils/sceneUtils';
 
 const DayColumn = ({ day, refreshDays, selectedSceneIds, onToggleSelect }) => {
-    const [showMenu, setShowMenu] = useState(false);
+    const [editingDate, setEditingDate] = useState(false);
+    const [localDate, setLocalDate] = useState(day.shoot_date || '');
+    const dateInputRef = useRef(null);
 
     const scenes = (day.scenes || []).map(ds => ({
         ...ds,
@@ -58,6 +60,31 @@ const DayColumn = ({ day, refreshDays, selectedSceneIds, onToggleSelect }) => {
         }
     };
 
+    const handleSaveDate = async (value) => {
+        setEditingDate(false);
+        const trimmed = (value || '').trim();
+        if (trimmed === (day.shoot_date || '')) return;
+        setLocalDate(trimmed);
+        try {
+            await updateShootingDay(day.id, { shoot_date: trimmed || null });
+            await refreshDays();
+        } catch (err) {
+            console.error('Failed to update shoot date:', err);
+            setLocalDate(day.shoot_date || '');
+        }
+    };
+
+    const formatDisplayDate = (dateStr) => {
+        if (!dateStr) return null;
+        try {
+            return new Date(dateStr + 'T00:00:00').toLocaleDateString(undefined, {
+                month: 'short', day: 'numeric', year: 'numeric',
+            });
+        } catch {
+            return dateStr;
+        }
+    };
+
     const statusClass = day.status === 'confirmed' ? 'confirmed' : day.status === 'wrapped' ? 'wrapped' : '';
 
     return (
@@ -66,8 +93,28 @@ const DayColumn = ({ day, refreshDays, selectedSceneIds, onToggleSelect }) => {
             <div className="kanban-col-header">
                 <div className="kanban-col-title">
                     <span className="kanban-day-number">Day {day.day_number}</span>
-                    {day.shoot_date && (
-                        <span className="kanban-day-date">{day.shoot_date}</span>
+                    {editingDate ? (
+                        <input
+                            ref={dateInputRef}
+                            type="date"
+                            className="kanban-date-input"
+                            defaultValue={localDate}
+                            autoFocus
+                            onBlur={e => handleSaveDate(e.target.value)}
+                            onKeyDown={e => {
+                                if (e.key === 'Enter') handleSaveDate(e.target.value);
+                                if (e.key === 'Escape') setEditingDate(false);
+                            }}
+                        />
+                    ) : (
+                        <button
+                            className="kanban-day-date-btn"
+                            onClick={() => setEditingDate(true)}
+                            title="Set shoot date"
+                        >
+                            <CalendarDays size={11} />
+                            <span>{localDate ? formatDisplayDate(localDate) : 'Add date'}</span>
+                        </button>
                     )}
                 </div>
                 <div className="kanban-col-actions">

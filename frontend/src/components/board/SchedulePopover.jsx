@@ -3,7 +3,7 @@ import { CalendarPlus, Plus, ChevronDown, Check, Loader2 } from 'lucide-react';
 import { getSchedules, getShootingDays, quickAddToSchedule } from '../../services/apiService';
 import './SchedulePopover.css';
 
-const SchedulePopover = ({ scriptId, selectedSceneIds, onSuccess, onClose }) => {
+const SchedulePopover = ({ scriptId, selectedSceneIds, onSuccess, onClose, onScheduled }) => {
     const [schedules, setSchedules] = useState([]);
     const [expandedSchedule, setExpandedSchedule] = useState(null);
     const [days, setDays] = useState([]);
@@ -52,12 +52,16 @@ const SchedulePopover = ({ scriptId, selectedSceneIds, onSuccess, onClose }) => 
         fetch();
     }, [expandedSchedule]);
 
-    const handleQuickAdd = async (scheduleId = null, dayId = null) => {
+    const handleQuickAdd = async (scheduleId = null, dayId = null, dayLabel = null) => {
         setSubmitting(true);
         setResult(null);
         try {
             const res = await quickAddToSchedule(scriptId, selectedSceneIds, scheduleId, dayId);
             setResult(res);
+            // Optimistic update: mark scenes as scheduled on the board immediately
+            if (onScheduled && res.added_count > 0) {
+                onScheduled(selectedSceneIds, dayLabel);
+            }
             setTimeout(() => {
                 onSuccess(res);
             }, 800);
@@ -139,7 +143,7 @@ const SchedulePopover = ({ scriptId, selectedSceneIds, onSuccess, onClose }) => 
                                         <button
                                             key={day.id}
                                             className="sp-option sp-day"
-                                            onClick={() => handleQuickAdd(sched.id, day.id)}
+                                            onClick={() => handleQuickAdd(sched.id, day.id, `Day ${day.day_number}`)}
                                             disabled={submitting}
                                         >
                                             <span className="sp-day-num">Day {day.day_number}</span>
