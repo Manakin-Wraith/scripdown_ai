@@ -153,11 +153,12 @@ const ScheduleKanban = ({ scheduleId, days: propDays, refreshDays, zoomApiRef })
             const optimistic = reorderWithinDay(localDays, sourceDayId, active.id, over.id);
             setLocalDays(optimistic);
 
-            // 2. Persist in background
+            // 2. Persist + sync parent for print view
             const reorderedIds = optimistic.find(d => d.id === sourceDayId)
                 .scenes.map(ds => ds.scene_id);
             try {
                 await reorderDayScenes(sourceDayId, reorderedIds);
+                await refreshDays(); // sync parent so print view reflects new order
             } catch (err) {
                 console.error('Reorder failed, rolling back:', err);
                 await refreshDays(); // rollback via parent
@@ -173,9 +174,10 @@ const ScheduleKanban = ({ scheduleId, days: propDays, refreshDays, zoomApiRef })
             const optimistic = moveBetweenDays(localDays, sourceDayId, targetDayId, active.id, targetIndex);
             setLocalDays(optimistic);
 
-            // 2. Persist in background
+            // 2. Persist + sync parent for print view
             try {
                 await moveSceneToDay(sourceDayId, active.id, targetDayId, targetIndex);
+                await refreshDays(); // sync parent so print view reflects new order
             } catch (err) {
                 console.error('Move failed, rolling back:', err);
                 await refreshDays(); // rollback via parent
