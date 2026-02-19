@@ -22,6 +22,7 @@ import {
   Briefcase
 } from 'lucide-react';
 import { getUserAnalytics } from '../../services/apiService';
+import AdminLayout from '../../components/admin/AdminLayout';
 import './UserActivityPage.css';
 
 /**
@@ -117,28 +118,22 @@ export default function UserActivityPage() {
 
   if (loading && users.length === 0) {
     return (
-      <div className="user-activity-page">
-        <div className="page-header">
-          <button onClick={() => navigate('/admin')} className="back-button">
-            <ArrowLeft size={20} />
-          </button>
-          <h1>User Activity</h1>
+      <AdminLayout>
+        <div className="user-activity-page">
+          <div className="loading-state">
+            <div className="spinner"></div>
+            <p>Loading users...</p>
+          </div>
         </div>
-        <div className="loading-state">
-          <div className="spinner"></div>
-          <p>Loading users...</p>
-        </div>
-      </div>
+      </AdminLayout>
     );
   }
 
   return (
+    <AdminLayout>
     <div className="user-activity-page">
       {/* Header */}
       <div className="page-header">
-        <button onClick={() => navigate('/admin')} className="back-button">
-          <ArrowLeft size={20} />
-        </button>
         <div>
           <h1>User Activity</h1>
           <p className="subtitle">{total} total users</p>
@@ -444,5 +439,6 @@ export default function UserActivityPage() {
         </div>
       )}
     </div>
+    </AdminLayout>
   );
 }

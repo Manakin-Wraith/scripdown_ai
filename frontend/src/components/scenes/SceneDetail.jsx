@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
     Users, 
     Package, 
@@ -25,10 +25,13 @@ import {
     ChevronRight,
     ShieldCheck,
     ShieldAlert,
-    CalendarDays
+    CalendarDays,
+    Pencil,
+    Check,
+    X
 } from 'lucide-react';
 import BreakdownDrawer from '../breakdown/BreakdownDrawer';
-import { getScriptNotes, getSceneItems } from '../../services/apiService';
+import { getScriptNotes, getSceneItems, updateSceneHeader } from '../../services/apiService';
 import { getSceneEighthsDisplay } from '../../utils/sceneUtils';
 import './SceneDetail.css';
 
@@ -65,12 +68,25 @@ const CATEGORY_FIELD_MAP = {
     stunts: 'stunts',
 };
 
+const INT_EXT_OPTIONS = ['INT', 'EXT', 'INT/EXT', 'I/E'];
+
 const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapping = null, onRefreshScene = null }) => {
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [activeCategory, setActiveCategory] = useState(null);
     const [noteCounts, setNoteCounts] = useState({});
     const [itemCounts, setItemCounts] = useState({});
     const [userItems, setUserItems] = useState([]);  // Full items for card tag merging
+
+    // Inline edit state
+    const [editingSceneNumber, setEditingSceneNumber] = useState(false);
+    const [editingHeader, setEditingHeader] = useState(false);
+    const [sceneNumberDraft, setSceneNumberDraft] = useState('');
+    const [settingDraft, setSettingDraft] = useState('');
+    const [intExtDraft, setIntExtDraft] = useState('');
+    const [saving, setSaving] = useState(false);
+    const [saveError, setSaveError] = useState(null);
+    const sceneNumberInputRef = useRef(null);
+    const settingInputRef = useRef(null);
 
     // Fetch notes, items (for badges + card tags)
     const refreshData = async () => {
@@ -152,6 +168,67 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
         );
     };
     
+    // --- Inline edit handlers ---
+    const startEditSceneNumber = () => {
+        setSceneNumberDraft(scene.scene_number_original || scene.scene_number || '');
+        setEditingSceneNumber(true);
+        setSaveError(null);
+        setTimeout(() => sceneNumberInputRef.current?.focus(), 50);
+    };
+
+    const cancelEditSceneNumber = () => {
+        setEditingSceneNumber(false);
+        setSaveError(null);
+    };
+
+    const saveSceneNumber = async () => {
+        const trimmed = sceneNumberDraft.trim();
+        if (!trimmed) return;
+        setSaving(true);
+        setSaveError(null);
+        try {
+            await updateSceneHeader(scriptId, scene.id || scene.scene_id, { scene_number: trimmed });
+            setEditingSceneNumber(false);
+            if (onRefreshScene) onRefreshScene();
+        } catch (err) {
+            setSaveError('Failed to save scene number');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const startEditHeader = () => {
+        setSettingDraft(scene.setting || '');
+        setIntExtDraft(scene.int_ext || 'INT');
+        setEditingHeader(true);
+        setSaveError(null);
+        setTimeout(() => settingInputRef.current?.focus(), 50);
+    };
+
+    const cancelEditHeader = () => {
+        setEditingHeader(false);
+        setSaveError(null);
+    };
+
+    const saveHeader = async () => {
+        const trimmed = settingDraft.trim();
+        if (!trimmed) return;
+        setSaving(true);
+        setSaveError(null);
+        try {
+            await updateSceneHeader(scriptId, scene.id || scene.scene_id, {
+                int_ext: intExtDraft,
+                setting: trimmed.toUpperCase(),
+            });
+            setEditingHeader(false);
+            if (onRefreshScene) onRefreshScene();
+        } catch (err) {
+            setSaveError('Failed to save scene header');
+        } finally {
+            setSaving(false);
+        }
+    };
+
     if (!scene) {
         return (
             <div className="scene-detail-empty">
@@ -173,12 +250,63 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
             <div className="scene-detail">
                 {/* Header */}
                 <div className="detail-header">
-                    <span className="scene-number-label">Scene {scene.scene_number_original || scene.scene_number}</span>
-                    <h2 className="scene-title">
-                        <MapPin size={24} className="inline-icon" />
-                        {scene.int_ext && <span className="int-ext-label">{scene.int_ext}.</span>}
-                        {scene.setting}
-                    </h2>
+                    {/* Scene Number Row */}
+                    <div className="scene-header-row">
+                        {editingSceneNumber ? (
+                            <div className="scene-number-edit">
+                                <span className="scene-number-prefix">Scene</span>
+                                <input
+                                    ref={sceneNumberInputRef}
+                                    className="scene-number-input"
+                                    value={sceneNumberDraft}
+                                    onChange={e => setSceneNumberDraft(e.target.value)}
+                                    onKeyDown={e => { if (e.key === 'Enter') saveSceneNumber(); if (e.key === 'Escape') cancelEditSceneNumber(); }}
+                                    disabled={saving}
+                                    maxLength={10}
+                                />
+                                <button className="edit-action-btn confirm" onClick={saveSceneNumber} disabled={saving} title="Save"><Check size={14} /></button>
+                                <button className="edit-action-btn cancel" onClick={cancelEditSceneNumber} disabled={saving} title="Cancel"><X size={14} /></button>
+                            </div>
+                        ) : (
+                            <button className="scene-number-label editable-label" onClick={startEditSceneNumber} title="Edit scene number">
+                                Scene {scene.scene_number_original || scene.scene_number}
+                                <Pencil size={11} className="edit-hint-icon" />
+                            </button>
+                        )}
+                    </div>
+                    {/* Scene Title Row */}
+                    {editingHeader ? (
+                        <div className="scene-title-edit">
+                            <MapPin size={20} className="inline-icon" />
+                            <select
+                                className="int-ext-select"
+                                value={intExtDraft}
+                                onChange={e => setIntExtDraft(e.target.value)}
+                                disabled={saving}
+                            >
+                                {INT_EXT_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                            </select>
+                            <input
+                                ref={settingInputRef}
+                                className="setting-input"
+                                value={settingDraft}
+                                onChange={e => setSettingDraft(e.target.value)}
+                                onKeyDown={e => { if (e.key === 'Enter') saveHeader(); if (e.key === 'Escape') cancelEditHeader(); }}
+                                disabled={saving}
+                                placeholder="LOCATION NAME"
+                            />
+                            <button className="edit-action-btn confirm" onClick={saveHeader} disabled={saving} title="Save"><Check size={14} /></button>
+                            <button className="edit-action-btn cancel" onClick={cancelEditHeader} disabled={saving} title="Cancel"><X size={14} /></button>
+                        </div>
+                    ) : (
+                        <button className="scene-title editable-title" onClick={startEditHeader} title="Edit scene header">
+                            <MapPin size={24} className="inline-icon" />
+                            {scene.int_ext && <span className="int-ext-label">{scene.int_ext}.</span>}
+                            {scene.setting}
+                            <Pencil size={14} className="edit-hint-icon" />
+                        </button>
+                    )}
+                    {saveError && <p className="save-error">{saveError}</p>}
                 </div>
 
                 {/* Analyze Prompt */}
@@ -206,7 +334,9 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
             <div className="scene-detail">
                 {/* Header */}
                 <div className="detail-header">
-                    <span className="scene-number-label">Scene {scene.scene_number_original || scene.scene_number}</span>
+                    <div className="scene-header-row">
+                        <span className="scene-number-label">Scene {scene.scene_number_original || scene.scene_number}</span>
+                    </div>
                     <h2 className="scene-title">
                         <MapPin size={24} className="inline-icon" />
                         {scene.int_ext && <span className="int-ext-label">{scene.int_ext}.</span>}
@@ -231,7 +361,28 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
             {/* Header */}
             <div className="detail-header">
                 <div className="scene-header-row">
-                    <span className="scene-number-label">Scene {scene.scene_number_original || scene.scene_number}</span>
+                    {/* Editable Scene Number */}
+                    {editingSceneNumber ? (
+                        <div className="scene-number-edit">
+                            <span className="scene-number-prefix">Scene</span>
+                            <input
+                                ref={sceneNumberInputRef}
+                                className="scene-number-input"
+                                value={sceneNumberDraft}
+                                onChange={e => setSceneNumberDraft(e.target.value)}
+                                onKeyDown={e => { if (e.key === 'Enter') saveSceneNumber(); if (e.key === 'Escape') cancelEditSceneNumber(); }}
+                                disabled={saving}
+                                maxLength={10}
+                            />
+                            <button className="edit-action-btn confirm" onClick={saveSceneNumber} disabled={saving} title="Save"><Check size={14} /></button>
+                            <button className="edit-action-btn cancel" onClick={cancelEditSceneNumber} disabled={saving} title="Cancel"><X size={14} /></button>
+                        </div>
+                    ) : (
+                        <button className="scene-number-label editable-label" onClick={startEditSceneNumber} title="Edit scene number">
+                            Scene {scene.scene_number_original || scene.scene_number}
+                            <Pencil size={11} className="edit-hint-icon" />
+                        </button>
+                    )}
                     {scene.shot_type && (
                         <span className="shot-type-badge">
                             <Video size={12} />
@@ -251,11 +402,39 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
                         </span>
                     )}
                 </div>
-                <h2 className="scene-title">
-                    <MapPin size={24} className="inline-icon" />
-                    {scene.int_ext && <span className="int-ext-label">{scene.int_ext}.</span>}
-                    {scene.setting}
-                </h2>
+                {/* Editable Scene Header (INT/EXT + Setting) */}
+                {editingHeader ? (
+                    <div className="scene-title-edit">
+                        <MapPin size={20} className="inline-icon" />
+                        <select
+                            className="int-ext-select"
+                            value={intExtDraft}
+                            onChange={e => setIntExtDraft(e.target.value)}
+                            disabled={saving}
+                        >
+                            {INT_EXT_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                        </select>
+                        <input
+                            ref={settingInputRef}
+                            className="setting-input"
+                            value={settingDraft}
+                            onChange={e => setSettingDraft(e.target.value)}
+                            onKeyDown={e => { if (e.key === 'Enter') saveHeader(); if (e.key === 'Escape') cancelEditHeader(); }}
+                            disabled={saving}
+                            placeholder="LOCATION NAME"
+                        />
+                        <button className="edit-action-btn confirm" onClick={saveHeader} disabled={saving} title="Save"><Check size={14} /></button>
+                        <button className="edit-action-btn cancel" onClick={cancelEditHeader} disabled={saving} title="Cancel"><X size={14} /></button>
+                    </div>
+                ) : (
+                    <button className="scene-title editable-title" onClick={startEditHeader} title="Edit scene header">
+                        <MapPin size={24} className="inline-icon" />
+                        {scene.int_ext && <span className="int-ext-label">{scene.int_ext}.</span>}
+                        {scene.setting}
+                        <Pencil size={14} className="edit-hint-icon" />
+                    </button>
+                )}
+                {saveError && <p className="save-error">{saveError}</p>}
                 {/* Location Hierarchy Breadcrumb */}
                 {scene.location_hierarchy && scene.location_hierarchy.length > 1 && (
                     <div className="location-breadcrumb">

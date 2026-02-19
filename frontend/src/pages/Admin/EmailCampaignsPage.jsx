@@ -15,6 +15,7 @@ import {
 } from '../../services/apiService';
 import PersonalEmailModal from '../../components/campaigns/PersonalEmailModal';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
+import AdminLayout from '../../components/admin/AdminLayout';
 import './EmailCampaignsPageSimplified.css';
 
 const EmailCampaignsPage = () => {
@@ -163,26 +164,20 @@ const EmailCampaignsPage = () => {
 
     if (loading) {
         return (
+            <AdminLayout>
             <div className="email-campaigns-page">
                 <div className="loading-state">
                     <Mail size={48} />
                     <p>Loading campaigns...</p>
                 </div>
             </div>
+            </AdminLayout>
         );
     }
 
     return (
+        <AdminLayout>
         <div className="email-campaigns-page simplified">
-            {/* Back Button */}
-            <button 
-                className="back-button"
-                onClick={() => window.history.back()}
-                title="Back to Admin"
-            >
-                <ArrowLeft size={24} />
-            </button>
-
             {/* Header */}
             <div className="page-header-simple">
                 <Mail size={28} />
@@ -280,6 +275,7 @@ const EmailCampaignsPage = () => {
                 confirmButtonClass={confirmDialog.confirmButtonClass}
             />
         </div>
+        </AdminLayout>
     );
 };
 

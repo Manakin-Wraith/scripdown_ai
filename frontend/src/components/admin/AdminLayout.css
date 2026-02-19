@@ -1,0 +1,222 @@
+/* ============================================
+   Admin Layout — Sidebar + Main Content
+   ============================================ */
+
+.admin-layout {
+  display: flex;
+  min-height: 100vh;
+  background: #0a0d12;
+}
+
+/* ---- Sidebar ---- */
+.admin-sidebar {
+  width: 220px;
+  min-height: 100vh;
+  background: #0f1419;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  transition: width 0.2s ease;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.admin-layout--collapsed .admin-sidebar {
+  width: 60px;
+}
+
+/* Brand */
+.admin-sidebar__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  min-height: 60px;
+}
+
+.admin-sidebar__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  color: #6366f1;
+  font-weight: 700;
+  font-size: 0.9375rem;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.admin-layout--collapsed .admin-sidebar__brand {
+  justify-content: center;
+}
+
+.admin-sidebar__collapse {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.35);
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+
+.admin-sidebar__collapse:hover {
+  color: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.admin-sidebar__collapse svg {
+  transition: transform 0.2s ease;
+}
+
+.admin-sidebar__collapse svg.rotated {
+  transform: rotate(180deg);
+}
+
+.admin-layout--collapsed .admin-sidebar__collapse {
+  margin: 0 auto;
+}
+
+/* Nav */
+.admin-sidebar__nav {
+  flex: 1;
+  padding: 0.75rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+}
+
+.admin-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  width: 100%;
+  padding: 0.5rem 0.625rem;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: left;
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+  position: relative;
+}
+
+.admin-nav-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.admin-nav-item--active {
+  background: rgba(99, 102, 241, 0.12);
+  color: #818cf8;
+}
+
+.admin-nav-item--active:hover {
+  background: rgba(99, 102, 241, 0.18);
+  color: #a5b4fc;
+}
+
+.admin-nav-item--muted {
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 0.8125rem;
+}
+
+.admin-nav-item--muted:hover {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.admin-nav-item__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.admin-nav-item__label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.admin-nav-item__badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  background: #ef4444;
+  color: white;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  border-radius: 10px;
+  animation: pulse-badge 2s infinite;
+}
+
+@keyframes pulse-badge {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.75; }
+}
+
+.admin-nav-item__dot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 7px;
+  height: 7px;
+  background: #ef4444;
+  border-radius: 50%;
+  border: 1.5px solid #0f1419;
+}
+
+/* Footer */
+.admin-sidebar__footer {
+  padding: 0.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* ---- Main Content ---- */
+.admin-main {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+}
+
+/* ---- Collapsed state icon centering ---- */
+.admin-layout--collapsed .admin-nav-item {
+  justify-content: center;
+  padding: 0.5rem;
+}
+
+.admin-layout--collapsed .admin-nav-item__icon {
+  width: 20px;
+  height: 20px;
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 768px) {
+  .admin-sidebar {
+    display: none;
+  }
+
+  .admin-main {
+    width: 100%;
+  }
+}

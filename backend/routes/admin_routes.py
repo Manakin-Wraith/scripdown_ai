@@ -349,11 +349,11 @@ def get_user_details(user_id):
                 'error': 'User not found'
             }), 404
         
-        # Get user's scripts
+        # Get user's scripts — use correct column names
         scripts_result = supabase.table('scripts')\
-            .select('script_id, script_name, upload_date, analysis_status, scene_count')\
+            .select('id, title, created_at, analysis_status, total_pages')\
             .eq('user_id', user_id)\
-            .order('upload_date', desc=True)\
+            .order('created_at', desc=True)\
             .execute()
         
         return jsonify({

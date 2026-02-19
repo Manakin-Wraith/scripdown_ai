@@ -28,6 +28,7 @@ import {
 } from 'recharts';
 import { getScriptAnalytics } from '../../services/apiService';
 import MetricCard from '../../components/admin/MetricCard';
+import AdminLayout from '../../components/admin/AdminLayout';
 import './ScriptAnalyticsPage.css';
 
 const FEATURE_META = {
@@ -118,29 +119,25 @@ export default function ScriptAnalyticsPage() {
   // ── Loading / Error ──
   if (loading) {
     return (
-      <div className="sa-page">
-        <div className="sa-header">
-          <button onClick={() => navigate('/admin')} className="sa-back"><ArrowLeft size={20} /></button>
-          <h1>Script Analytics</h1>
+      <AdminLayout>
+        <div className="sa-page">
+          <div className="sa-loading"><div className="sa-spinner" /><p>Loading analytics...</p></div>
         </div>
-        <div className="sa-loading"><div className="sa-spinner" /><p>Loading analytics...</p></div>
-      </div>
+      </AdminLayout>
     );
   }
   if (error) {
     return (
-      <div className="sa-page">
-        <div className="sa-header">
-          <button onClick={() => navigate('/admin')} className="sa-back"><ArrowLeft size={20} /></button>
-          <h1>Script Analytics</h1>
+      <AdminLayout>
+        <div className="sa-page">
+          <div className="sa-error">
+            <AlertCircle size={48} />
+            <h2>Failed to Load</h2>
+            <p>{error}</p>
+            <button onClick={loadAnalytics} className="sa-btn-primary">Try Again</button>
+          </div>
         </div>
-        <div className="sa-error">
-          <AlertCircle size={48} />
-          <h2>Failed to Load</h2>
-          <p>{error}</p>
-          <button onClick={loadAnalytics} className="sa-btn-primary">Try Again</button>
-        </div>
-      </div>
+      </AdminLayout>
     );
   }
 
@@ -202,10 +199,10 @@ export default function ScriptAnalyticsPage() {
   };
 
   return (
+    <AdminLayout>
     <div className="sa-page">
       {/* ── Header ── */}
       <div className="sa-header">
-        <button onClick={() => navigate('/admin')} className="sa-back"><ArrowLeft size={20} /></button>
         <div className="sa-header-text">
           <h1>Script Analytics</h1>
           <p>Platform-wide script intelligence &amp; feature adoption</p>
@@ -522,5 +519,6 @@ export default function ScriptAnalyticsPage() {
         </div>
       </section>
     </div>
+    </AdminLayout>
   );
 }

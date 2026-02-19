@@ -28,98 +28,105 @@ class AnalyticsService:
             dict: Global metrics including user counts, script counts, etc.
         """
         try:
-            # Total users
-            users_result = self.supabase.table('profiles').select('id', count='exact').execute()
-            total_users = users_result.count or 0
-            
-            # Total scripts
-            scripts_result = self.supabase.table('scripts').select('id', count='exact').execute()
-            total_scripts = scripts_result.count or 0
-            
-            # Total scenes analyzed
-            scenes_result = self.supabase.table('scenes').select('id', count='exact').execute()
-            total_scenes = scenes_result.count or 0
-            
-            # Active users (last 30 days)
-            thirty_days_ago = (datetime.now() - timedelta(days=30)).isoformat()
-            active_users_result = self.supabase.table('scripts')\
-                .select('user_id', count='exact')\
+            now = datetime.now()
+            thirty_days_ago = (now - timedelta(days=30)).isoformat()
+            first_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
+
+            # Total users + new this month in one query
+            users_result = self.supabase.table('profiles')\
+                .select('id, created_at')\
+                .execute()
+            total_users = len(users_result.data or [])
+            new_users_this_month = sum(
+                1 for u in (users_result.data or [])
+                if (u.get('created_at') or '') >= first_of_month
+            )
+
+            # Active users = unique uploaders in last 30 days
+            active_scripts = self.supabase.table('scripts')\
+                .select('user_id')\
                 .gte('created_at', thirty_days_ago)\
                 .execute()
-            
-            # Get unique active users
-            active_user_ids = set()
-            if active_users_result.data:
-                for script in active_users_result.data:
-                    if script.get('user_id'):
-                        active_user_ids.add(script['user_id'])
-            active_users = len(active_user_ids)
-            
-            # Scripts analyzed this month
-            first_of_month = datetime.now().replace(day=1, hour=0, minute=0, second=0).isoformat()
-            scripts_this_month = self.supabase.table('scripts')\
-                .select('id', count='exact')\
-                .gte('created_at', first_of_month)\
-                .execute()
-            
-            # Analysis jobs stats - Note: analysis_jobs table may not exist in Supabase
-            try:
-                jobs_result = self.supabase.table('analysis_jobs')\
-                    .select('id, status', count='exact')\
-                    .execute()
-            except Exception:
-                # Table doesn't exist, use defaults
-                jobs_result = type('obj', (object,), {'count': 0, 'data': []})()
+            active_users = len(set(
+                s['user_id'] for s in (active_scripts.data or []) if s.get('user_id')
+            ))
 
-            
-            total_jobs = jobs_result.count or 0
+            # Total scripts + this month
+            scripts_result = self.supabase.table('scripts')\
+                .select('id, created_at')\
+                .execute()
+            total_scripts = len(scripts_result.data or [])
+            scripts_this_month = sum(
+                1 for s in (scripts_result.data or [])
+                if (s.get('created_at') or '') >= first_of_month
+            )
+
+            # Total scenes
+            scenes_result = self.supabase.table('scenes')\
+                .select('id', count='exact')\
+                .execute()
+            total_scenes = scenes_result.count or 0
+
+            # Analysis jobs — table may not exist
+            total_jobs = 0
             completed_jobs = 0
             failed_jobs = 0
-            
-            if jobs_result.data:
-                for job in jobs_result.data:
+            try:
+                jobs_result = self.supabase.table('analysis_jobs')\
+                    .select('id, status')\
+                    .execute()
+                total_jobs = len(jobs_result.data or [])
+                for job in (jobs_result.data or []):
                     if job.get('status') == 'completed':
                         completed_jobs += 1
                     elif job.get('status') == 'failed':
                         failed_jobs += 1
-            
-            success_rate = (completed_jobs / total_jobs * 100) if total_jobs > 0 else 0
-            
-            # Subscription stats - Note: subscription_status column may not exist
-            try:
-                trial_users = self.supabase.table('profiles')\
-                    .select('id', count='exact')\
-                    .eq('subscription_status', 'trial')\
-                    .execute()
-                
-                active_subscribers = self.supabase.table('profiles')\
-                    .select('id', count='exact')\
-                    .eq('subscription_status', 'active')\
-                    .execute()
             except Exception:
-                # Column doesn't exist, use defaults
-                trial_users = type('obj', (object,), {'count': 0})()
-                active_subscribers = type('obj', (object,), {'count': 0})()
+                pass
 
-            
+            # Success rate: if no jobs table, derive from scripts analysis_status
+            if total_jobs == 0:
+                complete_scripts = sum(
+                    1 for s in (scripts_result.data or [])
+                    if s.get('analysis_status') == 'complete'
+                )
+                success_rate = round(complete_scripts / total_scripts * 100, 2) if total_scripts > 0 else 100.0
+                failed_jobs = sum(
+                    1 for s in (scripts_result.data or [])
+                    if s.get('analysis_status') == 'failed'
+                )
+            else:
+                success_rate = round(completed_jobs / total_jobs * 100, 2) if total_jobs > 0 else 0.0
+
             return {
                 'total_users': total_users,
                 'active_users': active_users,
+                'new_users_this_month': new_users_this_month,
                 'total_scripts': total_scripts,
-                'scripts_this_month': scripts_this_month.count or 0,
+                'scripts_this_month': scripts_this_month,
                 'total_scenes': total_scenes,
                 'total_analysis_jobs': total_jobs,
                 'completed_jobs': completed_jobs,
                 'failed_jobs': failed_jobs,
-                'success_rate': round(success_rate, 2),
-                'trial_users': trial_users.count or 0,
-                'active_subscribers': active_subscribers.count or 0,
+                'success_rate': success_rate,
                 'timestamp': datetime.now().isoformat()
             }
-            
+
         except Exception as e:
             print(f"Error getting global stats: {e}")
+            import traceback
+            traceback.print_exc()
             return {
+                'total_users': 0,
+                'active_users': 0,
+                'new_users_this_month': 0,
+                'total_scripts': 0,
+                'scripts_this_month': 0,
+                'total_scenes': 0,
+                'total_analysis_jobs': 0,
+                'completed_jobs': 0,
+                'failed_jobs': 0,
+                'success_rate': 0,
                 'error': str(e),
                 'timestamp': datetime.now().isoformat()
             }
@@ -281,52 +288,58 @@ class AnalyticsService:
     
     def get_recent_activity(self, limit: int = 50) -> List[Dict[str, Any]]:
         """
-        Get recent platform activity events
-        
+        Get recent platform activity events.
+        Uses batch queries to avoid N+1 problems.
+
         Args:
             limit: Maximum number of events to return
-            
+
         Returns:
             list: Recent activity events with timestamps and details
         """
         try:
             activities = []
-            
-            # Get recent user signups
+
+            # ── 1. Recent user signups ──
             recent_users = self.supabase.table('profiles')\
                 .select('id, full_name, email, created_at')\
                 .order('created_at', desc=True)\
                 .limit(20)\
                 .execute()
-            
-            for user in recent_users.data or []:
+
+            for user in (recent_users.data or []):
                 activities.append({
                     'type': 'user_signup',
-                    'user_name': user.get('full_name', 'Unknown'),
+                    'user_name': user.get('full_name') or 'Unknown',
                     'user_email': user.get('email'),
                     'timestamp': user['created_at'],
-                    'description': f"{user.get('full_name', 'New user')} signed up"
+                    'description': f"{user.get('full_name') or 'New user'} signed up"
                 })
-            
-            # Get recent script uploads
+
+            # ── 2. Recent script uploads — batch-fetch user profiles ──
             recent_scripts = self.supabase.table('scripts')\
                 .select('id, title, user_id, created_at')\
                 .order('created_at', desc=True)\
                 .limit(20)\
                 .execute()
-            
-            for script in recent_scripts.data or []:
-                # Get user info
-                user_result = self.supabase.table('profiles')\
-                    .select('full_name')\
-                    .eq('id', script['user_id'])\
-                    .limit(1)\
+
+            # Batch-fetch all user profiles needed for scripts
+            script_user_ids = list(set(
+                s['user_id'] for s in (recent_scripts.data or []) if s.get('user_id')
+            ))
+            users_map: Dict[str, str] = {}
+            if script_user_ids:
+                users_result = self.supabase.table('profiles')\
+                    .select('id, full_name')\
+                    .in_('id', script_user_ids)\
                     .execute()
-                
-                user_name = 'Unknown'
-                if user_result.data:
-                    user_name = user_result.data[0].get('full_name', 'Unknown')
-                
+                users_map = {
+                    u['id']: (u.get('full_name') or 'Unknown')
+                    for u in (users_result.data or [])
+                }
+
+            for script in (recent_scripts.data or []):
+                user_name = users_map.get(script.get('user_id', ''), 'Unknown')
                 activities.append({
                     'type': 'script_upload',
                     'user_name': user_name,
@@ -335,57 +348,39 @@ class AnalyticsService:
                     'timestamp': script['created_at'],
                     'description': f"{user_name} uploaded '{script.get('title', 'Untitled')}'"
                 })
-            
-            # Get recent scene analysis completions (if scenes table has status)
+
+            # ── 3. Recent payment approvals ──
             try:
-                recent_scenes = self.supabase.table('scenes')\
-                    .select('id, scene_number, script_id, created_at')\
-                    .order('created_at', desc=True)\
+                recent_payments = self.supabase.table('script_credit_purchases')\
+                    .select('id, user_id, email, credits_purchased, amount, status, paid_at, created_at')\
+                    .eq('status', 'completed')\
+                    .order('paid_at', desc=True)\
                     .limit(10)\
                     .execute()
-                
-                for scene in recent_scenes.data or []:
-                    # Get script info
-                    script_result = self.supabase.table('scripts')\
-                        .select('title, user_id')\
-                        .eq('id', scene['script_id'])\
-                        .limit(1)\
-                        .execute()
-                    
-                    if script_result.data:
-                        script_data = script_result.data[0]
-                        
-                        # Get user info
-                        user_result = self.supabase.table('profiles')\
-                            .select('full_name')\
-                            .eq('id', script_data['user_id'])\
-                            .limit(1)\
-                            .execute()
-                        
-                        user_name = 'Unknown'
-                        if user_result.data:
-                            user_name = user_result.data[0].get('full_name', 'Unknown')
-                        
-                        activities.append({
-                            'type': 'scene_analyzed',
-                            'user_name': user_name,
-                            'script_title': script_data.get('title', 'Untitled'),
-                            'scene_number': scene.get('scene_number'),
-                            'timestamp': scene['created_at'],
-                            'description': f"Scene {scene.get('scene_number', '?')} analyzed in '{script_data.get('title', 'Untitled')}'"
-                        })
+
+                for payment in (recent_payments.data or []):
+                    ts = payment.get('paid_at') or payment.get('created_at', '')
+                    activities.append({
+                        'type': 'payment_approved',
+                        'user_name': payment.get('email', 'Unknown'),
+                        'user_email': payment.get('email'),
+                        'amount': float(payment.get('amount') or 0),
+                        'credits': payment.get('credits_purchased', 0),
+                        'timestamp': ts,
+                        'description': f"Payment of R{payment.get('amount', 0)} approved ({payment.get('credits_purchased', 0)} credits)"
+                    })
             except Exception:
-                # Scenes table might not have the data we need
                 pass
-            
-            # Sort all activities by timestamp (most recent first)
-            activities.sort(key=lambda x: x['timestamp'], reverse=True)
-            
-            # Return limited results
+
+            # ── 4. Sort all activities by timestamp (most recent first) ──
+            activities.sort(key=lambda x: x.get('timestamp') or '', reverse=True)
+
             return activities[:limit]
-            
+
         except Exception as e:
             print(f"Error getting recent activity: {e}")
+            import traceback
+            traceback.print_exc()
             return []
     
     def get_chart_data(self, days: int = 30) -> Dict[str, Any]:
@@ -399,22 +394,18 @@ class AnalyticsService:
             dict: Chart data for scripts and users over time
         """
         try:
-            from datetime import timedelta
-            
-            # Use 7 days for better visualization with limited data
-            days = 7
-            
-            # Generate date range
+            # Generate date range — use at least 14 days for meaningful charts
+            effective_days = max(days, 14)
             end_date = datetime.now()
-            start_date = end_date - timedelta(days=days)
-            
-            # Get all scripts
+            start_date = end_date - timedelta(days=effective_days)
+
+            # Get scripts within the window
             all_scripts = self.supabase.table('scripts')\
                 .select('id, created_at')\
                 .gte('created_at', start_date.isoformat())\
                 .execute()
-            
-            # Get all users
+
+            # Get ALL users for cumulative growth chart (not just window)
             all_users = self.supabase.table('profiles')\
                 .select('id, created_at')\
                 .execute()
@@ -790,27 +781,26 @@ class AnalyticsService:
     
     def get_script_stats(self, days: int = 30) -> Dict[str, Any]:
         """
-        Get script analysis statistics
-        
+        Get script analysis statistics.
+
         Args:
             days: Number of days to look back
-            
+
         Returns:
             dict: Script analysis metrics
         """
         try:
             cutoff_date = (datetime.now() - timedelta(days=days)).isoformat()
-            
-            # Scripts uploaded in period
+
+            # Scripts uploaded in period — use correct column names
             scripts_result = self.supabase.table('scripts')\
-                .select('script_id, script_name, upload_date, analysis_status, scene_count')\
-                .gte('upload_date', cutoff_date)\
-                .order('upload_date', desc=True)\
+                .select('id, title, created_at, analysis_status, total_pages')\
+                .gte('created_at', cutoff_date)\
+                .order('created_at', desc=True)\
                 .execute()
-            
+
             total_scripts = len(scripts_result.data or [])
-            total_scenes = sum(s.get('scene_count', 0) for s in scripts_result.data or [])
-            
+
             # Analysis status breakdown
             status_counts = {
                 'pending': 0,
@@ -818,48 +808,59 @@ class AnalyticsService:
                 'complete': 0,
                 'failed': 0
             }
-            
-            for script in scripts_result.data or []:
+            for script in (scripts_result.data or []):
                 status = script.get('analysis_status', 'pending')
                 if status in status_counts:
                     status_counts[status] += 1
-            
-            # Average scenes per script
-            avg_scenes = total_scenes / total_scripts if total_scripts > 0 else 0
-            
-            # Get analysis jobs for this period
-            jobs_result = self.supabase.table('analysis_jobs')\
-                .select('job_id, job_type, status, created_at, started_at, completed_at')\
-                .gte('created_at', cutoff_date)\
-                .execute()
-            
-            # Calculate average analysis time
-            total_duration = 0
-            completed_count = 0
-            
-            for job in jobs_result.data or []:
-                if job.get('status') == 'completed' and job.get('started_at') and job.get('completed_at'):
-                    started = datetime.fromisoformat(job['started_at'].replace('Z', '+00:00'))
-                    completed = datetime.fromisoformat(job['completed_at'].replace('Z', '+00:00'))
-                    duration = (completed - started).total_seconds()
-                    total_duration += duration
-                    completed_count += 1
-            
-            avg_duration = total_duration / completed_count if completed_count > 0 else 0
-            
+
+            # Scene count for scripts in this period
+            script_ids = [s['id'] for s in (scripts_result.data or [])]
+            total_scenes = 0
+            if script_ids:
+                scenes_result = self.supabase.table('scenes')\
+                    .select('id', count='exact')\
+                    .in_('script_id', script_ids)\
+                    .execute()
+                total_scenes = scenes_result.count or 0
+
+            avg_scenes = round(total_scenes / total_scripts, 1) if total_scripts > 0 else 0
+
+            # Analysis jobs — guard against missing table
+            total_jobs = 0
+            avg_duration = 0.0
+            try:
+                jobs_result = self.supabase.table('analysis_jobs')\
+                    .select('id, status, created_at, started_at, completed_at')\
+                    .gte('created_at', cutoff_date)\
+                    .execute()
+                total_jobs = len(jobs_result.data or [])
+                total_duration = 0
+                completed_count = 0
+                for job in (jobs_result.data or []):
+                    if job.get('status') == 'completed' and job.get('started_at') and job.get('completed_at'):
+                        started = datetime.fromisoformat(job['started_at'].replace('Z', '+00:00'))
+                        completed_dt = datetime.fromisoformat(job['completed_at'].replace('Z', '+00:00'))
+                        total_duration += (completed_dt - started).total_seconds()
+                        completed_count += 1
+                avg_duration = round(total_duration / completed_count, 2) if completed_count > 0 else 0.0
+            except Exception:
+                pass
+
             return {
                 'period_days': days,
                 'total_scripts': total_scripts,
                 'total_scenes': total_scenes,
-                'avg_scenes_per_script': round(avg_scenes, 1),
+                'avg_scenes_per_script': avg_scenes,
                 'status_breakdown': status_counts,
-                'total_jobs': len(jobs_result.data or []),
-                'avg_analysis_time_seconds': round(avg_duration, 2),
+                'total_jobs': total_jobs,
+                'avg_analysis_time_seconds': avg_duration,
                 'timestamp': datetime.now().isoformat()
             }
-            
+
         except Exception as e:
             print(f"Error getting script stats: {e}")
+            import traceback
+            traceback.print_exc()
             return {
                 'error': str(e),
                 'timestamp': datetime.now().isoformat()
@@ -953,77 +954,77 @@ class AnalyticsService:
     
     def get_subscription_metrics(self) -> Dict[str, Any]:
         """
-        Get subscription and conversion metrics
-        
+        Get subscription and conversion metrics.
+
         Returns:
-            dict: Subscription stats including trial conversions, churn, etc.
+            dict: Subscription stats including trial conversions, churn, revenue.
         """
         try:
-            # Get all users - simplified to work with current schema
+            now = datetime.now()
+            seven_days_from_now = (now + timedelta(days=7)).isoformat()
+
+            # Single query — get all subscription fields at once
             users_result = self.supabase.table('profiles')\
-                .select('id, created_at')\
+                .select('id, subscription_status, subscription_expires_at')\
                 .execute()
-            
+
             total_users = len(users_result.data or [])
-            
-            # Try to get subscription data if columns exist
             trial_users = 0
             active_subscribers = 0
             expired_users = 0
             trial_expiring_soon = 0
-            
-            try:
-                # Attempt to query subscription_status if it exists
-                status_result = self.supabase.table('profiles')\
-                    .select('id, subscription_status')\
-                    .execute()
-                
-                for user in status_result.data or []:
-                    status = user.get('subscription_status', 'trial')
-                    if status == 'trial':
-                        trial_users += 1
-                    elif status == 'active':
-                        active_subscribers += 1
-                    elif status == 'expired':
-                        expired_users += 1
-            except Exception:
-                # subscription_status column doesn't exist, use defaults
-                pass
-            
+
+            for user in (users_result.data or []):
+                status = user.get('subscription_status') or 'trial'
+                if status == 'trial':
+                    trial_users += 1
+                    # Expiring soon = expires_at is set and within 7 days
+                    expires_at = user.get('subscription_expires_at')
+                    if expires_at and expires_at <= seven_days_from_now:
+                        trial_expiring_soon += 1
+                elif status == 'active':
+                    active_subscribers += 1
+                elif status == 'expired':
+                    expired_users += 1
+
             # Conversion rate (trial to paid)
-            conversion_rate = (active_subscribers / (active_subscribers + trial_users) * 100) if (active_subscribers + trial_users) > 0 else 0
-            
-            # Get payment data from script_credit_purchases table
-            total_revenue = 0
+            total_addressable = active_subscribers + trial_users
+            conversion_rate = round(
+                active_subscribers / total_addressable * 100, 2
+            ) if total_addressable > 0 else 0.0
+
+            # Revenue from completed credit purchases
+            total_revenue = 0.0
             successful_payments = 0
             try:
-                # Get completed credit purchases (approved payments)
                 payments_result = self.supabase.table('script_credit_purchases')\
                     .select('id, amount, status')\
                     .eq('status', 'completed')\
                     .execute()
-                
-                total_revenue = sum(p.get('amount', 0) for p in payments_result.data or [])
+                # amount is numeric in DB — cast to float to avoid Decimal serialisation issues
+                total_revenue = round(
+                    sum(float(p.get('amount') or 0) for p in (payments_result.data or [])), 2
+                )
                 successful_payments = len(payments_result.data or [])
             except Exception as e:
-                # Table doesn't exist or error occurred
                 print(f"Error fetching credit purchase revenue: {e}")
-                pass
-            
+
             return {
                 'total_users': total_users,
                 'trial_users': trial_users,
                 'active_subscribers': active_subscribers,
                 'expired_users': expired_users,
                 'trial_expiring_soon': trial_expiring_soon,
-                'conversion_rate': round(conversion_rate, 2),
+                'conversion_rate': conversion_rate,
                 'total_revenue': total_revenue,
                 'successful_payments': successful_payments,
                 'timestamp': datetime.now().isoformat()
             }
-            
+
         except Exception as e:
             print(f"Error getting subscription metrics: {e}")
+            import traceback
+            traceback.print_exc()
             return {
                 'total_users': 0,
                 'trial_users': 0,
@@ -1082,26 +1083,30 @@ class AnalyticsService:
             result = query.execute()
             payments = result.data or []
             
+            # Normalise amount to float for all payments (Postgres numeric → Decimal)
+            for p in payments:
+                p['amount'] = float(p.get('amount') or 0)
+
             # Calculate summary stats
-            total_revenue = sum(p.get('amount', 0) for p in payments)
+            total_revenue = sum(p['amount'] for p in payments)
             payment_count = len(payments)
-            average_payment = total_revenue / payment_count if payment_count > 0 else 0
-            
+            average_payment = total_revenue / payment_count if payment_count > 0 else 0.0
+
             # Package type breakdown
             package_breakdown = {}
             for payment in payments:
                 pkg_type = payment.get('package_type', 'unknown')
                 if pkg_type not in package_breakdown:
-                    package_breakdown[pkg_type] = {'count': 0, 'revenue': 0}
+                    package_breakdown[pkg_type] = {'count': 0, 'revenue': 0.0}
                 package_breakdown[pkg_type]['count'] += 1
-                package_breakdown[pkg_type]['revenue'] += payment.get('amount', 0)
-            
+                package_breakdown[pkg_type]['revenue'] += payment['amount']
+
             return {
                 'success': True,
                 'summary': {
-                    'total_revenue': float(total_revenue),
+                    'total_revenue': round(total_revenue, 2),
                     'payment_count': payment_count,
-                    'average_payment': float(average_payment),
+                    'average_payment': round(average_payment, 2),
                     'period': self._get_period_label(start_date, end_date)
                 },
                 'payments': payments,

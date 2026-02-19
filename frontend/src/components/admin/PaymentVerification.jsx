@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase';
 import ApproveModal from './ApproveModal';
 import RejectModal from './RejectModal';
 import Toast from './Toast';
+import AdminLayout from './AdminLayout';
 import './PaymentVerification.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -165,30 +166,28 @@ const PaymentVerification = () => {
 
   if (loading) {
     return (
-      <div className="payment-verification">
-        <div className="loading">Loading pending payments...</div>
-      </div>
+      <AdminLayout>
+        <div className="payment-verification">
+          <div className="loading">Loading pending payments...</div>
+        </div>
+      </AdminLayout>
     );
   }
 
   if (error) {
     return (
-      <div className="payment-verification">
-        <div className="error">Error: {error}</div>
-      </div>
+      <AdminLayout>
+        <div className="payment-verification">
+          <div className="error">Error: {error}</div>
+        </div>
+      </AdminLayout>
     );
   }
 
   return (
+    <AdminLayout>
     <div className="payment-verification">
       <div className="verification-header">
-        <button 
-          onClick={() => navigate('/admin')} 
-          className="back-button"
-          title="Back to Dashboard"
-        >
-          <ArrowLeft size={20} />
-        </button>
         <div>
           <h2>Payment Verification</h2>
           <p className="subtitle">Review and approve pending credit purchases</p>
@@ -310,6 +309,7 @@ const PaymentVerification = () => {
         ))}
       </div>
     </div>
+    </AdminLayout>
   );
 };
 

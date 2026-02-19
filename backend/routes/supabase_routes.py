@@ -1337,13 +1337,13 @@ def update_scene_header(script_id, scene_id):
             return jsonify({'error': 'Cannot modify scenes in a locked script'}), 403
         
         # Get current scene data for history
-        current_scene = supabase.table('scenes').select('int_ext, setting, time_of_day').eq('id', scene_id).single().execute()
+        current_scene = supabase.table('scenes').select('scene_number, int_ext, setting, time_of_day').eq('id', scene_id).single().execute()
         
         if not current_scene.data:
             return jsonify({'error': 'Scene not found'}), 404
         
         # Only allow updating header fields
-        allowed_fields = ['int_ext', 'setting', 'time_of_day']
+        allowed_fields = ['scene_number', 'int_ext', 'setting', 'time_of_day']
         update_data = {k: v for k, v in data.items() if k in allowed_fields}
         
         if not update_data:

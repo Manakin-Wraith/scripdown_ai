@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import FeedbackDetailModal from '../../components/admin/FeedbackDetailModal';
+import AdminLayout from '../../components/admin/AdminLayout';
 import './FeedbackManagement.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -154,16 +155,9 @@ const FeedbackManagement = () => {
     };
 
     return (
-        <>
+        <AdminLayout>
             <div className="feedback-management">
                 <div className="feedback-header">
-                    <button 
-                        className="back-button"
-                        onClick={() => navigate('/admin')}
-                        title="Back to Admin Dashboard"
-                    >
-                        <ArrowLeft size={20} />
-                    </button>
                     <div className="header-left">
                         <MessageSquare size={28} />
                         <div>
@@ -301,7 +295,7 @@ const FeedbackManagement = () => {
                 }}
             />
         )}
-        </>
+    </AdminLayout>
     );
 };
 

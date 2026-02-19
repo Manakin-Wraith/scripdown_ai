@@ -6,9 +6,12 @@ import './RevenueBreakdownModal.css';
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const PACKAGE_NAMES = {
-  'single': '1 Script',
-  'five': '5 Scripts',
-  'ten': '10 Scripts',
+  'single':   '1 Script (R99)',
+  'pack_5':   '5 Scripts',
+  'pack_10':  '10 Scripts',
+  'pack_25':  '25 Scripts',
+  'five':     '5 Scripts',
+  'ten':      '10 Scripts',
   'twentyfive': '25 Scripts'
 };
 

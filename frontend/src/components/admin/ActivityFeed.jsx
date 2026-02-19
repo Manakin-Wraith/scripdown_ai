@@ -4,7 +4,8 @@ import {
   FileText, 
   CheckCircle, 
   Clock,
-  RefreshCw
+  RefreshCw,
+  CreditCard
 } from 'lucide-react';
 import PropTypes from 'prop-types';
 import './ActivityFeed.css';
@@ -40,27 +41,21 @@ export default function ActivityFeed({ activities = [], loading = false, onRefre
 
   const getActivityIcon = (type) => {
     switch (type) {
-      case 'user_signup':
-        return <Users size={20} />;
-      case 'script_upload':
-        return <FileText size={20} />;
-      case 'scene_analyzed':
-        return <CheckCircle size={20} />;
-      default:
-        return <Clock size={20} />;
+      case 'user_signup':      return <Users size={20} />;
+      case 'script_upload':    return <FileText size={20} />;
+      case 'scene_analyzed':   return <CheckCircle size={20} />;
+      case 'payment_approved': return <CreditCard size={20} />;
+      default:                 return <Clock size={20} />;
     }
   };
 
   const getActivityColor = (type) => {
     switch (type) {
-      case 'user_signup':
-        return 'blue';
-      case 'script_upload':
-        return 'indigo';
-      case 'scene_analyzed':
-        return 'green';
-      default:
-        return 'gray';
+      case 'user_signup':      return 'blue';
+      case 'script_upload':    return 'indigo';
+      case 'scene_analyzed':   return 'green';
+      case 'payment_approved': return 'emerald';
+      default:                 return 'gray';
     }
   };
 
