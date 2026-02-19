@@ -127,7 +127,8 @@ class AnalyticsService:
     def get_user_activity(self, days: int = 30, limit: int = 100, offset: int = 0, 
                           status_filter: str = None, search: str = None) -> Dict[str, Any]:
         """
-        Get user activity with filtering and pagination
+        Get user activity with filtering and pagination.
+        Returns full profile data including credits, signup source, and purchase history.
         
         Args:
             days: Number of days to look back
@@ -140,20 +141,23 @@ class AnalyticsService:
             dict: User activity records with engagement metrics and total count
         """
         try:
-            # Build query for users
+            # Build query — select ALL useful profile columns
+            select_cols = (
+                'id, full_name, email, created_at, '
+                'subscription_status, subscription_expires_at, '
+                'script_credits, total_scripts_purchased, '
+                'is_legacy_beta, script_upload_limit, scripts_uploaded, '
+                'signup_source, signup_plan, is_superuser, phone, job_title'
+            )
             query = self.supabase.table('profiles')\
-                .select('id, full_name, email, created_at', count='exact')
+                .select(select_cols, count='exact')
             
-            # Try to add subscription_status if column exists
-            try:
-                if status_filter:
-                    query = query.eq('subscription_status', status_filter)
-            except Exception:
-                pass
+            # Filter by subscription status
+            if status_filter:
+                query = query.eq('subscription_status', status_filter)
             
             # Add search filter
             if search:
-                # Search in name or email
                 query = query.or_(f'full_name.ilike.%{search}%,email.ilike.%{search}%')
             
             # Execute with pagination
@@ -163,42 +167,97 @@ class AnalyticsService:
                 .execute()
             
             total_count = users_result.count or 0
-            users = []
             
+            # Batch-fetch script counts and last-active for all users in this page
+            user_ids = [u['id'] for u in (users_result.data or [])]
+            
+            # Get all scripts for these users in one query
+            scripts_by_user = {}
+            if user_ids:
+                all_scripts = self.supabase.table('scripts')\
+                    .select('id, user_id, created_at')\
+                    .in_('user_id', user_ids)\
+                    .order('created_at', desc=True)\
+                    .execute()
+                
+                for script in (all_scripts.data or []):
+                    uid = script['user_id']
+                    if uid not in scripts_by_user:
+                        scripts_by_user[uid] = []
+                    scripts_by_user[uid].append(script)
+            
+            # Get credit purchase summary per user
+            purchases_by_user = {}
+            if user_ids:
+                all_purchases = self.supabase.table('script_credit_purchases')\
+                    .select('id, user_id, credits_purchased, amount, status, created_at')\
+                    .in_('user_id', user_ids)\
+                    .execute()
+                
+                for purchase in (all_purchases.data or []):
+                    uid = purchase['user_id']
+                    if uid not in purchases_by_user:
+                        purchases_by_user[uid] = []
+                    purchases_by_user[uid].append(purchase)
+            
+            # Get credit usage summary per user
+            usage_by_user = {}
+            if user_ids:
+                all_usage = self.supabase.table('script_credit_usage')\
+                    .select('id, user_id, created_at')\
+                    .in_('user_id', user_ids)\
+                    .execute()
+                
+                for usage in (all_usage.data or []):
+                    uid = usage['user_id']
+                    usage_by_user[uid] = usage_by_user.get(uid, 0) + 1
+            
+            users = []
             for user in users_result.data or []:
                 user_id = user['id']
+                user_scripts = scripts_by_user.get(user_id, [])
+                user_purchases = purchases_by_user.get(user_id, [])
                 
-                # Get script count
-                scripts_result = self.supabase.table('scripts')\
-                    .select('id', count='exact')\
-                    .eq('user_id', user_id)\
-                    .execute()
+                # Last active = most recent script upload
+                last_active = user_scripts[0]['created_at'] if user_scripts else None
                 
-                # Get last activity (most recent script)
-                last_script = self.supabase.table('scripts')\
-                    .select('created_at')\
-                    .eq('user_id', user_id)\
-                    .order('created_at', desc=True)\
-                    .limit(1)\
-                    .execute()
-                
-                last_active = None
-                if last_script.data:
-                    last_active = last_script.data[0].get('created_at')
-                
-                # Calculate days since signup
+                # Days since signup
                 created_at = datetime.fromisoformat(user['created_at'].replace('Z', '+00:00'))
                 days_since_signup = (datetime.now(created_at.tzinfo) - created_at).days
+                
+                # Purchase summary
+                completed_purchases = [p for p in user_purchases if p.get('status') == 'completed']
+                pending_purchases = [p for p in user_purchases if p.get('status') == 'pending']
+                total_spent = sum(p.get('amount', 0) for p in completed_purchases)
+                total_credits_bought = sum(p.get('credits_purchased', 0) for p in completed_purchases)
                 
                 users.append({
                     'user_id': user_id,
                     'name': user.get('full_name', 'Unknown'),
                     'email': user.get('email'),
-                    'subscription_status': 'trial',  # Default since column may not exist
-                    'script_count': scripts_result.count or 0,
+                    'phone': user.get('phone'),
+                    'job_title': user.get('job_title'),
+                    'subscription_status': user.get('subscription_status', 'trial'),
+                    'subscription_expires_at': user.get('subscription_expires_at'),
+                    'script_credits': user.get('script_credits', 0),
+                    'total_scripts_purchased': user.get('total_scripts_purchased', 0),
+                    'is_legacy_beta': user.get('is_legacy_beta', False),
+                    'is_superuser': user.get('is_superuser', False),
+                    'script_upload_limit': user.get('script_upload_limit'),
+                    'scripts_uploaded': user.get('scripts_uploaded', 0),
+                    'signup_source': user.get('signup_source', 'direct'),
+                    'signup_plan': user.get('signup_plan'),
+                    'script_count': len(user_scripts),
                     'last_active': last_active,
                     'days_since_signup': days_since_signup,
-                    'created_at': user['created_at']
+                    'created_at': user['created_at'],
+                    # Credit economy
+                    'credits_remaining': user.get('script_credits', 0),
+                    'credits_used': usage_by_user.get(user_id, 0),
+                    'total_spent': total_spent,
+                    'total_credits_bought': total_credits_bought,
+                    'purchase_count': len(completed_purchases),
+                    'pending_purchases': len(pending_purchases),
                 })
             
             return {
@@ -210,6 +269,8 @@ class AnalyticsService:
             
         except Exception as e:
             print(f"Error getting user activity: {e}")
+            import traceback
+            traceback.print_exc()
             return {
                 'users': [],
                 'total': 0,
@@ -422,149 +483,293 @@ class AnalyticsService:
     
     def get_script_analytics(self) -> Dict[str, Any]:
         """
-        Get comprehensive script analytics and performance metrics
+        Get comprehensive script analytics for admin dashboard.
         
-        Returns:
-            dict: Script analytics including overview, top scripts, and distributions
+        Returns rich data for:
+        - Hero metrics (at-a-glance KPIs)
+        - Upload activity timeline
+        - Scene composition (INT/EXT, Day/Night)
+        - Parser quality (ScreenPy grammar vs regex)
+        - Feature adoption across scripts
+        - Per-script detail rows with drill-down metadata
         """
         try:
-            # Get all scripts with user info
+            # ── 1. Fetch all scripts with extended columns ──
             scripts_result = self.supabase.table('scripts')\
-                .select('id, title, user_id, created_at')\
+                .select('id, title, user_id, total_pages, analysis_status, created_at, '
+                        'writer_name, total_story_days, is_locked, genre, current_revision_color')\
+                .order('created_at', desc=True)\
                 .execute()
-            
             scripts_data = scripts_result.data or []
             total_scripts = len(scripts_data)
             
-            # Get all scenes
+            # ── 2. Fetch all scenes with parser + composition columns ──
             scenes_result = self.supabase.table('scenes')\
-                .select('id, script_id, scene_number, setting, time_of_day, int_ext, characters')\
+                .select('id, script_id, scene_number, setting, time_of_day, int_ext, '
+                        'characters, parse_method, shot_type, is_omitted, is_manual, story_day')\
                 .execute()
-            
             scenes_data = scenes_result.data or []
             total_scenes = len(scenes_data)
             
-            # Calculate metrics per script
-            script_metrics = {}
+            # Index scenes by script_id for O(1) lookup
+            scenes_by_script = {}
+            for scene in scenes_data:
+                sid = scene.get('script_id')
+                if sid not in scenes_by_script:
+                    scenes_by_script[sid] = []
+                scenes_by_script[sid].append(scene)
+            
+            # ── 3. Batch-fetch user profiles ──
+            user_ids = list(set(s['user_id'] for s in scripts_data if s.get('user_id')))
+            users_map = {}
+            if user_ids:
+                users_result = self.supabase.table('profiles')\
+                    .select('id, full_name, email, subscription_status')\
+                    .in_('id', user_ids)\
+                    .execute()
+                for u in (users_result.data or []):
+                    users_map[u['id']] = u
+            
+            # ── 4. Batch-fetch feature adoption counts ──
+            script_ids = [s['id'] for s in scripts_data]
+            
+            feature_counts = {}  # { script_id: { feature: count } }
+            feature_tables = [
+                ('reports', 'reports', 'script_id'),
+                ('dept_items', 'department_items', 'script_id'),
+                ('dept_notes', 'department_notes', 'script_id'),
+                ('schedules', 'shooting_schedules', 'script_id'),
+                ('team_members', 'script_members', 'script_id'),
+                ('extractions', 'extraction_metadata', 'script_id'),
+                ('threads', 'threads', 'script_id'),
+            ]
+            
+            for feature_key, table_name, fk_col in feature_tables:
+                try:
+                    result = self.supabase.table(table_name)\
+                        .select(fk_col)\
+                        .in_(fk_col, script_ids)\
+                        .execute()
+                    for row in (result.data or []):
+                        sid = row[fk_col]
+                        if sid not in feature_counts:
+                            feature_counts[sid] = {}
+                        feature_counts[sid][feature_key] = feature_counts[sid].get(feature_key, 0) + 1
+                except Exception:
+                    pass
+            
+            # ── 5. Build per-script metrics ──
+            all_scripts_detail = []
+            total_pages = 0
+            total_grammar = 0
+            total_regex = 0
+            total_int = 0
+            total_ext = 0
+            total_int_ext = 0
+            total_day = 0
+            total_night = 0
+            total_other_time = 0
+            total_characters = 0
+            total_locations = 0
+            
             for script in scripts_data:
                 script_id = script['id']
-                script_scenes = [s for s in scenes_data if s.get('script_id') == script_id]
+                script_scenes = scenes_by_script.get(script_id, [])
+                pages = script.get('total_pages') or 0
+                total_pages += pages
                 
-                # Count unique characters across all scenes
-                all_characters = set()
-                all_locations = set()
-                int_scenes = 0
-                ext_scenes = 0
-                day_scenes = 0
-                night_scenes = 0
+                # Characters & locations
+                chars = set()
+                locs = set()
+                grammar_count = 0
+                regex_count = 0
+                int_count = 0
+                ext_count = 0
+                int_ext_count = 0
+                day_count = 0
+                night_count = 0
+                other_time_count = 0
+                shot_types_found = 0
                 
                 for scene in script_scenes:
                     # Characters
-                    chars = scene.get('characters', []) or []
-                    if isinstance(chars, list):
-                        for char in chars:
-                            if isinstance(char, dict) and 'name' in char:
-                                all_characters.add(char['name'])
-                            elif isinstance(char, str):
-                                all_characters.add(char)
+                    scene_chars = scene.get('characters', []) or []
+                    if isinstance(scene_chars, list):
+                        for c in scene_chars:
+                            if isinstance(c, dict) and 'name' in c:
+                                chars.add(c['name'])
+                            elif isinstance(c, str):
+                                chars.add(c)
                     
                     # Locations
                     setting = scene.get('setting', '')
                     if setting:
-                        all_locations.add(setting)
+                        locs.add(setting)
                     
-                    # INT/EXT - use the int_ext column
-                    int_ext = (scene.get('int_ext') or '').upper()
-                    if int_ext == 'INT' or int_ext == 'INTERIOR':
-                        int_scenes += 1
-                    elif int_ext == 'EXT' or int_ext == 'EXTERIOR':
-                        ext_scenes += 1
+                    # Parser
+                    pm = scene.get('parse_method', '')
+                    if pm == 'grammar':
+                        grammar_count += 1
+                    else:
+                        regex_count += 1
                     
-                    # DAY/NIGHT - use the time_of_day column
-                    time_of_day = (scene.get('time_of_day') or '').upper()
-                    if 'DAY' in time_of_day:
-                        day_scenes += 1
-                    elif 'NIGHT' in time_of_day:
-                        night_scenes += 1
+                    # INT/EXT
+                    ie = (scene.get('int_ext') or '').upper()
+                    if ie in ('INT', 'INTERIOR'):
+                        int_count += 1
+                    elif ie in ('EXT', 'EXTERIOR'):
+                        ext_count += 1
+                    elif 'INT' in ie and 'EXT' in ie:
+                        int_ext_count += 1
+                    
+                    # Time of day
+                    tod = (scene.get('time_of_day') or '').upper()
+                    if 'DAY' in tod:
+                        day_count += 1
+                    elif 'NIGHT' in tod:
+                        night_count += 1
+                    elif tod:
+                        other_time_count += 1
+                    
+                    # Shot type
+                    if scene.get('shot_type'):
+                        shot_types_found += 1
                 
-                # Get user info
-                user_result = self.supabase.table('profiles')\
-                    .select('full_name')\
-                    .eq('id', script['user_id'])\
-                    .limit(1)\
-                    .execute()
+                total_grammar += grammar_count
+                total_regex += regex_count
+                total_int += int_count
+                total_ext += ext_count
+                total_int_ext += int_ext_count
+                total_day += day_count
+                total_night += night_count
+                total_other_time += other_time_count
+                total_characters += len(chars)
+                total_locations += len(locs)
                 
-                user_name = 'Unknown'
-                if user_result.data:
-                    user_name = user_result.data[0].get('full_name', 'Unknown')
+                # User info
+                user = users_map.get(script.get('user_id'), {})
                 
-                script_metrics[script_id] = {
+                # Feature adoption for this script
+                features = feature_counts.get(script_id, {})
+                features_used = sum(1 for v in features.values() if v > 0)
+                
+                all_scripts_detail.append({
                     'id': script_id,
                     'title': script.get('title', 'Untitled'),
-                    'user_name': user_name,
+                    'writer_name': script.get('writer_name'),
+                    'genre': script.get('genre'),
+                    'total_pages': pages,
                     'scene_count': len(script_scenes),
-                    'character_count': len(all_characters),
-                    'location_count': len(all_locations),
-                    'int_scenes': int_scenes,
-                    'ext_scenes': ext_scenes,
-                    'day_scenes': day_scenes,
-                    'night_scenes': night_scenes,
-                    'uploaded_at': script['created_at']
+                    'character_count': len(chars),
+                    'location_count': len(locs),
+                    'story_days': script.get('total_story_days', 0),
+                    'is_locked': script.get('is_locked', False),
+                    'revision_color': script.get('current_revision_color', 'white'),
+                    'analysis_status': script.get('analysis_status', 'pending'),
+                    'uploaded_at': script['created_at'],
+                    # Owner
+                    'owner_name': user.get('full_name', 'Unknown'),
+                    'owner_email': user.get('email', ''),
+                    'subscription_status': user.get('subscription_status', 'trial'),
+                    # Scene composition
+                    'int_scenes': int_count,
+                    'ext_scenes': ext_count,
+                    'int_ext_scenes': int_ext_count,
+                    'day_scenes': day_count,
+                    'night_scenes': night_count,
+                    'other_time_scenes': other_time_count,
+                    # Parser quality
+                    'grammar_scenes': grammar_count,
+                    'regex_scenes': regex_count,
+                    'grammar_rate': round(grammar_count / len(script_scenes) * 100, 1) if script_scenes else 0,
+                    # Shot types
+                    'shot_type_count': shot_types_found,
+                    # Feature adoption
+                    'features': features,
+                    'features_used': features_used,
+                })
+            
+            # ── 6. Upload activity timeline (by date) ──
+            upload_timeline = {}
+            for script in scripts_data:
+                date_key = script['created_at'][:10]  # YYYY-MM-DD
+                if date_key not in upload_timeline:
+                    upload_timeline[date_key] = {'date': date_key, 'count': 0, 'pages': 0, 'users': set()}
+                upload_timeline[date_key]['count'] += 1
+                upload_timeline[date_key]['pages'] += script.get('total_pages') or 0
+                if script.get('user_id'):
+                    upload_timeline[date_key]['users'].add(script['user_id'])
+            
+            # Convert sets to counts for JSON serialization
+            timeline_list = []
+            for entry in sorted(upload_timeline.values(), key=lambda x: x['date']):
+                timeline_list.append({
+                    'date': entry['date'],
+                    'count': entry['count'],
+                    'pages': entry['pages'],
+                    'unique_users': len(entry['users'])
+                })
+            
+            # ── 7. Global feature adoption summary ──
+            feature_adoption_summary = {}
+            for feature_key, _, _ in feature_tables:
+                total_usage = sum(
+                    feature_counts.get(sid, {}).get(feature_key, 0) 
+                    for sid in script_ids
+                )
+                scripts_using = sum(
+                    1 for sid in script_ids 
+                    if feature_counts.get(sid, {}).get(feature_key, 0) > 0
+                )
+                feature_adoption_summary[feature_key] = {
+                    'total_usage': total_usage,
+                    'scripts_using': scripts_using,
+                    'adoption_rate': round(scripts_using / total_scripts * 100, 1) if total_scripts > 0 else 0
                 }
             
-            # Calculate overview metrics
-            total_characters = sum(m['character_count'] for m in script_metrics.values())
-            total_locations = sum(m['location_count'] for m in script_metrics.values())
-            avg_scenes = total_scenes / total_scripts if total_scripts > 0 else 0
-            avg_characters = total_characters / total_scripts if total_scripts > 0 else 0
+            # ── 8. Unique uploaders ──
+            unique_uploaders = len(set(s.get('user_id') for s in scripts_data if s.get('user_id')))
             
-            # Get top scripts by scene count
-            top_scripts = sorted(script_metrics.values(), key=lambda x: x['scene_count'], reverse=True)[:10]
+            # ── 9. This month's scripts ──
+            first_of_month = datetime.now().replace(day=1, hour=0, minute=0, second=0).isoformat()[:10]
+            scripts_this_month = sum(1 for s in scripts_data if (s.get('created_at') or '')[:10] >= first_of_month)
             
-            # Calculate scene distribution across all scripts
-            total_int = sum(m['int_scenes'] for m in script_metrics.values())
-            total_ext = sum(m['ext_scenes'] for m in script_metrics.values())
-            total_day = sum(m['day_scenes'] for m in script_metrics.values())
-            total_night = sum(m['night_scenes'] for m in script_metrics.values())
+            # ── 10. Avg pages ──
+            avg_pages = round(total_pages / total_scripts, 1) if total_scripts > 0 else 0
+            avg_scenes = round(total_scenes / total_scripts, 1) if total_scripts > 0 else 0
             
-            # Calculate performance metrics
-            performance = self.get_performance_metrics()
-            
-            # Add analysis duration to each script
-            for script_id, metrics in script_metrics.items():
-                script = next((s for s in scripts_data if s['id'] == script_id), None)
-                if script and script.get('created_at') and script.get('updated_at'):
-                    try:
-                        created = datetime.fromisoformat(script['created_at'].replace('Z', '+00:00'))
-                        updated = datetime.fromisoformat(script['updated_at'].replace('Z', '+00:00'))
-                        duration = (updated - created).total_seconds()
-                        if duration > 0 and duration < 3600:
-                            metrics['analysis_duration'] = round(duration, 1)
-                        else:
-                            metrics['analysis_duration'] = None
-                    except:
-                        metrics['analysis_duration'] = None
-                else:
-                    metrics['analysis_duration'] = None
+            # ── 11. ScreenPy parse rate ──
+            grammar_rate = round(total_grammar / total_scenes * 100, 1) if total_scenes > 0 else 0
             
             return {
                 'overview': {
                     'total_scripts': total_scripts,
                     'total_scenes': total_scenes,
-                    'avg_scenes_per_script': round(avg_scenes, 1),
-                    'avg_characters_per_script': round(avg_characters, 1),
+                    'total_pages': total_pages,
+                    'unique_uploaders': unique_uploaders,
+                    'scripts_this_month': scripts_this_month,
+                    'avg_pages_per_script': avg_pages,
+                    'avg_scenes_per_script': avg_scenes,
                     'total_characters': total_characters,
-                    'total_locations': total_locations
+                    'total_locations': total_locations,
+                    'grammar_parse_rate': grammar_rate,
                 },
-                'performance': performance,
-                'top_scripts': top_scripts,
                 'scene_distribution': {
                     'int_scenes': total_int,
                     'ext_scenes': total_ext,
+                    'int_ext_scenes': total_int_ext,
                     'day_scenes': total_day,
-                    'night_scenes': total_night
+                    'night_scenes': total_night,
+                    'other_time_scenes': total_other_time,
                 },
-                'all_scripts': list(script_metrics.values()),
+                'parser_quality': {
+                    'total_grammar': total_grammar,
+                    'total_regex': total_regex,
+                    'grammar_rate': grammar_rate,
+                },
+                'upload_timeline': timeline_list,
+                'feature_adoption': feature_adoption_summary,
+                'all_scripts': all_scripts_detail,
                 'timestamp': datetime.now().isoformat()
             }
             
@@ -573,143 +778,15 @@ class AnalyticsService:
             import traceback
             traceback.print_exc()
             return {
-                'overview': {
-                    'total_scripts': 0,
-                    'total_scenes': 0,
-                    'avg_scenes_per_script': 0,
-                    'avg_characters_per_script': 0,
-                    'total_characters': 0,
-                    'total_locations': 0
-                },
-                'top_scripts': [],
-                'scene_distribution': {
-                    'int_scenes': 0,
-                    'ext_scenes': 0,
-                    'day_scenes': 0,
-                    'night_scenes': 0
-                },
+                'overview': {},
+                'scene_distribution': {},
+                'parser_quality': {},
+                'upload_timeline': [],
+                'feature_adoption': {},
                 'all_scripts': [],
                 'error': str(e),
                 'timestamp': datetime.now().isoformat()
             }
-    
-    def get_performance_metrics(self) -> Dict[str, Any]:
-        """
-        Get analysis performance metrics from analysis_jobs table
-        
-        Returns:
-            dict: Performance metrics including avg time, success rate, etc.
-        """
-        try:
-            # Query analysis_jobs table for completed jobs
-            # Schema: id (UUID), script_id, scene_id, job_type, status, started_at, completed_at
-            jobs_result = self.supabase.table('analysis_jobs')\
-                .select('id, started_at, completed_at, status')\
-                .eq('status', 'completed')\
-                .execute()
-            
-            jobs_data = jobs_result.data or []
-            
-            # Calculate durations from completed jobs
-            durations = []
-            for job in jobs_data:
-                started = job.get('started_at')
-                completed = job.get('completed_at')
-                
-                if started and completed:
-                    try:
-                        start_time = datetime.fromisoformat(started.replace('Z', '+00:00'))
-                        end_time = datetime.fromisoformat(completed.replace('Z', '+00:00'))
-                        duration = (end_time - start_time).total_seconds()
-                        if duration > 0 and duration < 3600:  # Only count if < 1 hour (reasonable)
-                            durations.append(duration)
-                    except Exception as e:
-                        print(f"Error parsing job timestamps: {e}")
-                        pass
-            
-            # Get total job counts
-            all_jobs_result = self.supabase.table('analysis_jobs')\
-                .select('id', count='exact')\
-                .execute()
-            
-            total_jobs = all_jobs_result.count or 0
-            successful_jobs = len(jobs_data)
-            
-            # Calculate metrics
-            avg_duration = sum(durations) / len(durations) if durations else 0
-            fastest = min(durations) if durations else 0
-            slowest = max(durations) if durations else 0
-            success_rate = (successful_jobs / total_jobs * 100) if total_jobs > 0 else 0
-            
-            print(f"Performance metrics calculated: {len(durations)} jobs with timing, avg={avg_duration}s")
-            
-            return {
-                'avg_analysis_time': round(avg_duration, 1),
-                'fastest_analysis': round(fastest, 1),
-                'slowest_analysis': round(slowest, 1),
-                'total_analyses': total_jobs,
-                'successful_analyses': successful_jobs,
-                'success_rate': round(success_rate, 1),
-                'timestamp': datetime.now().isoformat()
-            }
-            
-        except Exception as e:
-            print(f"Error getting performance metrics: {e}")
-            import traceback
-            traceback.print_exc()
-            
-            # Fallback to script-based calculation
-            try:
-                scripts_result = self.supabase.table('scripts')\
-                    .select('id, created_at, updated_at')\
-                    .execute()
-                
-                scripts_data = scripts_result.data or []
-                total_scripts = len(scripts_data)
-                
-                durations = []
-                for script in scripts_data:
-                    if script.get('created_at') and script.get('updated_at'):
-                        try:
-                            created = datetime.fromisoformat(script['created_at'].replace('Z', '+00:00'))
-                            updated = datetime.fromisoformat(script['updated_at'].replace('Z', '+00:00'))
-                            duration = (updated - created).total_seconds()
-                            if duration > 0 and duration < 3600:
-                                durations.append(duration)
-                        except:
-                            pass
-                
-                avg_duration = sum(durations) / len(durations) if durations else 0
-                fastest = min(durations) if durations else 0
-                slowest = max(durations) if durations else 0
-                
-                scenes_result = self.supabase.table('scenes')\
-                    .select('script_id', count='exact')\
-                    .execute()
-                
-                scripts_with_scenes = len(set(s['script_id'] for s in (scenes_result.data or [])))
-                success_rate = (scripts_with_scenes / total_scripts * 100) if total_scripts > 0 else 0
-                
-                return {
-                    'avg_analysis_time': round(avg_duration, 1),
-                    'fastest_analysis': round(fastest, 1),
-                    'slowest_analysis': round(slowest, 1),
-                    'total_analyses': total_scripts,
-                    'successful_analyses': scripts_with_scenes,
-                    'success_rate': round(success_rate, 1),
-                    'timestamp': datetime.now().isoformat()
-                }
-            except:
-                return {
-                    'avg_analysis_time': 0,
-                    'fastest_analysis': 0,
-                    'slowest_analysis': 0,
-                    'total_analyses': 0,
-                    'successful_analyses': 0,
-                    'success_rate': 0,
-                    'error': str(e),
-                    'timestamp': datetime.now().isoformat()
-                }
     
     def get_script_stats(self, days: int = 30) -> Dict[str, Any]:
         """
