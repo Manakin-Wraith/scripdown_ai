@@ -164,6 +164,24 @@ button.scene-title.editable-title:hover .edit-hint-icon {
     box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
 }
 
+/* Time of day dropdown — amber tint to distinguish from INT/EXT */
+.time-of-day-select {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    border-radius: 4px;
+    color: #fbbf24;
+    cursor: pointer;
+    outline: none;
+    letter-spacing: 0.02em;
+}
+.time-of-day-select:focus {
+    border-color: #fbbf24;
+    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
+}
+
 /* Confirm / Cancel action buttons */
 .edit-action-btn {
     display: inline-flex;

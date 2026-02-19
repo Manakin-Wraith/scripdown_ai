@@ -69,6 +69,7 @@ const CATEGORY_FIELD_MAP = {
 };
 
 const INT_EXT_OPTIONS = ['INT', 'EXT', 'INT/EXT', 'I/E'];
+const TIME_OF_DAY_OPTIONS = ['DAY', 'NIGHT', 'DAWN', 'DUSK', 'CONTINUOUS', 'LATER', 'MOMENTS LATER'];
 
 const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapping = null, onRefreshScene = null }) => {
     const [drawerOpen, setDrawerOpen] = useState(false);
@@ -83,6 +84,7 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
     const [sceneNumberDraft, setSceneNumberDraft] = useState('');
     const [settingDraft, setSettingDraft] = useState('');
     const [intExtDraft, setIntExtDraft] = useState('');
+    const [timeOfDayDraft, setTimeOfDayDraft] = useState('');
     const [saving, setSaving] = useState(false);
     const [saveError, setSaveError] = useState(null);
     const sceneNumberInputRef = useRef(null);
@@ -200,6 +202,7 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
     const startEditHeader = () => {
         setSettingDraft(scene.setting || '');
         setIntExtDraft(scene.int_ext || 'INT');
+        setTimeOfDayDraft(scene.time_of_day || 'DAY');
         setEditingHeader(true);
         setSaveError(null);
         setTimeout(() => settingInputRef.current?.focus(), 50);
@@ -219,6 +222,7 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
             await updateSceneHeader(scriptId, scene.id || scene.scene_id, {
                 int_ext: intExtDraft,
                 setting: trimmed.toUpperCase(),
+                time_of_day: timeOfDayDraft,
             });
             setEditingHeader(false);
             if (onRefreshScene) onRefreshScene();
@@ -295,6 +299,14 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
                                 disabled={saving}
                                 placeholder="LOCATION NAME"
                             />
+                            <select
+                                className="time-of-day-select"
+                                value={timeOfDayDraft}
+                                onChange={e => setTimeOfDayDraft(e.target.value)}
+                                disabled={saving}
+                            >
+                                {TIME_OF_DAY_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                            </select>
                             <button className="edit-action-btn confirm" onClick={saveHeader} disabled={saving} title="Save"><Check size={14} /></button>
                             <button className="edit-action-btn cancel" onClick={cancelEditHeader} disabled={saving} title="Cancel"><X size={14} /></button>
                         </div>
@@ -423,6 +435,14 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
                             disabled={saving}
                             placeholder="LOCATION NAME"
                         />
+                        <select
+                            className="time-of-day-select"
+                            value={timeOfDayDraft}
+                            onChange={e => setTimeOfDayDraft(e.target.value)}
+                            disabled={saving}
+                        >
+                            {TIME_OF_DAY_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                        </select>
                         <button className="edit-action-btn confirm" onClick={saveHeader} disabled={saving} title="Save"><Check size={14} /></button>
                         <button className="edit-action-btn cancel" onClick={cancelEditHeader} disabled={saving} title="Cancel"><X size={14} /></button>
                     </div>
