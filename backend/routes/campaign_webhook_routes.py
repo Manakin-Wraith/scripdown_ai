@@ -91,8 +91,15 @@ def _increment_campaign_counter(supabase, campaign_id: str, field: str, amount: 
 
 def _sync_email_tracking(supabase, email_id: str, event_type: str, now: str, event_data: dict):
     """
-    Mirror webhook events into the email_tracking table so transactional
-    email stats stay accurate alongside campaign stats.
+    Mirror webhook events into the email_tracking table.
+
+    Resend stores two different IDs:
+    - At send time: Resend API returns a plain UUID (stored as resend_email_id)
+    - In webhook events: svix wraps it as msg_* (the 'id' field in event_data)
+
+    Strategy: try matching by the plain UUID first (event_data['email_id']),
+    then by recipient email as a fallback.
+    On email.sent, also store the svix msg_id so future events can match.
     """
     try:
         status_map = {
@@ -104,7 +111,7 @@ def _sync_email_tracking(supabase, email_id: str, event_type: str, now: str, eve
             'email.clicked':   'delivered',
         }
         delivery_status = status_map.get(event_type)
-        if not delivery_status or not email_id:
+        if not delivery_status:
             return
 
         update_data = {
@@ -116,12 +123,39 @@ def _sync_email_tracking(supabase, email_id: str, event_type: str, now: str, eve
         if event_type == 'email.clicked':
             update_data['clicked_at'] = now
 
-        supabase.table('email_tracking')\
-            .update(update_data)\
-            .eq('resend_email_id', email_id)\
-            .execute()
+        # Resend puts the plain UUID in event_data['email_id']
+        # and the svix msg_* id at the top-level data 'id' field
+        plain_uuid = event_data.get('email_id')
+        to_email   = event_data.get('to', [None])[0] if isinstance(event_data.get('to'), list) else event_data.get('to')
+
+        matched = False
+
+        # 1. Try plain UUID match (most reliable)
+        if plain_uuid:
+            result = supabase.table('email_tracking')\
+                .update(update_data)\
+                .eq('resend_email_id', plain_uuid)\
+                .execute()
+            if result.data:
+                matched = True
+                print(f"[Resend webhook] Synced email_tracking by UUID {plain_uuid} → {delivery_status}")
+
+        # 2. Fallback: match by recipient email + most recent undelivered record
+        if not matched and to_email:
+            result = supabase.table('email_tracking')\
+                .update(update_data)\
+                .eq('recipient_email', to_email)\
+                .eq('delivery_status', 'sent')\
+                .execute()
+            if result.data:
+                matched = True
+                print(f"[Resend webhook] Synced email_tracking by email {to_email} → {delivery_status}")
+
+        if not matched:
+            print(f"[Resend webhook] No email_tracking match for email_id={plain_uuid} to={to_email}")
+
     except Exception as e:
-        print(f"Warning: could not sync email_tracking for {email_id}: {e}")
+        print(f"[Resend webhook] Warning: could not sync email_tracking: {e}")
 
 
 @webhook_bp.route('/resend', methods=['POST'])
