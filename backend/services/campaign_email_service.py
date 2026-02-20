@@ -7,6 +7,7 @@ import os
 import resend
 from typing import Dict, Any, List
 from datetime import datetime
+from db.supabase_client import get_supabase_admin
 
 resend.api_key = os.getenv('RESEND_API_KEY')
 DEFAULT_FROM_EMAIL = os.getenv('RESEND_FROM_EMAIL', 'hello@slateone.studio')
@@ -83,12 +84,30 @@ def send_campaign_email(
         
         # Send via Resend
         response = resend.Emails.send(params)
-        
-        print(f"Campaign email sent to {recipient_email}: {response}")
-        
+        message_id = response.get('id') if isinstance(response, dict) else getattr(response, 'id', None)
+
+        print(f"Campaign email sent to {recipient_email}: message_id={message_id}")
+
+        # Write resend_message_id + status=sent back to recipient row immediately
+        # so the webhook can match on recipient_id AND message_id
+        if recipient_id and message_id:
+            try:
+                supabase = get_supabase_admin()
+                supabase.table('email_campaign_recipients')\
+                    .update({
+                        'resend_message_id': message_id,
+                        'status': 'sent',
+                        'sent_at': datetime.utcnow().isoformat(),
+                        'updated_at': datetime.utcnow().isoformat(),
+                    })\
+                    .eq('id', recipient_id)\
+                    .execute()
+            except Exception as db_err:
+                print(f"Warning: could not update recipient {recipient_id} after send: {db_err}")
+
         return {
             'success': True,
-            'message_id': response.get('id'),
+            'message_id': message_id,
             'recipient_email': recipient_email
         }
         
