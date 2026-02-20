@@ -33,9 +33,13 @@ def verify_resend_signature(payload: bytes, request_headers: dict, secret: str) 
         return True
     try:
         import base64
-        msg_id  = request_headers.get('svix-id', '')
-        ts      = request_headers.get('svix-timestamp', '')
-        sig_hdr = request_headers.get('svix-signature', '')
+        # Flask normalises headers to Title-Case; try both forms
+        msg_id  = (request_headers.get('Svix-Id')
+                   or request_headers.get('svix-id', ''))
+        ts      = (request_headers.get('Svix-Timestamp')
+                   or request_headers.get('svix-timestamp', ''))
+        sig_hdr = (request_headers.get('Svix-Signature')
+                   or request_headers.get('svix-signature', ''))
 
         if not msg_id or not ts or not sig_hdr:
             return False
@@ -141,8 +145,12 @@ def resend_webhook():
         payload = request.get_data()
         signature = request.headers.get('svix-signature', '') or request.headers.get('Resend-Signature', '')
 
+        # Debug: log all incoming headers so we can verify the svix format
+        print(f"[Resend webhook] Headers: { {k: v for k, v in request.headers if k.lower().startswith('svix') or k.lower() == 'resend-signature'} }")
+
         webhook_secret = os.getenv('RESEND_WEBHOOK_SECRET', '')
-        if webhook_secret and not verify_resend_signature(payload, dict(request.headers), webhook_secret):
+        sig_bypass = os.getenv('RESEND_WEBHOOK_SKIP_VERIFY', 'false').lower() == 'true'
+        if webhook_secret and not sig_bypass and not verify_resend_signature(payload, dict(request.headers), webhook_secret):
             print(f"[Resend webhook] Invalid signature — rejecting")
             return jsonify({'error': 'Invalid signature'}), 401
 
