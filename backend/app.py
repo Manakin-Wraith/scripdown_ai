@@ -49,8 +49,8 @@ app.register_blueprint(analytics_bp)  # Email analytics routes at /api/email-ana
 app.register_blueprint(admin_bp)  # Admin routes at /api/admin/* (superuser only)
 app.register_blueprint(credit_bp)  # Credit system routes at /api/credits/*
 app.register_blueprint(feedback_bp)  # Feedback routes at /api/feedback/*
+app.register_blueprint(webhook_bp)  # Campaign webhook routes at /api/campaigns/webhooks/* — must be before campaign_bp
 app.register_blueprint(campaign_bp)  # Email campaign routes at /api/campaigns/* (superuser only)
-app.register_blueprint(webhook_bp)  # Campaign webhook routes at /api/campaigns/webhooks/*
 app.register_blueprint(schedule_bp)  # Shooting schedule routes at /api/scripts/:id/schedules/*
 
 @app.route('/health')

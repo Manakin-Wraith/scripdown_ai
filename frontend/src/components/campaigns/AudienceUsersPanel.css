@@ -1,0 +1,264 @@
+/* AudienceUsersPanel — slide-in from right */
+
+.aup-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 1000;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.aup-panel {
+    width: 700px;
+    max-width: 100vw;
+    height: 100%;
+    background: #111;
+    border-left: 1px solid #2a2a2a;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: aup-slide-in 0.22s ease;
+}
+
+@keyframes aup-slide-in {
+    from { transform: translateX(100%); opacity: 0; }
+    to   { transform: translateX(0);   opacity: 1; }
+}
+
+/* ── Header ── */
+.aup-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.1rem 1.25rem;
+    border-bottom: 1px solid #2a2a2a;
+    background: #151515;
+    flex-shrink: 0;
+}
+
+.aup-header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.aup-status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.aup-title {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.aup-title svg {
+    color: #F59E0B;
+}
+
+.aup-subtitle {
+    font-size: 12px;
+    color: #4b5563;
+}
+
+.aup-header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.aup-btn-refresh {
+    background: transparent;
+    border: 1px solid #2a2a2a;
+    color: #6b7280;
+    padding: 0.4rem;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    transition: all 0.15s;
+}
+
+.aup-btn-refresh:hover {
+    border-color: #F59E0B;
+    color: #F59E0B;
+}
+
+.aup-btn-close {
+    background: transparent;
+    border: none;
+    color: #6b7280;
+    padding: 0.4rem;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    transition: color 0.15s;
+}
+
+.aup-btn-close:hover { color: #ffffff; }
+
+/* ── Body ── */
+.aup-body {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.aup-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 3rem;
+    color: #6b7280;
+    font-size: 14px;
+    flex: 1;
+}
+
+.aup-empty {
+    padding: 2.5rem;
+    text-align: center;
+    color: #4b5563;
+    font-size: 14px;
+}
+
+/* ── Table ── */
+.aup-table {
+    flex: 1;
+}
+
+.aup-head {
+    display: grid;
+    grid-template-columns: 1.2fr 1.8fr 90px 110px 110px;
+    gap: 0.5rem;
+    padding: 0.6rem 1.25rem;
+    font-size: 11px;
+    font-weight: 600;
+    color: #4b5563;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 1px solid #1a1a1a;
+    position: sticky;
+    top: 0;
+    background: #111;
+    z-index: 1;
+}
+
+.aup-row {
+    display: grid;
+    grid-template-columns: 1.2fr 1.8fr 90px 110px 110px;
+    gap: 0.5rem;
+    padding: 0.65rem 1.25rem;
+    border-bottom: 1px solid #161616;
+    align-items: center;
+    transition: background 0.1s;
+}
+
+.aup-row:last-child {
+    border-bottom: none;
+}
+
+.aup-row:hover {
+    background: rgba(255,255,255,0.02);
+}
+
+.aup-name {
+    font-size: 13px;
+    color: #e5e7eb;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.aup-email {
+    font-size: 12px;
+    color: #9ca3af;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.aup-status {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.aup-date {
+    font-size: 11px;
+    color: #4b5563;
+    white-space: nowrap;
+}
+
+/* ── Pagination ── */
+.aup-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 0.85rem 1.25rem;
+    border-top: 1px solid #1a1a1a;
+    background: #0d0d0d;
+    flex-shrink: 0;
+}
+
+.aup-page-btn {
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    color: #9ca3af;
+    padding: 0.3rem 0.75rem;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.aup-page-btn:hover:not(:disabled) {
+    border-color: #F59E0B;
+    color: #F59E0B;
+}
+
+.aup-page-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.aup-page-info {
+    font-size: 12px;
+    color: #6b7280;
+}
+
+/* ── Spin ── */
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+
+.spin { animation: spin 1s linear infinite; }
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+    .aup-panel { width: 100vw; }
+
+    .aup-head,
+    .aup-row {
+        grid-template-columns: 1fr 80px 100px;
+    }
+
+    .aup-head span:nth-child(1),
+    .aup-head span:nth-child(4),
+    .aup-row .aup-name,
+    .aup-row .aup-date:nth-child(4) {
+        display: none;
+    }
+}

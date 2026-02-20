@@ -1917,6 +1917,20 @@ export const previewCampaignAudience = async (audienceFilter) => {
 };
 
 /**
+ * Get aggregated email dashboard stats
+ * @returns {Promise<Object>} Campaign totals, transactional breakdown, template counts, audience stats
+ */
+export const getEmailStats = async () => {
+    try {
+        const response = await api.get('/api/campaigns/stats');
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching email stats:', error);
+        throw error;
+    }
+};
+
+/**
  * Get campaign recipients
  * @param {string} campaignId - Campaign UUID
  * @param {Object} params - Query parameters (status, limit, offset)
@@ -1928,6 +1942,67 @@ export const getCampaignRecipients = async (campaignId, params = {}) => {
         return response.data;
     } catch (error) {
         console.error('Error fetching campaign recipients:', error);
+        throw error;
+    }
+};
+
+/**
+ * Update an email template
+ * @param {string} templateId - Template UUID
+ * @param {Object} updates - Fields to update
+ * @returns {Promise<Object>} Updated template
+ */
+export const updateTemplate = async (templateId, updates) => {
+    try {
+        const response = await api.patch(`/api/campaigns/templates/${templateId}`, updates);
+        return response.data;
+    } catch (error) {
+        console.error('Error updating template:', error);
+        throw error;
+    }
+};
+
+/**
+ * Delete an email template
+ * @param {string} templateId - Template UUID
+ * @returns {Promise<Object>} Success status
+ */
+export const deleteTemplate = async (templateId) => {
+    try {
+        const response = await api.delete(`/api/campaigns/templates/${templateId}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error deleting template:', error);
+        throw error;
+    }
+};
+
+/**
+ * Get paginated transactional email log
+ * @param {Object} params - email_type, delivery_status, limit, offset
+ * @returns {Promise<Object>} emails list + total
+ */
+export const getTransactionalEmails = async (params = {}) => {
+    try {
+        const response = await api.get('/api/campaigns/transactional', { params });
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching transactional emails:', error);
+        throw error;
+    }
+};
+
+/**
+ * Get paginated audience users filtered by subscription_status
+ * @param {Object} params - status, limit, offset
+ * @returns {Promise<Object>} users list + total
+ */
+export const getAudienceUsers = async (params = {}) => {
+    try {
+        const response = await api.get('/api/campaigns/audience/users', { params });
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching audience users:', error);
         throw error;
     }
 };

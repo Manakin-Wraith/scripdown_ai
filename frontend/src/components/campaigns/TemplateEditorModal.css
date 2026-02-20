@@ -1,0 +1,355 @@
+/* TemplateEditorModal */
+
+.tem-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
+.tem-modal {
+    background: #111;
+    border: 1px solid #2a2a2a;
+    border-radius: 14px;
+    width: 900px;
+    max-width: 100%;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: tem-fade-in 0.18s ease;
+}
+
+@keyframes tem-fade-in {
+    from { opacity: 0; transform: scale(0.97); }
+    to   { opacity: 1; transform: scale(1); }
+}
+
+/* ── Header ── */
+.tem-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #2a2a2a;
+    background: #151515;
+    flex-shrink: 0;
+}
+
+.tem-header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.tem-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.tem-toggle-active {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 0.25rem 0.65rem;
+    border-radius: 20px;
+    border: 1px solid #3a3a3a;
+    background: transparent;
+    color: #6b7280;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.tem-toggle-active.active {
+    background: rgba(16, 185, 129, 0.12);
+    border-color: rgba(16, 185, 129, 0.3);
+    color: #10b981;
+}
+
+.tem-toggle-active:hover {
+    border-color: #F59E0B;
+    color: #F59E0B;
+}
+
+.tem-header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.tem-btn-preview {
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    color: #9ca3af;
+    padding: 0.4rem 0.75rem;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: all 0.15s;
+}
+
+.tem-btn-preview:hover {
+    border-color: #6366f1;
+    color: #818cf8;
+}
+
+.tem-btn-save {
+    background: linear-gradient(135deg, #F59E0B, #D97706);
+    color: #000;
+    border: none;
+    padding: 0.4rem 0.9rem;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: all 0.15s;
+}
+
+.tem-btn-save:hover {
+    box-shadow: 0 4px 12px rgba(245,158,11,0.3);
+}
+
+.tem-btn-save:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.tem-btn-delete {
+    background: transparent;
+    border: 1px solid #2a2a2a;
+    color: #6b7280;
+    padding: 0.4rem;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    transition: all 0.15s;
+}
+
+.tem-btn-delete:hover {
+    background: rgba(239,68,68,0.1);
+    border-color: #ef4444;
+    color: #ef4444;
+}
+
+.tem-btn-delete:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.tem-btn-close {
+    background: transparent;
+    border: none;
+    color: #6b7280;
+    padding: 0.4rem;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    transition: color 0.15s;
+}
+
+.tem-btn-close:hover {
+    color: #ffffff;
+}
+
+/* ── Error ── */
+.tem-error {
+    background: rgba(239,68,68,0.1);
+    border-bottom: 1px solid rgba(239,68,68,0.3);
+    color: #fca5a5;
+    padding: 0.6rem 1.25rem;
+    font-size: 13px;
+    flex-shrink: 0;
+}
+
+/* ── Body ── */
+.tem-body {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+}
+
+.tem-fields {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    padding: 1.25rem;
+    overflow-y: auto;
+}
+
+/* ── Field rows ── */
+.tem-field-row {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.tem-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    flex: 1;
+}
+
+.tem-field-sm {
+    flex: 0 0 160px;
+}
+
+.tem-field-grow {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.tem-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #4b5563;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.tem-input {
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 7px;
+    color: #ffffff;
+    font-size: 14px;
+    padding: 0.55rem 0.75rem;
+    outline: none;
+    transition: border-color 0.15s;
+    font-family: inherit;
+}
+
+.tem-input:focus {
+    border-color: #F59E0B;
+}
+
+.tem-select {
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 7px;
+    color: #e5e7eb;
+    font-size: 14px;
+    padding: 0.55rem 0.75rem;
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.15s;
+    font-family: inherit;
+}
+
+.tem-select:focus {
+    border-color: #F59E0B;
+}
+
+/* ── Tabs ── */
+.tem-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid #2a2a2a;
+    margin-bottom: 0;
+    flex-shrink: 0;
+}
+
+.tem-tab {
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: #6b7280;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-bottom: -1px;
+}
+
+.tem-tab.active {
+    color: #F59E0B;
+    border-bottom-color: #F59E0B;
+}
+
+.tem-tab:hover:not(.active) {
+    color: #e5e7eb;
+}
+
+/* ── Textarea ── */
+.tem-textarea {
+    flex: 1;
+    background: #0d0d0d;
+    border: 1px solid #2a2a2a;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    color: #e5e7eb;
+    font-size: 13px;
+    font-family: 'Fira Code', 'Courier New', monospace;
+    padding: 0.75rem;
+    outline: none;
+    resize: none;
+    line-height: 1.6;
+    min-height: 280px;
+    transition: border-color 0.15s;
+}
+
+.tem-textarea:focus {
+    border-color: #F59E0B;
+}
+
+/* ── HTML Preview ── */
+.tem-preview-frame {
+    flex: 1;
+    background: #ffffff;
+    border: 1px solid #2a2a2a;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    padding: 1rem;
+    overflow-y: auto;
+    min-height: 280px;
+    color: #111;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+/* ── Spin ── */
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+
+.spin {
+    animation: spin 1s linear infinite;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+    .tem-modal {
+        width: 100%;
+        max-height: 100vh;
+        border-radius: 0;
+    }
+
+    .tem-field-row {
+        flex-direction: column;
+    }
+
+    .tem-field-sm {
+        flex: 1;
+    }
+}

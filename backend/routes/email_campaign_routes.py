@@ -156,6 +156,83 @@ def create_template():
         }), 500
 
 
+@campaign_bp.route('/templates/<template_id>', methods=['PATCH'])
+@require_auth
+@require_superuser
+def update_template(template_id):
+    """
+    Update an email template
+
+    Body (all optional):
+        name, subject, body_html, body_text, category, variables, is_active
+    """
+    try:
+        from db.supabase_client import get_supabase_admin
+        supabase = get_supabase_admin()
+
+        data = request.get_json()
+
+        existing = supabase.table('email_templates')\
+            .select('id')\
+            .eq('id', template_id)\
+            .single()\
+            .execute()
+
+        if not existing.data:
+            return jsonify({'success': False, 'error': 'Template not found'}), 404
+
+        allowed = ['name', 'subject', 'body_html', 'body_text', 'category', 'variables', 'is_active']
+        update_data = {k: data[k] for k in allowed if k in data}
+        update_data['updated_at'] = datetime.now().isoformat()
+
+        result = supabase.table('email_templates')\
+            .update(update_data)\
+            .eq('id', template_id)\
+            .execute()
+
+        return jsonify({
+            'success': True,
+            'template': result.data[0] if result.data else None
+        }), 200
+
+    except Exception as e:
+        print(f"Error updating template: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@campaign_bp.route('/templates/<template_id>', methods=['DELETE'])
+@require_auth
+@require_superuser
+def delete_template(template_id):
+    """
+    Delete an email template (hard delete).
+    Soft-deactivate instead if you want to preserve history.
+    """
+    try:
+        from db.supabase_client import get_supabase_admin
+        supabase = get_supabase_admin()
+
+        existing = supabase.table('email_templates')\
+            .select('id')\
+            .eq('id', template_id)\
+            .single()\
+            .execute()
+
+        if not existing.data:
+            return jsonify({'success': False, 'error': 'Template not found'}), 404
+
+        supabase.table('email_templates')\
+            .delete()\
+            .eq('id', template_id)\
+            .execute()
+
+        return jsonify({'success': True, 'message': 'Template deleted'}), 200
+
+    except Exception as e:
+        print(f"Error deleting template: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 # ============================================
 # Campaign Management Endpoints
 # ============================================
@@ -349,6 +426,215 @@ def get_campaign_analytics(campaign_id):
             'success': False,
             'error': str(e)
         }), 500
+
+
+@campaign_bp.route('/stats', methods=['GET'])
+@require_auth
+@require_superuser
+def get_email_stats():
+    """
+    Get aggregated email statistics for the dashboard.
+    Returns campaign totals, transactional email breakdown, template counts, audience stats.
+    """
+    try:
+        from db.supabase_client import get_supabase_admin
+        supabase = get_supabase_admin()
+
+        # --- Campaign aggregate stats ---
+        campaigns_result = supabase.table('email_campaigns').select(
+            'id, status, total_recipients, emails_sent, emails_delivered, '
+            'emails_opened, emails_clicked, emails_bounced, emails_failed, created_at, sent_at'
+        ).execute()
+        campaigns = campaigns_result.data or []
+
+        total_campaigns = len(campaigns)
+        total_recipients = sum(c.get('total_recipients') or 0 for c in campaigns)
+        total_sent = sum(c.get('emails_sent') or 0 for c in campaigns)
+        total_delivered = sum(c.get('emails_delivered') or 0 for c in campaigns)
+        total_opened = sum(c.get('emails_opened') or 0 for c in campaigns)
+        total_clicked = sum(c.get('emails_clicked') or 0 for c in campaigns)
+        total_bounced = sum(c.get('emails_bounced') or 0 for c in campaigns)
+        total_failed = sum(c.get('emails_failed') or 0 for c in campaigns)
+
+        status_counts = {}
+        for c in campaigns:
+            s = c.get('status', 'unknown')
+            status_counts[s] = status_counts.get(s, 0) + 1
+
+        # --- Transactional email breakdown from email_tracking ---
+        tracking_result = supabase.table('email_tracking').select(
+            'email_type, delivery_status, sent_at'
+        ).execute()
+        tracking_rows = tracking_result.data or []
+
+        transactional_by_type = {}
+        for row in tracking_rows:
+            et = row.get('email_type', 'unknown')
+            if et not in transactional_by_type:
+                transactional_by_type[et] = {'sent': 0, 'failed': 0, 'total': 0}
+            transactional_by_type[et]['total'] += 1
+            ds = row.get('delivery_status', '')
+            if ds == 'sent':
+                transactional_by_type[et]['sent'] += 1
+            elif ds in ('failed', 'bounced'):
+                transactional_by_type[et]['failed'] += 1
+
+        transactional_total = len(tracking_rows)
+
+        # --- Template counts ---
+        templates_result = supabase.table('email_templates').select('id, category, is_active').execute()
+        templates = templates_result.data or []
+        template_counts = {'total': len(templates), 'active': sum(1 for t in templates if t.get('is_active'))}
+        template_by_category = {}
+        for t in templates:
+            cat = t.get('category', 'other')
+            template_by_category[cat] = template_by_category.get(cat, 0) + 1
+
+        # --- Audience stats from profiles ---
+        profiles_result = supabase.table('profiles').select('subscription_status').execute()
+        profiles = profiles_result.data or []
+        audience_by_status = {}
+        for p in profiles:
+            s = p.get('subscription_status', 'unknown')
+            audience_by_status[s] = audience_by_status.get(s, 0) + 1
+
+        # --- Delivery / open / click rates ---
+        delivery_rate = round((total_delivered / total_sent * 100) if total_sent > 0 else 0, 1)
+        open_rate = round((total_opened / total_delivered * 100) if total_delivered > 0 else 0, 1)
+        click_rate = round((total_clicked / total_delivered * 100) if total_delivered > 0 else 0, 1)
+
+        return jsonify({
+            'success': True,
+            'campaigns': {
+                'total': total_campaigns,
+                'by_status': status_counts,
+                'total_recipients': total_recipients,
+                'emails_sent': total_sent,
+                'emails_delivered': total_delivered,
+                'emails_opened': total_opened,
+                'emails_clicked': total_clicked,
+                'emails_bounced': total_bounced,
+                'emails_failed': total_failed,
+                'delivery_rate': delivery_rate,
+                'open_rate': open_rate,
+                'click_rate': click_rate,
+            },
+            'transactional': {
+                'total': transactional_total,
+                'by_type': transactional_by_type,
+            },
+            'templates': {
+                'total': template_counts['total'],
+                'active': template_counts['active'],
+                'by_category': template_by_category,
+            },
+            'audience': {
+                'total': len(profiles),
+                'by_status': audience_by_status,
+            }
+        }), 200
+
+    except Exception as e:
+        print(f"Error getting email stats: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@campaign_bp.route('/transactional', methods=['GET'])
+@require_auth
+@require_superuser
+def list_transactional_emails():
+    """
+    Paginated transactional email log from email_tracking.
+
+    Query params:
+        email_type: Filter by type (optional)
+        delivery_status: Filter by status (optional)
+        limit: Default 50
+        offset: Default 0
+    """
+    try:
+        from db.supabase_client import get_supabase_admin
+        supabase = get_supabase_admin()
+
+        email_type      = request.args.get('email_type')
+        delivery_status = request.args.get('delivery_status')
+        limit           = int(request.args.get('limit', 50))
+        offset          = int(request.args.get('offset', 0))
+
+        query = supabase.table('email_tracking')\
+            .select(
+                'id, email_type, recipient_email, recipient_name, delivery_status, '
+                'resend_email_id, sent_at, opened_at, clicked_at, user_status, metadata',
+                count='exact'
+            )\
+            .order('sent_at', desc=True)\
+            .range(offset, offset + limit - 1)
+
+        if email_type:
+            query = query.eq('email_type', email_type)
+        if delivery_status:
+            query = query.eq('delivery_status', delivery_status)
+
+        result = query.execute()
+
+        return jsonify({
+            'success': True,
+            'emails': result.data or [],
+            'total': result.count or 0,
+            'limit': limit,
+            'offset': offset,
+        }), 200
+
+    except Exception as e:
+        print(f"Error listing transactional emails: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@campaign_bp.route('/audience/users', methods=['GET'])
+@require_auth
+@require_superuser
+def list_audience_users():
+    """
+    Paginated list of users filtered by subscription_status.
+
+    Query params:
+        status: subscription_status value (optional — omit for all)
+        limit: Default 50
+        offset: Default 0
+    """
+    try:
+        from db.supabase_client import get_supabase_admin
+        supabase = get_supabase_admin()
+
+        status = request.args.get('status')
+        limit  = int(request.args.get('limit', 50))
+        offset = int(request.args.get('offset', 0))
+
+        query = supabase.table('profiles')\
+            .select(
+                'id, full_name, email, subscription_status, trial_ends_at, created_at',
+                count='exact'
+            )\
+            .order('created_at', desc=True)\
+            .range(offset, offset + limit - 1)
+
+        if status:
+            query = query.eq('subscription_status', status)
+
+        result = query.execute()
+
+        return jsonify({
+            'success': True,
+            'users': result.data or [],
+            'total': result.count or 0,
+            'status_filter': status,
+            'limit': limit,
+            'offset': offset,
+        }), 200
+
+    except Exception as e:
+        print(f"Error listing audience users: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @campaign_bp.route('/preview', methods=['POST'])

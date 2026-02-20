@@ -1,0 +1,324 @@
+/* TransactionalLogPanel — full-width slide-in from bottom */
+
+.tlp-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 1000;
+    display: flex;
+    align-items: flex-end;
+}
+
+.tlp-panel {
+    width: 100%;
+    max-height: 75vh;
+    background: #111;
+    border-top: 1px solid #2a2a2a;
+    display: flex;
+    flex-direction: column;
+    animation: tlp-slide-up 0.22s ease;
+}
+
+@keyframes tlp-slide-up {
+    from { transform: translateY(100%); opacity: 0; }
+    to   { transform: translateY(0);   opacity: 1; }
+}
+
+/* ── Header ── */
+.tlp-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #2a2a2a;
+    background: #151515;
+    flex-shrink: 0;
+}
+
+.tlp-header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.tlp-icon {
+    color: #F59E0B;
+    flex-shrink: 0;
+}
+
+.tlp-title {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.tlp-subtitle {
+    font-size: 12px;
+    color: #4b5563;
+}
+
+.tlp-header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.tlp-btn-filter,
+.tlp-btn-refresh {
+    background: transparent;
+    border: 1px solid #2a2a2a;
+    color: #6b7280;
+    padding: 0.4rem;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    transition: all 0.15s;
+}
+
+.tlp-btn-filter:hover,
+.tlp-btn-refresh:hover {
+    border-color: #F59E0B;
+    color: #F59E0B;
+}
+
+.tlp-btn-filter.active {
+    background: rgba(245,158,11,0.1);
+    border-color: #F59E0B;
+    color: #F59E0B;
+}
+
+.tlp-btn-close {
+    background: transparent;
+    border: none;
+    color: #6b7280;
+    padding: 0.4rem;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    transition: color 0.15s;
+}
+
+.tlp-btn-close:hover { color: #ffffff; }
+
+/* ── Filter bar ── */
+.tlp-filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.5rem;
+    border-bottom: 1px solid #1a1a1a;
+    background: #0d0d0d;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+}
+
+.tlp-filter-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #4b5563;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-right: 0.25rem;
+}
+
+.tlp-filter-chip {
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    color: #9ca3af;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 0.25rem 0.65rem;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.tlp-filter-chip:hover {
+    border-color: #F59E0B;
+    color: #F59E0B;
+}
+
+.tlp-filter-chip.active {
+    background: rgba(245,158,11,0.12);
+    border-color: #F59E0B;
+    color: #F59E0B;
+}
+
+/* ── Body ── */
+.tlp-body {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.tlp-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 3rem;
+    color: #6b7280;
+    font-size: 14px;
+}
+
+.tlp-empty {
+    padding: 2.5rem;
+    text-align: center;
+    color: #4b5563;
+    font-size: 14px;
+}
+
+/* ── Table ── */
+.tlp-table {
+    width: 100%;
+}
+
+.tlp-head {
+    display: grid;
+    grid-template-columns: 2fr 1.5fr 90px 140px 120px 120px;
+    gap: 0.5rem;
+    padding: 0.6rem 1.5rem;
+    font-size: 11px;
+    font-weight: 600;
+    color: #4b5563;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 1px solid #1a1a1a;
+    position: sticky;
+    top: 0;
+    background: #111;
+    z-index: 1;
+}
+
+.tlp-row {
+    display: grid;
+    grid-template-columns: 2fr 1.5fr 90px 140px 120px 120px;
+    gap: 0.5rem;
+    padding: 0.6rem 1.5rem;
+    border-bottom: 1px solid #161616;
+    align-items: center;
+    transition: background 0.1s;
+}
+
+.tlp-row:hover {
+    background: rgba(255,255,255,0.02);
+}
+
+.tlp-cell-recipient {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    min-width: 0;
+}
+
+.tlp-email {
+    font-size: 13px;
+    color: #e5e7eb;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tlp-name {
+    font-size: 11px;
+    color: #4b5563;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tlp-type {
+    font-size: 12px;
+    color: #9ca3af;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tlp-status {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.tlp-date {
+    font-size: 11px;
+    color: #4b5563;
+    white-space: nowrap;
+}
+
+/* ── Pagination ── */
+.tlp-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 0.85rem 1.5rem;
+    border-top: 1px solid #1a1a1a;
+    background: #0d0d0d;
+}
+
+.tlp-page-btn {
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    color: #9ca3af;
+    padding: 0.3rem 0.75rem;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.tlp-page-btn:hover:not(:disabled) {
+    border-color: #F59E0B;
+    color: #F59E0B;
+}
+
+.tlp-page-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.tlp-page-info {
+    font-size: 12px;
+    color: #6b7280;
+}
+
+/* ── Spin ── */
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+
+.spin { animation: spin 1s linear infinite; }
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+    .tlp-head,
+    .tlp-row {
+        grid-template-columns: 2fr 1fr 80px 110px;
+    }
+
+    .tlp-head span:nth-child(5),
+    .tlp-head span:nth-child(6),
+    .tlp-row span:nth-child(5),
+    .tlp-row span:nth-child(6) {
+        display: none;
+    }
+}
+
+@media (max-width: 600px) {
+    .tlp-head,
+    .tlp-row {
+        grid-template-columns: 1fr 80px 100px;
+    }
+
+    .tlp-head span:nth-child(2),
+    .tlp-head span:nth-child(4),
+    .tlp-row .tlp-type,
+    .tlp-row .tlp-date:nth-child(4) {
+        display: none;
+    }
+}
