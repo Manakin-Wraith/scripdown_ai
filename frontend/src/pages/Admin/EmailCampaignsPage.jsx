@@ -211,10 +211,22 @@ const EmailCampaignsPage = () => {
 
             {/* KPI Row */}
             <div className="ec-kpi-row">
-                <KpiCard icon={Send}         label="Emails Sent"    value={cStats.emails_sent ?? tStats.total ?? '—'}  color="#F59E0B" />
-                <KpiCard icon={TrendingUp}   label="Delivery Rate"  value={cStats.delivery_rate != null ? `${cStats.delivery_rate}%` : '—'} color="#10b981" />
-                <KpiCard icon={Eye}          label="Open Rate"      value={cStats.open_rate != null ? `${cStats.open_rate}%` : '—'}         color="#6366f1" />
-                <KpiCard icon={MousePointer} label="Click Rate"     value={cStats.click_rate != null ? `${cStats.click_rate}%` : '—'}       color="#ec4899" />
+                <KpiCard icon={Send}         label="Emails Sent"
+                    value={(cStats.emails_sent ?? 0) + (tStats.total ?? 0)}
+                    sub={`${cStats.emails_sent ?? 0} campaign · ${tStats.total ?? 0} transactional`}
+                    color="#F59E0B" />
+                <KpiCard icon={TrendingUp}   label="Delivery Rate"
+                    value={cStats.delivery_rate != null ? `${cStats.delivery_rate}%` : '—'}
+                    sub={`${cStats.emails_delivered ?? 0} delivered`}
+                    color="#10b981" />
+                <KpiCard icon={Eye}          label="Open Rate"
+                    value={cStats.open_rate != null ? `${cStats.open_rate}%` : '—'}
+                    sub={`${cStats.emails_opened ?? 0} opened`}
+                    color="#6366f1" />
+                <KpiCard icon={MousePointer} label="Click Rate"
+                    value={cStats.click_rate != null ? `${cStats.click_rate}%` : '—'}
+                    sub={`${cStats.emails_clicked ?? 0} clicked`}
+                    color="#ec4899" />
                 <KpiCard icon={Users}        label="Total Audience" value={aStats.total ?? '—'}
                     sub={`${aStats.by_status?.active ?? 0} active · ${aStats.by_status?.trial ?? 0} trial`}
                     color="#8b5cf6" />
@@ -394,6 +406,16 @@ const EmailCampaignsPage = () => {
                                             <div className="ec-trans-bar-wrap">
                                                 <div className="ec-trans-bar"
                                                     style={{ width: `${Math.round(data.total / maxTrans * 100)}%` }} />
+                                                {data.delivered > 0 && (
+                                                    <div className="ec-trans-bar ec-trans-bar-delivered"
+                                                        style={{ width: `${Math.round(data.delivered / maxTrans * 100)}%` }} />
+                                                )}
+                                            </div>
+                                            <div className="ec-trans-sub-counts">
+                                                {data.delivered > 0 && <span className="ec-trans-chip delivered">{data.delivered} delivered</span>}
+                                                {data.opened   > 0 && <span className="ec-trans-chip opened">{data.opened} opened</span>}
+                                                {data.clicked  > 0 && <span className="ec-trans-chip clicked">{data.clicked} clicked</span>}
+                                                {data.failed   > 0 && <span className="ec-trans-chip failed">{data.failed} failed</span>}
                                             </div>
                                         </div>
                                     ))}

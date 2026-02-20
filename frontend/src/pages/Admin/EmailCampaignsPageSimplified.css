@@ -817,7 +817,36 @@
     background: linear-gradient(90deg, #F59E0B, #D97706);
     border-radius: 3px;
     transition: width 0.4s ease;
+    position: relative;
 }
+
+.ec-trans-bar-delivered {
+    background: linear-gradient(90deg, #10b981, #059669);
+    opacity: 0.7;
+    margin-top: -5px;
+}
+
+/* Sub-count chips below each transactional bar */
+.ec-trans-sub-counts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    margin-top: 0.15rem;
+}
+
+.ec-trans-chip {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 0.1rem 0.45rem;
+    border-radius: 20px;
+    text-transform: capitalize;
+    letter-spacing: 0.02em;
+}
+
+.ec-trans-chip.delivered { background: rgba(16,185,129,0.12); color: #10b981; }
+.ec-trans-chip.opened    { background: rgba(99,102,241,0.12);  color: #818cf8; }
+.ec-trans-chip.clicked   { background: rgba(236,72,153,0.12);  color: #f472b6; }
+.ec-trans-chip.failed    { background: rgba(239,68,68,0.12);   color: #f87171; }
 
 /* ── Templates ── */
 .ec-template-list {

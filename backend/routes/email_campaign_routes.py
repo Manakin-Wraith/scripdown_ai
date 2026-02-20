@@ -440,20 +440,14 @@ def get_email_stats():
         from db.supabase_client import get_supabase_admin
         supabase = get_supabase_admin()
 
-        # --- Campaign aggregate stats ---
+        # --- Campaign aggregate stats (from campaigns table for status/meta) ---
         campaigns_result = supabase.table('email_campaigns').select(
-            'id, status, total_recipients, emails_sent, emails_delivered, '
-            'emails_opened, emails_clicked, emails_bounced, emails_failed, created_at, sent_at'
+            'id, status, total_recipients, emails_sent, emails_failed, created_at, sent_at'
         ).execute()
         campaigns = campaigns_result.data or []
 
         total_campaigns = len(campaigns)
         total_recipients = sum(c.get('total_recipients') or 0 for c in campaigns)
-        total_sent = sum(c.get('emails_sent') or 0 for c in campaigns)
-        total_delivered = sum(c.get('emails_delivered') or 0 for c in campaigns)
-        total_opened = sum(c.get('emails_opened') or 0 for c in campaigns)
-        total_clicked = sum(c.get('emails_clicked') or 0 for c in campaigns)
-        total_bounced = sum(c.get('emails_bounced') or 0 for c in campaigns)
         total_failed = sum(c.get('emails_failed') or 0 for c in campaigns)
 
         status_counts = {}
@@ -461,9 +455,33 @@ def get_email_stats():
             s = c.get('status', 'unknown')
             status_counts[s] = status_counts.get(s, 0) + 1
 
+        # --- Live recipient status counts (source of truth for rates) ---
+        recipients_result = supabase.table('email_campaign_recipients').select(
+            'status'
+        ).execute()
+        recipients = recipients_result.data or []
+
+        live_sent      = sum(1 for r in recipients if r.get('status') in ('sent', 'delivered', 'opened', 'clicked'))
+        live_delivered = sum(1 for r in recipients if r.get('status') in ('delivered', 'opened', 'clicked'))
+        live_opened    = sum(1 for r in recipients if r.get('status') in ('opened', 'clicked'))
+        live_clicked   = sum(1 for r in recipients if r.get('status') == 'clicked')
+        live_bounced   = sum(1 for r in recipients if r.get('status') == 'bounced')
+
+        # Use live counts; fall back to campaign aggregate for sent if live is 0
+        total_sent      = live_sent or sum(c.get('emails_sent') or 0 for c in campaigns)
+        total_delivered = live_delivered
+        total_opened    = live_opened
+        total_clicked   = live_clicked
+        total_bounced   = live_bounced
+
+        # --- Delivery / open / click rates ---
+        delivery_rate = round((total_delivered / total_sent * 100) if total_sent > 0 else 0, 1)
+        open_rate     = round((total_opened    / total_sent * 100) if total_sent > 0 else 0, 1)
+        click_rate    = round((total_clicked   / total_sent * 100) if total_sent > 0 else 0, 1)
+
         # --- Transactional email breakdown from email_tracking ---
         tracking_result = supabase.table('email_tracking').select(
-            'email_type, delivery_status, sent_at'
+            'email_type, delivery_status, opened_at, clicked_at'
         ).execute()
         tracking_rows = tracking_result.data or []
 
@@ -471,15 +489,22 @@ def get_email_stats():
         for row in tracking_rows:
             et = row.get('email_type', 'unknown')
             if et not in transactional_by_type:
-                transactional_by_type[et] = {'sent': 0, 'failed': 0, 'total': 0}
+                transactional_by_type[et] = {'total': 0, 'sent': 0, 'delivered': 0, 'failed': 0, 'opened': 0, 'clicked': 0}
             transactional_by_type[et]['total'] += 1
             ds = row.get('delivery_status', '')
-            if ds == 'sent':
+            if ds in ('sent', 'delivered'):
                 transactional_by_type[et]['sent'] += 1
-            elif ds in ('failed', 'bounced'):
+            if ds == 'delivered':
+                transactional_by_type[et]['delivered'] += 1
+            if ds in ('failed', 'bounced'):
                 transactional_by_type[et]['failed'] += 1
+            if row.get('opened_at'):
+                transactional_by_type[et]['opened'] += 1
+            if row.get('clicked_at'):
+                transactional_by_type[et]['clicked'] += 1
 
         transactional_total = len(tracking_rows)
+        transactional_delivered = sum(1 for r in tracking_rows if r.get('delivery_status') == 'delivered')
 
         # --- Template counts ---
         templates_result = supabase.table('email_templates').select('id, category, is_active').execute()
@@ -497,11 +522,6 @@ def get_email_stats():
         for p in profiles:
             s = p.get('subscription_status', 'unknown')
             audience_by_status[s] = audience_by_status.get(s, 0) + 1
-
-        # --- Delivery / open / click rates ---
-        delivery_rate = round((total_delivered / total_sent * 100) if total_sent > 0 else 0, 1)
-        open_rate = round((total_opened / total_delivered * 100) if total_delivered > 0 else 0, 1)
-        click_rate = round((total_clicked / total_delivered * 100) if total_delivered > 0 else 0, 1)
 
         return jsonify({
             'success': True,
@@ -521,6 +541,7 @@ def get_email_stats():
             },
             'transactional': {
                 'total': transactional_total,
+                'delivered': transactional_delivered,
                 'by_type': transactional_by_type,
             },
             'templates': {
