@@ -60,7 +60,11 @@ const ApproveModal = ({ isOpen, onClose, onConfirm, paymentDetails }) => {
             </div>
             <div className="info-row">
               <span className="info-label">Credits:</span>
-              <span className="info-value success">{paymentDetails.credits} credits</span>
+              <span className="info-value success">
+                {paymentDetails.payment_type === 'beta_access'
+                  ? 'Beta Access (6 months subscription)'
+                  : `${paymentDetails.credits} credits`}
+              </span>
             </div>
           </div>
         )}

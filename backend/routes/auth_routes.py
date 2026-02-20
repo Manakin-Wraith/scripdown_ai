@@ -310,6 +310,28 @@ def set_plan():
         
         print(f"Profile created/updated for {email}: plan={plan}, source={source}, limit={script_upload_limit}")
         
+        # If user signed up from landing_hero, create a pending beta_payments record
+        # so the admin dashboard can surface it for manual Yoco payment verification.
+        if source == 'landing_hero':
+            try:
+                existing = supabase.table('beta_payments') \
+                    .select('id') \
+                    .eq('email', email.lower().strip()) \
+                    .execute()
+                
+                if not existing.data:
+                    supabase.table('beta_payments').insert({
+                        'email': email.lower().strip(),
+                        'user_id': user_id,
+                        'amount': 249.00,
+                        'currency': 'ZAR',
+                        'status': 'pending',
+                        'metadata': {'signup_source': 'landing_hero', 'note': 'Awaiting Yoco payment verification'}
+                    }).execute()
+                    print(f"Created pending beta_payment record for landing_hero signup: {email}")
+            except Exception as bp_err:
+                print(f"Warning: Could not create beta_payment record for {email}: {bp_err}")
+        
         return jsonify({
             'success': True,
             'profile': result.data[0] if result.data else profile_data,

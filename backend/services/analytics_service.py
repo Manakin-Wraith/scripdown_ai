@@ -993,21 +993,26 @@ class AnalyticsService:
                 active_subscribers / total_addressable * 100, 2
             ) if total_addressable > 0 else 0.0
 
-            # Revenue from completed credit purchases
+            # Revenue from completed credit purchases AND completed beta_payments
             total_revenue = 0.0
             successful_payments = 0
             try:
-                payments_result = self.supabase.table('script_credit_purchases')\
+                credit_result = self.supabase.table('script_credit_purchases')\
                     .select('id, amount, status')\
                     .eq('status', 'completed')\
                     .execute()
+                beta_result = self.supabase.table('beta_payments')\
+                    .select('id, amount, status')\
+                    .eq('status', 'completed')\
+                    .execute()
+                all_payments = (credit_result.data or []) + (beta_result.data or [])
                 # amount is numeric in DB — cast to float to avoid Decimal serialisation issues
                 total_revenue = round(
-                    sum(float(p.get('amount') or 0) for p in (payments_result.data or [])), 2
+                    sum(float(p.get('amount') or 0) for p in all_payments), 2
                 )
-                successful_payments = len(payments_result.data or [])
+                successful_payments = len(all_payments)
             except Exception as e:
-                print(f"Error fetching credit purchase revenue: {e}")
+                print(f"Error fetching revenue: {e}")
 
             return {
                 'total_users': total_users,
@@ -1060,32 +1065,63 @@ class AnalyticsService:
             dict: Revenue details with summary and payment list
         """
         try:
-            # Build query
-            query = self.supabase.table('script_credit_purchases')\
+            # --- script_credit_purchases (completed) ---
+            credit_query = self.supabase.table('script_credit_purchases')\
                 .select('id, user_id, email, package_type, credits_purchased, amount, currency, status, created_at, verified_at, verified_by, payment_reference, yoco_payment_id')\
                 .eq('status', 'completed')
             
-            # Apply date filters
             if start_date:
-                query = query.gte('created_at', start_date)
+                credit_query = credit_query.gte('created_at', start_date)
             if end_date:
-                query = query.lte('created_at', end_date)
-            
-            # Apply search filter
+                credit_query = credit_query.lte('created_at', end_date)
             if search:
-                query = query.ilike('email', f'%{search}%')
+                credit_query = credit_query.ilike('email', f'%{search}%')
             
-            # Apply sorting
-            ascending = sort_order.lower() == 'asc'
-            query = query.order(sort_by, desc=not ascending)
-            
-            # Execute query
-            result = query.execute()
-            payments = result.data or []
-            
-            # Normalise amount to float for all payments (Postgres numeric → Decimal)
-            for p in payments:
+            credit_result = credit_query.execute()
+            credit_payments = credit_result.data or []
+            for p in credit_payments:
                 p['amount'] = float(p.get('amount') or 0)
+                p['payment_type'] = 'credit_purchase'
+
+            # --- beta_payments (completed) ---
+            beta_query = self.supabase.table('beta_payments')\
+                .select('id, user_id, email, amount, currency, status, created_at, paid_at, payment_reference, metadata')\
+                .eq('status', 'completed')
+            
+            if start_date:
+                beta_query = beta_query.gte('created_at', start_date)
+            if end_date:
+                beta_query = beta_query.lte('created_at', end_date)
+            if search:
+                beta_query = beta_query.ilike('email', f'%{search}%')
+            
+            beta_result = beta_query.execute()
+            beta_payments_raw = beta_result.data or []
+
+            # Normalise beta_payments to match credit_purchases shape
+            beta_payments = []
+            for bp in beta_payments_raw:
+                beta_payments.append({
+                    'id': bp['id'],
+                    'user_id': bp.get('user_id'),
+                    'email': bp.get('email'),
+                    'package_type': 'beta_access',
+                    'credits_purchased': None,
+                    'amount': float(bp.get('amount') or 0),
+                    'currency': bp.get('currency', 'ZAR'),
+                    'status': 'completed',
+                    'created_at': bp.get('created_at'),
+                    'verified_at': bp.get('paid_at'),
+                    'verified_by': (bp.get('metadata') or {}).get('verified_by'),
+                    'payment_reference': bp.get('payment_reference'),
+                    'yoco_payment_id': None,
+                    'payment_type': 'beta_access'
+                })
+
+            # Merge and sort
+            payments = credit_payments + beta_payments
+            ascending = sort_order.lower() == 'asc'
+            payments.sort(key=lambda x: x.get(sort_by) or '', reverse=not ascending)
 
             # Calculate summary stats
             total_revenue = sum(p['amount'] for p in payments)

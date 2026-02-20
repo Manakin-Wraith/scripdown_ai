@@ -66,7 +66,8 @@ const PaymentVerification = () => {
       email: payment.email,
       package: getPackageName(payment.package_type),
       amount: payment.amount,
-      credits: payment.credits_purchased
+      credits: isBetaPayment(payment) ? '6 months access' : payment.credits_purchased,
+      payment_type: payment.payment_type || 'credit_purchase'
     });
     setApproveModalOpen(true);
   };
@@ -87,15 +88,19 @@ const PaymentVerification = () => {
         },
         body: JSON.stringify({
           admin_reference: reference || null,
-          notes: notes || null
+          notes: notes || null,
+          payment_type: selectedPayment.payment_type || null
         })
       });
 
       if (!response.ok) throw new Error('Failed to approve payment');
 
       setApproveModalOpen(false);
+      const successMsg = selectedPayment?.payment_type === 'beta_access'
+        ? 'Beta access activated! Subscription set to active for 6 months.'
+        : 'Payment approved! Credits added to user account.';
       setSelectedPayment(null);
-      showToast('Payment approved! Credits added to user account.', 'success');
+      showToast(successMsg, 'success');
       fetchPendingPayments(); // Refresh list
     } catch (err) {
       showToast(`Error: ${err.message}`, 'error');
@@ -159,10 +164,13 @@ const PaymentVerification = () => {
       'single': '1 Script',
       'pack_5': '5 Scripts',
       'pack_10': '10 Scripts',
-      'pack_25': '25 Scripts'
+      'pack_25': '25 Scripts',
+      'beta_access': 'Beta Access (6 months)'
     };
     return packages[packageType] || packageType;
   };
+
+  const isBetaPayment = (payment) => payment.payment_type === 'beta_access' || payment.package_type === 'beta_access';
 
   if (loading) {
     return (
@@ -228,12 +236,17 @@ const PaymentVerification = () => {
                   </td>
                   <td className="package-cell">
                     {getPackageName(payment.package_type)}
+                    {isBetaPayment(payment) && (
+                      <span style={{ marginLeft: '6px', fontSize: '11px', background: '#7c3aed', color: '#fff', borderRadius: '4px', padding: '1px 6px' }}>
+                        Beta
+                      </span>
+                    )}
                   </td>
                   <td className="amount-cell">
-                    R{payment.amount.toFixed(2)}
+                    R{Number(payment.amount).toFixed(2)}
                   </td>
                   <td className="credits-cell">
-                    {payment.credits_purchased}
+                    {isBetaPayment(payment) ? 1 : payment.credits_purchased}
                   </td>
                   <td className="actions-cell">
                     <button

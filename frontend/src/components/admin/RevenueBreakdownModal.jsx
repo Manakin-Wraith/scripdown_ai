@@ -6,13 +6,26 @@ import './RevenueBreakdownModal.css';
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const PACKAGE_NAMES = {
-  'single':   '1 Script (R99)',
-  'pack_5':   '5 Scripts',
-  'pack_10':  '10 Scripts',
-  'pack_25':  '25 Scripts',
-  'five':     '5 Scripts',
-  'ten':      '10 Scripts',
-  'twentyfive': '25 Scripts'
+  'single':        '1 Script (R99)',
+  'pack_5':        '5 Scripts',
+  'pack_10':       '10 Scripts',
+  'pack_25':       '25 Scripts',
+  'five':          '5 Scripts',
+  'ten':           '10 Scripts',
+  'twentyfive':    '25 Scripts',
+  'beta_access':   'Beta Access (6 months)',
+  'early_adopter': 'Early Adopter'
+};
+
+const getBadgeStyle = (packageType) => {
+  switch (packageType) {
+    case 'beta_access':
+      return { background: 'rgba(124,58,237,0.2)', color: '#c4b5fd', border: '1px solid rgba(124,58,237,0.4)' };
+    case 'early_adopter':
+      return { background: 'rgba(245,158,11,0.2)', color: '#fcd34d', border: '1px solid rgba(245,158,11,0.4)' };
+    default:
+      return {};
+  }
 };
 
 const RevenueBreakdownModal = ({ isOpen, onClose }) => {
@@ -55,6 +68,7 @@ const RevenueBreakdownModal = ({ isOpen, onClose }) => {
       if (!response.ok) throw new Error('Failed to fetch revenue details');
 
       const result = await response.json();
+      console.log('[RevenueModal] payments sample:', result.payments?.slice(0, 3).map(p => ({ email: p.email, package_type: p.package_type, payment_type: p.payment_type })));
       setData(result);
     } catch (err) {
       console.error('Error fetching revenue details:', err);
@@ -186,13 +200,15 @@ const RevenueBreakdownModal = ({ isOpen, onClose }) => {
                       <tr key={payment.id}>
                         <td className="date-cell">{formatDate(payment.created_at)}</td>
                         <td className="email-cell">{payment.email}</td>
-                        <td className="package-cell">
-                          <span className="package-badge">
-                            {PACKAGE_NAMES[payment.package_type] || payment.package_type}
-                          </span>
+                        <td className="revenue-package-cell">
+                          {payment.package_type
+                            ? (PACKAGE_NAMES[payment.package_type] || payment.package_type)
+                            : '—'}
                         </td>
-                        <td className="credits-cell">{payment.credits_purchased}</td>
-                        <td className="amount-cell">R{payment.amount.toFixed(2)}</td>
+                        <td className="credits-cell">
+                          {payment.package_type === 'beta_access' ? 1 : payment.credits_purchased}
+                        </td>
+                        <td className="amount-cell">R{Number(payment.amount).toFixed(2)}</td>
                         <td className="reference-cell">
                           {payment.payment_reference || payment.yoco_payment_id || '-'}
                         </td>
