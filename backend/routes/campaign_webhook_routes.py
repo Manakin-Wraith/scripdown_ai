@@ -17,29 +17,50 @@ from datetime import datetime
 webhook_bp = Blueprint('campaign_webhooks', __name__, url_prefix='/api/campaigns/webhooks')
 
 
-def verify_resend_signature(payload: bytes, signature_header: str, secret: str) -> bool:
+def verify_resend_signature(payload: bytes, request_headers: dict, secret: str) -> bool:
     """
-    Verify Resend webhook signature.
-    Header format: "v1,<timestamp>.<hex-digest>"
-    We verify: HMAC-SHA256(secret, timestamp + "." + payload)
+    Verify Resend webhook signature using svix signing scheme.
+
+    Resend uses svix internally. Headers sent:
+        svix-id:        unique message ID
+        svix-timestamp: unix timestamp string
+        svix-signature: "v1,<base64-hmac-sha256>"
+
+    Signed content: "{svix-id}.{svix-timestamp}.{raw_body}"
+    Key: base64-decode of secret after stripping "whsec_" prefix.
     """
     if not secret:
         return True
     try:
-        # Header: "v1,<ts>.<sig>"
-        parts = signature_header.split(',')
-        if len(parts) < 2:
+        import base64
+        msg_id  = request_headers.get('svix-id', '')
+        ts      = request_headers.get('svix-timestamp', '')
+        sig_hdr = request_headers.get('svix-signature', '')
+
+        if not msg_id or not ts or not sig_hdr:
             return False
-        ts_sig = parts[1]  # "<ts>.<sig>"
-        ts, sig = ts_sig.rsplit('.', 1)
-        signed_content = f"{ts}.{payload.decode('utf-8')}"
-        expected = hmac.new(
-            secret.encode('utf-8'),
+
+        # Strip whsec_ prefix and base64-decode the key
+        raw_secret = secret.removeprefix('whsec_')
+        key = base64.b64decode(raw_secret)
+
+        signed_content = f"{msg_id}.{ts}.{payload.decode('utf-8')}"
+        expected_bytes = hmac.new(
+            key,
             signed_content.encode('utf-8'),
             hashlib.sha256
-        ).hexdigest()
-        return hmac.compare_digest(sig, expected)
-    except Exception:
+        ).digest()
+        expected_b64 = base64.b64encode(expected_bytes).decode('utf-8')
+
+        # sig_hdr may contain multiple sigs: "v1,<b64> v1,<b64>"
+        for part in sig_hdr.split(' '):
+            if ',' in part:
+                _, sig_b64 = part.split(',', 1)
+                if hmac.compare_digest(sig_b64, expected_b64):
+                    return True
+        return False
+    except Exception as e:
+        print(f"[Resend webhook] Signature verification error: {e}")
         return False
 
 
@@ -118,11 +139,11 @@ def resend_webhook():
     """
     try:
         payload = request.get_data()
-        signature = request.headers.get('Resend-Signature', '')
+        signature = request.headers.get('svix-signature', '') or request.headers.get('Resend-Signature', '')
 
         webhook_secret = os.getenv('RESEND_WEBHOOK_SECRET', '')
-        if webhook_secret and not verify_resend_signature(payload, signature, webhook_secret):
-            print(f"Resend webhook: invalid signature")
+        if webhook_secret and not verify_resend_signature(payload, dict(request.headers), webhook_secret):
+            print(f"[Resend webhook] Invalid signature — rejecting")
             return jsonify({'error': 'Invalid signature'}), 401
 
         data = request.get_json(force=True)
