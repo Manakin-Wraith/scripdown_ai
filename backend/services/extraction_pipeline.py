@@ -104,8 +104,8 @@ SCENE_HEADER_PATTERNS = [
     # Pattern 1: "42. INT. COFFEE SHOP - DAY" (standard numbered + dash + TOD)
     rf'^(\d+[A-Z]?)\.\s*(INT|EXT|INT\.?/EXT|EXT\.?/INT|I/E|E/I)[.\s]+(.+?)\s*[-–—]\s*{TIME_OF_DAY}',
 
-    # Pattern 2: "42. INT. Study. NIGHT" (numbered, period as separator instead of dash)
-    rf'^(\d+[A-Z]?)\.\s*(INT|EXT|INT\.?/EXT|EXT\.?/INT|I/E|E/I)[.\s]+(.+?)\.\s*{TIME_OF_DAY}\s*$',
+    # Pattern 2: "42. INT. Study. NIGHT." or "42. INT. Study. NIGHT. 42" (period separator, optional trailing period + scene num)
+    rf'^(\d+[A-Z]?)\.\s*(INT|EXT|INT\.?/EXT|EXT\.?/INT|I/E|E/I)[.\s]+(.+?)\.\s*{TIME_OF_DAY}\.?\s*(?:\d+[A-Z]?)?\s*$',
 
     # Pattern 3: "42. INT. COFFEE SHOP" (numbered + optional TOD — catch-all for numbered)
     r'^(\d+[A-Z]?)\.\s*(INT|EXT|INT\.?/EXT|EXT\.?/INT|I/E|E/I)[.\s]+(.+?)(?:\s*[-–—]\s*(.+?))?$',
@@ -113,8 +113,11 @@ SCENE_HEADER_PATTERNS = [
     # Pattern 4: "SCENE 42 - INT. COFFEE SHOP - DAY"
     rf'^SCENE\s+(\d+[A-Z]?)\s*[-–—:]\s*(INT|EXT|INT\.?/EXT|EXT\.?/INT)[.\s]+(.+?)\s*[-–—]\s*{TIME_OF_DAY}',
 
-    # Pattern 5: "42 INT. COFFEE SHOP - DAY" (FDX no period + TOD)
+    # Pattern 5: "42 INT. COFFEE SHOP - DAY" (FDX no period + dash + TOD)
     rf'^(\d+[A-Z]?)\s+(INT|EXT|INT\.?/EXT|EXT\.?/INT|I/E|E/I)[.\s]+(.+?)\s*[-–—]\s*{TIME_OF_DAY}',
+
+    # Pattern 5B: "1 EXT. LOCATION. NIGHT. 1" (FDX no period + period separator + optional trailing)
+    rf'^(\d+[A-Z]?)\s+(INT|EXT|INT\.?/EXT|EXT\.?/INT|I/E|E/I)[.\s]+(.+?)\.\s*{TIME_OF_DAY}\.?\s*(?:\d+[A-Z]?)?\s*$',
 
     # Pattern 6: "INT. COFFEE SHOP - DAY" (no scene number + dash + TOD)
     rf'^()(INT|EXT|INT\.?/EXT|EXT\.?/INT|I/E|E/I)[.\s]+(.+?)\s*[-–—]\s*{TIME_OF_DAY}',
@@ -125,8 +128,8 @@ SCENE_HEADER_PATTERNS = [
     # Pattern 8: "FLASHBACK - INT. COFFEE SHOP - DAY" / "DREAM SEQUENCE - EXT. PARK - NIGHT"
     rf'^(?:FLASHBACK|DREAM SEQUENCE)\s*[-–—:]\s*()(INT|EXT|INT\.?/EXT|EXT\.?/INT|I/E|E/I)[.\s]+(.+?)\s*[-–—]\s*{TIME_OF_DAY}',
 
-    # Pattern 9: "INT. Study. NIGHT" (no scene number, period as separator instead of dash)
-    rf'^()(INT|EXT|INT\.?/EXT|EXT\.?/INT|I/E|E/I)[.\s]+(.+?)\.\s*{TIME_OF_DAY}\s*$',
+    # Pattern 9: "INT. Study. NIGHT." (no scene number, period separator, optional trailing period)
+    rf'^()(INT|EXT|INT\.?/EXT|EXT\.?/INT|I/E|E/I)[.\s]+(.+?)\.\s*{TIME_OF_DAY}\.?\s*$',
 
     # Pattern 10: "42 INT. COFFEE SHOP" (FDX no period, no TOD)
     r'^(\d+[A-Z]?)\s+(INT|EXT|INT\.?/EXT|EXT\.?/INT|I/E|E/I)[.\s]+(.+?)()$',

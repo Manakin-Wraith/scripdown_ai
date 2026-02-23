@@ -235,7 +235,7 @@ class ShotHeadingParser:
 
     def _detect_shot_type(self, text: str) -> Optional[Tuple[ShotType, Optional[str], Optional[str]]]:
         """
-        Detect shot type in text.
+        Detect shot type in text using word-boundary matching.
 
         Returns:
             Tuple of (shot_type, modifier, remainder) or None
@@ -243,8 +243,11 @@ class ShotHeadingParser:
         text_upper = text.upper()
 
         for keyword, shot_type in self.shot_keywords.items():
-            if keyword in text_upper:
-                idx = text_upper.find(keyword)
+            # Use word boundaries to avoid false positives (e.g., "EST" in "FORESTED")
+            pattern = r'\b' + re.escape(keyword) + r'\b'
+            match = re.search(pattern, text_upper)
+            if match:
+                idx = match.start()
 
                 modifier = None
                 modifier_match = re.search(r"\(([^)]+)\)", text[idx:])

@@ -790,14 +790,17 @@ def detect_and_create_scenes(script_id, full_text, pages_data=None):
         # Full words: INTERIOR/EXTERIOR
         rf'^(INTERIOR|EXTERIOR)\s*[-–—:]\s*(.+?)(?:\s*[-–—]\s*{TIME_PATTERNS})?\s*$',
         
-        # Period as separator: INT. LOCATION. DAY (non-standard but real-world)
-        rf'^(INT|EXT|INT/EXT|I/E)\.?\s+(.+?)\.\s*{TIME_PATTERNS}\s*$',
+        # Period as separator: INT. LOCATION. DAY. (optional trailing period)
+        rf'^(INT|EXT|INT/EXT|I/E)\.?\s+(.+?)\.\s*{TIME_PATTERNS}\.?\s*$',
 
         # Numbered scenes: 1. INT. LOCATION - DAY
         rf'^\d+[A-Z]?\.\s*(INT|EXT|INT/EXT)\.?\s*(.+?)\s*[-–—]\s*{TIME_PATTERNS}\s*$',
 
-        # Numbered scenes with period separator: 1. INT. LOCATION. DAY
-        rf'^\d+[A-Z]?\.\s*(INT|EXT|INT/EXT)\.?\s*(.+?)\.\s*{TIME_PATTERNS}\s*$',
+        # Numbered scenes with period separator: 1. INT. LOCATION. DAY. 1 (optional trailing period + scene num)
+        rf'^\d+[A-Z]?\.\s*(INT|EXT|INT/EXT)\.?\s*(.+?)\.\s*{TIME_PATTERNS}\.?\s*(?:\d+[A-Z]?)?\s*$',
+
+        # FDX numbered with period separator: 1 EXT. LOCATION. NIGHT. 1 (no period after scene num)
+        rf'^\d+[A-Z]?\s+(INT|EXT|INT/EXT)\.?\s*(.+?)\.\s*{TIME_PATTERNS}\.?\s*(?:\d+[A-Z]?)?\s*$',
     ]
     
     lines = full_text.split('\n')

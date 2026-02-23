@@ -355,7 +355,7 @@ def is_time_expression(text: str, locale_codes: list[str] | None = None) -> bool
     else:
         time_words = TIME_WORDS
 
-    text_lower = text.strip().lower()
+    text_lower = text.strip().rstrip('.').strip().lower()
 
     # Check if the whole text matches a known time word exactly
     if text_lower in time_words:
@@ -397,11 +397,13 @@ def extract_trailing_time(text: str, locale_codes: list[str] | None = None):
 
     # Try progressively longer suffixes (from right) as time expressions
     # e.g., "SOME PLACE LATE NIGHT" → try "NIGHT", then "LATE NIGHT"
+    # Strip trailing periods from candidates (FDX format: "LOCATION. NIGHT.")
     for n in range(min(3, len(words) - 1), 0, -1):
-        candidate_time = " ".join(words[-n:]).lower()
+        candidate_time = " ".join(words[-n:]).lower().rstrip('.')
         if candidate_time in time_words:
             location_part = " ".join(words[:-n])
-            return location_part, " ".join(words[-n:])
+            time_part = " ".join(words[-n:]).rstrip('.')
+            return location_part, time_part
 
     return None, None
 

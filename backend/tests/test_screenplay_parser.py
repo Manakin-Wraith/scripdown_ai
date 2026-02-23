@@ -971,5 +971,102 @@ class TestPeriodAsSeparator:
         assert headers[0]['time_of_day'] == "DAY"
 
 
+class TestFDXTrailingPeriodAfterTime:
+    """FDX format with trailing period after time word and mirrored scene number.
+    
+    e.g., '1 EXT. HEAVILY FORESTED AREA IN ANGOLA. NIGHT. 1'
+    Real-world format from 'The Nowhere Man' script.
+    """
+
+    # --- ScreenPy grammar (primary parser path) ---
+
+    def test_grammar_fdx_trailing_period_night(self):
+        """Grammar parser handles '1 EXT. HEAVILY FORESTED AREA IN ANGOLA. NIGHT. 1'."""
+        from lib.screenpy.parser.shot_parser import ShotHeadingParser
+        parser = ShotHeadingParser(locale_codes=["en"])
+        heading = parser.parse("1 EXT. HEAVILY FORESTED AREA IN ANGOLA. NIGHT. 1")
+        assert heading is not None
+        assert heading.is_master is True
+        assert heading.time_of_day is not None, "time_of_day should not be None"
+        assert heading.time_of_day.upper() == "NIGHT", f"Expected 'NIGHT', got {heading.time_of_day}"
+        assert "ANGOLA" in " ".join(heading.locations).upper()
+
+    def test_grammar_fdx_trailing_period_morning(self):
+        """Grammar parser handles '5B INT. HOMELESS SHELTER CANTEEN. MORNING. 5B'."""
+        from lib.screenpy.parser.shot_parser import ShotHeadingParser
+        parser = ShotHeadingParser(locale_codes=["en"])
+        heading = parser.parse("5B INT. HOMELESS SHELTER CANTEEN. MORNING. 5B")
+        assert heading is not None
+        assert heading.is_master is True
+        assert heading.time_of_day is not None
+        assert heading.time_of_day.upper() == "MORNING", f"Expected 'MORNING', got {heading.time_of_day}"
+
+    def test_grammar_fdx_trailing_period_day(self):
+        """Grammar parser handles '6 EXT. CITY STREETS. DAY. 6'."""
+        from lib.screenpy.parser.shot_parser import ShotHeadingParser
+        parser = ShotHeadingParser(locale_codes=["en"])
+        heading = parser.parse("6 EXT. CITY STREETS. DAY. 6")
+        assert heading is not None
+        assert heading.locations == ["CITY STREETS"], f"Expected ['CITY STREETS'], got {heading.locations}"
+        assert heading.time_of_day.upper() == "DAY"
+
+    def test_grammar_location_no_trailing_period(self):
+        """Location should not have trailing period for '30 INT. HOMELESS SHELTER WORKSHOP/GYM. NIGHT. 30'."""
+        from lib.screenpy.parser.shot_parser import ShotHeadingParser
+        parser = ShotHeadingParser(locale_codes=["en"])
+        heading = parser.parse("30 INT. HOMELESS SHELTER WORKSHOP/GYM. NIGHT. 30")
+        assert heading is not None
+        assert heading.time_of_day.upper() == "NIGHT"
+        loc = " ".join(heading.locations)
+        assert not loc.endswith("."), f"Location should not end with period, got '{loc}'"
+
+    def test_grammar_is_time_expression_with_trailing_period(self):
+        """is_time_expression should match 'NIGHT.' with trailing period."""
+        from lib.screenpy.parser.grammar import is_time_expression
+        assert is_time_expression("NIGHT.", locale_codes=["en"]) is True
+        assert is_time_expression("DAY.", locale_codes=["en"]) is True
+        assert is_time_expression("MORNING.", locale_codes=["en"]) is True
+        assert is_time_expression("DUSK.", locale_codes=["en"]) is True
+
+    def test_grammar_extract_trailing_time_with_trailing_period(self):
+        """extract_trailing_time should handle 'LOCATION. NIGHT.' format."""
+        from lib.screenpy.parser.grammar import extract_trailing_time
+        loc, time = extract_trailing_time("HOMELESS SHELTER. NIGHT.", locale_codes=["en"])
+        assert loc is not None
+        assert time is not None
+        assert time.upper() == "NIGHT", f"Expected 'NIGHT', got '{time}'"
+        assert not time.endswith("."), f"Time should not end with period, got '{time}'"
+
+    # --- Regex (extraction_pipeline.py) ---
+
+    def test_regex_fdx_trailing_period_night(self):
+        """Regex matches '1 EXT. HEAVILY FORESTED AREA IN ANGOLA. NIGHT. 1'."""
+        from services.extraction_pipeline import detect_scene_headers
+        text = "1 EXT. HEAVILY FORESTED AREA IN ANGOLA. NIGHT. 1\n\nA drone shot.\n"
+        headers = detect_scene_headers(text)
+        assert len(headers) == 1
+        assert headers[0]['time_of_day'] == "NIGHT", f"Expected 'NIGHT', got '{headers[0]['time_of_day']}'"
+        assert headers[0]['int_ext'] == "EXT"
+        assert "ANGOLA" in headers[0]['setting'].upper()
+
+    def test_regex_fdx_trailing_period_day(self):
+        """Regex matches '6 EXT. CITY STREETS. DAY. 6'."""
+        from services.extraction_pipeline import detect_scene_headers
+        text = "6 EXT. CITY STREETS. DAY. 6\n\nAs the sun rises.\n"
+        headers = detect_scene_headers(text)
+        assert len(headers) == 1
+        assert headers[0]['time_of_day'] == "DAY"
+        assert headers[0]['setting'] == "CITY STREETS"
+
+    def test_regex_fdx_no_trailing_period_on_setting(self):
+        """Setting should not have trailing period for FDX format."""
+        from services.extraction_pipeline import detect_scene_headers
+        text = "30 INT. HOMELESS SHELTER WORKSHOP. NIGHT. 30\n\nAction.\n"
+        headers = detect_scene_headers(text)
+        assert len(headers) == 1
+        assert not headers[0]['setting'].endswith("."), f"Setting ends with period: '{headers[0]['setting']}'"
+        assert headers[0]['time_of_day'] == "NIGHT"
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
