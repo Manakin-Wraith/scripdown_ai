@@ -790,8 +790,14 @@ def detect_and_create_scenes(script_id, full_text, pages_data=None):
         # Full words: INTERIOR/EXTERIOR
         rf'^(INTERIOR|EXTERIOR)\s*[-–—:]\s*(.+?)(?:\s*[-–—]\s*{TIME_PATTERNS})?\s*$',
         
+        # Period as separator: INT. LOCATION. DAY (non-standard but real-world)
+        rf'^(INT|EXT|INT/EXT|I/E)\.?\s+(.+?)\.\s*{TIME_PATTERNS}\s*$',
+
         # Numbered scenes: 1. INT. LOCATION - DAY
         rf'^\d+[A-Z]?\.\s*(INT|EXT|INT/EXT)\.?\s*(.+?)\s*[-–—]\s*{TIME_PATTERNS}\s*$',
+
+        # Numbered scenes with period separator: 1. INT. LOCATION. DAY
+        rf'^\d+[A-Z]?\.\s*(INT|EXT|INT/EXT)\.?\s*(.+?)\.\s*{TIME_PATTERNS}\s*$',
     ]
     
     lines = full_text.split('\n')
@@ -817,8 +823,8 @@ def detect_and_create_scenes(script_id, full_text, pages_data=None):
                 elif int_ext in ['INT/EXT', 'I/E']:
                     int_ext = 'INT/EXT'
                 
-                # Extract setting (location)
-                setting = match.group(2).strip() if match.group(2) else 'UNKNOWN'
+                # Extract setting (location) — strip trailing periods from period-separator format
+                setting = match.group(2).strip().rstrip('.').strip() if match.group(2) else 'UNKNOWN'
                 
                 # Extract time of day (normalize multilingual)
                 time_of_day = 'DAY'

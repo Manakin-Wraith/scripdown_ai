@@ -172,10 +172,11 @@ class ShotHeadingParser:
 
             # Check if part contains both location and time (no dash separator)
             # e.g., "CAR DUSK" → location="CAR", time="DUSK"
+            # Also handles period separator: "Study. NIGHT" → location="Study", time="NIGHT"
             loc_part, time_part = extract_trailing_time(part, locale_codes=self.locale_codes)
             if loc_part and time_part:
                 if location_type and not time_of_day:
-                    locations.append(loc_part)
+                    locations.append(loc_part.rstrip('.').strip())
                     time_of_day = time_part
                 continue
 

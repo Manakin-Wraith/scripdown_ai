@@ -808,5 +808,168 @@ Cars fill the lot.
         )
 
 
+class TestPeriodAsSeparator:
+    """Scene headings using period instead of dash as location-time separator.
+    
+    e.g., 'INT. Study. NIGHT' instead of 'INT. Study - NIGHT'
+    """
+
+    # --- Regex (extraction_pipeline.py) ---
+
+    def test_regex_period_separator_no_number(self):
+        """'INT. Study. NIGHT' should match with correct setting and time."""
+        import re
+        from services.extraction_pipeline import SCENE_HEADER_PATTERNS
+        line = "INT. Study. NIGHT"
+        matched = False
+        for pattern in SCENE_HEADER_PATTERNS:
+            m = re.match(pattern, line, re.IGNORECASE)
+            if m:
+                groups = m.groups()
+                setting = groups[2].strip().rstrip('.').strip()
+                time_of_day = groups[3].upper() if len(groups) > 3 and groups[3] else 'DAY'
+                assert setting == "Study", f"Expected 'Study', got '{setting}'"
+                assert time_of_day == "NIGHT", f"Expected 'NIGHT', got '{time_of_day}'"
+                matched = True
+                break
+        assert matched, "No regex pattern matched 'INT. Study. NIGHT'"
+
+    def test_regex_period_separator_numbered(self):
+        """'42. INT. Study. NIGHT' should match with correct setting and time."""
+        import re
+        from services.extraction_pipeline import SCENE_HEADER_PATTERNS
+        line = "42. INT. Study. NIGHT"
+        matched = False
+        for pattern in SCENE_HEADER_PATTERNS:
+            m = re.match(pattern, line, re.IGNORECASE)
+            if m:
+                groups = m.groups()
+                setting = groups[2].strip().rstrip('.').strip()
+                time_of_day = groups[3].upper() if len(groups) > 3 and groups[3] else 'DAY'
+                assert setting == "Study", f"Expected 'Study', got '{setting}'"
+                assert time_of_day == "NIGHT", f"Expected 'NIGHT', got '{time_of_day}'"
+                matched = True
+                break
+        assert matched, "No regex pattern matched '42. INT. Study. NIGHT'"
+
+    def test_regex_period_separator_ext_garden_dusk(self):
+        """'EXT. GARDEN. DUSK' should parse correctly."""
+        import re
+        from services.extraction_pipeline import SCENE_HEADER_PATTERNS
+        line = "EXT. GARDEN. DUSK"
+        matched = False
+        for pattern in SCENE_HEADER_PATTERNS:
+            m = re.match(pattern, line, re.IGNORECASE)
+            if m:
+                groups = m.groups()
+                setting = groups[2].strip().rstrip('.').strip()
+                time_of_day = groups[3].upper() if len(groups) > 3 and groups[3] else 'DAY'
+                assert setting == "GARDEN", f"Expected 'GARDEN', got '{setting}'"
+                assert time_of_day == "DUSK", f"Expected 'DUSK', got '{time_of_day}'"
+                matched = True
+                break
+        assert matched, "No regex pattern matched 'EXT. GARDEN. DUSK'"
+
+    def test_regex_period_separator_abbreviation_safe(self):
+        """'INT. ST. PETER'S CHURCH. DAY' should not split on the abbreviation period."""
+        import re
+        from services.extraction_pipeline import SCENE_HEADER_PATTERNS
+        line = "INT. ST. PETER'S CHURCH. DAY"
+        matched = False
+        for pattern in SCENE_HEADER_PATTERNS:
+            m = re.match(pattern, line, re.IGNORECASE)
+            if m:
+                groups = m.groups()
+                setting = groups[2].strip().rstrip('.').strip()
+                time_of_day = groups[3].upper() if len(groups) > 3 and groups[3] else 'DAY'
+                assert "PETER" in setting, f"Expected setting to contain 'PETER', got '{setting}'"
+                assert time_of_day == "DAY", f"Expected 'DAY', got '{time_of_day}'"
+                matched = True
+                break
+        assert matched, "No regex pattern matched abbreviation heading"
+
+    def test_regex_period_separator_hospital_corridor(self):
+        """'INT. HOSPITAL CORRIDOR. DAY' — multi-word location with period separator."""
+        import re
+        from services.extraction_pipeline import SCENE_HEADER_PATTERNS
+        line = "INT. HOSPITAL CORRIDOR. DAY"
+        matched = False
+        for pattern in SCENE_HEADER_PATTERNS:
+            m = re.match(pattern, line, re.IGNORECASE)
+            if m:
+                groups = m.groups()
+                setting = groups[2].strip().rstrip('.').strip()
+                time_of_day = groups[3].upper() if len(groups) > 3 and groups[3] else 'DAY'
+                assert setting == "HOSPITAL CORRIDOR", f"Expected 'HOSPITAL CORRIDOR', got '{setting}'"
+                assert time_of_day == "DAY", f"Expected 'DAY', got '{time_of_day}'"
+                matched = True
+                break
+        assert matched, "No regex pattern matched 'INT. HOSPITAL CORRIDOR. DAY'"
+
+    # --- ScreenPy shot_parser ---
+
+    def test_shot_parser_period_separator(self):
+        """ShotHeadingParser handles 'INT. Study. NIGHT' correctly."""
+        from lib.screenpy.parser.shot_parser import ShotHeadingParser
+        parser = ShotHeadingParser(locale_codes=["en"])
+        heading = parser.parse("INT. Study. NIGHT")
+        assert heading is not None
+        assert heading.is_master is True
+        assert heading.locations == ["Study"], f"Expected ['Study'], got {heading.locations}"
+        assert heading.time_of_day == "NIGHT", f"Expected 'NIGHT', got {heading.time_of_day}"
+
+    def test_shot_parser_period_separator_numbered(self):
+        """ShotHeadingParser handles '42. INT. Study. NIGHT' correctly."""
+        from lib.screenpy.parser.shot_parser import ShotHeadingParser
+        parser = ShotHeadingParser(locale_codes=["en"])
+        heading = parser.parse("42. INT. Study. NIGHT")
+        assert heading is not None
+        assert heading.is_master is True
+        assert heading.locations == ["Study"], f"Expected ['Study'], got {heading.locations}"
+        assert heading.time_of_day == "NIGHT", f"Expected 'NIGHT', got {heading.time_of_day}"
+
+    def test_shot_parser_period_separator_no_trailing_period(self):
+        """Ensure no trailing period in location for 'EXT. GARDEN. DUSK'."""
+        from lib.screenpy.parser.shot_parser import ShotHeadingParser
+        parser = ShotHeadingParser(locale_codes=["en"])
+        heading = parser.parse("EXT. GARDEN. DUSK")
+        assert heading is not None
+        assert heading.locations == ["GARDEN"], f"Expected ['GARDEN'], got {heading.locations}"
+        assert heading.time_of_day == "DUSK"
+
+    # --- detect_scene_headers integration ---
+
+    def test_detect_scene_headers_period_separator(self):
+        """detect_scene_headers should correctly parse period-separator headings."""
+        from services.extraction_pipeline import detect_scene_headers
+        text = "INT. Study. NIGHT\n\nJohn reads a book.\n"
+        headers = detect_scene_headers(text)
+        assert len(headers) == 1
+        assert headers[0]['setting'] == "Study"
+        assert headers[0]['time_of_day'] == "NIGHT"
+        assert headers[0]['int_ext'] == "INT"
+
+    def test_detect_scene_headers_period_separator_numbered(self):
+        """detect_scene_headers with numbered period-separator heading."""
+        from services.extraction_pipeline import detect_scene_headers
+        text = "42. INT. Study. NIGHT\n\nJohn reads a book.\n"
+        headers = detect_scene_headers(text)
+        assert len(headers) == 1
+        assert headers[0]['setting'] == "Study"
+        assert headers[0]['time_of_day'] == "NIGHT"
+        assert headers[0]['scene_number'] == "42"
+
+    # --- Standard dash separator still works ---
+
+    def test_standard_dash_separator_still_works(self):
+        """Ensure standard 'INT. COFFEE SHOP - DAY' is not broken by the new patterns."""
+        from services.extraction_pipeline import detect_scene_headers
+        text = "INT. COFFEE SHOP - DAY\n\nA barista wipes the counter.\n"
+        headers = detect_scene_headers(text)
+        assert len(headers) == 1
+        assert headers[0]['setting'] == "COFFEE SHOP"
+        assert headers[0]['time_of_day'] == "DAY"
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

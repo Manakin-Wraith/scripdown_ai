@@ -101,31 +101,37 @@ class SceneCandidate:
 TIME_OF_DAY = r"(DAY|NIGHT|DUSK|DAWN|MORNING|EVENING|AFTERNOON|CONTINUOUS|LATER|SAME|MOMENT'?S?\s*LATER|MOMENTS?\s*LATER)"
 
 SCENE_HEADER_PATTERNS = [
-    # Pattern 1: "42. INT. COFFEE SHOP - DAY" (standard numbered + TOD)
+    # Pattern 1: "42. INT. COFFEE SHOP - DAY" (standard numbered + dash + TOD)
     rf'^(\d+[A-Z]?)\.\s*(INT|EXT|INT\.?/EXT|EXT\.?/INT|I/E|E/I)[.\s]+(.+?)\s*[-–—]\s*{TIME_OF_DAY}',
 
-    # Pattern 2: "42. INT. COFFEE SHOP" (numbered + optional TOD)
+    # Pattern 2: "42. INT. Study. NIGHT" (numbered, period as separator instead of dash)
+    rf'^(\d+[A-Z]?)\.\s*(INT|EXT|INT\.?/EXT|EXT\.?/INT|I/E|E/I)[.\s]+(.+?)\.\s*{TIME_OF_DAY}\s*$',
+
+    # Pattern 3: "42. INT. COFFEE SHOP" (numbered + optional TOD — catch-all for numbered)
     r'^(\d+[A-Z]?)\.\s*(INT|EXT|INT\.?/EXT|EXT\.?/INT|I/E|E/I)[.\s]+(.+?)(?:\s*[-–—]\s*(.+?))?$',
 
-    # Pattern 3: "SCENE 42 - INT. COFFEE SHOP - DAY"
+    # Pattern 4: "SCENE 42 - INT. COFFEE SHOP - DAY"
     rf'^SCENE\s+(\d+[A-Z]?)\s*[-–—:]\s*(INT|EXT|INT\.?/EXT|EXT\.?/INT)[.\s]+(.+?)\s*[-–—]\s*{TIME_OF_DAY}',
 
-    # Pattern 4: "42 INT. COFFEE SHOP - DAY" (FDX no period + TOD)
+    # Pattern 5: "42 INT. COFFEE SHOP - DAY" (FDX no period + TOD)
     rf'^(\d+[A-Z]?)\s+(INT|EXT|INT\.?/EXT|EXT\.?/INT|I/E|E/I)[.\s]+(.+?)\s*[-–—]\s*{TIME_OF_DAY}',
 
-    # Pattern 5: "INT. COFFEE SHOP - DAY" (no scene number + TOD)
+    # Pattern 6: "INT. COFFEE SHOP - DAY" (no scene number + dash + TOD)
     rf'^()(INT|EXT|INT\.?/EXT|EXT\.?/INT|I/E|E/I)[.\s]+(.+?)\s*[-–—]\s*{TIME_OF_DAY}',
 
-    # Pattern 6: "A1 INT. COFFEE SHOP - DAY" (alpha-prefix scene number, e.g. revision scenes)
+    # Pattern 7: "A1 INT. COFFEE SHOP - DAY" (alpha-prefix scene number, e.g. revision scenes)
     rf'^([A-Z]\d+[A-Z]?)\.?\s+(INT|EXT|INT\.?/EXT|EXT\.?/INT|I/E|E/I)[.\s]+(.+?)\s*[-–—]\s*{TIME_OF_DAY}',
 
-    # Pattern 7: "FLASHBACK - INT. COFFEE SHOP - DAY" / "DREAM SEQUENCE - EXT. PARK - NIGHT"
+    # Pattern 8: "FLASHBACK - INT. COFFEE SHOP - DAY" / "DREAM SEQUENCE - EXT. PARK - NIGHT"
     rf'^(?:FLASHBACK|DREAM SEQUENCE)\s*[-–—:]\s*()(INT|EXT|INT\.?/EXT|EXT\.?/INT|I/E|E/I)[.\s]+(.+?)\s*[-–—]\s*{TIME_OF_DAY}',
 
-    # Pattern 8: "42 INT. COFFEE SHOP" (FDX no period, no TOD)
+    # Pattern 9: "INT. Study. NIGHT" (no scene number, period as separator instead of dash)
+    rf'^()(INT|EXT|INT\.?/EXT|EXT\.?/INT|I/E|E/I)[.\s]+(.+?)\.\s*{TIME_OF_DAY}\s*$',
+
+    # Pattern 10: "42 INT. COFFEE SHOP" (FDX no period, no TOD)
     r'^(\d+[A-Z]?)\s+(INT|EXT|INT\.?/EXT|EXT\.?/INT|I/E|E/I)[.\s]+(.+?)()$',
 
-    # Pattern 9: "INT. COFFEE SHOP" (no scene number, no TOD — catch-all)
+    # Pattern 11: "INT. COFFEE SHOP" (no scene number, no TOD — catch-all)
     r'^()(INT|EXT|INT\.?/EXT|EXT\.?/INT|I/E|E/I)[.\s]+(.+?)()$',
 ]
 
@@ -161,7 +167,7 @@ def detect_scene_headers(text: str, page_number: int = None) -> List[Dict]:
                 # Safely extract values (some may be None)
                 scene_num = groups[0] if groups[0] else None
                 int_ext = groups[1].upper().replace('.', '') if groups[1] else 'INT'
-                setting = groups[2].strip() if groups[2] else ''
+                setting = groups[2].strip().rstrip('.').strip() if groups[2] else ''
                 time_of_day = groups[3].upper() if len(groups) > 3 and groups[3] else 'DAY'
                 
                 # Skip if no valid setting found

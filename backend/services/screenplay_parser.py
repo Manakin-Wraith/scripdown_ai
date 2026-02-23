@@ -231,8 +231,8 @@ def _parse_with_grammar(
         # Map location_type to INT/EXT string
         int_ext = _location_type_to_str(heading.location_type)
 
-        # Location hierarchy from grammar
-        location_hierarchy = heading.locations or []
+        # Location hierarchy from grammar — strip trailing periods (period-separator edge case)
+        location_hierarchy = [loc.rstrip('.').strip() for loc in (heading.locations or []) if loc.strip()]
         setting = " - ".join(location_hierarchy) if location_hierarchy else ""
 
         # Time of day
