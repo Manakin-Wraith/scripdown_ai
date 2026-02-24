@@ -539,6 +539,22 @@ const SceneViewer = () => {
                             analyzed: summaryData.analyzedScenes,
                             pending: summaryData.pendingScenes
                         }}
+                        scriptId={scriptId}
+                        onMergeComplete={async () => {
+                            try {
+                                const sceneData = await getScenes(scriptId);
+                                const fetchedScenes = sceneData.scenes || [];
+                                setScenes(fetchedScenes);
+                                if (selectedScene) {
+                                    const updated = fetchedScenes.find(
+                                        s => s.id === selectedScene.id || s.scene_id === selectedScene.scene_id
+                                    );
+                                    if (updated) setSelectedScene(updated);
+                                }
+                            } catch (err) {
+                                console.error('Failed to refresh scenes after merge:', err);
+                            }
+                        }}
                     />
                 )}
             </div>

@@ -87,6 +87,53 @@
     background: var(--gray-700);
     border-radius: 6px;
     font-size: 0.8125rem;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    border: 1px solid transparent;
+}
+
+.summary-item:hover {
+    background: var(--gray-650, #3a3f4b);
+    border-color: var(--gray-500, #6b7280);
+}
+
+.summary-item.selected {
+    background: rgba(99, 102, 241, 0.15);
+    border-color: var(--primary-500, #6366f1);
+}
+
+.summary-item.suspect {
+    border-color: rgba(245, 158, 11, 0.3);
+}
+
+.summary-item.suspect:not(.selected):hover {
+    border-color: rgba(245, 158, 11, 0.6);
+}
+
+.item-left {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+    flex: 1;
+}
+
+.item-checkbox {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    border: 1.5px solid var(--gray-500, #6b7280);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.15s;
+}
+
+.item-checkbox.checked {
+    background: var(--primary-500, #6366f1);
+    border-color: var(--primary-500, #6366f1);
+    color: white;
 }
 
 .item-name {
@@ -95,19 +142,232 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 70%;
 }
 
 .item-count {
     color: var(--text-secondary);
     font-size: 0.75rem;
     flex-shrink: 0;
+    margin-left: 0.5rem;
+}
+
+.suspect-icon {
+    color: var(--warning-500, #f59e0b);
+    flex-shrink: 0;
+    animation: pulse-warning 2s ease-in-out infinite;
+}
+
+@keyframes pulse-warning {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
 }
 
 .empty-text {
     color: var(--text-muted);
     font-size: 0.8125rem;
     font-style: italic;
+}
+
+/* Duplicate Alert Badge */
+.duplicate-alert {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: rgba(245, 158, 11, 0.15);
+    color: var(--warning-500, #f59e0b);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    padding: 0.125rem 0.5rem;
+    border-radius: 10px;
+    margin-left: 0.5rem;
+}
+
+.duplicate-hint {
+    font-size: 0.6875rem;
+    color: var(--warning-500, #f59e0b);
+    margin: -0.25rem 0 0.5rem 0;
+    opacity: 0.8;
+}
+
+/* Merge Success Banner */
+.merge-success-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(34, 197, 94, 0.1);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    border-radius: 8px;
+    padding: 0.5rem 0.75rem;
+    margin-bottom: 1rem;
+    font-size: 0.8125rem;
+    color: var(--success-500, #22c55e);
+}
+
+.merge-success-banner strong {
+    color: var(--text-primary);
+}
+
+.merge-success-banner button {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0.125rem;
+    margin-left: auto;
+    border-radius: 4px;
+}
+
+.merge-success-banner button:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* Merge Bar */
+.merge-bar {
+    margin-top: 1rem;
+    background: var(--gray-750, #2a2f3a);
+    border: 1px solid var(--primary-500, #6366f1);
+    border-radius: 10px;
+    padding: 0.875rem;
+    animation: slideUp 0.2s ease-out;
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.merge-bar-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.75rem;
+}
+
+.merge-bar-header svg {
+    color: var(--primary-400, #818cf8);
+}
+
+.merge-options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    margin-bottom: 0.75rem;
+}
+
+.merge-option {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.625rem;
+    background: var(--gray-700);
+    border: 1px solid transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.8125rem;
+    transition: all 0.15s;
+}
+
+.merge-option:hover {
+    background: var(--gray-650, #3a3f4b);
+}
+
+.merge-option.recommended {
+    border-color: var(--primary-500, #6366f1);
+    background: rgba(99, 102, 241, 0.1);
+}
+
+.merge-option input[type="radio"] {
+    accent-color: var(--primary-500, #6366f1);
+}
+
+.merge-option-name {
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.merge-option-count {
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    margin-left: auto;
+}
+
+.merge-recommended-badge {
+    background: rgba(34, 197, 94, 0.15);
+    color: var(--success-500, #22c55e);
+    font-size: 0.625rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.125rem 0.375rem;
+    border-radius: 4px;
+}
+
+.merge-custom-input {
+    width: 100%;
+    padding: 0.375rem 0.625rem;
+    background: var(--gray-900, #111827);
+    border: 1px solid var(--gray-600, #4b5563);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 0.8125rem;
+    outline: none;
+}
+
+.merge-custom-input:focus {
+    border-color: var(--primary-500, #6366f1);
+}
+
+.merge-bar-info {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.75rem;
+}
+
+.merge-bar-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+}
+
+.merge-cancel-btn {
+    padding: 0.375rem 0.875rem;
+    background: var(--gray-700);
+    border: 1px solid var(--gray-500, #6b7280);
+    border-radius: 6px;
+    color: var(--text-secondary);
+    font-size: 0.8125rem;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.merge-cancel-btn:hover {
+    background: var(--gray-600, #4b5563);
+    color: var(--text-primary);
+}
+
+.merge-confirm-btn {
+    padding: 0.375rem 1rem;
+    background: var(--primary-500, #6366f1);
+    border: none;
+    border-radius: 6px;
+    color: white;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.merge-confirm-btn:hover:not(:disabled) {
+    background: var(--primary-600, #4f46e5);
+}
+
+.merge-confirm-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 /* Responsive */

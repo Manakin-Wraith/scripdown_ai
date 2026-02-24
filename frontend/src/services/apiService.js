@@ -2090,4 +2090,21 @@ export const quickAddToSchedule = async (scriptId, sceneIds, scheduleId = null, 
     return response.data;
 };
 
+// ============================================
+// Character Merge / Dedup
+// ============================================
+
+export const mergeCharacters = async (scriptId, canonicalName, aliases) => {
+    const response = await api.post(`/api/scripts/${scriptId}/characters/merge`, {
+        canonical_name: canonicalName,
+        aliases,
+    });
+    return response.data;
+};
+
+export const getCharacterAliases = async (scriptId) => {
+    const response = await api.get(`/api/scripts/${scriptId}/characters/aliases`);
+    return response.data;
+};
+
 export default api;

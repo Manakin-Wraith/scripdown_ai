@@ -2631,9 +2631,28 @@ def analyze_scene(scene_id):
         else:
             page_length_eighths = 8  # Default to 1 page
         
+        # Apply character alias map to prevent re-introducing merged duplicates
+        final_characters = analysis.get('characters', [])
+        try:
+            alias_result = supabase.table('character_aliases').select(
+                'alias, canonical_name'
+            ).eq('script_id', scene['script_id']).execute()
+            if alias_result.data:
+                alias_map = {r['alias']: r['canonical_name'] for r in alias_result.data}
+                seen = set()
+                deduped = []
+                for c in final_characters:
+                    resolved = alias_map.get(c.strip().upper(), c)
+                    if resolved.upper() not in seen:
+                        deduped.append(resolved)
+                        seen.add(resolved.upper())
+                final_characters = deduped
+        except Exception as alias_err:
+            print(f"[CharMerge] Alias map lookup skipped (non-fatal): {alias_err}")
+        
         # Update scene with analysis results
         update_data = {
-            'characters': analysis.get('characters', []),
+            'characters': final_characters,
             'props': analysis.get('props', []),
             'wardrobe': analysis.get('wardrobe', []),
             'special_fx': analysis.get('special_fx', []),
@@ -3101,9 +3120,28 @@ def analyze_scene_internal(scene_id):
     else:
         page_length_eighths = 8  # Default to 1 page
     
+    # Apply character alias map to prevent re-introducing merged duplicates
+    final_characters = analysis.get('characters', [])
+    try:
+        alias_result = supabase.table('character_aliases').select(
+            'alias, canonical_name'
+        ).eq('script_id', scene['script_id']).execute()
+        if alias_result.data:
+            alias_map = {r['alias']: r['canonical_name'] for r in alias_result.data}
+            seen = set()
+            deduped = []
+            for c in final_characters:
+                resolved = alias_map.get(c.strip().upper(), c)
+                if resolved.upper() not in seen:
+                    deduped.append(resolved)
+                    seen.add(resolved.upper())
+            final_characters = deduped
+    except Exception as alias_err:
+        print(f"[CharMerge] Alias map lookup skipped (non-fatal): {alias_err}")
+    
     # Update scene with analysis results
     update_data = {
-        'characters': analysis.get('characters', []),
+        'characters': final_characters,
         'props': analysis.get('props', []),
         'wardrobe': analysis.get('wardrobe', []),
         'special_fx': analysis.get('special_fx', []),
@@ -4245,4 +4283,153 @@ def get_version_details(script_id, version_id):
         
     except Exception as e:
         print(f"Error getting version details: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+# ============================================
+# Character Merge / Dedup Endpoints
+# ============================================
+
+@supabase_bp.route('/api/scripts/<script_id>/characters/merge', methods=['POST'])
+@require_auth
+def merge_characters(script_id):
+    """
+    Merge duplicate character names across all scenes in a script.
+    
+    Body: {
+        canonical_name: "DARTHY",       -- the name to keep
+        aliases: ["DARHTY", "DARTY"]    -- names to replace
+    }
+    
+    Updates all scenes.characters JSONB arrays, stores aliases for
+    future prevention, and updates department_items references.
+    """
+    if not supabase:
+        return jsonify({'error': 'Supabase not configured'}), 500
+    
+    try:
+        data = request.get_json()
+        canonical_name = (data.get('canonical_name') or '').strip().upper()
+        aliases = data.get('aliases', [])
+        user_id = get_user_id()
+        
+        if not canonical_name:
+            return jsonify({'error': 'canonical_name is required'}), 400
+        if not aliases or not isinstance(aliases, list):
+            return jsonify({'error': 'aliases must be a non-empty array'}), 400
+        
+        # Normalize aliases
+        aliases = list(set(a.strip().upper() for a in aliases if a.strip()))
+        # Remove canonical from aliases if accidentally included
+        aliases = [a for a in aliases if a != canonical_name]
+        
+        if not aliases:
+            return jsonify({'error': 'No valid aliases to merge'}), 400
+        
+        # 1. Fetch all scenes for this script
+        result = supabase.table('scenes').select('id, characters').eq(
+            'script_id', script_id
+        ).execute()
+        
+        scenes = result.data or []
+        updated_count = 0
+        
+        # 2. For each scene, replace aliases with canonical name in characters array
+        for scene in scenes:
+            chars = scene.get('characters') or []
+            if not chars:
+                continue
+            
+            original_chars = list(chars)
+            new_chars = []
+            has_canonical = False
+            changed = False
+            
+            for c in chars:
+                c_upper = c.strip().upper()
+                if c_upper in aliases:
+                    # Replace alias with canonical
+                    if not has_canonical:
+                        new_chars.append(canonical_name)
+                        has_canonical = True
+                    # else: skip duplicate
+                    changed = True
+                elif c_upper == canonical_name:
+                    if not has_canonical:
+                        new_chars.append(canonical_name)
+                        has_canonical = True
+                    else:
+                        changed = True  # Remove duplicate
+                else:
+                    new_chars.append(c)
+            
+            if changed:
+                supabase.table('scenes').update({
+                    'characters': new_chars
+                }).eq('id', scene['id']).execute()
+                updated_count += 1
+        
+        # 3. Update department_items (user-added items) if any match aliases
+        for alias in aliases:
+            try:
+                supabase.table('department_items').update({
+                    'item_name': canonical_name
+                }).eq('script_id', script_id).eq(
+                    'item_type', 'characters'
+                ).eq('item_name', alias).execute()
+            except Exception as di_err:
+                print(f"Warning: Failed to update department_items for alias '{alias}': {di_err}")
+        
+        # 4. Store alias mappings for future prevention
+        for alias in aliases:
+            try:
+                supabase.table('character_aliases').upsert({
+                    'script_id': script_id,
+                    'canonical_name': canonical_name,
+                    'alias': alias,
+                    'merged_by': user_id,
+                }, on_conflict='script_id,alias').execute()
+            except Exception as alias_err:
+                print(f"Warning: Failed to store alias '{alias}': {alias_err}")
+        
+        return jsonify({
+            'success': True,
+            'canonical_name': canonical_name,
+            'aliases_merged': aliases,
+            'scenes_updated': updated_count,
+            'total_scenes': len(scenes),
+        }), 200
+        
+    except Exception as e:
+        print(f"Error merging characters: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@supabase_bp.route('/api/scripts/<script_id>/characters/aliases', methods=['GET'])
+@optional_auth
+def get_character_aliases(script_id):
+    """Get all character alias mappings for a script (for prevention hook)."""
+    if not supabase:
+        return jsonify({'error': 'Supabase not configured'}), 500
+    
+    try:
+        result = supabase.table('character_aliases').select('*').eq(
+            'script_id', script_id
+        ).execute()
+        
+        # Build alias map: { alias: canonical_name }
+        alias_map = {}
+        for row in (result.data or []):
+            alias_map[row['alias']] = row['canonical_name']
+        
+        return jsonify({
+            'script_id': script_id,
+            'alias_map': alias_map,
+            'aliases': result.data or []
+        }), 200
+        
+    except Exception as e:
+        print(f"Error getting character aliases: {e}")
         return jsonify({'error': str(e)}), 500
