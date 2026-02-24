@@ -43,6 +43,7 @@ const ScheduleSceneCard = ({ dayScene, onRemove, isDragOverlay = false, isSelect
     const eighths = getSceneEighths(scene);
     const storyDay = scene.story_day || '';
 
+    const isOmitted = scene.is_omitted || false;
     const intExtClass = intExt === 'INT' ? 'int' : intExt === 'EXT' ? 'ext' : '';
     const TimeIcon = TIME_ICONS[timeOfDay] || null;
 
@@ -81,7 +82,7 @@ const ScheduleSceneCard = ({ dayScene, onRemove, isDragOverlay = false, isSelect
         <div
             ref={(el) => { setNodeRef(el); cardRef.current = el; }}
             style={style}
-            className={`schedule-scene-card ${intExtClass} ${isDragging ? 'dragging' : ''} ${isDragOverlay ? 'overlay' : ''} ${isSelected ? 'selected' : ''}`}
+            className={`schedule-scene-card ${intExtClass} ${isDragging ? 'dragging' : ''} ${isDragOverlay ? 'overlay' : ''} ${isSelected ? 'selected' : ''} ${isOmitted ? 'omitted' : ''}`}
             onClick={handleCardClick}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
@@ -91,6 +92,7 @@ const ScheduleSceneCard = ({ dayScene, onRemove, isDragOverlay = false, isSelect
                     <GripVertical size={12} />
                 </span>
                 <span className="ssc-number">{sceneNum}</span>
+                {isOmitted && <span className="ssc-omit-badge">OMIT</span>}
                 <span className={`ssc-ie ${intExtClass}`}>{intExt}</span>
                 <span className="ssc-eighths">{formatEighths(eighths)}</span>
                 <button className="ssc-remove" onClick={onRemove} title="Remove from day">

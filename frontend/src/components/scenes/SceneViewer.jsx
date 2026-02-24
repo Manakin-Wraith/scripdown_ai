@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getScenes, getScriptMetadata, getScriptItems } from '../../services/apiService';
 import SceneList from './SceneList';
@@ -9,7 +9,7 @@ import PdfViewerPanel from '../pdf/PdfViewerPanel';
 import { AlertCircle, ChevronDown, ChevronUp, Zap, FileText, List, Loader, XCircle, BookOpen, CalendarDays } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 import { useScript } from '../../context/ScriptContext';
-import { analyzeBulkScenes, analyzeScene, getPageMapping } from '../../services/apiService';
+import { analyzeBulkScenes, analyzeScene, getPageMapping, reorderScenes, omitScene } from '../../services/apiService';
 import './SceneViewer.css';
 
 const SceneViewer = () => {
@@ -135,13 +135,14 @@ const SceneViewer = () => {
         }
     }, [storyDayFilter, filteredScenes]);
 
-    // Aggregate data for summary panel
+    // Aggregate data for summary panel (excludes omitted scenes)
     const summaryData = useMemo(() => {
         const chars = {};
         const locs = {};
         let analyzedCount = 0;
+        const activeScenes = scenes.filter(s => !s.is_omitted);
 
-        scenes.forEach(scene => {
+        activeScenes.forEach(scene => {
             // Check if scene is analyzed using analysis_status
             const isAnalyzed = scene.analysis_status === 'complete';
             if (isAnalyzed) analyzedCount++;
@@ -167,9 +168,10 @@ const SceneViewer = () => {
         return {
             characters: chars,
             locations: locs,
-            totalScenes: scenes.length,
+            totalScenes: activeScenes.length,
             analyzedScenes: analyzedCount,
-            pendingScenes: scenes.length - analyzedCount
+            pendingScenes: activeScenes.length - analyzedCount,
+            omittedScenes: scenes.length - activeScenes.length
         };
     }, [scenes, userItemsByScene]);
 
@@ -379,6 +381,84 @@ const SceneViewer = () => {
         return `~${Math.ceil(remainingSeconds / 3600)} hr remaining`;
     }, [isBulkAnalyzing, bulkAnalysisStartTime, summaryData]);
 
+    // Handle omit/restore scene from sidebar
+    const handleOmitScene = useCallback(async (scene) => {
+        const sceneId = scene.id || scene.scene_id;
+        const newOmitState = !scene.is_omitted;
+
+        // Optimistic update
+        setScenes(prev => prev.map(s =>
+            (s.id || s.scene_id) === sceneId ? { ...s, is_omitted: newOmitState } : s
+        ));
+
+        try {
+            await omitScene(scriptId, sceneId, newOmitState);
+            toast.success(
+                newOmitState ? 'Scene Omitted' : 'Scene Restored',
+                `Scene ${scene.scene_number || ''} ${newOmitState ? 'omitted' : 'restored'}`
+            );
+        } catch (err) {
+            toast.error('Error', 'Failed to update scene');
+            // Rollback
+            setScenes(prev => prev.map(s =>
+                (s.id || s.scene_id) === sceneId ? { ...s, is_omitted: !newOmitState } : s
+            ));
+        }
+    }, [scriptId, toast]);
+
+    // Handle drag reorder of scenes in sidebar
+    const handleReorderScenes = useCallback(async (fromIndex, toIndex) => {
+        const reordered = [...filteredScenes];
+        const [moved] = reordered.splice(fromIndex, 1);
+        reordered.splice(toIndex, 0, moved);
+
+        // Optimistic update
+        if (storyDayFilter) {
+            const filteredIds = new Set(filteredScenes.map(s => s.scene_id));
+            setScenes(prev => {
+                const copy = prev.filter(s => !filteredIds.has(s.scene_id));
+                // Insert reordered scenes back at the position of the first filtered scene
+                const firstFilteredIdx = prev.findIndex(s => filteredIds.has(s.scene_id));
+                copy.splice(firstFilteredIdx >= 0 ? firstFilteredIdx : copy.length, 0, ...reordered);
+                return copy;
+            });
+        } else {
+            setScenes(reordered);
+        }
+
+        // Build ordered scene_ids from the full (potentially reordered) scenes array
+        const allSceneIds = storyDayFilter
+            ? (() => {
+                const filteredIds = new Set(filteredScenes.map(s => s.scene_id));
+                const result = [];
+                let reorderedIdx = 0;
+                for (const s of scenes) {
+                    if (filteredIds.has(s.scene_id)) {
+                        result.push(reordered[reorderedIdx]?.scene_id || reordered[reorderedIdx]?.id);
+                        reorderedIdx++;
+                    } else {
+                        result.push(s.scene_id || s.id);
+                    }
+                }
+                return result;
+            })()
+            : reordered.map(s => s.scene_id || s.id);
+
+        try {
+            await reorderScenes(scriptId, allSceneIds);
+            toast.success('Reordered', 'Scene order updated.');
+        } catch (err) {
+            toast.error('Reorder Failed', err.message || 'Could not reorder scenes.');
+            // Rollback: re-fetch from server
+            try {
+                const sceneData = await getScenes(scriptId);
+                setScenes(sceneData.scenes || []);
+            } catch (fetchErr) {
+                console.error('Failed to rollback scene order:', fetchErr);
+            }
+        }
+    }, [filteredScenes, scenes, storyDayFilter, scriptId, toast]);
+
     // Handle PDF page change - sync scene selection (only called on user scroll)
     const handlePdfPageChange = (page) => {
         setCurrentPdfPage(page);
@@ -572,6 +652,8 @@ const SceneViewer = () => {
                         recentlyCompletedScenes={recentlyCompletedScenes}
                         pageMapping={pageMapping}
                         userItemsByScene={userItemsByScene}
+                        onReorder={handleReorderScenes}
+                        onOmit={handleOmitScene}
                     />
                 </div>
 

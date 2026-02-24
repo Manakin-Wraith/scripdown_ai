@@ -23,15 +23,16 @@ const DayColumn = ({ day, refreshDays, selectedSceneIds, onToggleSelect }) => {
         id: `day-${day.id}`,
     });
 
-    // Stats
-    const totalEighths = scenes.reduce((sum, ds) => sum + getSceneEighths(ds.scene), 0);
+    // Stats (exclude omitted scenes)
+    const activeScenes = scenes.filter(ds => !ds.scene?.is_omitted);
+    const totalEighths = activeScenes.reduce((sum, ds) => sum + getSceneEighths(ds.scene), 0);
 
     const uniqueLocations = new Set(
-        scenes.map(ds => ds.scene?.setting).filter(Boolean)
+        activeScenes.map(ds => ds.scene?.setting).filter(Boolean)
     );
 
     const uniqueCharacters = new Set();
-    scenes.forEach(ds => {
+    activeScenes.forEach(ds => {
         const chars = ds.scene?.characters;
         if (Array.isArray(chars)) {
             chars.forEach(c => {

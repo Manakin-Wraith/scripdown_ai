@@ -435,6 +435,17 @@
     color: var(--text-primary);
 }
 
+/* Omitted row styling */
+.stripboard-row.omitted {
+    opacity: 0.4;
+    text-decoration: line-through;
+    text-decoration-color: var(--gray-500);
+}
+
+.stripboard-row.omitted td {
+    border-style: dashed;
+}
+
 /* Expanded row styling */
 .stripboard-row.expanded {
     background: var(--gray-750, rgba(51, 65, 85, 0.3));

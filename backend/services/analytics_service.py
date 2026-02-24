@@ -500,7 +500,7 @@ class AnalyticsService:
                         'characters, parse_method, shot_type, is_omitted, is_manual, story_day')\
                 .execute()
             scenes_data = scenes_result.data or []
-            total_scenes = len(scenes_data)
+            total_scenes = sum(1 for s in scenes_data if not s.get('is_omitted'))
             
             # Index scenes by script_id for O(1) lookup
             scenes_by_script = {}
@@ -582,7 +582,9 @@ class AnalyticsService:
                 other_time_count = 0
                 shot_types_found = 0
                 
-                for scene in script_scenes:
+                # Exclude omitted scenes from aggregation
+                active_script_scenes = [s for s in script_scenes if not s.get('is_omitted')]
+                for scene in active_script_scenes:
                     # Characters
                     scene_chars = scene.get('characters', []) or []
                     if isinstance(scene_chars, list):
@@ -650,7 +652,7 @@ class AnalyticsService:
                     'writer_name': script.get('writer_name'),
                     'genre': script.get('genre'),
                     'total_pages': pages,
-                    'scene_count': len(script_scenes),
+                    'scene_count': len(active_script_scenes),
                     'character_count': len(chars),
                     'location_count': len(locs),
                     'story_days': script.get('total_story_days', 0),
@@ -672,7 +674,7 @@ class AnalyticsService:
                     # Parser quality
                     'grammar_scenes': grammar_count,
                     'regex_scenes': regex_count,
-                    'grammar_rate': round(grammar_count / len(script_scenes) * 100, 1) if script_scenes else 0,
+                    'grammar_rate': round(grammar_count / len(active_script_scenes) * 100, 1) if active_script_scenes else 0,
                     # Shot types
                     'shot_type_count': shot_types_found,
                     # Feature adoption

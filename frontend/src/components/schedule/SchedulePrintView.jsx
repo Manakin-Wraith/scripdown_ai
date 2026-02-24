@@ -34,8 +34,8 @@ const OneLinerRow = ({ scene, index }) => {
     const castNames = getCharacterNames(scene.characters);
 
     return (
-        <tr className={`print-scene-row ${index % 2 === 0 ? 'print-row-even' : ''}`}>
-            <td className="print-col-num">{scene.scene_number}</td>
+        <tr className={`print-scene-row ${index % 2 === 0 ? 'print-row-even' : ''} ${scene.is_omitted ? 'print-omitted' : ''}`}>
+            <td className="print-col-num">{scene.scene_number}{scene.is_omitted && <span className="print-omit-tag"> OMIT</span>}</td>
             <td className={`print-col-ie ${intExtClass}`}>{intExt}</td>
             <td className="print-col-setting">{scene.setting || '—'}</td>
             <td className="print-col-tod">{scene.time_of_day || '—'}</td>

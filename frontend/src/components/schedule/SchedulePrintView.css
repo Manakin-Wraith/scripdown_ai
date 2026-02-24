@@ -269,6 +269,18 @@
     background: #f9fafb;
 }
 
+.print-scene-row.print-omitted {
+    opacity: 0.4;
+    text-decoration: line-through;
+}
+
+.print-omit-tag {
+    font-size: 7pt;
+    font-weight: 700;
+    color: #dc2626;
+    letter-spacing: 0.5px;
+}
+
 .print-col-num {
     width: 3rem;
     font-weight: bold;

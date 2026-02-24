@@ -183,20 +183,23 @@ const Stripboard = () => {
         return result;
     }, [scenes, filterIntExt, filterTimeOfDay, filterAnalysisStatus, filterStoryDay, sortBy, sortDir]);
 
-    // Calculate stats
+    // Active scenes (exclude omitted) for stats
+    const activeScenes = useMemo(() => scenes.filter(s => !s.is_omitted), [scenes]);
+
+    // Calculate stats (based on active scenes only)
     const stats = useMemo(() => {
-        const intCount = scenes.filter(s => s.int_ext === 'INT').length;
-        const extCount = scenes.filter(s => s.int_ext === 'EXT').length;
-        const dayCount = scenes.filter(s => s.time_of_day === 'DAY').length;
-        const nightCount = scenes.filter(s => s.time_of_day === 'NIGHT').length;
+        const intCount = activeScenes.filter(s => s.int_ext === 'INT').length;
+        const extCount = activeScenes.filter(s => s.int_ext === 'EXT').length;
+        const dayCount = activeScenes.filter(s => s.time_of_day === 'DAY').length;
+        const nightCount = activeScenes.filter(s => s.time_of_day === 'NIGHT').length;
         
         // Calculate total eighths
-        const totalEighths = scenes.reduce((sum, scene) => sum + getSceneEighths(scene), 0);
+        const totalEighths = activeScenes.reduce((sum, scene) => sum + getSceneEighths(scene), 0);
         const totalEighthsDisplay = formatEighths(totalEighths);
         
         // Calculate unique characters count (AI + user-added)
         const allChars = new Set();
-        scenes.forEach(scene => {
+        activeScenes.forEach(scene => {
             const sceneId = scene.id || scene.scene_id;
             const sceneItems = userItemsByScene[sceneId] || {};
             (scene.characters || []).forEach(char => allChars.add(char));
@@ -206,7 +209,7 @@ const Stripboard = () => {
         
         // Calculate unique locations count
         const allLocations = new Set();
-        scenes.forEach(scene => {
+        activeScenes.forEach(scene => {
             if (scene.setting) {
                 allLocations.add(scene.setting.toUpperCase().trim());
             }
@@ -215,13 +218,13 @@ const Stripboard = () => {
         
         // Calculate unique story days
         const storyDays = new Set();
-        scenes.forEach(scene => {
+        activeScenes.forEach(scene => {
             if (scene.story_day) storyDays.add(scene.story_day);
         });
         const totalStoryDays = storyDays.size;
 
         return { intCount, extCount, dayCount, nightCount, totalEighths, totalEighthsDisplay, totalCharacters, totalLocations, totalStoryDays };
-    }, [scenes, userItemsByScene]);
+    }, [activeScenes, userItemsByScene]);
 
 
     const toggleSort = (field) => {
@@ -303,7 +306,7 @@ const Stripboard = () => {
                     </div>
                 </div>
                 <div className="print-stats">
-                    <span><strong>{scenes.length}</strong> Scenes</span>
+                    <span><strong>{activeScenes.length}</strong> Scenes</span>
                     <span><strong>{stats.intCount}</strong> INT</span>
                     <span><strong>{stats.extCount}</strong> EXT</span>
                     <span><strong>{stats.dayCount}</strong> DAY</span>
@@ -329,7 +332,7 @@ const Stripboard = () => {
             <div className="stripboard-stats">
                 <div className="stat-group">
                     <span className="stat-label">Total:</span>
-                    <span className="stat-value">{scenes.length} scenes</span>
+                    <span className="stat-value">{activeScenes.length} scenes</span>
                 </div>
                 <div className="stat-group">
                     <Home size={14} />
@@ -522,7 +525,7 @@ const Stripboard = () => {
                                         </tr>
                                     )}
                                     <tr 
-                                        className={`stripboard-row ${isInt ? 'int' : 'ext'} ${isDay ? 'day' : 'night'} ${isExpanded ? 'expanded' : ''} status-${analysisStatus}`}
+                                        className={`stripboard-row ${isInt ? 'int' : 'ext'} ${isDay ? 'day' : 'night'} ${isExpanded ? 'expanded' : ''} status-${analysisStatus} ${scene.is_omitted ? 'omitted' : ''}`}
                                         onClick={() => toggleRowExpand(sceneId)}
                                         style={{ cursor: 'pointer' }}
                                     >

@@ -1,5 +1,5 @@
-import React from 'react';
-import { Users, ChevronRight, CheckCircle, Clock, Loader, FileText, ArrowDownUp, CalendarDays } from 'lucide-react';
+import React, { useState, useRef, useCallback } from 'react';
+import { Users, ChevronRight, CheckCircle, Clock, Loader, FileText, ArrowDownUp, CalendarDays, GripVertical, EyeOff, Eye } from 'lucide-react';
 import { getSceneEighthsDisplay } from '../../utils/sceneUtils';
 import './SceneList.css';
 
@@ -13,7 +13,54 @@ import './SceneList.css';
  * 
  * Page info from pageMapping shows which PDF pages each scene spans
  */
-const SceneList = ({ scenes, selectedId, onSelect, analyzingScenes = new Set(), recentlyCompletedScenes = new Set(), pageMapping = null, userItemsByScene = {} }) => {
+const SceneList = ({ scenes, selectedId, onSelect, analyzingScenes = new Set(), recentlyCompletedScenes = new Set(), pageMapping = null, userItemsByScene = {}, onReorder = null, onOmit = null }) => {
+    const [dragIndex, setDragIndex] = useState(null);
+    const [overIndex, setOverIndex] = useState(null);
+    const dragNodeRef = useRef(null);
+    const listRef = useRef(null);
+    const startYRef = useRef(0);
+
+    const handleDragStart = useCallback((e, index) => {
+        e.stopPropagation();
+        setDragIndex(index);
+        startYRef.current = e.clientY;
+        dragNodeRef.current = e.currentTarget.closest('.scene-item');
+
+        const handlePointerMove = (moveEvt) => {
+            moveEvt.preventDefault();
+            if (!listRef.current) return;
+            const items = listRef.current.querySelectorAll('.scene-item');
+            let closestIdx = index;
+            let closestDist = Infinity;
+            items.forEach((item, i) => {
+                const rect = item.getBoundingClientRect();
+                const midY = rect.top + rect.height / 2;
+                const dist = Math.abs(moveEvt.clientY - midY);
+                if (dist < closestDist) {
+                    closestDist = dist;
+                    closestIdx = i;
+                }
+            });
+            setOverIndex(closestIdx);
+        };
+
+        const handlePointerUp = () => {
+            document.removeEventListener('pointermove', handlePointerMove);
+            document.removeEventListener('pointerup', handlePointerUp);
+            setDragIndex((prevDragIdx) => {
+                setOverIndex((prevOverIdx) => {
+                    if (prevDragIdx !== null && prevOverIdx !== null && prevDragIdx !== prevOverIdx && onReorder) {
+                        onReorder(prevDragIdx, prevOverIdx);
+                    }
+                    return null;
+                });
+                return null;
+            });
+        };
+
+        document.addEventListener('pointermove', handlePointerMove);
+        document.addEventListener('pointerup', handlePointerUp);
+    }, [onReorder]);
     if (!scenes || scenes.length === 0) {
         return (
             <div className="list-empty">
@@ -44,7 +91,7 @@ const SceneList = ({ scenes, selectedId, onSelect, analyzingScenes = new Set(), 
     };
 
     return (
-        <div className="scene-list">
+        <div className="scene-list" ref={listRef}>
             {scenes.map((scene, index) => {
                 const sceneId = scene.id || scene.scene_id;
                 const sceneUserItems = userItemsByScene[sceneId] || {};
@@ -99,12 +146,31 @@ const SceneList = ({ scenes, selectedId, onSelect, analyzingScenes = new Set(), 
                             </div>
                         )}
 
+                        {/* Drop indicator above */}
+                        {dragIndex !== null && overIndex === index && dragIndex > index && (
+                            <div className="scene-drop-indicator" />
+                        )}
+
                         <div 
-                            className={`scene-item scene-item-card ${selectedId === scene.scene_id ? 'selected' : ''} status-${status}`}
+                            className={`scene-item scene-item-card ${selectedId === scene.scene_id ? 'selected' : ''} status-${status} ${dragIndex === index ? 'dragging' : ''} ${scene.is_omitted ? 'omitted' : ''}`}
                             onClick={() => onSelect(scene)}
                         >
+                            {/* Drag Handle */}
+                            {onReorder && (
+                                <button
+                                    className="scene-drag-handle"
+                                    onPointerDown={(e) => handleDragStart(e, index)}
+                                    onClick={(e) => e.stopPropagation()}
+                                    title="Drag to reorder"
+                                >
+                                    <GripVertical size={14} />
+                                </button>
+                            )}
                             {/* Scene Number - Top Left */}
-                            <span className="scene-number">{displaySceneNum}</span>
+                            <span className="scene-number">
+                                {scene.is_omitted && <span className="omitted-badge">OMIT</span>}
+                                {displaySceneNum}
+                            </span>
                             
                             {/* Status Indicator - fades out for completed scenes */}
                             <div className={`status-indicator status-${status} ${isRecentlyCompleted ? 'fade-out' : ''} ${status === 'complete' && !isRecentlyCompleted ? 'hidden' : ''}`}>
@@ -149,8 +215,23 @@ const SceneList = ({ scenes, selectedId, onSelect, analyzingScenes = new Set(), 
                                 </div>
                             </div>
                             
+                            {/* Omit/Restore Toggle */}
+                            {onOmit && (
+                                <button
+                                    className={`scene-omit-btn ${scene.is_omitted ? 'is-omitted' : ''}`}
+                                    onClick={(e) => { e.stopPropagation(); onOmit(scene); }}
+                                    title={scene.is_omitted ? 'Restore scene' : 'Omit scene'}
+                                >
+                                    {scene.is_omitted ? <Eye size={14} /> : <EyeOff size={14} />}
+                                </button>
+                            )}
                             <ChevronRight size={16} className="arrow-icon" />
                         </div>
+
+                        {/* Drop indicator below */}
+                        {dragIndex !== null && overIndex === index && dragIndex < index && (
+                            <div className="scene-drop-indicator" />
+                        )}
                     </React.Fragment>
                 );
             })}

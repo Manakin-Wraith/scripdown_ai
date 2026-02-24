@@ -1002,6 +1002,9 @@ def get_scenes(script_id):
                 'story_day_is_manual': scene.get('story_day_is_manual', False),
                 'story_day_is_locked': scene.get('story_day_is_locked', False),
                 'timeline_code': scene.get('timeline_code', 'PRESENT'),
+                # Omit status
+                'is_omitted': scene.get('is_omitted', False),
+                'omitted_at': scene.get('omitted_at'),
             })
         
         return jsonify({'script_id': script_id, 'scenes': scenes}), 200
@@ -1200,6 +1203,13 @@ def reorder_scenes(script_id):
         if not scene_ids:
             return jsonify({'error': 'scene_ids array is required'}), 400
         
+        # Validate: filter out any None/undefined/empty values
+        scene_ids = [sid for sid in scene_ids if sid]
+        if not scene_ids:
+            return jsonify({'error': 'scene_ids array contains no valid IDs'}), 400
+        
+        print(f"[reorder] script={script_id}, scene_count={len(scene_ids)}, first_3={scene_ids[:3]}")
+        
         # Check if script is locked
         script_result = supabase.table('scripts').select('is_locked').eq('id', script_id).single().execute()
         if script_result.data and script_result.data.get('is_locked'):
@@ -1209,27 +1219,33 @@ def reorder_scenes(script_id):
         current_scenes = supabase.table('scenes').select('id, scene_order').eq('script_id', script_id).execute()
         previous_order = {s['id']: s['scene_order'] for s in (current_scenes.data or [])}
         
-        # Update scene_order for each scene
+        # Only update scenes whose order actually changed
+        updates = []
         for i, scene_id in enumerate(scene_ids, start=1):
-            supabase.table('scenes').update({
-                'scene_order': i
-            }).eq('id', scene_id).eq('script_id', script_id).execute()
+            if previous_order.get(scene_id) != i:
+                updates.append({'id': scene_id, 'scene_order': i})
         
-        # Record history for changed scenes
+        print(f"[reorder] {len(updates)} scenes changed out of {len(scene_ids)}")
+        for u in updates:
+            supabase.table('scenes').update({
+                'scene_order': u['scene_order']
+            }).eq('id', u['id']).execute()
+        
+        # Record history (best-effort, non-blocking)
         user_id = get_user_id()
-        for scene_id in scene_ids:
-            old_order = previous_order.get(scene_id)
-            new_order = scene_ids.index(scene_id) + 1
-            if old_order != new_order:
-                try:
-                    supabase.table('scene_history').insert({
-                        'scene_id': scene_id,
-                        'change_type': 'reordered',
-                        'previous_data': json.dumps({'scene_order': old_order}),
-                        'changed_by': user_id
-                    }).execute()
-                except Exception as hist_err:
-                    print(f"Warning: Failed to record history: {hist_err}")
+        if user_id and updates:
+            history_rows = []
+            for u in updates:
+                history_rows.append({
+                    'scene_id': u['id'],
+                    'change_type': 'reordered',
+                    'previous_data': json.dumps({'scene_order': previous_order.get(u['id'])}),
+                    'changed_by': user_id
+                })
+            try:
+                supabase.table('scene_history').insert(history_rows).execute()
+            except Exception as hist_err:
+                print(f"Warning: Failed to record history: {hist_err}")
         
         # Cascade: recalculate story days after reorder
         try:

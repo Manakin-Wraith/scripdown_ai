@@ -40,10 +40,12 @@ const CameraDeptView = ({ scriptId }) => {
         fetchScenes();
     }, [scriptId]);
 
-    // Aggregate scenes by shot type
+    // Aggregate scenes by shot type (exclude omitted)
+    const activeScenes = useMemo(() => scenes.filter(s => !s.is_omitted), [scenes]);
+
     const shotTypeGroups = useMemo(() => {
         const groups = {};
-        scenes.forEach(scene => {
+        activeScenes.forEach(scene => {
             const shotType = scene.shot_type || 'STANDARD';
             if (!groups[shotType]) {
                 groups[shotType] = {
@@ -63,12 +65,12 @@ const CameraDeptView = ({ scriptId }) => {
 
         // Sort by scene count descending
         return Object.values(groups).sort((a, b) => b.scenes.length - a.scenes.length);
-    }, [scenes]);
+    }, [activeScenes]);
 
     // Scenes with shot types vs without
     const scenesWithShotType = useMemo(() => 
-        scenes.filter(s => s.shot_type && s.shot_type !== 'STANDARD').length,
-    [scenes]);
+        activeScenes.filter(s => s.shot_type && s.shot_type !== 'STANDARD').length,
+    [activeScenes]);
 
     // Filter groups
     const filteredGroups = useMemo(() => {
@@ -100,7 +102,7 @@ const CameraDeptView = ({ scriptId }) => {
                 <div className="camera-stat-card">
                     <Clapperboard size={20} />
                     <div className="stat-info">
-                        <span className="stat-value">{scenes.length}</span>
+                        <span className="stat-value">{activeScenes.length}</span>
                         <span className="stat-label">Total Scenes</span>
                     </div>
                 </div>
@@ -166,7 +168,7 @@ const CameraDeptView = ({ scriptId }) => {
                                 <div className="shot-type-bar">
                                     <div 
                                         className="bar-fill"
-                                        style={{ width: `${(group.scenes.length / scenes.length) * 100}%` }}
+                                        style={{ width: `${(group.scenes.length / activeScenes.length) * 100}%` }}
                                     />
                                 </div>
                             </div>

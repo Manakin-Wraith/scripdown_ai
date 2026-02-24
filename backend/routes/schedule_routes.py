@@ -127,7 +127,7 @@ def get_shooting_days(schedule_id):
         # Fetch scenes for each day
         for day in days:
             scenes_result = supabase.table('shooting_day_scenes') \
-                .select('*, scenes(id, scene_number, setting, int_ext, time_of_day, story_day, characters, page_length_eighths, scene_text, page_start, page_end)') \
+                .select('*, scenes(id, scene_number, setting, int_ext, time_of_day, story_day, characters, page_length_eighths, scene_text, page_start, page_end, is_omitted)') \
                 .eq('shooting_day_id', day['id']) \
                 .order('sort_order', desc=False) \
                 .execute()
