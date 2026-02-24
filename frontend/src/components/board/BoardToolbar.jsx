@@ -5,7 +5,7 @@ import SchedulePopover from './SchedulePopover';
 import ViewSwitcher from '../shared/ViewSwitcher';
 import './BoardToolbar.css';
 
-const BoardToolbar = ({ groupBy, filters, uniqueDays, totalVisible, totalScenes, zoomApiRef, dispatch, toolMode, selectedCount, scriptId, selectedSceneIds, onScheduled }) => {
+const BoardToolbar = ({ groupBy, filters, uniqueDays, uniqueCharacters, totalVisible, totalScenes, zoomApiRef, dispatch, toolMode, selectedCount, scriptId, selectedSceneIds, onScheduled }) => {
     const activeFilterCount = countActiveFilters(filters);
     const [showSchedule, setShowSchedule] = useState(false);
 
@@ -157,6 +157,21 @@ const BoardToolbar = ({ groupBy, filters, uniqueDays, totalVisible, totalScenes,
                         {uniqueDays.map(d => (
                             <option key={d.day} value={d.day}>
                                 {d.label} ({d.count})
+                            </option>
+                        ))}
+                    </select>
+                )}
+
+                {uniqueCharacters && uniqueCharacters.length > 0 && (
+                    <select
+                        className="toolbar-select"
+                        value={filters.character || 'all'}
+                        onChange={(e) => dispatch({ type: 'SET_FILTER', payload: { character: e.target.value } })}
+                    >
+                        <option value="all">All Characters</option>
+                        {uniqueCharacters.map(c => (
+                            <option key={c.name} value={c.name}>
+                                {c.name} ({c.count})
                             </option>
                         ))}
                     </select>

@@ -34,6 +34,16 @@ export function filterScenes(scenes, filters) {
         }
     }
 
+    if (filters.character && filters.character !== 'all') {
+        result = result.filter(s => {
+            const chars = Array.isArray(s.characters) ? s.characters : [];
+            return chars.some(c => {
+                const name = typeof c === 'string' ? c : c?.name || '';
+                return name === filters.character;
+            });
+        });
+    }
+
     if (filters.scheduledStatus && filters.scheduledStatus !== 'all') {
         if (filters.scheduledStatus === 'scheduled') {
             result = result.filter(s => s.is_scheduled === true);
@@ -176,6 +186,28 @@ export function getUniqueStoryDays(scenes) {
 }
 
 /**
+ * Get unique characters from scenes for filter dropdown.
+ * @param {Array} scenes
+ * @returns {Array<{ name, count }>}
+ */
+export function getUniqueCharacters(scenes) {
+    if (!scenes) return [];
+    const charMap = new Map();
+    scenes.forEach(scene => {
+        const chars = Array.isArray(scene.characters) ? scene.characters : [];
+        chars.forEach(c => {
+            const name = typeof c === 'string' ? c : c?.name || '';
+            if (!name) return;
+            if (!charMap.has(name)) {
+                charMap.set(name, { name, count: 0 });
+            }
+            charMap.get(name).count++;
+        });
+    });
+    return Array.from(charMap.values()).sort((a, b) => b.count - a.count);
+}
+
+/**
  * Count active filters.
  * @param {Object} filters
  * @returns {number}
@@ -186,5 +218,6 @@ export function countActiveFilters(filters) {
     if (filters.intExt && filters.intExt !== 'all') count++;
     if (filters.timeOfDay && filters.timeOfDay !== 'all') count++;
     if (filters.storyDay && filters.storyDay !== 'all') count++;
+    if (filters.character && filters.character !== 'all') count++;
     return count;
 }

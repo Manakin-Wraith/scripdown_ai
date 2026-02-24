@@ -5,7 +5,7 @@ import { useToast } from '../../context/ToastContext';
 import { useScript } from '../../context/ScriptContext';
 import { getScenes, getScriptMetadata, getScriptItems, reorderScenes } from '../../services/apiService';
 import { boardReducer, initialBoardState } from './boardReducer';
-import { buildBoardViewModel, getUniqueStoryDays } from './boardModel';
+import { buildBoardViewModel, getUniqueStoryDays, getUniqueCharacters } from './boardModel';
 import BoardToolbar from './BoardToolbar';
 import BoardCanvas from './BoardCanvas';
 import StripDetailDrawer from './StripDetailDrawer';
@@ -115,6 +115,11 @@ const ZoomableStripboard = () => {
         [state.scenes]
     );
 
+    const uniqueCharacters = useMemo(
+        () => getUniqueCharacters(state.scenes),
+        [state.scenes]
+    );
+
     // Optimistic update: mark scenes as scheduled on the board without a full reload
     const handleScheduled = useCallback((sceneIds, dayLabel) => {
         dispatch({ type: 'MARK_SCENES_SCHEDULED', payload: { sceneIds, dayLabel } });
@@ -147,6 +152,7 @@ const ZoomableStripboard = () => {
                 groupBy={state.groupBy}
                 filters={state.filters}
                 uniqueDays={uniqueDays}
+                uniqueCharacters={uniqueCharacters}
                 totalVisible={viewModel.totalVisible}
                 totalScenes={viewModel.totalScenes}
                 zoomApiRef={zoomApiRef}

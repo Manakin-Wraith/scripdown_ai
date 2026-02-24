@@ -19,6 +19,7 @@ export const initialBoardState = {
         intExt: 'all',
         timeOfDay: 'all',
         storyDay: 'all',
+        character: 'all',
         scheduledStatus: 'all',  // 'all' | 'unscheduled' | 'scheduled'
     },
 
@@ -69,7 +70,7 @@ export function boardReducer(state, action) {
         case 'CLEAR_FILTERS':
             return {
                 ...state,
-                filters: { intExt: 'all', timeOfDay: 'all', storyDay: 'all', scheduledStatus: 'all' },
+                filters: { intExt: 'all', timeOfDay: 'all', storyDay: 'all', character: 'all', scheduledStatus: 'all' },
             };
 
         // Optimistic update: mark a set of scene IDs as scheduled
