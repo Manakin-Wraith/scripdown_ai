@@ -7,7 +7,7 @@ import React from 'react';
 import { X, Sparkles, Check, CreditCard, Clock } from 'lucide-react';
 import './UpgradeModal.css';
 
-const YOCO_PAYMENT_LINK = 'https://pay.yoco.com/r/mEDpxp';
+const YOCO_PAYMENT_LINK = 'https://pay.yoco.com/celebration-house-entertainment?amount=249.00&reference=BetaAccess';
 
 const UpgradeModal = ({ 
     isOpen, 

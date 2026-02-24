@@ -293,7 +293,7 @@ const LoginPage = () => {
                                         const top = window.screenY + (window.outerHeight - height) / 2;
                                         
                                         window.open(
-                                            'https://pay.yoco.com/r/mEDpxp',
+                                            'https://pay.yoco.com/celebration-house-entertainment?amount=249.00&reference=BetaAccess',
                                             'yoco-payment',
                                             `width=${width},height=${height},left=${left},top=${top}`
                                         );

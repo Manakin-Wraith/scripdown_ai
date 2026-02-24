@@ -38,7 +38,7 @@ const ACTIVE_FEATURES = [
     'department_notes',
 ];
 
-const YOCO_PAYMENT_LINK = 'https://pay.yoco.com/r/mEDpxp';
+const YOCO_PAYMENT_LINK = 'https://pay.yoco.com/celebration-house-entertainment?amount=249.00&reference=BetaAccess';
 
 export function useSubscription() {
     const { user, profile } = useAuth();

@@ -9,10 +9,10 @@ import { useCredits } from '../../hooks/useCredits';
 import './CreditPurchaseModal.css';
 
 const YOCO_PAYLINKS = {
-    single: 'https://pay.yoco.com/r/4aQyxM',
-    pack_5: 'https://pay.yoco.com/r/4W9Vev',
-    pack_10: 'https://pay.yoco.com/r/78j6rk',
-    pack_25: 'https://pay.yoco.com/r/2Q1ZLN'
+    single: 'https://pay.yoco.com/celebration-house-entertainment?amount=49.00&reference=single',
+    pack_5: 'https://pay.yoco.com/celebration-house-entertainment?amount=220.00&reference=pack_5',
+    pack_10: 'https://pay.yoco.com/celebration-house-entertainment?amount=390.00&reference=pack_10',
+    pack_25: 'https://pay.yoco.com/celebration-house-entertainment?amount=860.00&reference=pack_25'
 };
 
 const PACKAGE_ICONS = {

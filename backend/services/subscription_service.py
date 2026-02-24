@@ -479,7 +479,7 @@ def require_active_subscription(f):
                 'error': 'Subscription required',
                 'subscription_status': sub_status['status'],
                 'message': sub_status.get('message', 'Please upgrade to access this feature.'),
-                'upgrade_url': 'https://pay.yoco.com/r/mEDpxp'
+                'upgrade_url': 'https://pay.yoco.com/celebration-house-entertainment?amount=249.00&reference=BetaAccess'
             }), 403
         
         return f(*args, **kwargs)
@@ -507,7 +507,7 @@ def require_feature(feature: str):
                     'error': 'Feature not available',
                     'feature': feature,
                     'message': message,
-                    'upgrade_url': 'https://pay.yoco.com/r/mEDpxp'
+                    'upgrade_url': 'https://pay.yoco.com/celebration-house-entertainment?amount=249.00&reference=BetaAccess'
                 }), 403
             
             return f(*args, **kwargs)
