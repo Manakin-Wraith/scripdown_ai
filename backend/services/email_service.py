@@ -418,7 +418,7 @@ def send_test_email(to_email: str) -> Dict[str, Any]:
 
 
 # Yoco payment link for beta access
-YOCO_PAYMENT_LINK = "https://pay.yoco.com/r/2BJb8B"
+YOCO_PAYMENT_LINK = "https://pay.yoco.com/r/2LZ8VB"
 
 
 def send_welcome_email(
