@@ -456,27 +456,12 @@ def send_welcome_email(
                                 <div style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(217, 119, 6, 0.15)); border: 2px solid #F59E0B; border-radius: 16px; padding: 32px; margin-bottom: 28px; text-align: center;">
                                     <p style="margin: 0 0 12px 0; font-size: 13px; color: #F59E0B; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px;">⚡ BETA ACCESS OFFER ⚡</p>
                                     <p style="margin: 0 0 8px 0; font-size: 22px; font-weight: 700; color: #FFFFFF; line-height: 1.3;">
-                                        Get <strong>1 year of full access</strong>
+                                        Get <strong>Beta access</strong>
                                     </p>
                                     <p style="margin: 0 0 20px 0; font-size: 40px; font-weight: 800; color: #F59E0B; line-height: 1;">
                                         R249
                                     </p>
-                                    <p style="margin: 0 0 4px 0; font-size: 13px; color: #9CA3AF;">One-time payment · No recurring fees</p>
-                                    
-                                    <table width="100%" cellpadding="0" cellspacing="0" style="margin: 20px 0 0 0;">
-                                        <tr>
-                                            <td style="padding: 4px 0; text-align: left;"><span style="color: #10B981; font-size: 14px;">✓</span> <span style="color: #D1D5DB; font-size: 14px;">AI-powered script breakdown</span></td>
-                                        </tr>
-                                        <tr>
-                                            <td style="padding: 4px 0; text-align: left;"><span style="color: #10B981; font-size: 14px;">✓</span> <span style="color: #D1D5DB; font-size: 14px;">Unlimited scene analysis</span></td>
-                                        </tr>
-                                        <tr>
-                                            <td style="padding: 4px 0; text-align: left;"><span style="color: #10B981; font-size: 14px;">✓</span> <span style="color: #D1D5DB; font-size: 14px;">Team collaboration tools</span></td>
-                                        </tr>
-                                        <tr>
-                                            <td style="padding: 4px 0; text-align: left;"><span style="color: #10B981; font-size: 14px;">✓</span> <span style="color: #D1D5DB; font-size: 14px;">Export reports & stripboards</span></td>
-                                        </tr>
-                                    </table>
+                                
                                 </div>
                                 
                                 <!-- Primary CTA Button - Full Width -->
