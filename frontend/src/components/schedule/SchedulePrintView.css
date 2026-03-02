@@ -232,6 +232,11 @@
     white-space: nowrap;
 }
 
+.print-day-stat-sday {
+    font-weight: bold;
+    letter-spacing: 0.02em;
+}
+
 .print-day-cast-summary {
     font-size: 8pt;
     color: #333;
@@ -305,6 +310,15 @@
     white-space: nowrap;
     font-size: 8.5pt;
     color: #555;
+}
+
+.print-col-sday {
+    width: 2.8rem;
+    white-space: nowrap;
+    text-align: center;
+    font-weight: bold;
+    font-size: 8.5pt;
+    color: #0d9488;
 }
 
 .print-col-cast {

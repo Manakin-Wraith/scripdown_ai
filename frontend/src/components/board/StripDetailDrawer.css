@@ -137,6 +137,164 @@
 .drawer-day-badge.timeline-fantasy { background: rgba(236, 72, 153, 0.15); color: #ec4899; }
 .drawer-day-badge.timeline-montage { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
 
+/* Story Day Controls in Drawer */
+.drawer-sd-controls {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    flex-wrap: wrap;
+}
+
+.editable-drawer-badge {
+    cursor: pointer;
+    border: none;
+    transition: filter 0.15s, box-shadow 0.15s;
+}
+
+.editable-drawer-badge:hover {
+    filter: brightness(1.2);
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.08);
+}
+
+.drawer-edit-hint {
+    opacity: 0;
+    transition: opacity 0.15s;
+    margin-left: 2px;
+}
+
+.editable-drawer-badge:hover .drawer-edit-hint {
+    opacity: 0.6;
+}
+
+.drawer-day-badge.unassigned {
+    background: rgba(148, 163, 184, 0.08);
+    border: 1px dashed rgba(148, 163, 184, 0.3);
+    color: #94a3b8;
+}
+
+.drawer-sd-edit {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: var(--gray-750, rgba(30, 41, 59, 0.6));
+    border: 1px solid var(--border-color, #334155);
+    border-radius: 8px;
+    padding: 0.3rem 0.45rem;
+}
+
+.drawer-sd-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #94a3b8;
+}
+
+.drawer-sd-input {
+    width: 60px;
+    padding: 0.3rem 0.35rem;
+    border: 1px solid var(--border-color, #334155);
+    border-radius: 6px;
+    background: var(--gray-700, #334155);
+    color: var(--text-primary, #f1f5f9);
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-align: center;
+    appearance: textfield;
+    -moz-appearance: textfield;
+}
+
+.drawer-sd-input::-webkit-inner-spin-button,
+.drawer-sd-input::-webkit-outer-spin-button {
+    appearance: none;
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.drawer-sd-input:focus {
+    outline: none;
+    border-color: var(--primary-400, #818cf8);
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+}
+
+.drawer-sd-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    padding: 0;
+    transition: filter 0.15s;
+}
+
+.drawer-sd-btn.confirm {
+    background: rgba(34, 197, 94, 0.2);
+    color: #4ade80;
+}
+
+.drawer-sd-btn.cancel {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+}
+
+.drawer-sd-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.drawer-sd-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 4px;
+    background: rgba(148, 163, 184, 0.06);
+    color: #94a3b8;
+    cursor: pointer;
+    transition: all 0.15s;
+    padding: 0;
+}
+
+.drawer-sd-action:hover {
+    background: rgba(148, 163, 184, 0.12);
+    color: var(--text-primary, #f1f5f9);
+}
+
+.drawer-sd-action.active {
+    background: rgba(245, 158, 11, 0.15);
+    border-color: rgba(245, 158, 11, 0.4);
+    color: #fbbf24;
+}
+
+.drawer-sd-action.locked {
+    background: rgba(239, 68, 68, 0.12);
+    border-color: rgba(239, 68, 68, 0.35);
+    color: #f87171;
+}
+
+.drawer-sd-action:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.drawer-sd-timeline {
+    padding: 0.1rem 0.25rem;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 4px;
+    background: rgba(148, 163, 184, 0.06);
+    color: #94a3b8;
+    font-size: 0.6rem;
+    cursor: pointer;
+    outline: none;
+}
+
+.drawer-sd-timeline:focus {
+    border-color: var(--primary-400, #818cf8);
+}
+
 .drawer-pages {
     font-size: 0.75rem;
     color: var(--primary-400, #818cf8);

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Loader, ArrowLeft } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 import { useScript } from '../../context/ScriptContext';
+import { useStoryDayListener } from '../../context/StoryDayContext';
 import { getScenes, getScriptMetadata, getScriptItems, reorderScenes } from '../../services/apiService';
 import { boardReducer, initialBoardState } from './boardReducer';
 import { buildBoardViewModel, getUniqueStoryDays, getUniqueCharacters } from './boardModel';
@@ -104,6 +105,34 @@ const ZoomableStripboard = () => {
         fetchData();
     }, [scriptId]);
 
+    // Refresh board data (reusable for story day sync)
+    const refreshBoard = useCallback(async () => {
+        try {
+            const [sceneData, itemsData] = await Promise.all([
+                getScenes(scriptId),
+                getScriptItems(scriptId).catch(() => ({ items: [] })),
+            ]);
+            const itemMap = {};
+            (itemsData.items || []).forEach(item => {
+                if (!item.scene_id || item.status === 'removed') return;
+                if (!itemMap[item.scene_id]) itemMap[item.scene_id] = {};
+                if (!itemMap[item.scene_id][item.item_type]) itemMap[item.scene_id][item.item_type] = [];
+                itemMap[item.scene_id][item.item_type].push(item.item_name);
+            });
+            dispatch({
+                type: 'SET_SCENES',
+                payload: { scenes: sceneData.scenes || [], userItemsByScene: itemMap },
+            });
+        } catch (err) {
+            console.error('Error refreshing board:', err);
+        }
+    }, [scriptId]);
+
+    // Listen for story day changes from other views
+    useStoryDayListener((changedScriptId) => {
+        if (changedScriptId === scriptId) refreshBoard();
+    });
+
     // Build view model (memoized)
     const viewModel = useMemo(
         () => buildBoardViewModel(state.scenes, state.filters, state.groupBy),
@@ -180,6 +209,7 @@ const ZoomableStripboard = () => {
                     scenes={state.scenes}
                     userItemsByScene={state.userItemsByScene}
                     onClose={() => dispatch({ type: 'CLOSE_DRAWER' })}
+                    scriptId={scriptId}
                 />
             )}
 

@@ -1,9 +1,13 @@
-import React, { useEffect } from 'react';
-import { X, Users, Package, Shirt, Car, Sparkles, Volume2, Cloud, MapPin, CalendarDays } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { X, Users, Package, Shirt, Car, Sparkles, Volume2, Cloud, MapPin, CalendarDays, Sun, Pencil, Check } from 'lucide-react';
 import { formatEighths } from '../../utils/sceneUtils';
+import { toggleNewDay, setTimelineCode, setStoryDay } from '../../services/apiService';
+import { useStoryDayNotify } from '../../context/StoryDayContext';
 import './StripDetailDrawer.css';
 
-const StripDetailDrawer = ({ stripId, scenes, userItemsByScene, onClose }) => {
+const TIMELINE_CODE_OPTIONS = ['PRESENT', 'FLASHBACK', 'DREAM', 'FANTASY', 'MONTAGE', 'TITLE_CARD'];
+
+const StripDetailDrawer = ({ stripId, scenes, userItemsByScene, onClose, scriptId, onStoryDayChanged }) => {
     const scene = scenes.find(s => (s.id || s.scene_id) === stripId);
     const userItems = userItemsByScene?.[stripId] || {};
 
@@ -15,6 +19,23 @@ const StripDetailDrawer = ({ stripId, scenes, userItemsByScene, onClose }) => {
         window.addEventListener('keydown', handleKey);
         return () => window.removeEventListener('keydown', handleKey);
     }, [onClose]);
+
+    const notifyStoryDayChange = useStoryDayNotify();
+    const [sdEditing, setSdEditing] = useState(false);
+    const [sdDraft, setSdDraft] = useState('');
+    const [sdSaving, setSdSaving] = useState(false);
+
+    const sceneId = scene?.id || scene?.scene_id;
+
+    const handleStoryDayAction = async (action) => {
+        if (!scriptId || !sceneId) return;
+        setSdSaving(true);
+        try {
+            await action();
+            notifyStoryDayChange(scriptId);
+        } catch (e) { console.error('Story day action error:', e); }
+        finally { setSdSaving(false); }
+    };
 
     if (!scene) return null;
 
@@ -58,12 +79,80 @@ const StripDetailDrawer = ({ stripId, scenes, userItemsByScene, onClose }) => {
                     </div>
 
                     <div className="drawer-meta-row">
-                        {scene.story_day && (
-                            <span className={`drawer-day-badge timeline-${(scene.timeline_code || 'PRESENT').toLowerCase()}`}>
-                                <CalendarDays size={12} />
-                                {scene.story_day_label || `Day ${scene.story_day}`}
-                            </span>
-                        )}
+                        {/* Story Day Editing Controls */}
+                        <div className="drawer-sd-controls">
+                            {scene.story_day && !sdEditing && (
+                                <button
+                                    className={`drawer-day-badge timeline-${(scene.timeline_code || 'PRESENT').toLowerCase()} editable-drawer-badge`}
+                                    onClick={() => { setSdDraft(scene.story_day.toString()); setSdEditing(true); }}
+                                    title="Click to edit story day"
+                                >
+                                    <CalendarDays size={12} />
+                                    {scene.story_day_label || `Day ${scene.story_day}`}
+                                    <Pencil size={9} className="drawer-edit-hint" />
+                                </button>
+                            )}
+                            {!scene.story_day && !sdEditing && (
+                                <button
+                                    className="drawer-day-badge unassigned editable-drawer-badge"
+                                    onClick={() => { setSdDraft('1'); setSdEditing(true); }}
+                                    title="Assign story day"
+                                >
+                                    <CalendarDays size={12} />
+                                    No Day
+                                    <Pencil size={9} className="drawer-edit-hint" />
+                                </button>
+                            )}
+                            {sdEditing && (
+                                <div className="drawer-sd-edit">
+                                    <span className="drawer-sd-label">Day</span>
+                                    <input
+                                        className="drawer-sd-input"
+                                        type="number"
+                                        min="1"
+                                        value={sdDraft}
+                                        onChange={e => setSdDraft(e.target.value)}
+                                        onKeyDown={e => {
+                                            if (e.key === 'Enter') {
+                                                const val = parseInt(sdDraft, 10);
+                                                if (val >= 1) handleStoryDayAction(() => setStoryDay(scriptId, sceneId, val)).then(() => setSdEditing(false));
+                                            }
+                                            if (e.key === 'Escape') setSdEditing(false);
+                                        }}
+                                        disabled={sdSaving}
+                                        autoFocus
+                                    />
+                                    <button className="drawer-sd-btn confirm" disabled={sdSaving} onClick={() => {
+                                        const val = parseInt(sdDraft, 10);
+                                        if (val >= 1) handleStoryDayAction(() => setStoryDay(scriptId, sceneId, val)).then(() => setSdEditing(false));
+                                    }}><Check size={14} /></button>
+                                    <button className="drawer-sd-btn cancel" disabled={sdSaving} onClick={() => setSdEditing(false)}><X size={14} /></button>
+                                </div>
+                            )}
+                            {scene.story_day && !sdEditing && scriptId && (
+                                <>
+                                    <button
+                                        className={`drawer-sd-action ${scene.is_new_story_day ? 'active' : ''}`}
+                                        onClick={() => handleStoryDayAction(() => toggleNewDay(scriptId, sceneId))}
+                                        disabled={sdSaving}
+                                        title={scene.is_new_story_day ? 'Starts new day (toggle)' : 'Mark as new day'}
+                                    >
+                                        <Sun size={11} />
+                                    </button>
+                                    <select
+                                        className="drawer-sd-timeline"
+                                        value={scene.timeline_code || 'PRESENT'}
+                                        onChange={(e) => handleStoryDayAction(() => setTimelineCode(scriptId, sceneId, e.target.value))}
+                                        disabled={sdSaving}
+                                        title="Timeline code"
+                                    >
+                                        {TIMELINE_CODE_OPTIONS.map(opt => (
+                                            <option key={opt} value={opt}>{opt.charAt(0) + opt.slice(1).toLowerCase().replace('_', ' ')}</option>
+                                        ))}
+                                    </select>
+                                </>
+                            )}
+                        </div>
                         {scene.page_length_eighths > 0 && (
                             <span className="drawer-pages">{formatEighths(scene.page_length_eighths)} pages</span>
                         )}

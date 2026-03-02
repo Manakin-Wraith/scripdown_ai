@@ -23,15 +23,16 @@ import {
     Mic2,
     Video,
     ChevronRight,
-    ShieldCheck,
-    ShieldAlert,
     CalendarDays,
     Pencil,
     Check,
-    X
+    X,
+    Sun,
+    RefreshCw
 } from 'lucide-react';
 import BreakdownDrawer from '../breakdown/BreakdownDrawer';
-import { getScriptNotes, getSceneItems, updateSceneHeader } from '../../services/apiService';
+import { getScriptNotes, getSceneItems, updateSceneHeader, toggleNewDay, setTimelineCode, setStoryDay } from '../../services/apiService';
+import { useStoryDayNotify } from '../../context/StoryDayContext';
 import { getSceneEighthsDisplay } from '../../utils/sceneUtils';
 import './SceneDetail.css';
 
@@ -71,6 +72,8 @@ const CATEGORY_FIELD_MAP = {
 const INT_EXT_OPTIONS = ['INT', 'EXT', 'INT/EXT', 'I/E'];
 const TIME_OF_DAY_OPTIONS = ['DAY', 'NIGHT', 'DAWN', 'DUSK', 'CONTINUOUS', 'LATER', 'MOMENTS LATER'];
 
+const TIMELINE_CODE_OPTIONS = ['PRESENT', 'FLASHBACK', 'DREAM', 'FANTASY', 'MONTAGE', 'TITLE_CARD'];
+
 const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapping = null, onRefreshScene = null }) => {
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [activeCategory, setActiveCategory] = useState(null);
@@ -89,6 +92,12 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
     const [saveError, setSaveError] = useState(null);
     const sceneNumberInputRef = useRef(null);
     const settingInputRef = useRef(null);
+
+    // Story day editing state
+    const [storyDayEditing, setStoryDayEditing] = useState(false);
+    const [storyDayDraft, setStoryDayDraft] = useState('');
+    const [storyDaySaving, setStoryDaySaving] = useState(false);
+    const notifyStoryDayChange = useStoryDayNotify();
 
     // Fetch notes, items (for badges + card tags)
     const refreshData = async () => {
@@ -401,18 +410,130 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
                             {scene.shot_type}
                         </span>
                     )}
-                    {scene.parse_method && (
-                        <span className={`parse-method-badge ${scene.parse_method === 'grammar' ? 'grammar' : 'regex'}`} title={`Parsed via ${scene.parse_method}`}>
-                            {scene.parse_method === 'grammar' ? <ShieldCheck size={12} /> : <ShieldAlert size={12} />}
-                            {scene.parse_method === 'grammar' ? 'ScreenPy' : 'Regex'}
-                        </span>
-                    )}
-                    {scene.story_day && (
-                        <span className={`story-day-badge timeline-${(scene.timeline_code || 'PRESENT').toLowerCase()}`} title={`Story Day ${scene.story_day}${scene.timeline_code && scene.timeline_code !== 'PRESENT' ? ` (${scene.timeline_code})` : ''}`}>
-                            <CalendarDays size={12} />
-                            {scene.story_day_label || `Day ${scene.story_day}`}
-                        </span>
-                    )}
+                    {/* Story Day Editing Controls */}
+                    <div className="story-day-controls">
+                        {scene.story_day && !storyDayEditing && (
+                            <button
+                                className={`story-day-badge timeline-${(scene.timeline_code || 'PRESENT').toLowerCase()} editable-badge`}
+                                onClick={() => {
+                                    setStoryDayDraft(scene.story_day.toString());
+                                    setStoryDayEditing(true);
+                                }}
+                                title="Click to edit story day"
+                            >
+                                <CalendarDays size={12} />
+                                {scene.story_day_label || `Day ${scene.story_day}`}
+                                <Pencil size={10} className="edit-hint-icon" />
+                            </button>
+                        )}
+                        {!scene.story_day && !storyDayEditing && (
+                            <button
+                                className="story-day-badge unassigned editable-badge"
+                                onClick={() => {
+                                    setStoryDayDraft('1');
+                                    setStoryDayEditing(true);
+                                }}
+                                title="Assign story day"
+                            >
+                                <CalendarDays size={12} />
+                                No Day
+                                <Pencil size={10} className="edit-hint-icon" />
+                            </button>
+                        )}
+                        {storyDayEditing && (
+                            <div className="story-day-edit-inline">
+                                <span className="sd-edit-label">Day</span>
+                                <input
+                                    className="sd-edit-input"
+                                    type="number"
+                                    min="1"
+                                    value={storyDayDraft}
+                                    onChange={e => setStoryDayDraft(e.target.value)}
+                                    onKeyDown={e => {
+                                        if (e.key === 'Enter') {
+                                            const val = parseInt(storyDayDraft, 10);
+                                            if (val >= 1) {
+                                                setStoryDaySaving(true);
+                                                setStoryDay(scriptId, scene.id || scene.scene_id, val)
+                                                    .then(() => {
+                                                        notifyStoryDayChange(scriptId);
+                                                    })
+                                                    .catch(err => console.error('Error setting story day:', err))
+                                                    .finally(() => { setStoryDaySaving(false); setStoryDayEditing(false); });
+                                            }
+                                        }
+                                        if (e.key === 'Escape') setStoryDayEditing(false);
+                                    }}
+                                    disabled={storyDaySaving}
+                                    autoFocus
+                                />
+                                <button
+                                    className="edit-action-btn confirm"
+                                    disabled={storyDaySaving}
+                                    onClick={() => {
+                                        const val = parseInt(storyDayDraft, 10);
+                                        if (val >= 1) {
+                                            setStoryDaySaving(true);
+                                            setStoryDay(scriptId, scene.id || scene.scene_id, val)
+                                                .then(() => {
+                                                    notifyStoryDayChange(scriptId);
+                                                })
+                                                .catch(err => console.error('Error setting story day:', err))
+                                                .finally(() => { setStoryDaySaving(false); setStoryDayEditing(false); });
+                                        }
+                                    }}
+                                    title="Save"
+                                >
+                                    <Check size={14} />
+                                </button>
+                                <button
+                                    className="edit-action-btn cancel"
+                                    onClick={() => setStoryDayEditing(false)}
+                                    disabled={storyDaySaving}
+                                    title="Cancel"
+                                >
+                                    <X size={14} />
+                                </button>
+                            </div>
+                        )}
+                        {scene.story_day && !storyDayEditing && (
+                            <>
+                                <button
+                                    className={`sd-action-btn ${scene.is_new_story_day ? 'active' : ''}`}
+                                    onClick={async () => {
+                                        setStoryDaySaving(true);
+                                        try {
+                                            await toggleNewDay(scriptId, scene.id || scene.scene_id);
+                                            notifyStoryDayChange(scriptId);
+                                        } catch (e) { console.error('Error toggling new day:', e); }
+                                        finally { setStoryDaySaving(false); }
+                                    }}
+                                    disabled={storyDaySaving}
+                                    title={scene.is_new_story_day ? 'Starts new day (click to toggle)' : 'Mark as new day'}
+                                >
+                                    <Sun size={12} />
+                                </button>
+                                <select
+                                    className="sd-timeline-select-inline"
+                                    value={scene.timeline_code || 'PRESENT'}
+                                    onChange={async (e) => {
+                                        setStoryDaySaving(true);
+                                        try {
+                                            await setTimelineCode(scriptId, scene.id || scene.scene_id, e.target.value);
+                                            notifyStoryDayChange(scriptId);
+                                        } catch (err) { console.error('Error setting timeline code:', err); }
+                                        finally { setStoryDaySaving(false); }
+                                    }}
+                                    disabled={storyDaySaving}
+                                    title="Timeline code"
+                                >
+                                    {TIMELINE_CODE_OPTIONS.map(opt => (
+                                        <option key={opt} value={opt}>{opt.charAt(0) + opt.slice(1).toLowerCase().replace('_', ' ')}</option>
+                                    ))}
+                                </select>
+                            </>
+                        )}
+                    </div>
                 </div>
                 {/* Editable Scene Header (INT/EXT + Setting) */}
                 {editingHeader ? (

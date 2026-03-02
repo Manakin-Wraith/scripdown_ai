@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
     List, Sun, Moon, Home, Building2, Users, MapPin,
@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 import { useScript } from '../../context/ScriptContext';
+import { useStoryDayListener } from '../../context/StoryDayContext';
 import { getScenes, getScriptMetadata, getScriptItems } from '../../services/apiService';
 import { getSceneEighthsDisplay, getSceneEighths, formatEighths } from '../../utils/sceneUtils';
 import './Stripboard.css';
@@ -112,6 +113,32 @@ const Stripboard = () => {
         
         fetchData();
     }, [scriptId]);
+
+    // Reusable refresh for story day sync
+    const refreshStripboard = useCallback(async () => {
+        try {
+            const [sceneData, itemsData] = await Promise.all([
+                getScenes(scriptId),
+                getScriptItems(scriptId).catch(() => ({ items: [] }))
+            ]);
+            setScenes(sceneData.scenes || []);
+            const itemMap = {};
+            (itemsData.items || []).forEach(item => {
+                if (!item.scene_id || item.status === 'removed') return;
+                if (!itemMap[item.scene_id]) itemMap[item.scene_id] = {};
+                if (!itemMap[item.scene_id][item.item_type]) itemMap[item.scene_id][item.item_type] = [];
+                itemMap[item.scene_id][item.item_type].push(item.item_name);
+            });
+            setUserItemsByScene(itemMap);
+        } catch (err) {
+            console.error('Error refreshing stripboard:', err);
+        }
+    }, [scriptId]);
+
+    // Listen for story day changes from other views
+    useStoryDayListener((changedScriptId) => {
+        if (changedScriptId === scriptId) refreshStripboard();
+    });
 
     // Compute unique story days for filter dropdown
     const uniqueStoryDays = useMemo(() => {

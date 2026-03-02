@@ -5,6 +5,7 @@ import { AnalysisProvider } from './context/AnalysisContext';
 import { ToastProvider } from './context/ToastContext';
 import { ConfirmDialogProvider } from './context/ConfirmDialogContext';
 import { ScriptProvider } from './context/ScriptContext';
+import { StoryDayProvider } from './context/StoryDayContext';
 import MainLayout from './components/layout/MainLayout';
 import ScriptUpload from './components/script/ScriptUpload';
 import SceneViewer from './components/scenes/SceneViewer';
@@ -49,6 +50,7 @@ function App() {
         <ConfirmDialogProvider>
           <AnalysisProvider>
             <ScriptProvider>
+              <StoryDayProvider>
               <Router>
                 <Routes>
                   {/* Protected routes (require authentication) */}
@@ -144,6 +146,7 @@ function App() {
                   {/* <Route path="payment-success" element={<PaymentSuccessPage />} /> */}
                 </Routes>
               </Router>
+              </StoryDayProvider>
             </ScriptProvider>
           </AnalysisProvider>
         </ConfirmDialogProvider>

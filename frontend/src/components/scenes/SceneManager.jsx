@@ -37,6 +37,7 @@ import {
     bulkUpdateStoryDays
 } from '../../services/apiService';
 import { useToast } from '../../context/ToastContext';
+import { useStoryDayNotify } from '../../context/StoryDayContext';
 import SceneSplitModal from './SceneSplitModal';
 import SceneMergeModal from './SceneMergeModal';
 import AddSceneModal from './AddSceneModal';
@@ -57,6 +58,7 @@ const SceneManager = () => {
     const { scriptId } = useParams();
     const navigate = useNavigate();
     const toast = useToast();
+    const notifyStoryDayChange = useStoryDayNotify();
     
     // State
     const [script, setScript] = useState(null);
@@ -371,6 +373,7 @@ const SceneManager = () => {
         try {
             await toggleNewDay(scriptId, scene.id);
             await loadScenes();
+            notifyStoryDayChange(scriptId);
             toast.success('Updated', 'Story day toggled');
         } catch (err) {
             console.error('Error toggling new day:', err);
@@ -386,6 +389,7 @@ const SceneManager = () => {
         try {
             await lockStoryDay(scriptId, scene.id);
             await loadScenes();
+            notifyStoryDayChange(scriptId);
             toast.success('Updated', scene.story_day_is_locked ? 'Story day unlocked' : 'Story day locked');
         } catch (err) {
             console.error('Error locking story day:', err);
@@ -401,6 +405,7 @@ const SceneManager = () => {
         try {
             await setTimelineCode(scriptId, scene.id, code);
             await loadScenes();
+            notifyStoryDayChange(scriptId);
             toast.success('Updated', `Timeline set to ${code}`);
         } catch (err) {
             console.error('Error setting timeline code:', err);
@@ -424,6 +429,7 @@ const SceneManager = () => {
             }));
             await bulkUpdateStoryDays(scriptId, updates);
             await loadScenes();
+            notifyStoryDayChange(scriptId);
             setBulkDayInput('');
             clearSelection();
             toast.success('Bulk Updated', `Assigned Day ${dayNum} to ${updates.length} scenes`);
@@ -440,6 +446,7 @@ const SceneManager = () => {
             setSaving(true);
             await calculateStoryDays(scriptId);
             await loadScenes();
+            notifyStoryDayChange(scriptId);
             toast.success('Recalculated', 'Story days recalculated');
         } catch (err) {
             console.error('Error recalculating story days:', err);

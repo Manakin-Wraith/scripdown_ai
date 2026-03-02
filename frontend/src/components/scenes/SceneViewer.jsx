@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getScenes, getScriptMetadata, getScriptItems } from '../../services/apiService';
 import SceneList from './SceneList';
@@ -9,6 +9,7 @@ import PdfViewerPanel from '../pdf/PdfViewerPanel';
 import { AlertCircle, ChevronDown, ChevronUp, Zap, FileText, List, Loader, XCircle, BookOpen, CalendarDays } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 import { useScript } from '../../context/ScriptContext';
+import { useStoryDayListener } from '../../context/StoryDayContext';
 import { analyzeBulkScenes, analyzeScene, getPageMapping, reorderScenes, omitScene } from '../../services/apiService';
 import './SceneViewer.css';
 
@@ -33,6 +34,8 @@ const SceneViewer = () => {
     const [currentPdfPage, setCurrentPdfPage] = useState(1);
     const [recentlyCompletedScenes, setRecentlyCompletedScenes] = useState(new Set());
     const [storyDayFilter, setStoryDayFilter] = useState(null);
+    const selectedSceneRef = useRef(null);
+    selectedSceneRef.current = selectedScene;
 
     // Fetch scenes data
     useEffect(() => {
@@ -97,6 +100,38 @@ const SceneViewer = () => {
             fetchData();
         }
     }, [scriptId]);
+
+    // Reusable scene refresh (called after story day edits and other changes)
+    const refreshScenes = useCallback(async () => {
+        try {
+            const [sceneData, itemsData] = await Promise.all([
+                getScenes(scriptId),
+                getScriptItems(scriptId).catch(() => ({ items: [] }))
+            ]);
+            const fetched = sceneData.scenes || [];
+            setScenes(fetched);
+            const itemMap = {};
+            (itemsData.items || []).forEach(item => {
+                if (!item.scene_id || item.status === 'removed') return;
+                if (!itemMap[item.scene_id]) itemMap[item.scene_id] = {};
+                if (!itemMap[item.scene_id][item.item_type]) itemMap[item.scene_id][item.item_type] = [];
+                itemMap[item.scene_id][item.item_type].push(item.item_name);
+            });
+            setUserItemsByScene(itemMap);
+            const current = selectedSceneRef.current;
+            if (current) {
+                const refreshed = fetched.find(s => s.id === current.id || s.scene_id === current.scene_id);
+                if (refreshed) setSelectedScene(refreshed);
+            }
+        } catch (err) {
+            console.error('Error refreshing scenes:', err);
+        }
+    }, [scriptId]);
+
+    // Listen for story day changes from other views
+    useStoryDayListener((changedScriptId) => {
+        if (changedScriptId === scriptId) refreshScenes();
+    });
 
     // Compute unique story days for filter dropdown
     const uniqueStoryDays = useMemo(() => {
@@ -681,31 +716,7 @@ const SceneViewer = () => {
                         onAnalyze={handleAnalyzeScene}
                         isAnalyzing={selectedScene && analyzingScenes.has(selectedScene.scene_id)}
                         pageMapping={pageMapping}
-                        onRefreshScene={async () => {
-                            try {
-                                const [sceneData, itemsData] = await Promise.all([
-                                    getScenes(scriptId),
-                                    getScriptItems(scriptId).catch(() => ({ items: [] }))
-                                ]);
-                                const fetched = sceneData.scenes || [];
-                                setScenes(fetched);
-                                // Re-index user items
-                                const itemMap = {};
-                                (itemsData.items || []).forEach(item => {
-                                    if (!item.scene_id || item.status === 'removed') return;
-                                    if (!itemMap[item.scene_id]) itemMap[item.scene_id] = {};
-                                    if (!itemMap[item.scene_id][item.item_type]) itemMap[item.scene_id][item.item_type] = [];
-                                    itemMap[item.scene_id][item.item_type].push(item.item_name);
-                                });
-                                setUserItemsByScene(itemMap);
-                                if (selectedScene) {
-                                    const refreshed = fetched.find(s => s.id === selectedScene.id || s.scene_id === selectedScene.scene_id);
-                                    if (refreshed) setSelectedScene(refreshed);
-                                }
-                            } catch (err) {
-                                console.error('Error refreshing scenes:', err);
-                            }
-                        }}
+                        onRefreshScene={refreshScenes}
                     />
                 </div>
 

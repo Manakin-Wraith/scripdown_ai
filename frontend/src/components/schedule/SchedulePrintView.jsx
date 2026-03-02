@@ -32,6 +32,7 @@ const OneLinerRow = ({ scene, index }) => {
     const intExt = scene.int_ext || '';
     const intExtClass = intExt === 'INT' ? 'print-int' : intExt === 'EXT' ? 'print-ext' : '';
     const castNames = getCharacterNames(scene.characters);
+    const storyDayDisplay = scene.story_day ? `D${scene.story_day}` : '—';
 
     return (
         <tr className={`print-scene-row ${index % 2 === 0 ? 'print-row-even' : ''} ${scene.is_omitted ? 'print-omitted' : ''}`}>
@@ -39,6 +40,7 @@ const OneLinerRow = ({ scene, index }) => {
             <td className={`print-col-ie ${intExtClass}`}>{intExt}</td>
             <td className="print-col-setting">{scene.setting || '—'}</td>
             <td className="print-col-tod">{scene.time_of_day || '—'}</td>
+            <td className="print-col-sday">{storyDayDisplay}</td>
             <td className="print-col-cast">{castNames || '—'}</td>
             <td className="print-col-pages">{eighths > 0 ? formatEighths(eighths) : '—'}</td>
         </tr>
@@ -51,14 +53,16 @@ const SchedulePrintView = ({ days, scheduleName, metadata }) => {
     const totals = useMemo(() => {
         let totalEighths = 0;
         let totalScenes = 0;
+        const allStoryDays = new Set();
         days.forEach(day => {
             (day.scenes || []).forEach(ds => {
                 const scene = ds.scenes || ds.scene || {};
                 totalEighths += getSceneEighths(scene);
                 totalScenes++;
+                if (scene.story_day) allStoryDays.add(scene.story_day);
             });
         });
-        return { totalEighths, totalScenes };
+        return { totalEighths, totalScenes, totalStoryDays: allStoryDays.size };
     }, [days]);
 
     const today = new Date().toLocaleDateString(undefined, {
@@ -98,12 +102,15 @@ const SchedulePrintView = ({ days, scheduleName, metadata }) => {
 
                 const uniqueLocations = [...new Set(scenes.map(s => s.setting).filter(Boolean))];
                 const uniqueChars = new Set();
+                const uniqueStoryDays = new Set();
                 scenes.forEach(s => {
                     (s.characters || []).forEach(c => {
                         const name = typeof c === 'string' ? c : c?.name;
                         if (name) uniqueChars.add(name);
                     });
+                    if (s.story_day) uniqueStoryDays.add(s.story_day);
                 });
+                const sortedStoryDays = [...uniqueStoryDays].sort((a, b) => a - b);
 
                 return (
                     <div key={day.id} className="print-day-section">
@@ -120,6 +127,9 @@ const SchedulePrintView = ({ days, scheduleName, metadata }) => {
                                 <span className="print-day-stat">{formatEighths(dayEighths)} pages</span>
                                 <span className="print-day-stat">{uniqueChars.size} cast</span>
                                 <span className="print-day-stat">{uniqueLocations.length} location{uniqueLocations.length !== 1 ? 's' : ''}</span>
+                                {sortedStoryDays.length > 0 && (
+                                    <span className="print-day-stat print-day-stat-sday">S.Day {sortedStoryDays.map(d => d).join(', ')}</span>
+                                )}
                             </div>
                         </div>
 
@@ -139,6 +149,7 @@ const SchedulePrintView = ({ days, scheduleName, metadata }) => {
                                     <th className="print-col-ie">I/E</th>
                                     <th className="print-col-setting">Location</th>
                                     <th className="print-col-tod">TOD</th>
+                                    <th className="print-col-sday">S.Day</th>
                                     <th className="print-col-cast">Cast</th>
                                     <th className="print-col-pages">Pages</th>
                                 </tr>
@@ -150,7 +161,7 @@ const SchedulePrintView = ({ days, scheduleName, metadata }) => {
                             </tbody>
                             <tfoot>
                                 <tr className="print-day-total-row">
-                                    <td colSpan={5} className="print-day-total-label">Day {day.day_number} Total</td>
+                                    <td colSpan={6} className="print-day-total-label">Day {day.day_number} Total</td>
                                     <td className="print-col-pages print-day-total-pages">{formatEighths(dayEighths)}</td>
                                 </tr>
                             </tfoot>
@@ -161,7 +172,7 @@ const SchedulePrintView = ({ days, scheduleName, metadata }) => {
 
             {/* Grand total footer */}
             <div className="print-grand-total">
-                <span>Total: {days.length} Days · {totals.totalScenes} Scenes · {formatEighths(totals.totalEighths)} Pages</span>
+                <span>Total: {days.length} Days · {totals.totalScenes} Scenes · {formatEighths(totals.totalEighths)} Pages · {totals.totalStoryDays} Story Day{totals.totalStoryDays !== 1 ? 's' : ''}</span>
             </div>
         </div>
     );
