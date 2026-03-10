@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { Coins, TrendingUp, Clock } from 'lucide-react';
+import { Coins, TrendingUp } from 'lucide-react';
 import { useCredits } from '../../hooks/useCredits';
 import './CreditBalance.css';
 
@@ -37,17 +37,11 @@ const CreditBalance = ({ onClick, compact = false }) => {
             <div className="credit-balance-content">
                 <div className="credit-balance-amount">
                     {credits}
-                    <span className="credit-label">credit{credits !== 1 ? 's' : ''}</span>
-                    {isLegacyBeta && (
-                        <span className="credit-balance-badge">
-                            <Clock size={10} />
-                            <span>Beta</span>
-                        </span>
-                    )}
+                    <span className="credit-label">breakdown{credits !== 1 ? 's' : ''} remaining</span>
                 </div>
                 {!compact && isEmpty && (
                     <div className="credit-balance-cta">
-                        Click to buy credits
+                        Click to buy breakdowns
                     </div>
                 )}
             </div>

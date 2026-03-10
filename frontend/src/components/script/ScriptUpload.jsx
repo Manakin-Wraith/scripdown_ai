@@ -265,7 +265,7 @@ const ScriptUpload = () => {
                                     onClick={() => setShowCreditPurchaseModal(true)}
                                 >
                                     <Sparkles size={18} />
-                                    Buy Credits - From R49
+                                    Buy Breakdowns - From R500
                                 </button>
                             ) : (
                                 <button 

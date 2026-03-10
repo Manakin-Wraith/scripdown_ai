@@ -7,38 +7,42 @@ from datetime import datetime
 from typing import Dict, Any, Optional, Tuple, List
 from db.supabase_client import get_supabase_client
 
-# Credit package configurations
+# Credit package configurations — Breakdown Packs
 CREDIT_PACKAGES = {
     'single': {
         'credits': 1,
-        'price': 49.00,
-        'per_script': 49.00,
-        'name': 'Single Script',
-        'description': 'Upload 1 script'
+        'price': 500.00,
+        'per_breakdown': 500.00,
+        'name': '1 Breakdown',
+        'description': 'Break down 1 screenplay',
+        'validity': '6 months'
     },
     'pack_5': {
         'credits': 5,
-        'price': 220.00,
-        'per_script': 44.00,
-        'savings': '10%',
-        'name': '5 Script Pack',
-        'description': 'Upload 5 scripts - Save 10%'
+        'price': 2000.00,
+        'per_breakdown': 400.00,
+        'savings': '20%',
+        'name': '5 Breakdowns',
+        'description': 'Break down 5 screenplays — Save 20%',
+        'validity': '12 months'
     },
     'pack_10': {
         'credits': 10,
-        'price': 390.00,
-        'per_script': 39.00,
-        'savings': '20%',
-        'name': '10 Script Pack',
-        'description': 'Upload 10 scripts - Save 20%'
+        'price': 3500.00,
+        'per_breakdown': 350.00,
+        'savings': '30%',
+        'name': '10 Breakdowns',
+        'description': 'Break down 10 screenplays — Save 30%',
+        'validity': '12 months'
     },
     'pack_25': {
         'credits': 25,
-        'price': 860.00,
-        'per_script': 34.40,
-        'savings': '30%',
-        'name': '25 Script Pack',
-        'description': 'Upload 25 scripts - Save 30%'
+        'price': 7500.00,
+        'per_breakdown': 300.00,
+        'savings': '40%',
+        'name': '25 Breakdowns',
+        'description': 'Break down 25 screenplays — Save 40%',
+        'validity': '12 months'
     }
 }
 

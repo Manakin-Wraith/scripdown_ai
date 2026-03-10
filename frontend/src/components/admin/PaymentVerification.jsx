@@ -161,10 +161,10 @@ const PaymentVerification = () => {
 
   const getPackageName = (packageType) => {
     const packages = {
-      'single': '1 Script',
-      'pack_5': '5 Scripts',
-      'pack_10': '10 Scripts',
-      'pack_25': '25 Scripts',
+      'single': '1 Breakdown (R500)',
+      'pack_5': '5 Breakdowns (R2,000)',
+      'pack_10': '10 Breakdowns (R3,500)',
+      'pack_25': '25 Breakdowns (R7,500)',
       'beta_access': 'Beta Access (6 months)'
     };
     return packages[packageType] || packageType;
