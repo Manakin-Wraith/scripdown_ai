@@ -255,10 +255,10 @@ const LoginPage = () => {
                                     <Sparkles size={24} />
                                     <span>Beta Access</span>
                                 </div>
-                                <h3>Get 1 Year of Full Access</h3>
+                                <h3>Get Unlimited Access</h3>
                                 <div className="beta-price">
-                                    <span className="price-amount">R249</span>
-                                    <span className="price-period">one-time payment</span>
+                                    <span className="price-amount">$49</span>
+                                    <span className="price-period">/month</span>
                                 </div>
                                 <ul className="beta-features-list">
                                     <li>
@@ -293,8 +293,8 @@ const LoginPage = () => {
                                         const top = window.screenY + (window.outerHeight - height) / 2;
                                         
                                         window.open(
-                                            'https://pay.yoco.com/celebration-house-entertainment?amount=249.00&reference=BetaAccess',
-                                            'yoco-payment',
+                                            'https://wise.com/pay/r/8j9W0j5SUuPivxk',
+                                            'wise-payment',
                                             `width=${width},height=${height},left=${left},top=${top}`
                                         );
                                     }}

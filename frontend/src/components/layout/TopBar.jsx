@@ -15,7 +15,6 @@ import { useAnalysis } from '../../context/AnalysisContext';
 import { useAuth } from '../../context/AuthContext';
 import NotificationBell from '../notifications/NotificationBell';
 import FeedbackButton from '../feedback/FeedbackButton';
-import { CreditBalance, CreditPurchaseModal } from '../credits';
 import './Layout.css';
 
 const TopBar = () => {
@@ -23,7 +22,6 @@ const TopBar = () => {
   const { globalStatus, hasActiveAnalysis } = useAnalysis();
   const { user, profile, isAuthenticated, logout, loading: authLoading } = useAuth();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [showCreditPurchaseModal, setShowCreditPurchaseModal] = useState(false);
   const menuRef = useRef(null);
   
   // Check if user is superuser (from profile table)
@@ -85,15 +83,6 @@ const TopBar = () => {
             </NavLink>
           )}
           
-          {/* Credit Balance - only show when authenticated */}
-          {isAuthenticated && (
-            <div className="topbar-credits">
-              <CreditBalance 
-                compact={true}
-                onClick={() => setShowCreditPurchaseModal(true)}
-              />
-            </div>
-          )}
         </nav>
       </div>
 
@@ -173,10 +162,6 @@ const TopBar = () => {
         )}
       </div>
       
-      <CreditPurchaseModal
-        isOpen={showCreditPurchaseModal}
-        onClose={() => setShowCreditPurchaseModal(false)}
-      />
     </header>
   );
 };

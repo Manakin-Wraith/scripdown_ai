@@ -21,8 +21,16 @@ TRIAL_SCRIPT_LIMIT = 1
 # Extended trial for early access users
 EARLY_ACCESS_TRIAL_DAYS = 30
 
-# Beta configuration (6 months)
+# Beta configuration (6 months) — DEPRECATED, kept for legacy
 BETA_DURATION_DAYS = 180
+
+# Monthly subscription configuration
+MONTHLY_DURATION_DAYS = 30
+MONTHLY_PRICE = 49.00
+MONTHLY_CURRENCY = 'USD'
+
+# Payment provider
+WISE_PAYMENT_URL = 'https://wise.com/pay/r/8j9W0j5SUuPivxk'
 
 # Feature access mapping
 TRIAL_FEATURES = [
@@ -278,40 +286,65 @@ def can_upload_script(user_id: str) -> Tuple[bool, Optional[str]]:
     return False, f"Trial users can only upload {TRIAL_SCRIPT_LIMIT} script. Upgrade for unlimited scripts."
 
 
-def activate_beta_subscription(user_id: str, email: str) -> Dict[str, Any]:
+def activate_monthly_subscription(user_id: str, email: str, payment_reference: Optional[str] = None) -> Dict[str, Any]:
     """
-    Activate beta subscription for a user after payment.
-    Sets subscription_status to 'active' and expiry to 6 months from now.
+    Activate $49/month subscription for a user after Wise payment verification.
+    Sets subscription_status to 'active', plan to 'monthly', expiry to 30 days.
     """
     try:
         supabase = get_supabase_client()
         
-        expires_at = datetime.now() + timedelta(days=BETA_DURATION_DAYS)
+        period_start = datetime.now()
+        period_end = period_start + timedelta(days=MONTHLY_DURATION_DAYS)
         
         # Update profile
         result = supabase.table('profiles') \
             .update({
                 'subscription_status': 'active',
-                'subscription_expires_at': expires_at.isoformat()
+                'subscription_plan': 'monthly',
+                'subscription_expires_at': period_end.isoformat(),
+                'subscription_payment_provider': 'wise',
+                'subscription_amount': MONTHLY_PRICE,
+                'subscription_currency': MONTHLY_CURRENCY,
+                'updated_at': datetime.now().isoformat()
             }) \
             .eq('id', user_id) \
             .execute()
         
-        # Link payment to user if exists
-        supabase.table('beta_payments') \
-            .update({'user_id': user_id}) \
-            .eq('email', email.lower().strip()) \
-            .execute()
+        # Create subscription payment record
+        payment_data = {
+            'user_id': user_id,
+            'email': email.lower().strip(),
+            'plan': 'monthly',
+            'amount': MONTHLY_PRICE,
+            'currency': MONTHLY_CURRENCY,
+            'payment_provider': 'wise',
+            'payment_reference': payment_reference,
+            'status': 'completed',
+            'period_start': period_start.isoformat(),
+            'period_end': period_end.isoformat(),
+            'verified_at': datetime.now().isoformat()
+        }
+        supabase.table('subscription_payments').insert(payment_data).execute()
         
         return {
             'success': True,
             'status': 'active',
-            'expires_at': expires_at.isoformat()
+            'plan': 'monthly',
+            'expires_at': period_end.isoformat()
         }
         
     except Exception as e:
         print(f"Error activating subscription: {e}")
         return {'success': False, 'error': str(e)}
+
+
+def activate_beta_subscription(user_id: str, email: str) -> Dict[str, Any]:
+    """
+    DEPRECATED: Use activate_monthly_subscription() instead.
+    Kept for backward compatibility with existing beta users.
+    """
+    return activate_monthly_subscription(user_id, email)
 
 
 def get_users_expiring_soon(days: int = 7) -> list:
@@ -479,7 +512,7 @@ def require_active_subscription(f):
                 'error': 'Subscription required',
                 'subscription_status': sub_status['status'],
                 'message': sub_status.get('message', 'Please upgrade to access this feature.'),
-                'upgrade_url': 'https://pay.yoco.com/celebration-house-entertainment?amount=249.00&reference=BetaAccess'
+                'upgrade_url': WISE_PAYMENT_URL
             }), 403
         
         return f(*args, **kwargs)
@@ -507,7 +540,7 @@ def require_feature(feature: str):
                     'error': 'Feature not available',
                     'feature': feature,
                     'message': message,
-                    'upgrade_url': 'https://pay.yoco.com/celebration-house-entertainment?amount=249.00&reference=BetaAccess'
+                    'upgrade_url': WISE_PAYMENT_URL
                 }), 403
             
             return f(*args, **kwargs)

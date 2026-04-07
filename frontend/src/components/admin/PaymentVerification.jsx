@@ -275,13 +275,13 @@ const PaymentVerification = () => {
 
       <div className="verification-footer">
         <a
-          href="https://app.yoco.com/sales"
+          href="https://wise.com/balances"
           target="_blank"
           rel="noopener noreferrer"
-          className="yoco-link"
+          className="wise-link"
         >
           <ExternalLink size={16} />
-          Open Yoco Dashboard
+          Open Wise Dashboard
         </a>
         <button onClick={fetchPendingPayments} className="refresh-btn">
           Refresh

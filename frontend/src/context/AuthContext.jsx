@@ -132,6 +132,16 @@ export const AuthProvider = ({ children }) => {
                                     localStorage.removeItem('pending_profile_plan');
                                     localStorage.removeItem('pending_profile_source');
                                     
+                                    // Send welcome email AFTER verification & profile creation
+                                    fetch(`${API_BASE_URL}/api/auth/welcome-email`, {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ 
+                                            email: session.user.email, 
+                                            full_name: pendingName 
+                                        })
+                                    }).catch(err => console.error('Welcome email error:', err));
+                                    
                                     // Refresh user data to get the new profile
                                     fetchUserData(session.user.id);
                                 } else {
@@ -234,16 +244,10 @@ export const AuthProvider = ({ children }) => {
             localStorage.setItem('pending_profile_plan', plan || '');
             localStorage.setItem('pending_profile_source', source);
             
-            // Send welcome email with Yoco paylink (fire and forget)
-            try {
-                fetch(`${API_BASE_URL}/api/auth/welcome-email`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, full_name: fullName })
-                }).catch(err => console.error('Welcome email error:', err));
-            } catch (err) {
-                console.error('Failed to send welcome email:', err);
-            }
+            // Welcome email is now sent AFTER email verification (see SIGNED_IN handler)
+            // This ensures the user only gets one email at a time:
+            // 1. Supabase auth confirmation first
+            // 2. Welcome + payment email after they verify
         }
         
         setLoading(false);

@@ -205,7 +205,7 @@
   border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.yoco-link {
+.wise-link {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -218,7 +218,7 @@
   transition: all 0.2s;
 }
 
-.yoco-link:hover {
+.wise-link:hover {
   background: #f97316;
   transform: translateY(-1px);
 }
@@ -263,7 +263,7 @@
     gap: 1rem;
   }
 
-  .yoco-link,
+  .wise-link,
   .refresh-btn {
     width: 100%;
     justify-content: center;

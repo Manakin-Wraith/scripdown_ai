@@ -383,9 +383,8 @@ def get_user_details(user_id):
 def get_pending_payments():
     """
     Get all pending payments awaiting verification.
-    Merges two sources:
-      1. script_credit_purchases (status=pending) — in-app credit pack purchases
-      2. beta_payments (status=pending) — landing_hero Yoco paylink signups
+    Checks subscription_payments table for pending Wise payments.
+    Also checks legacy beta_payments and credit_purchases for backward compat.
     
     Returns:
         JSON with list of pending purchases
@@ -394,44 +393,54 @@ def get_pending_payments():
         from db.supabase_client import get_supabase_admin
         supabase = get_supabase_admin()
         
-        # 1. Pending in-app credit purchases
-        credit_result = supabase.table('script_credit_purchases')\
-            .select('id, user_id, email, package_type, credits_purchased, amount, created_at, payment_reference, yoco_payment_id')\
+        # 1. Pending subscription payments (new Wise-based system)
+        sub_result = supabase.table('subscription_payments')\
+            .select('id, user_id, email, plan, amount, currency, payment_provider, payment_reference, status, created_at, metadata, notes')\
             .eq('status', 'pending')\
             .order('created_at', desc=False)\
             .execute()
         
-        credit_payments = credit_result.data or []
-        
-        # 2. Pending beta_payments (landing_hero signups awaiting Yoco verification)
-        beta_result = supabase.table('beta_payments')\
-            .select('id, user_id, email, amount, currency, created_at, payment_reference, metadata')\
-            .eq('status', 'pending')\
-            .order('created_at', desc=False)\
-            .execute()
-        
-        # Normalise beta_payments rows to match the credit_purchases shape
-        beta_payments = []
-        for bp in (beta_result.data or []):
-            beta_payments.append({
-                'id': bp['id'],
-                'user_id': bp.get('user_id'),
-                'email': bp.get('email'),
-                'package_type': 'beta_access',
+        sub_payments = []
+        for sp in (sub_result.data or []):
+            sub_payments.append({
+                'id': sp['id'],
+                'user_id': sp.get('user_id'),
+                'email': sp.get('email'),
+                'package_type': 'monthly_subscription',
                 'credits_purchased': None,
-                'amount': float(bp.get('amount', 249)),
-                'created_at': bp.get('created_at'),
-                'payment_reference': bp.get('payment_reference'),
-                'yoco_payment_id': None,
-                'payment_type': 'beta_access',
-                'metadata': bp.get('metadata', {})
+                'amount': float(sp.get('amount', 49)),
+                'created_at': sp.get('created_at'),
+                'payment_reference': sp.get('payment_reference'),
+                'payment_type': 'monthly_subscription',
+                'metadata': sp.get('metadata', {})
             })
         
-        # Tag credit purchases with their type for the UI
-        for cp in credit_payments:
-            cp['payment_type'] = 'credit_purchase'
+        # 2. Legacy: Pending beta_payments (kept for backward compat)
+        beta_payments = []
+        try:
+            beta_result = supabase.table('beta_payments')\
+                .select('id, user_id, email, amount, currency, created_at, payment_reference, metadata')\
+                .eq('status', 'pending')\
+                .order('created_at', desc=False)\
+                .execute()
+            
+            for bp in (beta_result.data or []):
+                beta_payments.append({
+                    'id': bp['id'],
+                    'user_id': bp.get('user_id'),
+                    'email': bp.get('email'),
+                    'package_type': 'beta_access',
+                    'credits_purchased': None,
+                    'amount': float(bp.get('amount', 249)),
+                    'created_at': bp.get('created_at'),
+                    'payment_reference': bp.get('payment_reference'),
+                    'payment_type': 'beta_access',
+                    'metadata': bp.get('metadata', {})
+                })
+        except Exception:
+            pass  # Legacy table may not have pending records
         
-        all_pending = beta_payments + credit_payments
+        all_pending = sub_payments + beta_payments
         all_pending.sort(key=lambda x: x.get('created_at') or '')
         
         return jsonify({
@@ -454,14 +463,14 @@ def get_pending_payments():
 def approve_payment(purchase_id):
     """
     Approve a pending payment.
-    Handles two payment types:
-      - beta_access: marks beta_payments as completed, activates subscription
-      - credit_purchase: marks script_credit_purchases as completed, adds credits
+    Handles payment types:
+      - monthly_subscription: marks subscription_payments as completed, activates $49/mo subscription
+      - beta_access (legacy): marks beta_payments as completed, activates subscription
     
     Body:
-        admin_reference: Optional Yoco reference number
+        admin_reference: Optional Wise reference number
         notes: Optional verification notes
-        payment_type: 'beta_access' or 'credit_purchase' (optional, auto-detected)
+        payment_type: 'monthly_subscription' or 'beta_access' (optional, auto-detected)
     
     Returns:
         JSON with success status
@@ -469,6 +478,7 @@ def approve_payment(purchase_id):
     try:
         from db.supabase_client import get_supabase_admin
         from middleware.auth import get_user_id
+        from services.subscription_service import activate_monthly_subscription
         from datetime import datetime, timedelta
         
         data = request.get_json() or {}
@@ -479,16 +489,58 @@ def approve_payment(purchase_id):
         
         supabase = get_supabase_admin()
         
-        # Auto-detect payment type if not provided: check beta_payments first
+        # Auto-detect payment type: check subscription_payments first, then beta_payments
         if not payment_type:
-            beta_check = supabase.table('beta_payments') \
+            sub_check = supabase.table('subscription_payments') \
                 .select('id') \
                 .eq('id', purchase_id) \
                 .execute()
-            payment_type = 'beta_access' if beta_check.data else 'credit_purchase'
+            if sub_check.data:
+                payment_type = 'monthly_subscription'
+            else:
+                beta_check = supabase.table('beta_payments') \
+                    .select('id') \
+                    .eq('id', purchase_id) \
+                    .execute()
+                payment_type = 'beta_access' if beta_check.data else 'monthly_subscription'
         
-        if payment_type == 'beta_access':
-            # Fetch beta_payment record
+        if payment_type == 'monthly_subscription':
+            # Fetch subscription_payment record
+            sp_result = supabase.table('subscription_payments') \
+                .select('*') \
+                .eq('id', purchase_id) \
+                .single() \
+                .execute()
+            
+            if not sp_result.data:
+                return jsonify({'success': False, 'error': 'Subscription payment record not found'}), 404
+            
+            sp = sp_result.data
+            user_id = sp.get('user_id')
+            email = sp.get('email')
+            
+            # Activate monthly subscription via service
+            if user_id and email:
+                result = activate_monthly_subscription(user_id, email, admin_reference)
+                if not result.get('success'):
+                    return jsonify({'success': False, 'error': result.get('error', 'Failed to activate subscription')}), 400
+            
+            # Update the payment record with admin info
+            supabase.table('subscription_payments').update({
+                'status': 'completed',
+                'payment_reference': admin_reference or sp.get('payment_reference'),
+                'verified_at': datetime.now().isoformat(),
+                'verified_by': admin_user_id,
+                'notes': notes
+            }).eq('id', purchase_id).execute()
+            
+            return jsonify({
+                'success': True,
+                'message': 'Monthly subscription activated — $49/month for 30 days'
+            }), 200
+        
+        elif payment_type == 'beta_access':
+            # Legacy: beta_payment path
             bp_result = supabase.table('beta_payments') \
                 .select('*') \
                 .eq('id', purchase_id) \
@@ -500,6 +552,7 @@ def approve_payment(purchase_id):
             
             bp = bp_result.data
             user_id = bp.get('user_id')
+            email = bp.get('email')
             
             # Mark beta_payment as completed
             supabase.table('beta_payments').update({
@@ -509,40 +562,18 @@ def approve_payment(purchase_id):
                 'metadata': {**(bp.get('metadata') or {}), 'verified_by': admin_user_id, 'notes': notes}
             }).eq('id', purchase_id).execute()
             
-            # Activate subscription on the user's profile (6 months)
-            if user_id:
-                expires_at = datetime.now() + timedelta(days=180)
-                supabase.table('profiles').update({
-                    'subscription_status': 'active',
-                    'subscription_expires_at': expires_at.isoformat()
-                }).eq('id', user_id).execute()
+            # Activate subscription via new system
+            if user_id and email:
+                activate_monthly_subscription(user_id, email, admin_reference)
             
             return jsonify({
                 'success': True,
-                'message': 'Beta access activated — subscription set to active for 6 months'
+                'message': 'Subscription activated from legacy beta payment'
             }), 200
         
         else:
-            # credit_purchase path
-            from services.credit_service import complete_credit_purchase
-            
-            result = complete_credit_purchase(purchase_id, admin_reference)
-            
-            if result['success']:
-                supabase.table('script_credit_purchases').update({
-                    'verified_by': admin_user_id,
-                    'verified_at': datetime.now().isoformat(),
-                    'verification_notes': notes,
-                    'admin_reference': admin_reference
-                }).eq('id', purchase_id).execute()
-                
-                return jsonify({
-                    'success': True,
-                    'message': f"{result['credits_added']} credits added to user account"
-                }), 200
-            else:
-                return jsonify({'success': False, 'error': result['error']}), 400
-            
+            return jsonify({'success': False, 'error': f'Unknown payment type: {payment_type}'}), 400
+        
     except Exception as e:
         print(f"Error approving payment: {e}")
         return jsonify({
@@ -557,11 +588,11 @@ def approve_payment(purchase_id):
 def reject_payment(purchase_id):
     """
     Reject a pending payment.
-    Handles both beta_payments and script_credit_purchases.
+    Handles subscription_payments and legacy beta_payments.
     
     Body:
         reason: Reason for rejection
-        payment_type: 'beta_access' or 'credit_purchase' (optional, auto-detected)
+        payment_type: 'monthly_subscription' or 'beta_access' (optional, auto-detected)
     
     Returns:
         JSON with success status
@@ -578,25 +609,32 @@ def reject_payment(purchase_id):
         
         supabase = get_supabase_admin()
         
-        # Auto-detect payment type
+        # Auto-detect payment type: check subscription_payments first
         if not payment_type:
-            beta_check = supabase.table('beta_payments') \
+            sub_check = supabase.table('subscription_payments') \
                 .select('id') \
                 .eq('id', purchase_id) \
                 .execute()
-            payment_type = 'beta_access' if beta_check.data else 'credit_purchase'
+            if sub_check.data:
+                payment_type = 'monthly_subscription'
+            else:
+                beta_check = supabase.table('beta_payments') \
+                    .select('id') \
+                    .eq('id', purchase_id) \
+                    .execute()
+                payment_type = 'beta_access' if beta_check.data else 'monthly_subscription'
         
-        if payment_type == 'beta_access':
+        if payment_type == 'monthly_subscription':
+            supabase.table('subscription_payments').update({
+                'status': 'failed',
+                'notes': reason,
+                'verified_at': datetime.now().isoformat(),
+                'verified_by': admin_user_id
+            }).eq('id', purchase_id).execute()
+        elif payment_type == 'beta_access':
             supabase.table('beta_payments').update({
                 'status': 'failed',
                 'metadata': {'rejected_by': admin_user_id, 'reason': reason, 'rejected_at': datetime.now().isoformat()}
-            }).eq('id', purchase_id).execute()
-        else:
-            supabase.table('script_credit_purchases').update({
-                'status': 'failed',
-                'verified_by': admin_user_id,
-                'verified_at': datetime.now().isoformat(),
-                'verification_notes': reason
             }).eq('id', purchase_id).execute()
         
         return jsonify({

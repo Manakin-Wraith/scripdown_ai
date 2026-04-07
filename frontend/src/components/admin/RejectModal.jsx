@@ -77,7 +77,7 @@ const RejectModal = ({ isOpen, onClose, onConfirm, paymentDetails }) => {
                 setReason(e.target.value);
                 setError('');
               }}
-              placeholder="e.g., Payment not found in Yoco, Invalid reference, Duplicate payment..."
+              placeholder="e.g., Payment not found in Wise, Invalid reference, Duplicate payment..."
               rows={4}
               className={error ? 'error' : ''}
               autoFocus

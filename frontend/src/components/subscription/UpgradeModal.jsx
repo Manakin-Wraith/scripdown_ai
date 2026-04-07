@@ -1,19 +1,19 @@
 /**
  * UpgradeModal Component
- * Displays upgrade prompt with Yoco payment link.
+ * Displays upgrade prompt with Wise payment link.
  */
 
 import React from 'react';
 import { X, Sparkles, Check, CreditCard, Clock } from 'lucide-react';
 import './UpgradeModal.css';
 
-const YOCO_PAYMENT_LINK = 'https://pay.yoco.com/celebration-house-entertainment?amount=249.00&reference=BetaAccess';
+const WISE_PAYMENT_LINK = 'https://wise.com/pay/r/8j9W0j5SUuPivxk';
 
 const UpgradeModal = ({ 
     isOpen, 
     onClose, 
     feature = null,
-    title = 'Unlock Full Beta Access',
+    title = 'Unlock Unlimited Access',
     message = null,
     daysRemaining = null,
     isExpired = false
@@ -21,7 +21,7 @@ const UpgradeModal = ({
     if (!isOpen) return null;
 
     const handleUpgrade = () => {
-        window.open(YOCO_PAYMENT_LINK, '_blank');
+        window.open(WISE_PAYMENT_LINK, '_blank');
     };
 
     const getTitle = () => {
@@ -34,8 +34,8 @@ const UpgradeModal = ({
     const getMessage = () => {
         if (message) return message;
         if (isExpired) return 'Renew your subscription to continue using SlateOne and keep all your scripts.';
-        if (feature) return `This feature requires an active subscription. Upgrade now to unlock ${formatFeature(feature)} and all other premium features.`;
-        return 'Get 1 year of full access to SlateOne for a one-time payment of R249.';
+        if (feature) return `This feature requires an active subscription. Subscribe now to unlock ${formatFeature(feature)} and all other premium features.`;
+        return 'Get unlimited access to SlateOne for $49/month.';
     };
 
     const formatFeature = (feat) => {
@@ -96,16 +96,16 @@ const UpgradeModal = ({
 
                 <div className="upgrade-modal-pricing">
                     <div className="upgrade-modal-price">
-                        <span className="price-amount">R249</span>
-                        <span className="price-period">for 1 year</span>
+                        <span className="price-amount">$49</span>
+                        <span className="price-period">/month</span>
                     </div>
-                    <p className="price-note">One-time payment • No recurring charges</p>
+                    <p className="price-note">Unlimited breakdowns • Full production infrastructure</p>
                 </div>
 
                 <div className="upgrade-modal-actions">
                     <button className="upgrade-btn-primary" onClick={handleUpgrade}>
                         <CreditCard size={18} />
-                        Pay & Upgrade Now
+                        Subscribe Now — $49/month
                     </button>
                     <button className="upgrade-btn-secondary" onClick={onClose}>
                         Maybe Later
@@ -113,7 +113,7 @@ const UpgradeModal = ({
                 </div>
 
                 <p className="upgrade-modal-footer">
-                    Secure payment via Yoco. Your access will be activated immediately.
+                    Secure payment via Wise. Access activated after payment verification.
                 </p>
             </div>
         </div>

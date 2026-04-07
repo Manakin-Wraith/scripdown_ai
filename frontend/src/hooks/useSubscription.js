@@ -9,8 +9,8 @@ import { useAuth } from '../context/AuthContext';
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 // Phase 1: Everyone gets active status (no subscription enforcement)
-// Set to false to enable subscription checks in Phase 4
-const PHASE1_FREE_ACCESS = true;
+// Set to false to enable subscription checks
+const PHASE1_FREE_ACCESS = false;
 
 // Trial configuration (must match backend)
 const TRIAL_DURATION_DAYS = 14;
@@ -38,7 +38,7 @@ const ACTIVE_FEATURES = [
     'department_notes',
 ];
 
-const YOCO_PAYMENT_LINK = 'https://pay.yoco.com/celebration-house-entertainment?amount=249.00&reference=BetaAccess';
+const WISE_PAYMENT_LINK = 'https://wise.com/pay/r/8j9W0j5SUuPivxk';
 
 export function useSubscription() {
     const { user, profile } = useAuth();
@@ -187,13 +187,13 @@ export function useSubscription() {
             return { 
                 canUpload: false, 
                 message: 'Unable to verify upload permission',
-                upgradeUrl: YOCO_PAYMENT_LINK
+                upgradeUrl: WISE_PAYMENT_LINK
             };
         }
     }, [user?.id, subscriptionStatus]);
 
     // Get upgrade URL
-    const getUpgradeUrl = useCallback(() => YOCO_PAYMENT_LINK, []);
+    const getUpgradeUrl = useCallback(() => WISE_PAYMENT_LINK, []);
 
     // Check if should show upgrade prompt
     const shouldShowUpgradePrompt = useCallback(() => {
@@ -230,7 +230,7 @@ export function useSubscription() {
                 };
             case 'active':
                 return {
-                    label: 'Beta Access',
+                    label: 'Active Subscriber',
                     color: 'green',
                     icon: '✓'
                 };
@@ -274,7 +274,7 @@ export function useSubscription() {
         refresh: fetchSubscriptionStatus,
         
         // Constants
-        YOCO_PAYMENT_LINK,
+        WISE_PAYMENT_LINK,
         TRIAL_DURATION_DAYS,
         TRIAL_SCRIPT_LIMIT,
     };

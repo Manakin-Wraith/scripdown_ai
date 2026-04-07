@@ -172,7 +172,7 @@ const InviteModal = ({ isOpen, onClose, scriptId, scriptTitle }) => {
                                     onClick={() => setShowUpgradeModal(true)}
                                 >
                                     <Sparkles size={18} />
-                                    Upgrade Now - R249
+                                    Subscribe — $49/month
                                 </button>
                             </div>
                         </div>

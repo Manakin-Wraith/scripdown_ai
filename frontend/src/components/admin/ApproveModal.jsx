@@ -71,16 +71,16 @@ const ApproveModal = ({ isOpen, onClose, onConfirm, paymentDetails }) => {
 
         <form onSubmit={handleSubmit} className="modal-form">
           <div className="form-group">
-            <label htmlFor="yoco-reference">Yoco Reference Number (Optional)</label>
+            <label htmlFor="wise-reference">Wise Reference Number (Optional)</label>
             <input
               type="text"
-              id="yoco-reference"
+              id="wise-reference"
               value={reference}
               onChange={(e) => setReference(e.target.value)}
-              placeholder="e.g., YC-123456789"
+              placeholder="e.g., WISE-123456789"
               autoFocus
             />
-            <span className="field-hint">Enter the Yoco payment reference for tracking</span>
+            <span className="field-hint">Enter the Wise payment reference for tracking</span>
           </div>
 
           <div className="form-group">

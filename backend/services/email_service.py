@@ -417,8 +417,8 @@ def send_test_email(to_email: str) -> Dict[str, Any]:
     return send_email(to_email, subject, html)
 
 
-# Yoco payment link for beta access
-YOCO_PAYMENT_LINK = "https://pay.yoco.com/celebration-house-entertainment?amount=249.00&reference=BetaAccess"
+# Wise payment link for monthly subscription ($49/month)
+WISE_PAYMENT_LINK = "https://wise.com/pay/r/8j9W0j5SUuPivxk"
 
 
 def send_welcome_email(
@@ -441,8 +441,8 @@ def send_welcome_email(
         subject = f"🎬 Welcome to {APP_NAME}, {first_name}!"
         cta_section = f"""
                                 <div style="background: linear-gradient(135deg, #10B981, #059669); border-radius: 12px; padding: 24px; margin-bottom: 24px; text-align: center;">
-                                    <p style="margin: 0 0 8px 0; font-size: 14px; color: rgba(255,255,255,0.8);">✅ BETA ACCESS CONFIRMED</p>
-                                    <p style="margin: 0; font-size: 18px; font-weight: 600; color: #FFFFFF;">You have full access to SlateOne!</p>
+                                    <p style="margin: 0 0 8px 0; font-size: 14px; color: rgba(255,255,255,0.8);">✅ SUBSCRIPTION ACTIVE</p>
+                                    <p style="margin: 0; font-size: 18px; font-weight: 600; color: #FFFFFF;">You have full access to {APP_NAME}!</p>
                                 </div>
                                 
                                 <a href="{APP_URL}/scripts" style="display: inline-block; background: linear-gradient(135deg, #F59E0B, #D97706); color: #000000; text-decoration: none; padding: 14px 28px; border-radius: 8px; font-weight: 600; font-size: 16px;">
@@ -450,34 +450,35 @@ def send_welcome_email(
                                 </a>
         """
     else:
-        # User hasn't paid - show Yoco payment link
-        subject = f"🎬 Welcome to {APP_NAME}! Complete your beta access"
+        # User verified email but hasn't paid yet
+        subject = f"🎬 You're in, {first_name}! Start using {APP_NAME}"
         cta_section = f"""
-                                <div style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(217, 119, 6, 0.15)); border: 2px solid #F59E0B; border-radius: 16px; padding: 32px; margin-bottom: 28px; text-align: center;">
-                                    <p style="margin: 0 0 12px 0; font-size: 13px; color: #F59E0B; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px;">⚡ BETA ACCESS OFFER ⚡</p>
-                                    <p style="margin: 0 0 8px 0; font-size: 22px; font-weight: 700; color: #FFFFFF; line-height: 1.3;">
-                                        Get <strong>Beta access</strong>
-                                    </p>
-                                    <p style="margin: 0 0 20px 0; font-size: 40px; font-weight: 800; color: #F59E0B; line-height: 1;">
-                                        R249
-                                    </p>
-                                
+                                <div style="background: linear-gradient(135deg, #10B981, #059669); border-radius: 12px; padding: 20px; margin-bottom: 24px; text-align: center;">
+                                    <p style="margin: 0 0 4px 0; font-size: 14px; color: rgba(255,255,255,0.8);">✅ EMAIL VERIFIED</p>
+                                    <p style="margin: 0; font-size: 16px; font-weight: 600; color: #FFFFFF;">Your account is ready to use</p>
                                 </div>
                                 
-                                <!-- Primary CTA Button - Full Width -->
-                                <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 12px;">
+                                <!-- Primary CTA: Go to App -->
+                                <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 20px;">
                                     <tr>
                                         <td align="center">
-                                            <a href="{YOCO_PAYMENT_LINK}" style="display: block; width: 100%; background: linear-gradient(135deg, #F59E0B, #D97706); color: #000000; text-decoration: none; padding: 18px 28px; border-radius: 10px; font-weight: 700; font-size: 18px; text-align: center; box-sizing: border-box;">
-                                                💳 Pay R249 & Get Full Access →
+                                            <a href="{APP_URL}/scripts" style="display: block; width: 100%; background: linear-gradient(135deg, #F59E0B, #D97706); color: #000000; text-decoration: none; padding: 18px 28px; border-radius: 10px; font-weight: 700; font-size: 18px; text-align: center; box-sizing: border-box;">
+                                                Open {APP_NAME} →
                                             </a>
                                         </td>
                                     </tr>
                                 </table>
                                 
-                                <p style="margin: 0; font-size: 12px; color: #6B7280; text-align: center;">
-                                    🔒 Secure payment via Yoco · Access activated immediately
-                                </p>
+                                <!-- Subscription Offer -->
+                                <div style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(217, 119, 6, 0.1)); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 12px; padding: 24px; text-align: center;">
+                                    <p style="margin: 0 0 8px 0; font-size: 13px; color: #F59E0B; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">UNLOCK UNLIMITED BREAKDOWNS</p>
+                                    <p style="margin: 0 0 16px 0; font-size: 32px; font-weight: 800; color: #F59E0B; line-height: 1;">
+                                        $49<span style="font-size: 16px; font-weight: 400; color: #9CA3AF;">/month</span>
+                                    </p>
+                                    <a href="{WISE_PAYMENT_LINK}" style="display: inline-block; background: rgba(245, 158, 11, 0.15); border: 2px solid #F59E0B; color: #F59E0B; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px;">
+                                        Subscribe Now →
+                                    </a>
+                                </div>
         """
     
     html = f"""
@@ -548,18 +549,21 @@ def send_welcome_email(
                         </tr>
                         
                         {"" if has_paid else '''
-                        <!-- Second CTA (repeat after features for visibility) -->
+                        <!-- Second CTA: App link + subscribe reminder -->
                         <tr>
-                            <td style="padding: 0 32px 32px 32px;">
-                                <table width="100%" cellpadding="0" cellspacing="0">
+                            <td style="padding: 0 32px 32px 32px; text-align: center;">
+                                <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 12px;">
                                     <tr>
                                         <td align="center">
-                                            <a href="''' + YOCO_PAYMENT_LINK + '''" style="display: block; width: 100%; background: linear-gradient(135deg, #F59E0B, #D97706); color: #000000; text-decoration: none; padding: 16px 28px; border-radius: 10px; font-weight: 700; font-size: 16px; text-align: center; box-sizing: border-box;">
-                                                Get Full Access - R249 →
+                                            <a href="''' + APP_URL + '''/scripts" style="display: block; width: 100%; background: linear-gradient(135deg, #F59E0B, #D97706); color: #000000; text-decoration: none; padding: 16px 28px; border-radius: 10px; font-weight: 700; font-size: 16px; text-align: center; box-sizing: border-box;">
+                                                Go to SlateOne →
                                             </a>
                                         </td>
                                     </tr>
                                 </table>
+                                <a href="''' + WISE_PAYMENT_LINK + '''" style="font-size: 14px; color: #F59E0B; text-decoration: underline;">
+                                    Or subscribe for unlimited access — $49/month
+                                </a>
                             </td>
                         </tr>
                         '''}
@@ -878,12 +882,12 @@ def send_expiration_reminder_email(
                                     </ul>
                                 </div>
                                 
-                                <a href="{YOCO_PAYMENT_LINK}" style="display: inline-block; background: linear-gradient(135deg, #F59E0B, #D97706); color: #000000; text-decoration: none; padding: 14px 28px; border-radius: 8px; font-weight: 600; font-size: 16px;">
-                                    💳 {'Upgrade Now - R249' if is_trial else 'Renew Now'}
+                                <a href="{WISE_PAYMENT_LINK}" style="display: inline-block; background: linear-gradient(135deg, #F59E0B, #D97706); color: #000000; text-decoration: none; padding: 14px 28px; border-radius: 8px; font-weight: 600; font-size: 16px;">
+                                    💳 {'Subscribe — $49/month' if is_trial else 'Renew Now'}
                                 </a>
                                 
                                 <p style="margin: 16px 0 0 0; font-size: 12px; color: #6B7280;">
-                                    Secure payment via Yoco. Get 1 year of full access.
+                                    Secure payment via Wise. Unlimited breakdowns.
                                 </p>
                             </td>
                         </tr>

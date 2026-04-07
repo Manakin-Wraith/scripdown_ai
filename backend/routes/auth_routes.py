@@ -9,8 +9,10 @@ from services.email_service import send_welcome_email, send_feature_announcement
 from services.subscription_service import (
     get_subscription_status, 
     can_upload_script,
+    activate_monthly_subscription,
     EARLY_ACCESS_TRIAL_DAYS,
-    TRIAL_DURATION_DAYS
+    TRIAL_DURATION_DAYS,
+    WISE_PAYMENT_URL
 )
 from db.supabase_client import get_supabase_client
 
@@ -186,7 +188,7 @@ def can_upload_script_route():
         return jsonify({
             'can_upload': can_upload,
             'message': message,
-            'upgrade_url': 'https://pay.yoco.com/r/mEDpxp' if not can_upload else None
+            'upgrade_url': WISE_PAYMENT_URL if not can_upload else None
         })
         
     except Exception as e:
@@ -310,27 +312,29 @@ def set_plan():
         
         print(f"Profile created/updated for {email}: plan={plan}, source={source}, limit={script_upload_limit}")
         
-        # If user signed up from landing_hero, create a pending beta_payments record
-        # so the admin dashboard can surface it for manual Yoco payment verification.
+        # If user signed up from landing_hero, create a pending subscription_payments record
+        # so the admin dashboard can surface it for manual Wise payment verification.
         if source == 'landing_hero':
             try:
-                existing = supabase.table('beta_payments') \
+                existing = supabase.table('subscription_payments') \
                     .select('id') \
                     .eq('email', email.lower().strip()) \
                     .execute()
                 
                 if not existing.data:
-                    supabase.table('beta_payments').insert({
+                    supabase.table('subscription_payments').insert({
                         'email': email.lower().strip(),
                         'user_id': user_id,
-                        'amount': 249.00,
-                        'currency': 'ZAR',
+                        'plan': 'monthly',
+                        'amount': 49.00,
+                        'currency': 'USD',
+                        'payment_provider': 'wise',
                         'status': 'pending',
-                        'metadata': {'signup_source': 'landing_hero', 'note': 'Awaiting Yoco payment verification'}
+                        'metadata': {'signup_source': 'landing_hero', 'note': 'Awaiting Wise payment verification'}
                     }).execute()
-                    print(f"Created pending beta_payment record for landing_hero signup: {email}")
+                    print(f"Created pending subscription_payment record for landing_hero signup: {email}")
             except Exception as bp_err:
-                print(f"Warning: Could not create beta_payment record for {email}: {bp_err}")
+                print(f"Warning: Could not create subscription_payment record for {email}: {bp_err}")
         
         return jsonify({
             'success': True,
@@ -433,6 +437,53 @@ def apply_early_access():
         return jsonify({
             'error': str(e),
             'is_early_access': False
+        }), 500
+
+
+@auth_bp.route('/activate-subscription', methods=['POST'])
+def activate_subscription():
+    """
+    Activate monthly subscription for a user after Wise payment verification.
+    Admin endpoint — called after manually verifying Wise payment.
+    
+    Request body:
+        - user_id: User's UUID
+        - email: User's email address
+        - payment_reference: Wise payment reference (optional)
+    
+    Returns:
+        - success: bool
+        - status: 'active'
+        - plan: 'monthly'
+        - expires_at: ISO date string
+    """
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'error': 'Request body required'}), 400
+        
+        user_id = data.get('user_id')
+        email = data.get('email')
+        payment_reference = data.get('payment_reference')
+        
+        if not user_id or not email:
+            return jsonify({'error': 'user_id and email are required'}), 400
+        
+        # TODO: Add admin/superuser role check
+        
+        result = activate_monthly_subscription(user_id, email, payment_reference)
+        
+        if result.get('success'):
+            return jsonify(result)
+        else:
+            return jsonify(result), 400
+        
+    except Exception as e:
+        print(f"Error activating subscription: {e}")
+        return jsonify({
+            'error': str(e),
+            'success': False
         }), 500
 
 

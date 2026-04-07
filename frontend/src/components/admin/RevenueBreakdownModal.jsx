@@ -210,7 +210,7 @@ const RevenueBreakdownModal = ({ isOpen, onClose }) => {
                         </td>
                         <td className="amount-cell">R{Number(payment.amount).toFixed(2)}</td>
                         <td className="reference-cell">
-                          {payment.payment_reference || payment.yoco_payment_id || '-'}
+                          {payment.payment_reference || '-'}
                         </td>
                       </tr>
                     ))
