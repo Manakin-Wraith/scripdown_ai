@@ -37,7 +37,8 @@ const SceneViewer = () => {
     const [recentlyCompletedScenes, setRecentlyCompletedScenes] = useState(new Set());
     const [storyDayFilter, setStoryDayFilter] = useState(null);
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-    const { isActive, status, daysRemaining } = useSubscription();
+    const { status, daysRemaining } = useSubscription();
+    const isPaidSubscriber = status === 'active';
     const selectedSceneRef = useRef(null);
     selectedSceneRef.current = selectedScene;
 
@@ -216,8 +217,8 @@ const SceneViewer = () => {
 
     // Handle single scene analysis
     const handleAnalyzeScene = async (sceneId) => {
-        // Subscription gate: block analysis for non-active users
-        if (!isActive) {
+        // Subscription gate: block analysis for non-subscribers
+        if (!isPaidSubscriber) {
             setShowUpgradeModal(true);
             return;
         }
@@ -271,8 +272,8 @@ const SceneViewer = () => {
 
     // Handle bulk analysis - starts background job and polls for updates
     const handleBulkAnalyze = async () => {
-        // Subscription gate: block analysis for non-active users
-        if (!isActive) {
+        // Subscription gate: block analysis for non-subscribers
+        if (!isPaidSubscriber) {
             setShowUpgradeModal(true);
             return;
         }
