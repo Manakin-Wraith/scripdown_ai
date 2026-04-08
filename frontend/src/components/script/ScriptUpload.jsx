@@ -5,7 +5,6 @@ import DropZone from './DropZone';
 import { AlertTriangle, X, CheckCircle, Loader, ArrowRight, Clapperboard, Sparkles, AlertCircle, FileText, Scissors, Lock, Zap } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 import { supabase } from '../../lib/supabase';
-import { useSubscription } from '../../hooks/useSubscription';
 import { UpgradeModal } from '../subscription';
 import './ScriptUpload.css';
 
@@ -28,30 +27,11 @@ const ScriptUpload = () => {
     const [error, setError] = useState(null);
     const [isAiDetecting, setIsAiDetecting] = useState(false);
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-    const [uploadBlocked, setUploadBlocked] = useState(false);
-    const [blockMessage, setBlockMessage] = useState('');
     const navigate = useNavigate();
     const toast = useToast();
-    const { canUploadScript, status, daysRemaining, scriptLimit, scriptCount } = useSubscription();
 
     const [processingStage, setProcessingStage] = useState('');
 
-    // Check upload permission on mount
-    useEffect(() => {
-        checkUploadPermission();
-    }, []);
-
-    const checkUploadPermission = async () => {
-        const subscriptionResult = await canUploadScript();
-        if (!subscriptionResult.canUpload) {
-            setUploadBlocked(true);
-            setBlockMessage(subscriptionResult.message);
-        } else {
-            setUploadBlocked(false);
-            setBlockMessage('');
-        }
-    };
-    
     const processFile = async (selectedFile) => {
         setFile(selectedFile);
         setError(null);
@@ -206,45 +186,7 @@ const ScriptUpload = () => {
             )}
 
             <div className="upload-content">
-                {/* Upload blocked - show upgrade prompt */}
-                {uploadBlocked ? (
-                    <div className="upload-blocked-container">
-                        <div className="upload-blocked-card">
-                            <div className="upload-blocked-icon">
-                                <Lock size={48} />
-                            </div>
-                            <h3>Subscription Required</h3>
-                            <p className="blocked-message">{blockMessage}</p>
-                            
-                            {status === 'trial' && (
-                                <div className="blocked-info">
-                                    <p>
-                                        You've uploaded <strong>{scriptCount}</strong> of <strong>{scriptLimit}</strong> scripts 
-                                        allowed on the trial plan.
-                                    </p>
-                                    <p>
-                                        Subscribe for <strong>$49/month</strong> to get <strong>unlimited breakdowns</strong> and full access to all features.
-                                    </p>
-                                </div>
-                            )}
-                            
-                            <button 
-                                className="btn-upgrade"
-                                onClick={() => setShowUpgradeModal(true)}
-                            >
-                                <Sparkles size={18} />
-                                Subscribe — $49/month
-                            </button>
-                            
-                            <button 
-                                className="btn-secondary"
-                                onClick={() => navigate('/scripts')}
-                            >
-                                View Existing Scripts
-                            </button>
-                        </div>
-                    </div>
-                ) : !uploading && !uploadResult ? (
+                {!uploading && !uploadResult ? (
                     <DropZone onFileSelect={processFile} disabled={false} />
                 ) : uploading ? (
                     <div className="upload-progress-container">
@@ -403,9 +345,7 @@ const ScriptUpload = () => {
             <UpgradeModal
                 isOpen={showUpgradeModal}
                 onClose={() => setShowUpgradeModal(false)}
-                feature="unlimited_scripts"
-                daysRemaining={daysRemaining}
-                isExpired={status === 'expired'}
+                feature="ai_analysis"
             />
             
         </div>

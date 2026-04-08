@@ -270,20 +270,12 @@ def can_access_feature(user_id: str, feature: str) -> Tuple[bool, Optional[str]]
 def can_upload_script(user_id: str) -> Tuple[bool, Optional[str]]:
     """
     Check if user can upload a new script.
+    Uploads are always free — the paywall is at analysis time.
     
     Returns:
         (can_upload: bool, message: str | None)
     """
-    sub_status = get_subscription_status(user_id)
-    
-    if not sub_status['is_active']:
-        return False, "Your subscription is inactive. Upgrade to upload scripts."
-    
-    if sub_status['can_upload_script']:
-        return True, None
-    
-    # Trial user at limit
-    return False, f"Trial users can only upload {TRIAL_SCRIPT_LIMIT} script. Upgrade for unlimited scripts."
+    return True, None
 
 
 def activate_monthly_subscription(user_id: str, email: str, payment_reference: Optional[str] = None) -> Dict[str, Any]:

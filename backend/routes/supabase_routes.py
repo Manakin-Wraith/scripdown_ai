@@ -2555,14 +2555,28 @@ def get_pdf_url(script_id):
 # ============================================
 
 @supabase_bp.route('/api/scenes/<scene_id>/analyze', methods=['POST'])
+@optional_auth
 def analyze_scene(scene_id):
     """
     Analyze a single scene using Gemini AI.
+    Requires active subscription (upload is free, analysis is paywalled).
     
     Extracts: characters, props, wardrobe, special_fx, vehicles, description
     """
     if not supabase:
         return jsonify({'error': 'Supabase not configured'}), 500
+    
+    # Subscription gate: block analysis for non-subscribers
+    user_id = get_user_id()
+    if user_id:
+        from services.subscription_service import get_subscription_status
+        sub_status = get_subscription_status(user_id)
+        if sub_status.get('status') != 'active':
+            return jsonify({
+                'error': 'Active subscription required for AI analysis',
+                'upgrade_url': 'https://wise.com/pay/r/8j9W0j5SUuPivxk',
+                'subscription_required': True
+            }), 403
     
     try:
         # Get scene data
@@ -2873,9 +2887,11 @@ IMPORTANT:
 
 
 @supabase_bp.route('/api/scripts/<script_id>/analyze/bulk', methods=['POST'])
+@optional_auth
 def analyze_bulk_scenes(script_id):
     """
     Analyze all pending scenes for a script.
+    Requires active subscription (upload is free, analysis is paywalled).
     Returns immediately (202 Accepted), analysis happens in background thread.
     
     Flow:
@@ -2887,6 +2903,18 @@ def analyze_bulk_scenes(script_id):
     """
     if not supabase:
         return jsonify({'error': 'Supabase not configured'}), 500
+    
+    # Subscription gate: block analysis for non-subscribers
+    user_id = get_user_id()
+    if user_id:
+        from services.subscription_service import get_subscription_status
+        sub_status = get_subscription_status(user_id)
+        if sub_status.get('status') != 'active':
+            return jsonify({
+                'error': 'Active subscription required for AI analysis',
+                'upgrade_url': 'https://wise.com/pay/r/8j9W0j5SUuPivxk',
+                'subscription_required': True
+            }), 403
     
     try:
         # Get all pending + error scenes (error scenes can be retried)

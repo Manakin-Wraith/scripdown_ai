@@ -11,6 +11,8 @@ import { useToast } from '../../context/ToastContext';
 import { useScript } from '../../context/ScriptContext';
 import { useStoryDayListener } from '../../context/StoryDayContext';
 import { analyzeBulkScenes, analyzeScene, getPageMapping, reorderScenes, omitScene } from '../../services/apiService';
+import { useSubscription } from '../../hooks/useSubscription';
+import { UpgradeModal } from '../subscription';
 import './SceneViewer.css';
 
 const SceneViewer = () => {
@@ -34,6 +36,8 @@ const SceneViewer = () => {
     const [currentPdfPage, setCurrentPdfPage] = useState(1);
     const [recentlyCompletedScenes, setRecentlyCompletedScenes] = useState(new Set());
     const [storyDayFilter, setStoryDayFilter] = useState(null);
+    const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+    const { isActive, status, daysRemaining } = useSubscription();
     const selectedSceneRef = useRef(null);
     selectedSceneRef.current = selectedScene;
 
@@ -212,6 +216,11 @@ const SceneViewer = () => {
 
     // Handle single scene analysis
     const handleAnalyzeScene = async (sceneId) => {
+        // Subscription gate: block analysis for non-active users
+        if (!isActive) {
+            setShowUpgradeModal(true);
+            return;
+        }
         setAnalyzingScenes(prev => new Set([...prev, sceneId]));
         
         try {
@@ -262,6 +271,11 @@ const SceneViewer = () => {
 
     // Handle bulk analysis - starts background job and polls for updates
     const handleBulkAnalyze = async () => {
+        // Subscription gate: block analysis for non-active users
+        if (!isActive) {
+            setShowUpgradeModal(true);
+            return;
+        }
         setIsBulkAnalyzing(true);
         setBulkAnalysisStartTime(Date.now());
         
@@ -729,6 +743,14 @@ const SceneViewer = () => {
                     onPageChange={handlePdfPageChange}
                 />
             </div>
+            {/* Subscription upgrade modal */}
+            <UpgradeModal
+                isOpen={showUpgradeModal}
+                onClose={() => setShowUpgradeModal(false)}
+                feature="ai_analysis"
+                daysRemaining={daysRemaining}
+                isExpired={status === 'expired'}
+            />
         </div>
     );
 };
