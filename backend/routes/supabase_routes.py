@@ -2586,6 +2586,16 @@ def analyze_scene(scene_id):
         if not scene:
             return jsonify({'error': 'Scene not found'}), 404
         
+        # Track breakdown usage and deduct credit (idempotent per script)
+        if user_id:
+            try:
+                script_meta = supabase.table('scripts').select('title').eq('id', scene['script_id']).single().execute()
+                script_name = script_meta.data.get('title', 'Untitled') if script_meta.data else 'Untitled'
+                from services.credit_service import track_breakdown_usage
+                track_breakdown_usage(user_id, scene['script_id'], script_name)
+            except Exception as track_err:
+                print(f"[Credits] Warning: tracking failed (non-blocking): {track_err}")
+        
         # Update status to analyzing
         supabase.table('scenes').update({'analysis_status': 'analyzing'}).eq('id', scene_id).execute()
         
@@ -2917,6 +2927,16 @@ def analyze_bulk_scenes(script_id):
             }), 403
     
     try:
+        # Track breakdown usage and deduct credit (idempotent per script)
+        if user_id:
+            try:
+                script_meta = supabase.table('scripts').select('title').eq('id', script_id).single().execute()
+                script_name = script_meta.data.get('title', 'Untitled') if script_meta.data else 'Untitled'
+                from services.credit_service import track_breakdown_usage
+                track_breakdown_usage(user_id, script_id, script_name)
+            except Exception as track_err:
+                print(f"[Credits] Warning: tracking failed (non-blocking): {track_err}")
+        
         # Get all pending + error scenes (error scenes can be retried)
         result = supabase.table('scenes').select('id, scene_number').eq('script_id', script_id).in_('analysis_status', ['pending', 'error']).order('scene_number').execute()
         

@@ -246,6 +246,102 @@ def add_credits_after_purchase(user_id: str, credits: int, purchase_id: str) -> 
         }
 
 
+def track_breakdown_usage(user_id: str, script_id: str, script_name: str) -> Dict[str, Any]:
+    """
+    Track that a script breakdown was performed.
+    Called when AI analysis is first triggered for a script.
+    
+    Pricing model: $49/month unlimited breakdowns.
+    - Active subscribers: log usage only (no credit deduction)
+    - Legacy credit users: deduct 1 credit + log usage
+    - Idempotent: UNIQUE constraint on script_id prevents double-counting
+    - Non-blocking: analysis proceeds even if tracking fails
+    
+    Returns:
+        {'tracked': bool, 'credit_deducted': bool, 'remaining_credits': int | None, 'error': str | None}
+    """
+    try:
+        from db.supabase_client import get_supabase_admin
+        supabase = get_supabase_admin()
+        
+        # Check if this script has already been tracked (avoid duplicate work)
+        existing = supabase.table('script_credit_usage') \
+            .select('id') \
+            .eq('script_id', script_id) \
+            .execute()
+        
+        if existing.data and len(existing.data) > 0:
+            print(f"[Credits] Script {script_id} already tracked for user {user_id}")
+            return {
+                'tracked': True,
+                'credit_deducted': False,
+                'remaining_credits': None,
+                'error': None
+            }
+        
+        # Check if user is an active subscriber ($49/mo unlimited model)
+        from services.subscription_service import get_subscription_status
+        sub_status = get_subscription_status(user_id)
+        is_active_subscriber = sub_status.get('status') == 'active'
+        
+        credit_deducted = False
+        
+        if not is_active_subscriber:
+            # Legacy credit user — try to deduct via atomic DB function
+            try:
+                result = supabase.rpc('deduct_script_credit', {
+                    'p_user_id': user_id,
+                    'p_script_id': script_id,
+                    'p_script_name': script_name
+                }).execute()
+                
+                credit_deducted = bool(result.data)
+                if credit_deducted:
+                    print(f"[Credits] Deducted 1 credit for script '{script_name}' (legacy user: {user_id})")
+            except Exception as rpc_err:
+                print(f"[Credits] RPC deduct failed (may be duplicate): {rpc_err}")
+        
+        # Log usage for all users (subscribers and legacy) if not already done by RPC
+        if not credit_deducted:
+            try:
+                supabase.table('script_credit_usage').insert({
+                    'user_id': user_id,
+                    'script_id': script_id,
+                    'script_name': script_name,
+                    'credits_used': 1  # 1 breakdown used (tracking only for subscribers)
+                }).execute()
+                print(f"[Credits] Tracked breakdown for script '{script_name}' (user: {user_id}, subscriber: {is_active_subscriber})")
+            except Exception as insert_err:
+                if 'unique_credit_per_script' in str(insert_err).lower() or 'duplicate' in str(insert_err).lower():
+                    print(f"[Credits] Script {script_id} usage already logged (concurrent insert)")
+                else:
+                    print(f"[Credits] Error logging usage: {insert_err}")
+        
+        # Get updated balance for response
+        remaining = None
+        try:
+            balance = get_credit_balance(user_id)
+            remaining = balance.get('credits', 0)
+        except Exception:
+            pass
+        
+        return {
+            'tracked': True,
+            'credit_deducted': credit_deducted,
+            'remaining_credits': remaining,
+            'error': None
+        }
+        
+    except Exception as e:
+        print(f"[Credits] Error tracking breakdown usage: {e}")
+        return {
+            'tracked': False,
+            'credit_deducted': False,
+            'remaining_credits': None,
+            'error': str(e)
+        }
+
+
 def create_credit_purchase(
     user_id: str,
     email: str,
