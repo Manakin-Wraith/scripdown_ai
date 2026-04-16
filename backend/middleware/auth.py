@@ -5,41 +5,49 @@ Provides JWT verification using Supabase Auth.
 """
 
 import os
+import logging
 from functools import wraps
 from flask import request, jsonify, g
 import jwt
+from jwt import PyJWKClient
 from dotenv import load_dotenv
 
 load_dotenv()
 
+logger = logging.getLogger(__name__)
+
 # Supabase JWT configuration
 SUPABASE_URL = os.getenv('SUPABASE_URL')
-SUPABASE_JWT_SECRET = os.getenv('SUPABASE_JWT_SECRET')
+SUPABASE_JWT_SECRET = os.getenv('SUPABASE_JWT_SECRET')  # Legacy HS256 fallback
 SUPABASE_ANON_KEY = os.getenv('SUPABASE_ANON_KEY')
+
+# JWKS endpoint for ECC P-256 (ES256) key verification
+JWKS_URL = f"{SUPABASE_URL}/auth/v1/.well-known/jwks.json" if SUPABASE_URL else None
+_jwks_client = None
 
 # For development - allow bypassing auth
 DEV_MODE = os.getenv('FLASK_ENV') == 'development'
 DEV_USER_ID = os.getenv('DEV_USER_ID', '00000000-0000-0000-0000-000000000001')
 
 
-def get_jwt_secret():
+def get_jwks_client():
     """
-    Get the JWT secret for verifying Supabase tokens.
-    
-    Supabase uses the JWT secret from your project settings.
-    You can find it in: Project Settings > API > JWT Secret
+    Get or create the cached JWKS client for Supabase token verification.
+    Fetches public keys from Supabase's JWKS endpoint.
     """
-    if SUPABASE_JWT_SECRET:
-        return SUPABASE_JWT_SECRET
-    
-    # Fallback: Try to extract from anon key (not recommended for production)
-    # The anon key is a JWT itself, but we need the actual secret
-    return None
+    global _jwks_client
+    if _jwks_client is None and JWKS_URL:
+        _jwks_client = PyJWKClient(JWKS_URL, cache_keys=True, lifespan=300)
+    return _jwks_client
 
 
 def verify_supabase_token(token: str) -> dict:
     """
     Verify a Supabase JWT token and return the payload.
+    
+    Supports both:
+    - ECC P-256 (ES256) — new Supabase JWT signing keys (verified via JWKS)
+    - HS256 — legacy shared secret fallback
     
     Args:
         token: The JWT token from Authorization header
@@ -50,32 +58,49 @@ def verify_supabase_token(token: str) -> dict:
     Raises:
         jwt.InvalidTokenError: If token is invalid or expired
     """
-    secret = get_jwt_secret()
+    # Strategy 1: JWKS-based verification (ECC P-256 / ES256)
+    jwks_client = get_jwks_client()
+    if jwks_client:
+        try:
+            signing_key = jwks_client.get_signing_key_from_jwt(token)
+            payload = jwt.decode(
+                token,
+                signing_key.key,
+                algorithms=["ES256", "HS256"],
+                audience="authenticated"
+            )
+            return payload
+        except jwt.ExpiredSignatureError:
+            raise ValueError("Token has expired")
+        except jwt.InvalidTokenError as e:
+            raise ValueError(f"Invalid token: {str(e)}")
+        except Exception as e:
+            logger.warning(f"JWKS verification failed, trying fallback: {e}")
     
-    if not secret:
-        # In dev mode without secret, decode without verification
-        if DEV_MODE:
-            try:
-                # Decode without verification (DEV ONLY)
-                payload = jwt.decode(token, options={"verify_signature": False})
-                return payload
-            except Exception:
-                pass
-        raise ValueError("JWT secret not configured. Set SUPABASE_JWT_SECRET in .env")
+    # Strategy 2: Legacy HS256 shared secret fallback
+    if SUPABASE_JWT_SECRET:
+        try:
+            payload = jwt.decode(
+                token,
+                SUPABASE_JWT_SECRET,
+                algorithms=["HS256"],
+                audience="authenticated"
+            )
+            return payload
+        except jwt.ExpiredSignatureError:
+            raise ValueError("Token has expired")
+        except jwt.InvalidTokenError as e:
+            raise ValueError(f"Invalid token: {str(e)}")
     
-    try:
-        # Verify and decode the token
-        payload = jwt.decode(
-            token,
-            secret,
-            algorithms=["HS256"],
-            audience="authenticated"
-        )
-        return payload
-    except jwt.ExpiredSignatureError:
-        raise ValueError("Token has expired")
-    except jwt.InvalidTokenError as e:
-        raise ValueError(f"Invalid token: {str(e)}")
+    # Strategy 3: Dev mode — decode without verification
+    if DEV_MODE:
+        try:
+            payload = jwt.decode(token, options={"verify_signature": False})
+            return payload
+        except Exception:
+            pass
+    
+    raise ValueError("JWT verification failed. Ensure SUPABASE_URL is set for JWKS verification.")
 
 
 def get_current_user():
