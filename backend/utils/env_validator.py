@@ -14,7 +14,6 @@ REQUIRED_VARS = {
     'SUPABASE_URL': 'Supabase project URL (e.g., https://xxx.supabase.co)',
     'SUPABASE_ANON_KEY': 'Supabase anonymous/public key for client operations',
     'SUPABASE_SERVICE_KEY': 'Supabase service role key for admin operations (bypasses RLS)',
-    'SUPABASE_JWT_SECRET': 'JWT secret for token verification (from Supabase project settings)',
     'RESEND_API_KEY': 'Resend email service API key for sending emails',
 }
 
@@ -22,6 +21,7 @@ REQUIRED_VARS = {
 RECOMMENDED_VARS = {
     'GEMINI_API_KEY': 'Google Gemini API key for AI analysis',
     'OPENAI_API_KEY': 'OpenAI API key (alternative to Gemini)',
+    'SUPABASE_JWT_SECRET': 'Legacy HS256 JWT secret (optional — JWKS endpoint used by default)',
 }
 
 
