@@ -9,17 +9,14 @@ import {
     Check,
     FileText,
     List,
-    Clock,
     ClipboardList,
     LayoutGrid,
-    CalendarDays
+    CalendarDays,
+    Users
 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import TeamDrawer from '../team/TeamDrawer';
 import './ScriptHeader.css';
-
-// Phase 1: Simplified header - deferred features commented out
-// import TeamDrawer from '../team/TeamDrawer';
-// import LockScriptModal from '../scripts/LockScriptModal';
-// import { Users, Crown, Shield, Settings2, Lock, Unlock, ClipboardList, Download, Share2 } from 'lucide-react';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -28,13 +25,10 @@ const ScriptHeader = ({ metadata, sceneCount = 0 }) => {
     const { scriptId } = useParams();
     const [infoOpen, setInfoOpen] = useState(false);
     const [copiedField, setCopiedField] = useState(null);
+    const [teamDrawerOpen, setTeamDrawerOpen] = useState(false);
     const popoverRef = useRef(null);
-
-    // Phase 1: Membership/team features deferred
-    // const [teamDrawerOpen, setTeamDrawerOpen] = useState(false);
-    // const [lockModalOpen, setLockModalOpen] = useState(false);
-    // const [membership, setMembership] = useState(null);
-    // const [currentUserId, setCurrentUserId] = useState(null);
+    const { user } = useAuth();
+    const isOwner = metadata?.user_id && user?.id && metadata.user_id === user.id;
 
     // Close popover when clicking outside
     useEffect(() => {
@@ -170,19 +164,24 @@ const ScriptHeader = ({ metadata, sceneCount = 0 }) => {
                     <span>Schedule</span>
                 </button>
 
-                {/* Phase 2+: Team button - deferred
-                <div className="coming-soon-btn-wrapper">
-                    <div className="header-action-btn coming-soon">
-                        <Clock size={16} />
-                        <span>Team</span>
-                        <span className="soon-badge">SOON</span>
-                    </div>
-                    <div className="coming-soon-tooltip">Coming in Phase 3</div>
-                </div>
-                */}
+                <button 
+                    className="header-action-btn primary" 
+                    title="Team Members"
+                    onClick={() => setTeamDrawerOpen(true)}
+                >
+                    <Users size={18} />
+                    <span>Team</span>
+                </button>
             </div>
 
-            {/* Phase 1: Team Drawer and Lock Modal deferred */}
+            <TeamDrawer
+                isOpen={teamDrawerOpen}
+                onClose={() => setTeamDrawerOpen(false)}
+                scriptId={scriptId}
+                scriptTitle={scriptName}
+                currentUserId={user?.id}
+                isOwner={isOwner}
+            />
         </div>
     );
 };

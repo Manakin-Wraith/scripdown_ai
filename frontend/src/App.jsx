@@ -40,7 +40,7 @@ import SharedReportView from './components/reports/SharedReportView';
 // import ShootingScriptPreview from './components/scripts/ShootingScriptPreview';
 // import DepartmentWorkspace from './components/workspace/DepartmentWorkspace';
 // import SettingsPage from './pages/SettingsPage';
-// import InvitePage from './pages/InvitePage';
+import InvitePage from './pages/InvitePage';
 // import PaymentSuccessPage from './pages/PaymentSuccessPage';
 
 function App() {
@@ -142,7 +142,7 @@ function App() {
                   <Route path="shared/:shareToken" element={<SharedReportView />} />
                   
                   {/* Phase 2+ public routes (deferred) */}
-                  {/* <Route path="invite/:token" element={<InvitePage />} /> */}
+                  <Route path="invite/:token" element={<InvitePage />} />
                   {/* <Route path="payment-success" element={<PaymentSuccessPage />} /> */}
                 </Routes>
               </Router>

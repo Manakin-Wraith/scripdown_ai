@@ -258,7 +258,7 @@ def get_script_metadata(script_id):
     
     try:
         result = supabase.table('scripts').select(
-            'id, title, writer_name, draft_version, genre, logline, total_pages, created_at, analysis_status'
+            'id, user_id, title, writer_name, draft_version, genre, logline, total_pages, created_at, analysis_status'
         ).eq('id', script_id).single().execute()
         
         return jsonify(result.data), 200
