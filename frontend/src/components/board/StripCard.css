@@ -351,11 +351,11 @@
     color: #14b8a6;
 }
 
-.strip-day-badge.timeline-flashback { background: rgba(168, 85, 247, 0.15); color: #a855f7; }
-.strip-day-badge.timeline-dream { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
-.strip-day-badge.timeline-fantasy { background: rgba(236, 72, 153, 0.15); color: #ec4899; }
-.strip-day-badge.timeline-montage { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
-.strip-day-badge.timeline-title_card { background: rgba(148, 163, 184, 0.15); color: #94a3b8; }
+.strip-day-badge.timeline-flashback { background: var(--timeline-flashback-bg); color: var(--timeline-flashback); }
+.strip-day-badge.timeline-dream { background: var(--timeline-dream-bg); color: var(--timeline-dream); }
+.strip-day-badge.timeline-fantasy { background: var(--timeline-fantasy-bg); color: var(--timeline-fantasy); }
+.strip-day-badge.timeline-montage { background: var(--primary-alpha-15); color: var(--primary-500); }
+.strip-day-badge.timeline-title_card { background: rgba(148, 163, 184, 0.15); color: var(--gray-400); }
 
 /* =================== Breakdown Summary (detailed zoom only) =================== */
 .strip-breakdown-summary {

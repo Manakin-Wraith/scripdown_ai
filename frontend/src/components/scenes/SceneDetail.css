@@ -726,7 +726,7 @@ button.scene-title.editable-title:hover .edit-hint-icon {
 .story-day-badge.timeline-title_card {
     background: rgba(148, 163, 184, 0.12);
     border: 1px solid rgba(148, 163, 184, 0.35);
-    color: #94a3b8;
+    color: var(--gray-400);
 }
 
 /* Story Day Controls (editing) */
