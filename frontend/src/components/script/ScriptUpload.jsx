@@ -6,6 +6,7 @@ import { AlertTriangle, X, CheckCircle, Loader, ArrowRight, Clapperboard, Sparkl
 import { useToast } from '../../context/ToastContext';
 import { supabase } from '../../lib/supabase';
 import { UpgradeModal } from '../subscription';
+import PageHeader from '../layout/PageHeader';
 import './ScriptUpload.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -167,11 +168,11 @@ const ScriptUpload = () => {
     const hasNoScenes = uploadResult && (uploadResult.scene_candidates || 0) === 0;
 
     return (
-        <div className="upload-page">
-            <div className="upload-header">
-                <h1>Upload New Script</h1>
-                <p>Upload your screenplay and we'll detect all scenes. You can then analyze each scene for breakdown details.</p>
-            </div>
+        <div className="upload-page page-container">
+            <PageHeader
+                title="Upload New Script"
+                subtitle="Upload your screenplay and we'll detect all scenes. You can then analyze each scene for breakdown details."
+            />
 
             {error && (
                 <div className="upload-error">

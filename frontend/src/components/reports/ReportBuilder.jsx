@@ -26,6 +26,7 @@ import ShareModal from './ShareModal';
 import ReportFilterPanel from './ReportFilterPanel';
 import { SubscriptionGate } from '../subscription';
 import { useSubscription } from '../../hooks/useSubscription';
+import PageHeader from '../layout/PageHeader';
 import './ReportBuilder.css';
 
 const REPORT_ICONS = {
@@ -204,14 +205,9 @@ const ReportBuilder = () => {
     // If no access, show gated preview
     if (!hasReportAccess) {
         return (
-            <div className="report-builder">
-                <div className="report-builder-header">
-                    <h1>
-                        <FileText size={24} />
-                        Generate Reports
-                    </h1>
-                </div>
-                <SubscriptionGate 
+            <div className="report-builder page-container">
+                <PageHeader icon={<FileText size={24} />} title="Generate Reports" />
+                <SubscriptionGate
                     feature="reports"
                     showBlur={true}
                     blurAmount={8}
@@ -225,14 +221,9 @@ const ReportBuilder = () => {
     }
 
     return (
-        <div className="report-builder">
+        <div className="report-builder page-container">
             {/* Header */}
-            <div className="report-builder-header">
-                <h1>
-                    <FileText size={24} />
-                    Generate Reports
-                </h1>
-            </div>
+            <PageHeader icon={<FileText size={24} />} title="Generate Reports" />
 
             {/* Report Type Selection — Full Width */}
             <div className="report-type-section">
