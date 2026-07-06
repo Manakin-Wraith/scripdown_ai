@@ -49,7 +49,7 @@
     justify-content: center;
     width: 120px;
     height: 120px;
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(245, 158, 11, 0.1));
+    background: linear-gradient(135deg, var(--primary-alpha-20), var(--primary-alpha-10));
     border-radius: 50%;
     margin-bottom: 1.5rem;
     color: var(--primary-500);
@@ -283,7 +283,7 @@
     width: 120px;
     height: 120px;
     border-radius: 16px;
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(245, 158, 11, 0.1));
+    background: linear-gradient(135deg, var(--primary-alpha-20), var(--primary-alpha-10));
     display: flex;
     align-items: center;
     justify-content: center;
@@ -340,7 +340,7 @@
 }
 
 .role-badge.lead {
-    background-color: rgba(245, 158, 11, 0.15);
+    background-color: var(--primary-alpha-15);
     color: var(--primary-500);
 }
 
@@ -385,7 +385,7 @@
     align-items: center;
     gap: 1rem;
     padding: 1rem 1.5rem;
-    background: linear-gradient(135deg, #fef3c7, #fff7ed);
+    background: linear-gradient(135deg, var(--primary-100), #fff7ed);
     border: 1px solid #fed7aa;
     border-radius: 10px;
     margin-bottom: 1.5rem;
@@ -393,7 +393,7 @@
 
 .offline-fallback-notice > svg {
     flex-shrink: 0;
-    color: #f59e0b;
+    color: var(--primary-500);
 }
 
 .fallback-content {
@@ -406,18 +406,18 @@
 .fallback-title {
     font-weight: 600;
     font-size: 0.9rem;
-    color: #92400e;
+    color: var(--primary-700);
 }
 
 .fallback-message {
     font-size: 0.8rem;
-    color: #b45309;
+    color: var(--primary-700);
 }
 
 /* Story Context Section */
 .story-context-section {
-    background: linear-gradient(135deg, #fef3c7, #fef9c3);
-    border: 1px solid #fcd34d;
+    background: linear-gradient(135deg, var(--primary-100), #fef9c3);
+    border: 1px solid var(--primary-300);
     border-radius: 12px;
     padding: 1.5rem;
     margin-bottom: 1.5rem;
@@ -431,13 +431,13 @@
 }
 
 .context-header svg {
-    color: #b45309;
+    color: var(--primary-700);
 }
 
 .context-header h3 {
     font-size: 1rem;
     font-weight: 600;
-    color: #92400e;
+    color: var(--primary-700);
     margin: 0;
 }
 
@@ -456,7 +456,7 @@
 .context-label {
     font-size: 0.75rem;
     font-weight: 600;
-    color: #92400e;
+    color: var(--primary-700);
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }
@@ -516,7 +516,7 @@
     width: 48px;
     height: 48px;
     border-radius: 12px;
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(245, 158, 11, 0.1));
+    background: linear-gradient(135deg, var(--primary-alpha-20), var(--primary-alpha-10));
     display: flex;
     align-items: center;
     justify-content: center;
@@ -657,7 +657,7 @@
 .bar.intensity-4,
 .bar.intensity-5,
 .bar.intensity-6 {
-    background: linear-gradient(180deg, #fbbf24, #f59e0b);
+    background: linear-gradient(180deg, var(--primary-400), var(--primary-500));
 }
 
 .bar.intensity-7,
@@ -667,7 +667,7 @@
 
 .bar.intensity-9,
 .bar.intensity-10 {
-    background: linear-gradient(180deg, #f87171, #ef4444);
+    background: linear-gradient(180deg, var(--danger), var(--danger));
 }
 
 .bar-emotion {
@@ -712,7 +712,7 @@
 }
 
 .legend-color.medium {
-    background: linear-gradient(180deg, #fbbf24, #f59e0b);
+    background: linear-gradient(180deg, var(--primary-400), var(--primary-500));
 }
 
 .legend-color.high {
@@ -720,7 +720,7 @@
 }
 
 .legend-color.extreme {
-    background: linear-gradient(180deg, #f87171, #ef4444);
+    background: linear-gradient(180deg, var(--danger), var(--danger));
 }
 
 /* Scene Breakdown Section */
@@ -809,8 +809,8 @@
 .emotion-pill.intensity-4,
 .emotion-pill.intensity-5,
 .emotion-pill.intensity-6 {
-    background-color: #fef3c7;
-    color: #92400e;
+    background-color: var(--primary-100);
+    color: var(--primary-700);
 }
 
 .emotion-pill.intensity-7,
@@ -906,8 +906,8 @@
 .emotion-tag.intensity-4,
 .emotion-tag.intensity-5,
 .emotion-tag.intensity-6 {
-    background-color: #fef3c7;
-    color: #92400e;
+    background-color: var(--primary-100);
+    color: var(--primary-700);
 }
 
 .emotion-tag.intensity-7,

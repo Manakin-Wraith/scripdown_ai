@@ -29,8 +29,8 @@
     align-items: center;
     gap: 0.75rem;
     padding: 1rem 1.25rem;
-    background: var(--gray-800, #1F2937);
-    border: 1px solid var(--gray-700, #374151);
+    background: var(--gray-800);
+    border: 1px solid var(--gray-700);
     border-radius: 10px;
 }
 
@@ -80,8 +80,8 @@
 }
 
 .camera-filter select {
-    background: var(--gray-800, #1F2937);
-    border: 1px solid var(--gray-700, #374151);
+    background: var(--gray-800);
+    border: 1px solid var(--gray-700);
     border-radius: 6px;
     padding: 0.4rem 0.75rem;
     color: var(--text-primary);
@@ -108,8 +108,8 @@
 
 .shot-type-card {
     padding: 0.875rem 1rem;
-    background: var(--gray-800, #1F2937);
-    border: 1px solid var(--gray-700, #374151);
+    background: var(--gray-800);
+    border: 1px solid var(--gray-700);
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.15s ease;
@@ -171,7 +171,7 @@
 
 .shot-type-bar {
     height: 3px;
-    background: var(--gray-700, #374151);
+    background: var(--gray-700);
     border-radius: 2px;
     overflow: hidden;
 }
@@ -186,8 +186,8 @@
 
 /* Detail Panel */
 .shot-detail-panel {
-    background: var(--gray-800, #1F2937);
-    border: 1px solid var(--gray-700, #374151);
+    background: var(--gray-800);
+    border: 1px solid var(--gray-700);
     border-radius: 10px;
     padding: 1.25rem;
     max-height: 500px;
@@ -253,7 +253,7 @@
     display: inline;
     font-size: 0.7rem;
     font-weight: 700;
-    color: #818cf8;
+    color: var(--primary-400);
     margin-right: 0.3rem;
 }
 
