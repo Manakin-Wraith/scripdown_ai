@@ -174,7 +174,7 @@
 }
 
 .notification-item.unread {
-    background-color: rgba(245, 158, 11, 0.05);
+    background-color: var(--primary-alpha-05);
 }
 
 .notification-item.unread::before {
@@ -195,7 +195,7 @@
     width: 36px;
     height: 36px;
     border-radius: 10px;
-    background-color: rgba(245, 158, 11, 0.15);
+    background-color: var(--primary-alpha-15);
     color: var(--primary-500);
     flex-shrink: 0;
 }
@@ -287,7 +287,7 @@
 
 .notification-delete:hover {
     background-color: rgba(239, 68, 68, 0.15);
-    color: #EF4444;
+    color: var(--danger);
 }
 
 /* Mobile Responsive */

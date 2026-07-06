@@ -61,11 +61,11 @@
 }
 
 .clickable-row:hover {
-    background-color: rgba(245, 158, 11, 0.1);
+    background-color: var(--primary-alpha-10);
 }
 
 .clickable-row:active {
-    background-color: rgba(245, 158, 11, 0.15);
+    background-color: var(--primary-alpha-15);
 }
 
 /* Cells */
@@ -115,7 +115,7 @@
 
 .rename-btn:hover {
     color: var(--primary-500);
-    background: rgba(99, 102, 241, 0.1);
+    background: var(--primary-alpha-10);
 }
 
 .name-edit-row {
@@ -126,7 +126,7 @@
 
 .name-edit-input {
     flex: 1;
-    background: var(--gray-800, #1F2937);
+    background: var(--gray-800);
     border: 1px solid var(--primary-500);
     border-radius: 4px;
     padding: 0.3rem 0.5rem;
@@ -154,7 +154,7 @@
 }
 
 .name-edit-btn.save {
-    color: #22c55e;
+    color: var(--success);
 }
 
 .name-edit-btn.save:hover {
@@ -166,8 +166,8 @@
 }
 
 .name-edit-btn.cancel:hover {
-    color: #ef4444;
-    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger);
+    background: var(--danger-bg);
 }
 
 .date-cell {
@@ -186,7 +186,7 @@
 
 .analysis-progress {
     display: inline-block;
-    background-color: rgba(245, 158, 11, 0.15);
+    background-color: var(--primary-alpha-15);
     color: var(--primary-500);
     padding: 4px 10px;
     border-radius: 12px;
@@ -208,14 +208,14 @@
 
 .status-pill.success {
     background-color: rgba(34, 197, 94, 0.15);
-    color: #22c55e;
+    color: var(--success);
     border: 1px solid rgba(34, 197, 94, 0.3);
 }
 
 .status-pill.pending {
-    background-color: rgba(245, 158, 11, 0.15);
+    background-color: var(--primary-alpha-15);
     color: var(--primary-500);
-    border: 1px solid rgba(245, 158, 11, 0.3);
+    border: 1px solid var(--primary-alpha-30);
 }
 
 /* Actions */
@@ -248,13 +248,13 @@
 }
 
 .action-icon-btn.primary:hover:not(:disabled) {
-    background-color: rgba(245, 158, 11, 0.15);
+    background-color: var(--primary-alpha-15);
     color: var(--primary-500);
 }
 
 .action-icon-btn.danger:hover {
     background-color: rgba(239, 68, 68, 0.15);
-    color: #ef4444;
+    color: var(--danger);
 }
 
 .action-icon-btn:disabled {

@@ -131,7 +131,7 @@
 }
 
 .bd-tab.active .bd-tab-count {
-    background: rgba(245, 158, 11, 0.2);
+    background: var(--primary-alpha-20);
     color: var(--primary-500);
 }
 
@@ -154,10 +154,10 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.75rem 1rem;
-    background: rgba(239, 68, 68, 0.1);
+    background: var(--danger-bg);
     border: 1px solid rgba(239, 68, 68, 0.3);
     border-radius: 8px;
-    color: #f87171;
+    color: var(--danger);
     font-size: 0.85rem;
 }
 
@@ -165,7 +165,7 @@
     margin-left: auto;
     background: none;
     border: none;
-    color: #f87171;
+    color: var(--danger);
     cursor: pointer;
     padding: 0.2rem;
 }
@@ -247,7 +247,7 @@
     align-items: center;
     gap: 0.35rem;
     padding: 0.35rem 0.5rem 0.35rem 0.7rem;
-    background: rgba(99, 102, 241, 0.1);
+    background: var(--primary-alpha-10);
     border: 1px solid rgba(99, 102, 241, 0.25);
     border-radius: 6px;
     font-size: 0.82rem;
@@ -279,7 +279,7 @@
 }
 
 .bd-ai-remove:hover {
-    color: #f87171;
+    color: var(--danger);
     background: rgba(239, 68, 68, 0.15);
 }
 
@@ -367,7 +367,7 @@
 }
 
 .bd-action-btn.delete:hover {
-    color: #f87171;
+    color: var(--danger);
     background: rgba(239, 68, 68, 0.15);
 }
 
@@ -451,7 +451,7 @@
 }
 
 .bd-edit-save {
-    color: #22c55e;
+    color: var(--success);
 }
 
 .bd-edit-save:hover {
@@ -463,7 +463,7 @@
 }
 
 .bd-edit-cancel:hover {
-    color: #f87171;
+    color: var(--danger);
 }
 
 .bd-edit-desc {
@@ -511,7 +511,7 @@
 .bd-add-trigger:hover {
     border-color: var(--primary-500);
     color: var(--primary-500);
-    background: rgba(245, 158, 11, 0.05);
+    background: var(--primary-alpha-05);
 }
 
 .bd-add-form {
@@ -673,7 +673,7 @@
 }
 
 .bd-note-status-toggle.resolved {
-    color: #22c55e;
+    color: var(--success);
 }
 
 .bd-note-time {
@@ -729,7 +729,7 @@
 }
 
 .bd-delete-btn:hover {
-    color: #f87171;
+    color: var(--danger);
     background: rgba(239, 68, 68, 0.15);
 }
 
@@ -1018,14 +1018,14 @@
 
 .bd-extraction-highlight.ai-highlight {
     background: rgba(245, 158, 11, 0.22);
-    color: #92400e;
-    border-bottom: 2px solid #f59e0b;
+    color: var(--primary-700);
+    border-bottom: 2px solid var(--primary-500);
 }
 
 .bd-extraction-highlight.user-highlight {
     background: rgba(99, 102, 241, 0.18);
     color: #3730a3;
-    border-bottom: 2px solid #6366f1;
+    border-bottom: 2px solid var(--primary-500);
 }
 
 /* Not-found items — AI-inferred, not literally in script text */
@@ -1056,14 +1056,14 @@
 }
 
 .bd-not-found-chip.ai {
-    color: #b45309;
-    border-color: rgba(245, 158, 11, 0.4);
+    color: var(--primary-700);
+    border-color: var(--primary-alpha-40);
     background: rgba(245, 158, 11, 0.08);
 }
 
 .bd-not-found-chip.user {
-    color: #6366f1;
-    border-color: rgba(99, 102, 241, 0.4);
+    color: var(--primary-500);
+    border-color: var(--primary-alpha-40);
     background: rgba(99, 102, 241, 0.08);
 }
 
@@ -1116,7 +1116,7 @@
 }
 
 .bd-confirm-icon {
-    color: #f87171;
+    color: var(--danger);
     margin-bottom: 0.75rem;
 }
 
@@ -1166,7 +1166,7 @@
     display: inline-flex;
     align-items: center;
     gap: 0.3rem;
-    background: #ef4444;
+    background: var(--danger);
     border: none;
     border-radius: 8px;
     color: white;
@@ -1178,7 +1178,7 @@
 }
 
 .bd-confirm-delete:hover {
-    background: #dc2626;
+    background: var(--danger);
 }
 
 /* ============================================

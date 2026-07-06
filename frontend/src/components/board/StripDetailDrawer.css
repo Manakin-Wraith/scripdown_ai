@@ -15,8 +15,8 @@
     width: 400px;
     max-width: 90vw;
     height: 100vh;
-    background: var(--gray-800, #1e293b);
-    border-left: 1px solid var(--border-color, #334155);
+    background: var(--gray-800);
+    border-left: 1px solid var(--border-color);
     z-index: 101;
     display: flex;
     flex-direction: column;
@@ -37,7 +37,7 @@
 /* Drawer Header */
 .drawer-header {
     padding: 1.25rem;
-    border-bottom: 1px solid var(--border-color, #334155);
+    border-bottom: 1px solid var(--border-color);
     flex-shrink: 0;
 }
 
@@ -51,7 +51,7 @@
 .drawer-scene-number {
     font-size: 1.1rem;
     font-weight: 700;
-    color: var(--primary-400, #818cf8);
+    color: var(--primary-400);
 }
 
 .drawer-ie-badge {
@@ -64,7 +64,7 @@
 
 .drawer-ie-badge.int {
     background: rgba(96, 165, 250, 0.15);
-    color: #60a5fa;
+    color: var(--primary-400);
 }
 
 .drawer-ie-badge.ext {
@@ -74,7 +74,7 @@
 
 .drawer-time {
     font-size: 0.8rem;
-    color: var(--text-secondary, #94a3b8);
+    color: var(--text-secondary);
     font-weight: 500;
 }
 
@@ -85,17 +85,17 @@
     justify-content: center;
     width: 32px;
     height: 32px;
-    background: var(--gray-700, #334155);
+    background: var(--gray-700);
     border: none;
     border-radius: 6px;
-    color: var(--text-secondary, #94a3b8);
+    color: var(--text-secondary);
     cursor: pointer;
     transition: all 0.15s;
 }
 
 .drawer-close-btn:hover {
-    background: var(--gray-600, #475569);
-    color: var(--text-primary, #f1f5f9);
+    background: var(--gray-600);
+    color: var(--text-primary);
 }
 
 .drawer-setting {
@@ -104,12 +104,12 @@
     gap: 0.4rem;
     font-size: 0.9rem;
     font-weight: 600;
-    color: var(--text-primary, #f1f5f9);
+    color: var(--text-primary);
     margin-bottom: 0.5rem;
 }
 
 .drawer-setting svg {
-    color: var(--text-secondary, #94a3b8);
+    color: var(--text-secondary);
     flex-shrink: 0;
 }
 
@@ -132,10 +132,10 @@
     color: #14b8a6;
 }
 
-.drawer-day-badge.timeline-flashback { background: rgba(168, 85, 247, 0.15); color: #a855f7; }
-.drawer-day-badge.timeline-dream { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
-.drawer-day-badge.timeline-fantasy { background: rgba(236, 72, 153, 0.15); color: #ec4899; }
-.drawer-day-badge.timeline-montage { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+.drawer-day-badge.timeline-flashback { background: var(--timeline-flashback-bg); color: var(--timeline-flashback); }
+.drawer-day-badge.timeline-dream { background: var(--timeline-dream-bg); color: var(--timeline-dream); }
+.drawer-day-badge.timeline-fantasy { background: var(--timeline-fantasy-bg); color: var(--timeline-fantasy); }
+.drawer-day-badge.timeline-montage { background: var(--primary-alpha-15); color: var(--primary-500); }
 
 /* Story Day Controls in Drawer */
 .drawer-sd-controls {
@@ -169,7 +169,7 @@
 .drawer-day-badge.unassigned {
     background: rgba(148, 163, 184, 0.08);
     border: 1px dashed rgba(148, 163, 184, 0.3);
-    color: #94a3b8;
+    color: var(--gray-400);
 }
 
 .drawer-sd-edit {
@@ -177,7 +177,7 @@
     align-items: center;
     gap: 0.35rem;
     background: var(--gray-750, rgba(30, 41, 59, 0.6));
-    border: 1px solid var(--border-color, #334155);
+    border: 1px solid var(--border-color);
     border-radius: 8px;
     padding: 0.3rem 0.45rem;
 }
@@ -185,16 +185,16 @@
 .drawer-sd-label {
     font-size: 0.8rem;
     font-weight: 600;
-    color: #94a3b8;
+    color: var(--gray-400);
 }
 
 .drawer-sd-input {
     width: 60px;
     padding: 0.3rem 0.35rem;
-    border: 1px solid var(--border-color, #334155);
+    border: 1px solid var(--border-color);
     border-radius: 6px;
-    background: var(--gray-700, #334155);
-    color: var(--text-primary, #f1f5f9);
+    background: var(--gray-700);
+    color: var(--text-primary);
     font-size: 0.95rem;
     font-weight: 600;
     text-align: center;
@@ -211,8 +211,8 @@
 
 .drawer-sd-input:focus {
     outline: none;
-    border-color: var(--primary-400, #818cf8);
-    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+    border-color: var(--primary-400);
+    box-shadow: 0 0 0 2px var(--primary-alpha-15);
 }
 
 .drawer-sd-btn {
@@ -235,7 +235,7 @@
 
 .drawer-sd-btn.cancel {
     background: rgba(239, 68, 68, 0.15);
-    color: #f87171;
+    color: var(--danger);
 }
 
 .drawer-sd-btn:disabled {
@@ -252,7 +252,7 @@
     border: 1px solid rgba(148, 163, 184, 0.2);
     border-radius: 4px;
     background: rgba(148, 163, 184, 0.06);
-    color: #94a3b8;
+    color: var(--gray-400);
     cursor: pointer;
     transition: all 0.15s;
     padding: 0;
@@ -260,19 +260,19 @@
 
 .drawer-sd-action:hover {
     background: rgba(148, 163, 184, 0.12);
-    color: var(--text-primary, #f1f5f9);
+    color: var(--text-primary);
 }
 
 .drawer-sd-action.active {
-    background: rgba(245, 158, 11, 0.15);
-    border-color: rgba(245, 158, 11, 0.4);
-    color: #fbbf24;
+    background: var(--primary-alpha-15);
+    border-color: var(--primary-alpha-40);
+    color: var(--primary-400);
 }
 
 .drawer-sd-action.locked {
     background: rgba(239, 68, 68, 0.12);
     border-color: rgba(239, 68, 68, 0.35);
-    color: #f87171;
+    color: var(--danger);
 }
 
 .drawer-sd-action:disabled {
@@ -285,19 +285,19 @@
     border: 1px solid rgba(148, 163, 184, 0.2);
     border-radius: 4px;
     background: rgba(148, 163, 184, 0.06);
-    color: #94a3b8;
+    color: var(--gray-400);
     font-size: 0.6rem;
     cursor: pointer;
     outline: none;
 }
 
 .drawer-sd-timeline:focus {
-    border-color: var(--primary-400, #818cf8);
+    border-color: var(--primary-400);
 }
 
 .drawer-pages {
     font-size: 0.75rem;
-    color: var(--primary-400, #818cf8);
+    color: var(--primary-400);
     font-weight: 600;
 }
 
@@ -330,14 +330,14 @@
 }
 
 .drawer-body::-webkit-scrollbar-thumb {
-    background: var(--gray-600, #475569);
+    background: var(--gray-600);
     border-radius: 3px;
 }
 
 /* Breakdown sections */
 .drawer-section {
     background: var(--gray-750, rgba(30, 41, 59, 0.5));
-    border: 1px solid var(--border-color, #334155);
+    border: 1px solid var(--border-color);
     border-radius: 8px;
     padding: 0.75rem;
 }
@@ -359,10 +359,10 @@
 .drawer-section-count {
     margin-left: auto;
     font-size: 0.65rem;
-    background: var(--gray-700, #334155);
+    background: var(--gray-700);
     padding: 0.1rem 0.4rem;
     border-radius: 10px;
-    color: var(--text-secondary, #94a3b8);
+    color: var(--text-secondary);
 }
 
 .drawer-item-list {
@@ -376,21 +376,21 @@
 
 .drawer-item-list li {
     font-size: 0.75rem;
-    color: var(--text-primary, #f1f5f9);
+    color: var(--text-primary);
     padding: 0.2rem 0.5rem;
-    background: var(--gray-700, #334155);
+    background: var(--gray-700);
     border-radius: 4px;
 }
 
 .drawer-empty {
     font-size: 0.75rem;
-    color: var(--text-secondary, #94a3b8);
+    color: var(--text-secondary);
     font-style: italic;
 }
 
 .drawer-atmosphere-text {
     font-size: 0.8rem;
-    color: var(--text-secondary, #94a3b8);
+    color: var(--text-secondary);
     line-height: 1.5;
     margin: 0;
 }

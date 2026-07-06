@@ -58,11 +58,11 @@
     border: none;
     cursor: pointer;
     transition: all 0.2s ease;
-    box-shadow: 0 4px 6px -1px rgba(245, 158, 11, 0.3);
+    box-shadow: 0 4px 6px -1px var(--primary-alpha-30);
 }
 
 .empty-upload-btn:hover {
     background: linear-gradient(135deg, var(--primary-400), var(--primary-500));
     transform: translateY(-1px);
-    box-shadow: 0 6px 8px -1px rgba(245, 158, 11, 0.4);
+    box-shadow: 0 6px 8px -1px var(--primary-alpha-40);
 }

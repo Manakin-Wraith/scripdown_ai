@@ -15,7 +15,7 @@
     align-items: center;
     gap: 0.75rem;
     padding: 0.875rem 1.25rem;
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(245, 158, 11, 0.1));
+    background: linear-gradient(135deg, var(--primary-alpha-15), var(--primary-alpha-10));
     border-bottom: 1px solid var(--primary-600);
     color: var(--primary-500);
 }
@@ -168,12 +168,12 @@
 
 .scene-card:hover {
     border-color: var(--primary-600);
-    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.1);
+    box-shadow: 0 2px 8px var(--primary-alpha-10);
 }
 
 .scene-card.active {
     border-color: var(--primary-500);
-    background: rgba(245, 158, 11, 0.15);
+    background: var(--primary-alpha-15);
 }
 
 .scene-card-header {
@@ -383,7 +383,7 @@
 .form-group input:focus {
     outline: none;
     border-color: var(--primary-500);
-    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+    box-shadow: 0 0 0 3px var(--primary-alpha-10);
 }
 
 .form-group input::placeholder {
@@ -418,7 +418,7 @@
 }
 
 .toggle-btn.active {
-    background: rgba(245, 158, 11, 0.15);
+    background: var(--primary-alpha-15);
     border-color: var(--primary-500);
     color: var(--primary-500);
 }
@@ -474,7 +474,7 @@
     --purple-100: #f3e8ff;
     --purple-700: #7c3aed;
     --red-50: #fef2f2;
-    --red-500: #ef4444;
+    --red-500: var(--danger);
 }
 
 /* Responsive */

@@ -2,7 +2,7 @@
 
 .profile-page {
     min-height: 100vh;
-    background: var(--gray-900, #111827);
+    background: var(--gray-900);
     padding: 2rem;
 }
 
@@ -236,7 +236,7 @@
 .form-group input:focus {
     outline: none;
     border-color: var(--primary-500);
-    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
+    box-shadow: 0 0 0 3px var(--primary-alpha-15);
 }
 
 .form-group input.disabled {
@@ -282,7 +282,7 @@
 .save-btn:hover:not(:disabled) {
     background: linear-gradient(135deg, var(--primary-400), var(--primary-500));
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+    box-shadow: 0 4px 12px var(--primary-alpha-30);
 }
 
 .save-btn:disabled {
@@ -359,13 +359,13 @@
 }
 
 .role-badge.head {
-    background: rgba(245, 158, 11, 0.15);
+    background: var(--primary-alpha-15);
     color: var(--primary-400);
 }
 
 .role-badge.member {
     background: rgba(99, 102, 241, 0.15);
-    color: #A5B4FC;
+    color: #a5b4fc; /* semantic role color (member=indigo), not brand accent — preserved */
 }
 
 /* No Departments */

@@ -148,13 +148,13 @@
 
 .lock-badge.locked {
     background: rgba(239, 68, 68, 0.15);
-    color: #ef4444;
+    color: var(--danger);
     border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
 .lock-badge.unlocked {
     background: rgba(34, 197, 94, 0.15);
-    color: #22c55e;
+    color: var(--success);
     border: 1px solid rgba(34, 197, 94, 0.3);
 }
 
@@ -320,7 +320,7 @@
     justify-content: center;
     width: 32px;
     height: 32px;
-    color: #94a3b8; /* Explicit color for visibility */
+    color: var(--gray-400); /* Explicit color for visibility */
     cursor: grab;
     border-radius: 6px;
     transition: all 0.2s;
@@ -355,8 +355,8 @@
     min-width: 48px;
     height: 32px;
     padding: 0 0.75rem;
-    background: #475569; /* Explicit bg */
-    color: #f1f5f9; /* Explicit white text */
+    background: var(--gray-600); /* Explicit bg */
+    color: var(--gray-100); /* Explicit white text */
     border-radius: 6px;
     font-size: 0.875rem;
     font-weight: 600;
@@ -379,7 +379,7 @@
 .scene-header-text {
     font-size: 0.95rem;
     font-weight: 600;
-    color: #f1f5f9; /* Explicit white text */
+    color: var(--gray-100); /* Explicit white text */
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -391,7 +391,7 @@
     align-items: center;
     gap: 0.75rem;
     font-size: 0.8rem;
-    color: #94a3b8; /* Explicit secondary text */
+    color: var(--gray-400); /* Explicit secondary text */
 }
 
 /* Scene Status Indicator */
@@ -411,7 +411,7 @@
 }
 
 .status-icon.complete {
-    color: #22c55e;
+    color: var(--success);
 }
 
 .status-icon.analyzing {
@@ -435,7 +435,7 @@
 .page-badge {
     background: rgba(59, 130, 246, 0.15);
     border: 1px solid rgba(59, 130, 246, 0.25);
-    color: #60a5fa;
+    color: var(--primary-400);
 }
 
 .char-badge {
@@ -447,7 +447,7 @@
 .prop-badge {
     background: rgba(34, 197, 94, 0.15);
     border: 1px solid rgba(34, 197, 94, 0.25);
-    color: #22c55e;
+    color: var(--success);
 }
 
 /* Edit Form */
@@ -585,7 +585,7 @@
 
 .story-day-badge-sm.timeline-title_card {
     background: rgba(148, 163, 184, 0.15);
-    color: #94a3b8;
+    color: var(--gray-400);
 }
 
 .story-day-controls {
@@ -616,9 +616,9 @@
 }
 
 .sd-btn.active {
-    background: rgba(245, 158, 11, 0.15);
-    border-color: rgba(245, 158, 11, 0.4);
-    color: #fbbf24;
+    background: var(--primary-alpha-15);
+    border-color: var(--primary-alpha-40);
+    color: var(--primary-400);
 }
 
 .sd-btn.locked {
@@ -690,10 +690,10 @@
     justify-content: center;
     width: 32px;
     height: 32px;
-    background: #334155; /* slate-700 */
-    border: 1px solid #475569; /* slate-600 */
+    background: var(--gray-700); /* slate-700 */
+    border: 1px solid var(--gray-600); /* slate-600 */
     border-radius: 6px;
-    color: #cbd5e1; /* slate-300 - visible icon color */
+    color: var(--gray-300); /* slate-300 - visible icon color */
     cursor: pointer;
     transition: all 0.2s;
 }
@@ -706,9 +706,9 @@
 }
 
 .action-btn:hover:not(:disabled) {
-    background: #475569; /* slate-600 */
-    color: #f1f5f9; /* slate-100 */
-    border-color: #64748b; /* slate-500 */
+    background: var(--gray-600); /* slate-600 */
+    color: var(--gray-100); /* slate-100 */
+    border-color: var(--gray-500); /* slate-500 */
 }
 
 .action-btn:disabled {
@@ -722,8 +722,8 @@
 }
 
 .action-btn.restore:hover:not(:disabled) {
-    border-color: #22c55e;
-    color: #22c55e;
+    border-color: var(--success);
+    color: var(--success);
 }
 
 .action-btn.edit:hover:not(:disabled) {
@@ -732,8 +732,8 @@
 }
 
 .action-btn.split:hover:not(:disabled) {
-    border-color: #f59e0b;
-    color: #f59e0b;
+    border-color: var(--primary-500);
+    color: var(--primary-500);
 }
 
 .action-btn.merge:hover:not(:disabled) {
@@ -742,8 +742,8 @@
 }
 
 .action-btn.add:hover:not(:disabled) {
-    border-color: #22c55e;
-    color: #22c55e;
+    border-color: var(--success);
+    color: var(--success);
 }
 
 /* Spin Animation */

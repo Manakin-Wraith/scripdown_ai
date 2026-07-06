@@ -123,7 +123,7 @@
 .form-group input:focus {
     outline: none;
     border-color: var(--primary-500);
-    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+    box-shadow: 0 0 0 3px var(--primary-alpha-10);
 }
 
 .form-group input::placeholder {
@@ -193,7 +193,7 @@
 
 .role-option.selected {
     border-color: var(--primary-500);
-    background: rgba(245, 158, 11, 0.05);
+    background: var(--primary-alpha-05);
 }
 
 .role-option input[type="radio"] {
@@ -238,7 +238,7 @@
 
 .submit-btn:hover:not(:disabled) {
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+    box-shadow: 0 4px 12px var(--primary-alpha-30);
 }
 
 .submit-btn:disabled {
@@ -368,7 +368,7 @@
 
 .btn-primary:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+    box-shadow: 0 4px 12px var(--primary-alpha-30);
 }
 
 /* Spin animation */
@@ -409,13 +409,13 @@
 .locked-icon {
     width: 72px;
     height: 72px;
-    background: linear-gradient(135deg, #F59E0B, #D97706);
+    background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
     border-radius: 18px;
     display: flex;
     align-items: center;
     justify-content: center;
     margin: 0 auto 1.5rem;
-    color: #000000;
+    color: var(--gray-900);
 }
 
 .locked-content h3 {
@@ -437,8 +437,8 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.875rem 1.5rem;
-    background: linear-gradient(135deg, #F59E0B, #D97706);
-    color: #000000;
+    background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
+    color: var(--gray-900);
     border: none;
     border-radius: 10px;
     font-size: 0.95rem;
@@ -449,5 +449,5 @@
 
 .invite-locked .upgrade-btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+    box-shadow: 0 4px 12px var(--primary-alpha-30);
 }

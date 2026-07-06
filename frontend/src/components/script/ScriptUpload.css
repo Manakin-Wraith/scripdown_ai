@@ -30,7 +30,7 @@
 
 /* Error Card */
 .upload-error {
-    background-color: rgba(239, 68, 68, 0.1);
+    background-color: var(--danger-bg);
     border: 1px solid rgba(239, 68, 68, 0.3);
     border-radius: 12px;
     padding: 1rem;
@@ -46,13 +46,13 @@
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    color: #ef4444;
+    color: var(--danger);
 }
 
 .error-close {
     background: none;
     border: none;
-    color: #ef4444;
+    color: var(--danger);
     cursor: pointer;
     padding: 4px;
     border-radius: 4px;
@@ -60,7 +60,7 @@
 }
 
 .error-close:hover {
-    background-color: rgba(239, 68, 68, 0.1);
+    background-color: var(--danger-bg);
 }
 
 /* Analysis Container */
@@ -185,7 +185,7 @@
 
 .btn-primary:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+    box-shadow: 0 4px 12px var(--primary-alpha-40);
 }
 
 .btn-secondary {
@@ -278,11 +278,11 @@
 
 .upload-success-card.zero-scenes {
     border: 2px solid var(--primary-600);
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, var(--bg-card) 100%);
+    background: linear-gradient(135deg, var(--primary-alpha-10) 0%, var(--bg-card) 100%);
 }
 
 .warning-icon {
-    color: var(--warning-500, #f59e0b);
+    color: var(--warning-500, var(--primary-500));
     margin-bottom: 1rem;
 }
 
@@ -356,7 +356,7 @@
 .btn-ai-detect:hover:not(:disabled) {
     background: linear-gradient(135deg, var(--primary-400), var(--primary-500));
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+    box-shadow: 0 4px 12px var(--primary-alpha-40);
 }
 
 .btn-ai-detect:disabled {
@@ -366,7 +366,7 @@
 
 .option-hint {
     font-size: 0.8rem;
-    color: var(--text-tertiary, #9ca3af);
+    color: var(--text-tertiary, var(--gray-400));
     margin: 0.5rem 0 0;
     text-align: center;
 }
@@ -388,7 +388,7 @@
 .option-divider span {
     padding: 0 1rem;
     font-size: 0.8rem;
-    color: var(--text-tertiary, #9ca3af);
+    color: var(--text-tertiary, var(--gray-400));
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }
@@ -420,7 +420,7 @@
 }
 
 .btn-manual-label:hover {
-    background: rgba(245, 158, 11, 0.15);
+    background: var(--primary-alpha-15);
     border-color: var(--primary-500);
 }
 
@@ -443,13 +443,13 @@
 .upload-blocked-icon {
     width: 80px;
     height: 80px;
-    background: linear-gradient(135deg, #F59E0B, #D97706);
+    background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
     border-radius: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
     margin: 0 auto 1.5rem;
-    color: #000000;
+    color: var(--gray-900);
 }
 
 .upload-blocked-card h3 {
@@ -492,8 +492,8 @@
 .btn-upgrade {
     width: 100%;
     padding: 1rem;
-    background: linear-gradient(135deg, #F59E0B, #D97706);
-    color: #000000;
+    background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
+    color: var(--gray-900);
     border: none;
     border-radius: 10px;
     font-size: 1rem;
@@ -509,5 +509,5 @@
 
 .btn-upgrade:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+    box-shadow: 0 4px 12px var(--primary-alpha-30);
 }

@@ -21,7 +21,7 @@
 }
 
 .error-state svg {
-    color: #ef4444;
+    color: var(--danger);
 }
 
 .error-state button {
@@ -92,7 +92,7 @@
     border-radius: 6px;
     font-size: 0.75rem;
     font-weight: 700;
-    color: #1a1a1a;
+    color: var(--gray-900);
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }
@@ -169,7 +169,7 @@
 .shooting-scene {
     display: flex;
     padding: 0.75rem 0;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid var(--gray-200);
 }
 
 .shooting-scene:last-child {
@@ -203,13 +203,13 @@
 
 .scene-characters {
     font-size: 0.875rem;
-    color: #6b7280;
+    color: var(--gray-500);
     margin-top: 0.25rem;
 }
 
 .omitted-marker {
     font-weight: 700;
-    color: #9ca3af;
+    color: var(--gray-400);
     text-transform: uppercase;
 }
 
@@ -221,7 +221,7 @@
 
 .page-number {
     font-size: 0.875rem;
-    color: #6b7280;
+    color: var(--gray-500);
 }
 
 /* Print Styles */

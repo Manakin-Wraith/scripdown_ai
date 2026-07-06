@@ -103,7 +103,7 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.5rem 0.875rem;
-    background: rgba(245, 158, 11, 0.15);
+    background: var(--primary-alpha-15);
     border-radius: 8px;
     font-size: 0.875rem;
     font-weight: 500;

@@ -11,10 +11,10 @@
 }
 
 .credit-balance:hover {
-    background-color: rgba(245, 158, 11, 0.15);
-    border-color: rgba(245, 158, 11, 0.4);
+    background-color: var(--primary-alpha-15);
+    border-color: var(--primary-alpha-40);
     transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.15);
+    box-shadow: 0 2px 8px var(--primary-alpha-15);
 }
 
 .credit-balance.compact {
@@ -23,17 +23,17 @@
 }
 
 .credit-balance.low {
-    background-color: rgba(245, 158, 11, 0.1);
-    border-color: rgba(245, 158, 11, 0.2);
+    background-color: var(--primary-alpha-10);
+    border-color: var(--primary-alpha-20);
 }
 
 .credit-balance.low:hover {
-    background-color: rgba(245, 158, 11, 0.15);
-    border-color: rgba(245, 158, 11, 0.3);
+    background-color: var(--primary-alpha-15);
+    border-color: var(--primary-alpha-30);
 }
 
 .credit-balance.empty {
-    background-color: rgba(239, 68, 68, 0.1);
+    background-color: var(--danger-bg);
     border-color: rgba(239, 68, 68, 0.2);
     animation: pulse-alert 2s ease-in-out infinite;
 }
@@ -64,7 +64,7 @@
 }
 
 .credit-balance.empty .credit-balance-icon {
-    color: #EF4444;
+    color: var(--danger);
 }
 
 .credit-balance-content {
@@ -102,7 +102,7 @@
     font-size: 0.7rem;
     font-weight: 600;
     color: var(--primary-500);
-    background-color: rgba(245, 158, 11, 0.15);
+    background-color: var(--primary-alpha-15);
     border-radius: 4px;
     text-transform: uppercase;
     letter-spacing: 0.03em;

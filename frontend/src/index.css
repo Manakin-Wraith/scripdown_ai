@@ -98,6 +98,14 @@
   --scrim: rgba(0, 0, 0, 0.6);
   --scrim-soft: rgba(0, 0, 0, 0.5);
 
+  /* Semantic timeline codes (montage → --primary-500, title_card → --gray-400) */
+  --timeline-dream: #3b82f6;
+  --timeline-dream-bg: rgba(59, 130, 246, 0.15);
+  --timeline-fantasy: #ec4899;
+  --timeline-fantasy-bg: rgba(236, 72, 153, 0.15);
+  --timeline-flashback: #a855f7;
+  --timeline-flashback-bg: rgba(168, 85, 247, 0.15);
+
   /* Primary (amber) alpha tints — --primary-alpha-10 == --warning-bg */
   --primary-alpha-05: rgba(245, 158, 11, 0.05);
   --primary-alpha-10: rgba(245, 158, 11, 0.1);

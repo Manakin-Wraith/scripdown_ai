@@ -43,7 +43,7 @@
     right: 1rem;
     background: transparent;
     border: none;
-    color: #6B7280;
+    color: var(--gray-500);
     cursor: pointer;
     padding: 0.5rem;
     border-radius: 8px;
@@ -63,13 +63,13 @@
 .upgrade-modal-icon {
     width: 64px;
     height: 64px;
-    background: linear-gradient(135deg, #F59E0B, #D97706);
+    background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
     border-radius: 16px;
     display: flex;
     align-items: center;
     justify-content: center;
     margin: 0 auto 1rem;
-    color: #000000;
+    color: var(--gray-900);
 }
 
 .upgrade-modal-header h2 {
@@ -81,7 +81,7 @@
 
 .upgrade-modal-header p {
     font-size: 0.95rem;
-    color: #9CA3AF;
+    color: var(--gray-400);
     margin: 0;
     line-height: 1.5;
 }
@@ -91,8 +91,8 @@
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    background: #EF4444;
-    color: #FFFFFF;
+    background: var(--danger);
+    color: var(--gray-50);
     padding: 0.75rem 1rem;
     border-radius: 8px;
     font-size: 0.875rem;
@@ -110,7 +110,7 @@
 .upgrade-modal-features h3 {
     font-size: 0.875rem;
     font-weight: 600;
-    color: #F59E0B;
+    color: var(--primary-500);
     margin: 0 0 0.75rem 0;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -158,12 +158,12 @@
 
 .price-period {
     font-size: 1rem;
-    color: #9CA3AF;
+    color: var(--gray-400);
 }
 
 .price-note {
     font-size: 0.75rem;
-    color: #6B7280;
+    color: var(--gray-500);
     margin: 0.25rem 0 0 0;
 }
 
@@ -180,8 +180,8 @@
     gap: 0.5rem;
     width: 100%;
     padding: 1rem;
-    background: linear-gradient(135deg, #F59E0B, #D97706);
-    color: #000000;
+    background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
+    color: var(--gray-900);
     border: none;
     border-radius: 10px;
     font-size: 1rem;
@@ -192,14 +192,14 @@
 
 .upgrade-btn-primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+    box-shadow: 0 4px 12px var(--primary-alpha-30);
 }
 
 .upgrade-btn-secondary {
     width: 100%;
     padding: 0.75rem;
     background: transparent;
-    color: #9CA3AF;
+    color: var(--gray-400);
     border: 1px solid #3A3A3A;
     border-radius: 10px;
     font-size: 0.875rem;
@@ -216,7 +216,7 @@
 .upgrade-modal-footer {
     text-align: center;
     font-size: 0.75rem;
-    color: #6B7280;
+    color: var(--gray-500);
     margin: 1rem 0 0 0;
 }
 

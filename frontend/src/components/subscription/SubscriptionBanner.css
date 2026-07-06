@@ -62,8 +62,8 @@
 
 /* Banner variants */
 .banner-warning {
-    background: linear-gradient(135deg, #F59E0B, #D97706);
-    color: #000000;
+    background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
+    color: var(--gray-900);
 }
 
 .banner-urgent {

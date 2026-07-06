@@ -74,7 +74,7 @@
     margin-bottom: 16px;
     width: 40px;
     height: 40px;
-    background-color: rgba(245, 158, 11, 0.15);
+    background-color: var(--primary-alpha-15);
     border-radius: 8px;
     display: flex;
     align-items: center;
@@ -121,7 +121,7 @@
 .view-all-btn:hover {
     color: var(--primary-500);
     border-color: var(--primary-600);
-    background-color: rgba(245, 158, 11, 0.15);
+    background-color: var(--primary-alpha-15);
 }
 
 .recent-grid {
@@ -175,9 +175,9 @@
 }
 
 .status-badge.pending {
-    background: rgba(245, 158, 11, 0.15);
+    background: var(--primary-alpha-15);
     color: var(--primary-500);
-    border: 1px solid rgba(245, 158, 11, 0.3);
+    border: 1px solid var(--primary-alpha-30);
 }
 
 .recent-meta {
@@ -209,7 +209,7 @@
 }
 
 .recent-view-btn:hover:not(:disabled) {
-    background-color: rgba(245, 158, 11, 0.15);
+    background-color: var(--primary-alpha-15);
     border-color: var(--primary-500);
 }
 
@@ -258,7 +258,7 @@
 .action-card.secondary:hover {
     border-color: var(--primary-600);
     color: var(--primary-500);
-    background: rgba(245, 158, 11, 0.15);
+    background: var(--primary-alpha-15);
 }
 
 /* Empty State */
@@ -364,9 +364,9 @@
 }
 
 .error-message {
-    background-color: rgba(239, 68, 68, 0.1);
+    background-color: var(--danger-bg);
     border: 1px solid rgba(239, 68, 68, 0.3);
-    color: #ef4444;
+    color: var(--danger);
     padding: 16px;
     border-radius: 8px;
     margin-bottom: 24px;

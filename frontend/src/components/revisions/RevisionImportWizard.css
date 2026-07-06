@@ -143,10 +143,10 @@
     align-items: center;
     gap: 0.75rem;
     padding: 1rem;
-    background: rgba(239, 68, 68, 0.1);
+    background: var(--danger-bg);
     border: 1px solid rgba(239, 68, 68, 0.3);
     border-radius: 8px;
-    color: #ef4444;
+    color: var(--danger);
 }
 
 /* Dropzone */
@@ -163,7 +163,7 @@
 .dropzone:hover,
 .dropzone.active {
     border-color: var(--primary);
-    background: rgba(99, 102, 241, 0.05);
+    background: var(--primary-alpha-05);
 }
 
 .dropzone.has-file {
@@ -222,9 +222,9 @@
 }
 
 .remove-file {
-    background: rgba(239, 68, 68, 0.1);
+    background: var(--danger-bg);
     border: none;
-    color: #ef4444;
+    color: var(--danger);
     padding: 0.5rem;
     border-radius: 8px;
     cursor: pointer;
@@ -299,7 +299,7 @@
 }
 
 .color-btn svg {
-    color: #1f2937;
+    color: var(--gray-800);
 }
 
 .selected-color {
@@ -335,11 +335,11 @@
 }
 
 .diff-summary .stat.modified {
-    color: #f59e0b;
+    color: var(--primary-500);
 }
 
 .diff-summary .stat.removed {
-    color: #ef4444;
+    color: var(--danger);
 }
 
 .diff-summary .stat.unchanged {
@@ -381,11 +381,11 @@
 }
 
 .diff-item.modified {
-    border-color: #f59e0b;
+    border-color: var(--primary-500);
 }
 
 .diff-item.removed {
-    border-color: #ef4444;
+    border-color: var(--danger);
 }
 
 .diff-badge {
@@ -406,13 +406,13 @@
 }
 
 .diff-item.modified .diff-badge {
-    background: rgba(245, 158, 11, 0.1);
-    color: #f59e0b;
+    background: var(--primary-alpha-10);
+    color: var(--primary-500);
 }
 
 .diff-item.removed .diff-badge {
-    background: rgba(239, 68, 68, 0.1);
-    color: #ef4444;
+    background: var(--danger-bg);
+    color: var(--danger);
 }
 
 .diff-scene {
@@ -516,7 +516,7 @@
     border-radius: 4px;
     font-size: 0.75rem;
     font-weight: 600;
-    color: #1f2937;
+    color: var(--gray-800);
 }
 
 /* Footer */
