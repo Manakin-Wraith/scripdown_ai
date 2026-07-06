@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { Users, ChevronRight, CheckCircle, Clock, Loader, FileText, ArrowDownUp, CalendarDays, GripVertical, EyeOff, Eye } from 'lucide-react';
+import { EmptyState, Badge } from '../ui';
 import { getSceneEighthsDisplay } from '../../utils/sceneUtils';
 import './SceneList.css';
 
@@ -63,10 +64,7 @@ const SceneList = ({ scenes, selectedId, onSelect, analyzingScenes = new Set(), 
     }, [onReorder]);
     if (!scenes || scenes.length === 0) {
         return (
-            <div className="list-empty">
-                <FileText size={32} className="empty-icon-small" />
-                <p>No scenes found</p>
-            </div>
+            <EmptyState icon={FileText} title="No scenes found" />
         );
     }
 
@@ -168,7 +166,7 @@ const SceneList = ({ scenes, selectedId, onSelect, analyzingScenes = new Set(), 
                             )}
                             {/* Scene Number - Top Left */}
                             <span className="scene-number">
-                                {scene.is_omitted && <span className="omitted-badge">OMIT</span>}
+                                {scene.is_omitted && <Badge variant="danger">OMIT</Badge>}
                                 {displaySceneNum}
                             </span>
                             

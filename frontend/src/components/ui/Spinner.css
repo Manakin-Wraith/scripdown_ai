@@ -1,0 +1,10 @@
+@keyframes ui-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.ui-spinner {
+  display: inline-flex;
+  animation: ui-spin 1s linear infinite;
+  color: currentColor;
+}

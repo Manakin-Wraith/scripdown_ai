@@ -16,8 +16,8 @@ import CampaignDetailPanel from '../../components/campaigns/CampaignDetailPanel'
 import TemplateEditorModal from '../../components/campaigns/TemplateEditorModal';
 import TransactionalLogPanel from '../../components/campaigns/TransactionalLogPanel';
 import AudienceUsersPanel from '../../components/campaigns/AudienceUsersPanel';
-import ConfirmDialog from '../../components/common/ConfirmDialog';
 import AdminLayout from '../../components/admin/AdminLayout';
+import { useConfirmDialog } from '../../context/ConfirmDialogContext';
 import './EmailCampaignsPageSimplified.css';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -110,10 +110,7 @@ const EmailCampaignsPage = () => {
     const [selectedTemplate, setSelectedTemplate]         = useState(null);
     const [transactionalType, setTransactionalType]       = useState(null);
     const [audienceStatus, setAudienceStatus]             = useState(null);
-    const [confirmDialog, setConfirmDialog] = useState({
-        isOpen: false, title: '', message: '', onConfirm: () => {},
-        type: 'confirm', confirmText: 'OK', confirmButtonClass: 'btn-primary',
-    });
+    const { confirm } = useConfirmDialog();
 
     useEffect(() => { loadAll(); }, []);
 
@@ -144,34 +141,28 @@ const EmailCampaignsPage = () => {
         } finally { setStatsLoading(false); }
     };
 
-    const handleSendCampaign = (campaignId) => {
-        setConfirmDialog({
-            isOpen: true,
+    const handleSendCampaign = async (campaignId) => {
+        if (await confirm({
             title: 'Send Campaign',
             message: 'Are you sure you want to send this campaign? This action cannot be undone.',
-            confirmText: 'Send Now', cancelText: 'Cancel',
-            type: 'confirm', confirmButtonClass: 'btn-primary',
-            onConfirm: async () => {
-                try { await sendCampaign(campaignId); await loadAll(); }
-                catch (err) { console.error('Error sending campaign:', err); }
-                finally { setConfirmDialog(d => ({ ...d, isOpen: false })); }
-            },
-        });
+            variant: 'warning',
+            confirmText: 'Send Now',
+        })) {
+            try { await sendCampaign(campaignId); await loadAll(); }
+            catch (err) { console.error('Error sending campaign:', err); }
+        }
     };
 
-    const handleDeleteCampaign = (campaignId) => {
-        setConfirmDialog({
-            isOpen: true,
+    const handleDeleteCampaign = async (campaignId) => {
+        if (await confirm({
             title: 'Delete Campaign',
             message: 'Are you sure you want to delete this campaign? This action cannot be undone.',
-            confirmText: 'Delete', cancelText: 'Cancel',
-            type: 'confirm', confirmButtonClass: 'btn-danger',
-            onConfirm: async () => {
-                try { await deleteCampaign(campaignId); await loadAll(); }
-                catch (err) { console.error('Error deleting campaign:', err); }
-                finally { setConfirmDialog(d => ({ ...d, isOpen: false })); }
-            },
-        });
+            variant: 'danger',
+            confirmText: 'Delete',
+        })) {
+            try { await deleteCampaign(campaignId); await loadAll(); }
+            catch (err) { console.error('Error deleting campaign:', err); }
+        }
     };
 
     const cStats  = stats?.campaigns    || {};
@@ -497,18 +488,6 @@ const EmailCampaignsPage = () => {
                     onClose={() => setAudienceStatus(null)}
                 />
             )}
-
-            <ConfirmDialog
-                isOpen={confirmDialog.isOpen}
-                onClose={() => setConfirmDialog(d => ({ ...d, isOpen: false }))}
-                onConfirm={confirmDialog.onConfirm}
-                title={confirmDialog.title}
-                message={confirmDialog.message}
-                confirmText={confirmDialog.confirmText}
-                cancelText={confirmDialog.cancelText}
-                type={confirmDialog.type}
-                confirmButtonClass={confirmDialog.confirmButtonClass}
-            />
         </div>
         </AdminLayout>
     );

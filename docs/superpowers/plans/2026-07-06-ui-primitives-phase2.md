@@ -11,7 +11,7 @@
 ## Global Constraints
 
 - Plain JSX + JSDoc only — no TypeScript, no PropTypes package.
-- New CSS uses **only** `index.css` tokens: `--space-*`, `--radius-*`, `--text-*`, `--font-*`, `--primary-*`, `--gray-*`, `--success/--danger/--warning(+-bg)`, `--primary-alpha-*`, `--z-*`, `--shadow-*`. Zero raw hex/rgb/px-radius/hardcoded z-index.
+- New CSS uses **only** `index.css` tokens: `--space-*`, `--radius-*`, `--text-*`, `--font-*`, `--primary-*`, `--gray-*`, `--success/--danger/--warning(+-bg)`, `--primary-alpha-*`, `--scrim`/`--scrim-soft`, `--z-*`, `--shadow-*`. Zero raw hex/rgb/px-radius/hardcoded z-index. On-color text uses `--gray-50` (light) or `--gray-900` (dark), never `#fff`/`#000`.
 - All imports of primitives go through the barrel: `import { Button } from '../ui'` (path depth varies per file).
 - Icons come from `lucide-react`. Spinner uses `Loader2`.
 - No test runner exists (frontend `tests/` is backend Python). Per-task verification = `npm run build` compiles clean (run from `frontend/`). Interactive behavior is verified once in Task 12 via `npm run dev`.
@@ -124,7 +124,7 @@ git commit -m "feat(ui): add Spinner primitive + barrel"
 .ui-btn--secondary { background: var(--gray-700); color: var(--text-primary); border-color: var(--border-color); }
 .ui-btn--secondary:hover:not(:disabled) { background: var(--gray-600); }
 
-.ui-btn--danger { background: var(--danger); color: #fff; }
+.ui-btn--danger { background: var(--danger); color: var(--gray-50); }
 .ui-btn--danger:hover:not(:disabled) { background: var(--danger); filter: brightness(0.92); }
 
 .ui-btn--ghost { background: transparent; color: var(--text-secondary); }
@@ -256,7 +256,7 @@ git commit -m "feat(ui): add useOverlay hook (escape, scroll-lock, focus restore
 .ui-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--scrim);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -392,7 +392,7 @@ git commit -m "feat(ui): add Modal primitive (portal, escape, overlay-close)"
 .ui-drawer-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--scrim-soft);
   z-index: var(--z-drawer);
   display: flex;
 }

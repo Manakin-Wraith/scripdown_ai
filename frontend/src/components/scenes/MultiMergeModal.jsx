@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { Merge, X, AlertCircle, Loader, ChevronRight } from 'lucide-react';
+import { Merge, AlertCircle } from 'lucide-react';
 import { mergeMultipleScenes } from '../../services/apiService';
 import { useToast } from '../../context/ToastContext';
+import { Modal, Button } from '../ui';
 import './SceneModals.css';
 
 /**
@@ -64,21 +65,21 @@ const MultiMergeModal = ({ isOpen, onClose, scenes, scriptId, onSuccess }) => {
     };
     
     return (
-        <div className="modal-overlay" onClick={onClose}>
-            <div className="scene-modal" onClick={e => e.stopPropagation()}>
-                {/* Header */}
-                <div className="modal-header">
-                    <div className="modal-title">
-                        <Merge size={20} />
-                        <h2>Merge {scenes.length} Scenes</h2>
-                    </div>
-                    <button className="modal-close" onClick={onClose}>
-                        <X size={20} />
-                    </button>
-                </div>
-                
-                {/* Content */}
-                <div className="modal-content">
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            title={<><Merge size={20} /> Merge {scenes.length} Scenes</>}
+            footer={
+                <>
+                    <Button variant="secondary" onClick={onClose} disabled={loading}>
+                        Cancel
+                    </Button>
+                    <Button variant="primary" onClick={handleMerge} loading={loading} icon={Merge}>
+                        {loading ? 'Merging…' : `Merge ${scenes.length} Scenes`}
+                    </Button>
+                </>
+            }
+        >
                     {/* Info Banner */}
                     <div className="info-banner warning">
                         <AlertCircle size={16} />
@@ -132,29 +133,7 @@ const MultiMergeModal = ({ isOpen, onClose, scenes, scriptId, onSuccess }) => {
                             )}
                         </p>
                     </div>
-                </div>
-                
-                {/* Footer */}
-                <div className="modal-footer">
-                    <button className="btn-cancel" onClick={onClose} disabled={loading}>
-                        Cancel
-                    </button>
-                    <button className="btn-primary" onClick={handleMerge} disabled={loading}>
-                        {loading ? (
-                            <>
-                                <Loader size={16} className="spin" />
-                                Merging...
-                            </>
-                        ) : (
-                            <>
-                                <Merge size={16} />
-                                Merge {scenes.length} Scenes
-                            </>
-                        )}
-                    </button>
-                </div>
-            </div>
-        </div>
+        </Modal>
     );
 };
 

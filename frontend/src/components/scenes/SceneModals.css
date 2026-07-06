@@ -17,23 +17,6 @@
     padding: 1rem;
 }
 
-/* Modal Container */
-.scene-modal {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-    width: 100%;
-    max-width: 600px;
-    max-height: 90vh;
-    display: flex;
-    flex-direction: column;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-}
-
-.scene-modal.compact {
-    max-width: 480px;
-}
-
 /* Header */
 .modal-header {
     display: flex;
@@ -603,12 +586,6 @@
 
 /* Responsive */
 @media (max-width: 640px) {
-    .scene-modal {
-        max-width: 100%;
-        max-height: 100vh;
-        border-radius: 0;
-    }
-    
     .merge-preview {
         flex-direction: column;
     }

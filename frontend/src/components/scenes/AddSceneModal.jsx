@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Plus, X, Loader } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { addManualScene } from '../../services/apiService';
 import { useToast } from '../../context/ToastContext';
+import { Modal, Button } from '../ui';
 import './SceneModals.css';
 
 /**
@@ -16,8 +17,6 @@ const AddSceneModal = ({ isOpen, onClose, scriptId, insertAfterScene, onSuccess 
         setting: '',
         time_of_day: 'DAY'
     });
-    
-    if (!isOpen) return null;
     
     const handleChange = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -67,22 +66,22 @@ const AddSceneModal = ({ isOpen, onClose, scriptId, insertAfterScene, onSuccess 
     };
     
     return (
-        <div className="modal-overlay" onClick={onClose}>
-            <div className="scene-modal compact" onClick={e => e.stopPropagation()}>
-                {/* Header */}
-                <div className="modal-header">
-                    <div className="modal-title">
-                        <Plus size={20} />
-                        <h2>Add New Scene</h2>
-                    </div>
-                    <button className="modal-close" onClick={onClose}>
-                        <X size={20} />
-                    </button>
-                </div>
-                
-                {/* Content */}
-                <form onSubmit={handleSubmit}>
-                    <div className="modal-content">
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            title={<><Plus size={20} /> Add New Scene</>}
+            footer={
+                <>
+                    <Button variant="secondary" onClick={onClose} disabled={loading}>
+                        Cancel
+                    </Button>
+                    <Button type="submit" form="add-scene-form" variant="primary" loading={loading} icon={Plus}>
+                        {loading ? 'Adding…' : 'Add Scene'}
+                    </Button>
+                </>
+            }
+        >
+            <form id="add-scene-form" onSubmit={handleSubmit}>
                         {/* Insert Position Info */}
                         {insertAfterScene && (
                             <div className="insert-info">
@@ -158,30 +157,8 @@ const AddSceneModal = ({ isOpen, onClose, scriptId, insertAfterScene, onSuccess 
                                 {formData.int_ext}. {formData.setting || 'LOCATION'} - {formData.time_of_day}
                             </span>
                         </div>
-                    </div>
-                    
-                    {/* Footer */}
-                    <div className="modal-footer">
-                        <button type="button" className="btn-cancel" onClick={onClose} disabled={loading}>
-                            Cancel
-                        </button>
-                        <button type="submit" className="btn-primary" disabled={loading}>
-                            {loading ? (
-                                <>
-                                    <Loader size={16} className="spin" />
-                                    Adding...
-                                </>
-                            ) : (
-                                <>
-                                    <Plus size={16} />
-                                    Add Scene
-                                </>
-                            )}
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
+            </form>
+        </Modal>
     );
 };
 
