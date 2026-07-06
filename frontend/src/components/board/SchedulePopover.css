@@ -7,8 +7,8 @@
     z-index: 100;
     min-width: 260px;
     max-width: 320px;
-    background: var(--bg-surface, #1e293b);
-    border: 1px solid var(--border-color, #334155);
+    background: var(--bg-surface, var(--gray-800));
+    border: 1px solid var(--border-color);
     border-radius: 10px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
     overflow: hidden;
@@ -27,8 +27,8 @@
     padding: 0.6rem 0.75rem;
     font-size: 0.8rem;
     font-weight: 600;
-    color: var(--text-primary, #f1f5f9);
-    border-bottom: 1px solid var(--border-color, #334155);
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-color);
 }
 
 .sp-loading {
@@ -37,7 +37,7 @@
     gap: 0.4rem;
     padding: 1rem;
     font-size: 0.75rem;
-    color: var(--text-secondary, #94a3b8);
+    color: var(--text-secondary);
 }
 
 .sp-spin {
@@ -65,7 +65,7 @@
     border: none;
     border-radius: 6px;
     background: transparent;
-    color: var(--text-secondary, #94a3b8);
+    color: var(--text-secondary);
     font-size: 0.78rem;
     cursor: pointer;
     transition: all 0.1s;
@@ -73,8 +73,8 @@
 }
 
 .sp-option:hover:not(:disabled) {
-    background: var(--gray-700, #334155);
-    color: var(--text-primary, #f1f5f9);
+    background: var(--gray-700);
+    color: var(--text-primary);
 }
 
 .sp-option:disabled {
@@ -84,16 +84,16 @@
 
 /* New schedule action — highlighted */
 .sp-option.sp-new {
-    color: var(--primary-400, #818cf8);
+    color: var(--primary-400);
     font-weight: 600;
-    border-bottom: 1px solid var(--border-color, #334155);
+    border-bottom: 1px solid var(--border-color);
     border-radius: 6px 6px 0 0;
     margin-bottom: 0.2rem;
 }
 
 .sp-option.sp-new:hover:not(:disabled) {
-    background: rgba(99, 102, 241, 0.1);
-    color: var(--primary-300, #a5b4fc);
+    background: var(--primary-alpha-10);
+    color: var(--primary-300);
 }
 
 /* Schedule row */
@@ -103,7 +103,7 @@
 
 .sp-option.sp-schedule {
     font-weight: 600;
-    color: var(--text-primary, #f1f5f9);
+    color: var(--text-primary);
 }
 
 .sp-chevron {
@@ -121,8 +121,8 @@
     font-weight: 500;
     padding: 0.1rem 0.4rem;
     border-radius: 4px;
-    background: var(--gray-700, #334155);
-    color: var(--text-secondary, #94a3b8);
+    background: var(--gray-700);
+    color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.03em;
 }
@@ -130,13 +130,13 @@
 /* Days list */
 .sp-days {
     padding-left: 0.75rem;
-    border-left: 2px solid var(--primary-600, #4f46e5);
+    border-left: 2px solid var(--primary-600);
     margin-left: 0.75rem;
     margin-bottom: 0.25rem;
 }
 
 .sp-option.sp-day-new {
-    color: var(--primary-400, #818cf8);
+    color: var(--primary-400);
     font-size: 0.75rem;
 }
 
@@ -146,18 +146,18 @@
 
 .sp-day-num {
     font-weight: 600;
-    color: var(--text-primary, #f1f5f9);
+    color: var(--text-primary);
 }
 
 .sp-day-count {
     font-size: 0.7rem;
-    color: var(--text-secondary, #94a3b8);
+    color: var(--text-secondary);
 }
 
 .sp-empty, .sp-empty-msg {
     padding: 0.5rem 0.6rem;
     font-size: 0.72rem;
-    color: var(--text-secondary, #94a3b8);
+    color: var(--text-secondary);
     font-style: italic;
 }
 
@@ -167,7 +167,7 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.75rem;
-    color: #34d399;
+    color: var(--success);
     font-size: 0.8rem;
     font-weight: 600;
 }
@@ -175,5 +175,5 @@
 .sp-skipped {
     font-weight: 400;
     font-size: 0.72rem;
-    color: var(--text-secondary, #94a3b8);
+    color: var(--text-secondary);
 }

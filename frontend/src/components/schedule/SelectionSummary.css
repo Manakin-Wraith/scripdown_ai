@@ -7,13 +7,13 @@
     bottom: 1.5rem;
     left: 50%;
     transform: translateX(-50%);
-    background: var(--gray-800, #1e293b);
-    border: 1px solid var(--border-color, #334155);
+    background: var(--gray-800);
+    border: 1px solid var(--border-color);
     border-radius: 14px;
     padding: 0.75rem 1rem;
     min-width: 340px;
     max-width: 560px;
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(99, 102, 241, 0.15);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--primary-alpha-15);
     z-index: 100;
     animation: ss-slide-up 0.2s ease-out;
 }
@@ -28,7 +28,7 @@
     align-items: center;
     gap: 0.4rem;
     margin-bottom: 0.5rem;
-    color: var(--primary-400, #818cf8);
+    color: var(--primary-400);
     font-size: 0.8rem;
     font-weight: 600;
     user-select: none;
@@ -47,7 +47,7 @@
 }
 
 .ss-grip {
-    color: var(--text-secondary, #94a3b8);
+    color: var(--text-secondary);
     opacity: 0.5;
     flex-shrink: 0;
 }
@@ -65,14 +65,14 @@
     background: transparent;
     border: none;
     border-radius: 6px;
-    color: var(--text-secondary, #94a3b8);
+    color: var(--text-secondary);
     cursor: pointer;
     transition: all 0.15s;
 }
 
 .ss-close:hover {
     background: rgba(239, 68, 68, 0.15);
-    color: #ef4444;
+    color: var(--danger);
 }
 
 .ss-stats {
@@ -87,12 +87,12 @@
     align-items: center;
     gap: 0.3rem;
     font-size: 0.75rem;
-    color: var(--text-primary, #f1f5f9);
+    color: var(--text-primary);
     font-weight: 500;
 }
 
 .ss-stat svg {
-    color: var(--text-secondary, #94a3b8);
+    color: var(--text-secondary);
 }
 
 .ss-breakdown {
@@ -116,18 +116,18 @@
 }
 
 .ss-int {
-    background: rgba(245, 158, 11, 0.15);
-    color: #f59e0b;
+    background: var(--primary-alpha-15);
+    color: var(--primary-500);
 }
 
 .ss-ext {
     background: rgba(59, 130, 246, 0.15);
-    color: #3b82f6;
+    color: var(--primary-500);
 }
 
 .ss-time {
     background: rgba(148, 163, 184, 0.1);
-    color: var(--text-secondary, #94a3b8);
+    color: var(--text-secondary);
 }
 
 .ss-cast-list {
@@ -136,7 +136,7 @@
     gap: 0.25rem;
     flex-wrap: wrap;
     padding-top: 0.4rem;
-    border-top: 1px solid var(--border-color, #334155);
+    border-top: 1px solid var(--border-color);
     max-height: 80px;
     overflow-y: auto;
 }
@@ -144,8 +144,8 @@
 .ss-cast-chip {
     display: inline-block;
     padding: 0.1rem 0.4rem;
-    background: var(--gray-700, #334155);
-    color: var(--text-secondary, #94a3b8);
+    background: var(--gray-700);
+    color: var(--text-secondary);
     border-radius: 4px;
     font-size: 0.65rem;
     font-weight: 500;
@@ -159,15 +159,15 @@
     gap: 0.4rem;
     padding-top: 0.5rem;
     margin-top: 0.4rem;
-    border-top: 1px solid var(--border-color, #334155);
+    border-top: 1px solid var(--border-color);
 }
 
 .ss-day-select {
     flex: 1;
-    background: var(--gray-900, #0f172a);
-    border: 1px solid var(--border-color, #334155);
+    background: var(--gray-900);
+    border: 1px solid var(--border-color);
     border-radius: 7px;
-    color: var(--text-primary, #f1f5f9);
+    color: var(--text-primary);
     font-size: 0.75rem;
     padding: 0.35rem 0.6rem;
     outline: none;
@@ -176,7 +176,7 @@
 }
 
 .ss-day-select:focus {
-    border-color: var(--primary-500, #6366f1);
+    border-color: var(--primary-500);
 }
 
 .ss-day-select:disabled {
@@ -189,7 +189,7 @@
     align-items: center;
     gap: 0.3rem;
     padding: 0.35rem 0.75rem;
-    background: var(--primary-600, #4f46e5);
+    background: var(--primary-600);
     border: none;
     border-radius: 7px;
     color: white;
@@ -202,8 +202,8 @@
 }
 
 .ss-move-btn:hover:not(:disabled) {
-    background: var(--primary-500, #6366f1);
-    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+    background: var(--primary-500);
+    box-shadow: 0 2px 8px var(--primary-alpha-40);
 }
 
 .ss-move-btn:disabled {

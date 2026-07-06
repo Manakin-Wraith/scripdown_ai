@@ -40,7 +40,7 @@
     flex: 1;
     height: 100%;
     overflow: hidden;
-    background: var(--gray-900, #0f172a);
+    background: var(--gray-900);
 }
 
 .schedule-loading {
@@ -50,7 +50,7 @@
     justify-content: center;
     gap: 1rem;
     height: 100%;
-    color: var(--text-secondary, #94a3b8);
+    color: var(--text-secondary);
 }
 
 /* ── Header ── */
@@ -60,8 +60,8 @@
     justify-content: space-between;
     gap: 1rem;
     padding: 0.6rem 1rem;
-    background: var(--gray-800, #1e293b);
-    border-bottom: 1px solid var(--border-color, #334155);
+    background: var(--gray-800);
+    border-bottom: 1px solid var(--border-color);
     flex-shrink: 0;
     min-height: 52px;
 }
@@ -78,17 +78,17 @@
     justify-content: center;
     width: 34px;
     height: 34px;
-    background: var(--gray-700, #334155);
+    background: var(--gray-700);
     border: none;
     border-radius: 8px;
-    color: var(--text-secondary, #94a3b8);
+    color: var(--text-secondary);
     cursor: pointer;
     transition: all 0.15s;
 }
 
 .schedule-back-btn:hover {
-    background: var(--gray-600, #475569);
-    color: var(--text-primary, #f1f5f9);
+    background: var(--gray-600);
+    color: var(--text-primary);
 }
 
 .schedule-title-group {
@@ -103,13 +103,13 @@
     gap: 0.5rem;
     font-size: 1rem;
     font-weight: 700;
-    color: var(--text-primary, #f1f5f9);
+    color: var(--text-primary);
     margin: 0;
 }
 
 .schedule-script-name {
     font-size: 0.72rem;
-    color: var(--text-secondary, #94a3b8);
+    color: var(--text-secondary);
 }
 
 .schedule-header-right {
@@ -123,7 +123,7 @@
     display: flex;
     align-items: center;
     gap: 0.15rem;
-    background: var(--gray-700, #334155);
+    background: var(--gray-700);
     border-radius: 8px;
     padding: 0.15rem;
 }
@@ -133,7 +133,7 @@
     background: transparent;
     border: none;
     border-radius: 6px;
-    color: var(--text-secondary, #94a3b8);
+    color: var(--text-secondary);
     font-size: 0.75rem;
     font-weight: 500;
     cursor: pointer;
@@ -142,14 +142,14 @@
 }
 
 .schedule-tab:hover {
-    color: var(--text-primary, #f1f5f9);
-    background: var(--gray-600, #475569);
+    color: var(--text-primary);
+    background: var(--gray-600);
 }
 
 .schedule-tab.active {
-    background: var(--primary-600, #4f46e5);
+    background: var(--primary-600);
     color: white;
-    box-shadow: 0 1px 3px rgba(79, 70, 229, 0.3);
+    box-shadow: 0 1px 3px var(--primary-alpha-30);
 }
 
 .schedule-tab-add {
@@ -165,7 +165,7 @@
     display: flex;
     align-items: center;
     gap: 0.15rem;
-    background: var(--gray-700, #334155);
+    background: var(--gray-700);
     border-radius: 8px;
     padding: 0.15rem;
 }
@@ -179,14 +179,14 @@
     background: transparent;
     border: none;
     border-radius: 6px;
-    color: var(--text-secondary, #94a3b8);
+    color: var(--text-secondary);
     cursor: pointer;
     transition: all 0.15s;
 }
 
 .schedule-zoom-btn:hover {
-    background: var(--gray-600, #475569);
-    color: var(--text-primary, #f1f5f9);
+    background: var(--gray-600);
+    color: var(--text-primary);
 }
 
 /* Print CTA button — visually distinct from icon-only zoom controls */
@@ -196,10 +196,10 @@
     gap: 0.4rem;
     padding: 0.35rem 0.85rem;
     height: 32px;
-    background: #4f46e5;
-    border: 1px solid #6366f1;
+    background: var(--primary-600);
+    border: 1px solid var(--primary-500);
     border-radius: 7px;
-    color: #fff;
+    color: var(--gray-50);
     font-size: 0.78rem;
     font-weight: 600;
     letter-spacing: 0.02em;
@@ -210,9 +210,9 @@
 }
 
 .schedule-print-btn:hover {
-    background: #4338ca;
-    border-color: #818cf8;
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
+    background: var(--primary-700);
+    border-color: var(--primary-400);
+    box-shadow: 0 0 0 3px var(--primary-alpha-30);
     transform: translateY(-1px);
 }
 
@@ -239,7 +239,7 @@
     background: transparent;
     border: none;
     border-radius: 4px;
-    color: var(--text-secondary, #94a3b8);
+    color: var(--text-secondary);
     cursor: pointer;
     opacity: 0;
     transition: all 0.15s;
@@ -252,13 +252,13 @@
 
 .schedule-tab-rename:hover {
     opacity: 1 !important;
-    color: var(--text-primary, #f1f5f9);
-    background: var(--gray-600, #475569);
+    color: var(--text-primary);
+    background: var(--gray-600);
 }
 
 .schedule-tab-delete:hover {
     opacity: 1 !important;
-    color: #ef4444;
+    color: var(--danger);
     background: rgba(239, 68, 68, 0.15);
 }
 
@@ -271,10 +271,10 @@
 }
 
 .schedule-tab-input {
-    background: var(--gray-900, #0f172a);
-    border: 1px solid var(--primary-500, #6366f1);
+    background: var(--gray-900);
+    border: 1px solid var(--primary-500);
     border-radius: 4px;
-    color: var(--text-primary, #f1f5f9);
+    color: var(--text-primary);
     font-size: 0.75rem;
     font-weight: 500;
     padding: 0.2rem 0.4rem;
@@ -298,7 +298,7 @@
 }
 
 .schedule-tab-confirm {
-    color: #34d399;
+    color: var(--success);
 }
 
 .schedule-tab-confirm:hover {
@@ -306,12 +306,12 @@
 }
 
 .schedule-tab-cancel {
-    color: var(--text-secondary, #94a3b8);
+    color: var(--text-secondary);
 }
 
 .schedule-tab-cancel:hover {
-    background: var(--gray-600, #475569);
-    color: var(--text-primary, #f1f5f9);
+    background: var(--gray-600);
+    color: var(--text-primary);
 }
 
 /* ── Empty state ── */
@@ -322,7 +322,7 @@
     justify-content: center;
     gap: 0.75rem;
     height: 100%;
-    color: var(--text-secondary, #94a3b8);
+    color: var(--text-secondary);
     text-align: center;
     padding: 2rem;
 }
@@ -330,7 +330,7 @@
 .schedule-empty h2 {
     font-size: 1.1rem;
     font-weight: 600;
-    color: var(--text-primary, #f1f5f9);
+    color: var(--text-primary);
     margin: 0;
 }
 
@@ -346,7 +346,7 @@
     align-items: center;
     gap: 0.4rem;
     padding: 0.5rem 1rem;
-    background: var(--primary-600, #4f46e5);
+    background: var(--primary-600);
     color: white;
     border: none;
     border-radius: 8px;
@@ -358,8 +358,8 @@
 }
 
 .schedule-create-btn:hover {
-    background: var(--primary-500, #6366f1);
-    box-shadow: 0 4px 16px rgba(99, 102, 241, 0.3);
+    background: var(--primary-500);
+    box-shadow: 0 4px 16px var(--primary-alpha-30);
 }
 
 /* ============================================
@@ -389,8 +389,8 @@
     flex-direction: column;
     min-width: 260px;
     width: 260px;
-    background: var(--bg-card, #1e293b);
-    border: 1px solid var(--border-color, #334155);
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
     border-radius: 12px;
     flex-shrink: 0;
     overflow: visible;
@@ -402,7 +402,7 @@
 }
 
 .kanban-column.wrapped {
-    border-color: rgba(99, 102, 241, 0.3);
+    border-color: var(--primary-alpha-30);
     opacity: 0.7;
 }
 
@@ -412,7 +412,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 0.65rem 0.75rem;
-    border-bottom: 1px solid var(--border-color, #334155);
+    border-bottom: 1px solid var(--border-color);
     background: rgba(255, 255, 255, 0.02);
     border-radius: 12px 12px 0 0;
 }
@@ -426,12 +426,12 @@
 .kanban-day-number {
     font-size: 0.82rem;
     font-weight: 700;
-    color: var(--text-primary, #f1f5f9);
+    color: var(--text-primary);
 }
 
 .kanban-day-date {
     font-size: 0.68rem;
-    color: var(--text-secondary, #94a3b8);
+    color: var(--text-secondary);
 }
 
 .kanban-day-date-btn {
@@ -441,7 +441,7 @@
     background: transparent;
     border: none;
     border-radius: 4px;
-    color: var(--text-secondary, #94a3b8);
+    color: var(--text-secondary);
     font-size: 0.67rem;
     cursor: pointer;
     padding: 0.1rem 0.3rem;
@@ -450,8 +450,8 @@
 }
 
 .kanban-day-date-btn:hover {
-    background: var(--gray-700, #334155);
-    color: var(--text-primary, #f1f5f9);
+    background: var(--gray-700);
+    color: var(--text-primary);
 }
 
 .kanban-day-date-btn span {
@@ -459,10 +459,10 @@
 }
 
 .kanban-date-input {
-    background: var(--gray-900, #0f172a);
-    border: 1px solid var(--primary-500, #6366f1);
+    background: var(--gray-900);
+    border: 1px solid var(--primary-500);
     border-radius: 4px;
-    color: var(--text-primary, #f1f5f9);
+    color: var(--text-primary);
     font-size: 0.67rem;
     padding: 0.15rem 0.3rem;
     outline: none;
@@ -483,8 +483,8 @@
     min-width: 22px;
     height: 22px;
     padding: 0 0.3rem;
-    background: var(--gray-700, #334155);
-    color: var(--text-secondary, #94a3b8);
+    background: var(--gray-700);
+    color: var(--text-secondary);
     border-radius: 6px;
     font-size: 0.7rem;
     font-weight: 600;
@@ -499,7 +499,7 @@
     background: transparent;
     border: none;
     border-radius: 5px;
-    color: var(--text-secondary, #94a3b8);
+    color: var(--text-secondary);
     cursor: pointer;
     opacity: 0;
     transition: all 0.15s;
@@ -511,7 +511,7 @@
 
 .kanban-delete-day:hover {
     opacity: 1 !important;
-    color: #ef4444;
+    color: var(--danger);
     background: rgba(239, 68, 68, 0.15);
 }
 
@@ -531,7 +531,7 @@
     width: 4px;
 }
 .kanban-col-body::-webkit-scrollbar-thumb {
-    background: var(--gray-600, #475569);
+    background: var(--gray-600);
     border-radius: 2px;
 }
 
@@ -540,10 +540,10 @@
     align-items: center;
     justify-content: center;
     height: 80px;
-    color: var(--text-secondary, #94a3b8);
+    color: var(--text-secondary);
     font-size: 0.75rem;
     font-style: italic;
-    border: 1px dashed var(--border-color, #334155);
+    border: 1px dashed var(--border-color);
     border-radius: 8px;
 }
 
@@ -553,7 +553,7 @@
     align-items: center;
     gap: 0.75rem;
     padding: 0.5rem 0.75rem;
-    border-top: 1px solid var(--border-color, #334155);
+    border-top: 1px solid var(--border-color);
     background: rgba(255, 255, 255, 0.02);
     border-radius: 0 0 12px 12px;
 }
@@ -563,7 +563,7 @@
     align-items: center;
     gap: 0.25rem;
     font-size: 0.68rem;
-    color: var(--text-secondary, #94a3b8);
+    color: var(--text-secondary);
 }
 
 /* ── Add Day button column ── */
@@ -581,9 +581,9 @@
     gap: 0.4rem;
     padding: 0.6rem 1rem;
     background: transparent;
-    border: 2px dashed var(--border-color, #334155);
+    border: 2px dashed var(--border-color);
     border-radius: 10px;
-    color: var(--text-secondary, #94a3b8);
+    color: var(--text-secondary);
     font-size: 0.78rem;
     font-weight: 500;
     cursor: pointer;
@@ -592,9 +592,9 @@
 }
 
 .kanban-add-day-btn:hover {
-    border-color: var(--primary-500, #6366f1);
-    color: var(--primary-400, #818cf8);
-    background: rgba(99, 102, 241, 0.05);
+    border-color: var(--primary-500);
+    color: var(--primary-400);
+    background: var(--primary-alpha-05);
 }
 
 /* ============================================
@@ -603,7 +603,7 @@
 
 .schedule-scene-card {
     background: var(--gray-750, #253044);
-    border: 1px solid var(--border-color, #334155);
+    border: 1px solid var(--border-color);
     border-radius: 8px;
     padding: 0.5rem 0.6rem;
     transition: all 0.15s;
@@ -612,8 +612,8 @@
 }
 
 .schedule-scene-card:hover {
-    border-color: var(--gray-500, #64748b);
-    background: var(--gray-700, #334155);
+    border-color: var(--gray-500);
+    background: var(--gray-700);
 }
 
 .schedule-scene-card.dragging {
@@ -623,7 +623,7 @@
 
 .schedule-scene-card.overlay {
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-    border-color: var(--primary-500, #6366f1);
+    border-color: var(--primary-500);
     transform: rotate(1.5deg);
 }
 
@@ -635,7 +635,7 @@
 .schedule-scene-card.omitted {
     opacity: 0.55;
     border: 1px dashed rgba(239, 68, 68, 0.5);
-    border-left: 3px dashed #ef4444;
+    border-left: 3px dashed var(--danger);
     background:
         repeating-linear-gradient(
             -45deg,
@@ -655,7 +655,7 @@
     text-decoration: line-through;
     text-decoration-color: rgba(239, 68, 68, 0.6);
     text-decoration-thickness: 1.5px;
-    color: var(--gray-500, #64748b);
+    color: var(--gray-500);
 }
 
 .schedule-scene-card.omitted .ssc-ie {
@@ -670,8 +670,8 @@
 .ssc-omit-badge {
     font-size: 9px;
     font-weight: 800;
-    background: #ef4444;
-    color: #fff;
+    background: var(--danger);
+    color: var(--gray-50);
     padding: 2px 5px;
     border-radius: 3px;
     letter-spacing: 0.6px;
@@ -687,21 +687,21 @@
 }
 
 .schedule-scene-card.selected {
-    border-color: var(--primary-500, #6366f1);
-    background: rgba(99, 102, 241, 0.1);
-    box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.3);
+    border-color: var(--primary-500);
+    background: var(--primary-alpha-10);
+    box-shadow: 0 0 0 1px var(--primary-alpha-30);
 }
 
 .schedule-scene-card.selected:hover {
-    background: rgba(99, 102, 241, 0.15);
+    background: var(--primary-alpha-15);
 }
 
 .schedule-scene-card.int {
-    border-left: 3px solid #f59e0b;
+    border-left: 3px solid var(--primary-500);
 }
 
 .schedule-scene-card.ext {
-    border-left: 3px solid #3b82f6;
+    border-left: 3px solid var(--primary-500);
 }
 
 /* Drag handle */
@@ -711,7 +711,7 @@
     justify-content: center;
     width: 18px;
     height: 18px;
-    color: var(--text-secondary, #94a3b8);
+    color: var(--text-secondary);
     cursor: grab;
     opacity: 0.4;
     transition: opacity 0.15s;
@@ -730,7 +730,7 @@
 .kanban-col-body.kanban-col-over {
     background: rgba(99, 102, 241, 0.06);
     border-radius: 8px;
-    outline: 2px dashed rgba(99, 102, 241, 0.3);
+    outline: 2px dashed var(--primary-alpha-30);
     outline-offset: -2px;
 }
 
@@ -745,7 +745,7 @@
 .ssc-number {
     font-size: 0.78rem;
     font-weight: 700;
-    color: var(--text-primary, #f1f5f9);
+    color: var(--text-primary);
 }
 
 .ssc-ie {
@@ -758,18 +758,18 @@
 }
 
 .ssc-ie.int {
-    background: rgba(245, 158, 11, 0.15);
-    color: #f59e0b;
+    background: var(--primary-alpha-15);
+    color: var(--primary-500);
 }
 
 .ssc-ie.ext {
     background: rgba(59, 130, 246, 0.15);
-    color: #3b82f6;
+    color: var(--primary-500);
 }
 
 .ssc-eighths {
     font-size: 0.65rem;
-    color: var(--text-secondary, #94a3b8);
+    color: var(--text-secondary);
     margin-left: auto;
 }
 
@@ -782,7 +782,7 @@
     background: transparent;
     border: none;
     border-radius: 4px;
-    color: var(--text-secondary, #94a3b8);
+    color: var(--text-secondary);
     cursor: pointer;
     opacity: 0;
     transition: all 0.15s;
@@ -794,14 +794,14 @@
 
 .ssc-remove:hover {
     background: rgba(239, 68, 68, 0.2);
-    color: #ef4444;
+    color: var(--danger);
 }
 
 /* Setting / location */
 .ssc-setting {
     font-size: 0.72rem;
     font-weight: 500;
-    color: var(--text-primary, #e2e8f0);
+    color: var(--text-primary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -813,7 +813,7 @@
     display: flex;
     align-items: center;
     gap: 0.4rem;
-    color: var(--text-secondary, #94a3b8);
+    color: var(--text-secondary);
     font-size: 0.65rem;
 }
 
@@ -823,7 +823,7 @@
 
 .ssc-story-day {
     padding: 0.05rem 0.3rem;
-    background: var(--gray-700, #334155);
+    background: var(--gray-700);
     border-radius: 3px;
     font-weight: 600;
 }
@@ -847,11 +847,11 @@
     top: 0;
     z-index: 9999;
     width: 260px;
-    background: var(--gray-900, #0f172a);
-    border: 1px solid var(--border-color, #334155);
+    background: var(--gray-900);
+    border: 1px solid var(--border-color);
     border-radius: 10px;
     padding: 0.65rem 0.75rem;
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(99, 102, 241, 0.1);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), 0 0 0 1px var(--primary-alpha-10);
     pointer-events: none;
     opacity: 0;
     transform: translateX(-4px);
@@ -892,9 +892,9 @@
     top: 14px;
     width: 10px;
     height: 10px;
-    background: var(--gray-900, #0f172a);
-    border-left: 1px solid var(--border-color, #334155);
-    border-bottom: 1px solid var(--border-color, #334155);
+    background: var(--gray-900);
+    border-left: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
     transform: rotate(45deg);
 }
 
@@ -904,8 +904,8 @@
     right: -6px;
     border-left: none;
     border-bottom: none;
-    border-right: 1px solid var(--border-color, #334155);
-    border-top: 1px solid var(--border-color, #334155);
+    border-right: 1px solid var(--border-color);
+    border-top: 1px solid var(--border-color);
 }
 
 /* Tooltip header */
@@ -920,7 +920,7 @@
 .ssc-tt-scene-num {
     font-size: 0.8rem;
     font-weight: 700;
-    color: var(--text-primary, #f1f5f9);
+    color: var(--text-primary);
     flex: 1;
 }
 
@@ -934,13 +934,13 @@
 }
 
 .ssc-tt-ie.int {
-    background: rgba(245, 158, 11, 0.15);
-    color: #f59e0b;
+    background: var(--primary-alpha-15);
+    color: var(--primary-500);
 }
 
 .ssc-tt-ie.ext {
     background: rgba(59, 130, 246, 0.15);
-    color: #3b82f6;
+    color: var(--primary-500);
 }
 
 .ssc-tt-timeline {
@@ -955,7 +955,7 @@
 
 .ssc-tt-pages {
     font-size: 0.65rem;
-    color: var(--text-secondary, #94a3b8);
+    color: var(--text-secondary);
     font-weight: 500;
     margin-left: auto;
 }
@@ -966,50 +966,50 @@
     align-items: flex-start;
     gap: 0.35rem;
     font-size: 0.72rem;
-    color: var(--text-primary, #e2e8f0);
+    color: var(--text-primary);
     margin-bottom: 0.3rem;
     line-height: 1.4;
 }
 
 .ssc-tt-row svg {
-    color: var(--text-secondary, #94a3b8);
+    color: var(--text-secondary);
     flex-shrink: 0;
     margin-top: 1px;
 }
 
 .ssc-tt-sub {
     padding-left: 1.2rem;
-    color: var(--text-secondary, #94a3b8);
+    color: var(--text-secondary);
     font-size: 0.67rem;
 }
 
 .ssc-tt-label {
     font-weight: 600;
-    color: var(--text-secondary, #94a3b8);
+    color: var(--text-secondary);
     flex-shrink: 0;
 }
 
 .ssc-tt-badge {
     margin-left: auto;
     padding: 0.05rem 0.35rem;
-    background: var(--gray-700, #334155);
+    background: var(--gray-700);
     border-radius: 4px;
     font-size: 0.62rem;
     font-weight: 600;
-    color: var(--text-secondary, #94a3b8);
+    color: var(--text-secondary);
     flex-shrink: 0;
 }
 
 /* Synopsis */
 .ssc-tt-synopsis {
     font-size: 0.7rem;
-    color: var(--text-secondary, #94a3b8);
+    color: var(--text-secondary);
     line-height: 1.5;
     margin: 0.35rem 0;
     padding: 0.35rem 0.5rem;
     background: rgba(255, 255, 255, 0.03);
     border-radius: 6px;
-    border-left: 2px solid var(--border-color, #334155);
+    border-left: 2px solid var(--border-color);
     max-height: 72px;
     overflow: hidden;
     display: -webkit-box;
@@ -1031,14 +1031,14 @@
     gap: 0.3rem;
     font-size: 0.65rem;
     font-weight: 600;
-    color: var(--text-secondary, #94a3b8);
+    color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     margin-bottom: 0.3rem;
 }
 
 .ssc-tt-section-label svg {
-    color: var(--text-secondary, #94a3b8);
+    color: var(--text-secondary);
 }
 
 .ssc-tt-tags {
@@ -1058,12 +1058,12 @@
 
 .ssc-tt-cast {
     background: rgba(99, 102, 241, 0.12);
-    color: #a5b4fc;
+    color: var(--primary-300);
 }
 
 .ssc-tt-prop {
-    background: rgba(245, 158, 11, 0.1);
-    color: #fbbf24;
+    background: var(--primary-alpha-10);
+    color: var(--primary-400);
 }
 
 .ssc-tt-wardrobe {
@@ -1078,9 +1078,9 @@
 
 .ssc-tt-more {
     font-size: 0.62rem;
-    color: var(--text-secondary, #94a3b8);
+    color: var(--text-secondary);
     padding: 0.1rem 0.3rem;
-    background: var(--gray-700, #334155);
+    background: var(--gray-700);
     border-radius: 4px;
 }
 
