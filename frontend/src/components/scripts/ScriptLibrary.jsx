@@ -156,7 +156,7 @@ const ScriptLibrary = () => {
 
     if (loading) {
         return (
-            <div className="library-container loading-state">
+            <div className="library-container loading-state page-container">
                 <div className="spinner"></div>
                 <p>Loading library...</p>
             </div>
