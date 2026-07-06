@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Scissors, X, AlertCircle, Loader } from 'lucide-react';
+import { Scissors, AlertCircle } from 'lucide-react';
 import { splitScene } from '../../services/apiService';
 import { useToast } from '../../context/ToastContext';
+import { Modal, Button } from '../ui';
 import './SceneModals.css';
 
 /**
@@ -52,20 +53,21 @@ const SceneSplitModal = ({ isOpen, onClose, scene, scriptId, onSuccess }) => {
     };
     
     return (
-        <div className="modal-overlay" onClick={onClose}>
-            <div className="scene-modal" onClick={e => e.stopPropagation()}>
-                {/* Header */}
-                <div className="modal-header">
-                    <div className="modal-title">
-                        <Scissors size={20} />
-                        <h2>Split Scene {sceneNumber}</h2>
-                    </div>
-                    <button className="modal-close" onClick={onClose}>
-                        <X size={20} />
-                    </button>
-                </div>
-                
-                {/* Content */}
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            title={<><Scissors size={20} /> Split Scene {sceneNumber}</>}
+            footer={
+                <>
+                    <Button variant="secondary" onClick={onClose} disabled={loading}>
+                        Cancel
+                    </Button>
+                    <Button variant="primary" onClick={handleSplit} loading={loading} icon={Scissors}>
+                        {loading ? 'Splitting…' : 'Split Scene'}
+                    </Button>
+                </>
+            }
+        >
                 <div className="modal-content">
                     {/* Info Banner */}
                     <div className="info-banner">
@@ -128,28 +130,7 @@ const SceneSplitModal = ({ isOpen, onClose, scene, scriptId, onSuccess }) => {
                         </div>
                     </div>
                 </div>
-                
-                {/* Footer */}
-                <div className="modal-footer">
-                    <button className="btn-cancel" onClick={onClose} disabled={loading}>
-                        Cancel
-                    </button>
-                    <button className="btn-primary" onClick={handleSplit} disabled={loading}>
-                        {loading ? (
-                            <>
-                                <Loader size={16} className="spin" />
-                                Splitting...
-                            </>
-                        ) : (
-                            <>
-                                <Scissors size={16} />
-                                Split Scene
-                            </>
-                        )}
-                    </button>
-                </div>
-            </div>
-        </div>
+        </Modal>
     );
 };
 

@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { 
-    Plus, 
-    Trash2, 
-    Save, 
-    X, 
-    Scissors, 
+import {
+    Plus,
+    Trash2,
+    Save,
+    Scissors,
     Type,
     Sun,
     Moon,
@@ -18,6 +17,7 @@ import {
 import { getScenes, createScene, deleteSceneById } from '../../services/apiService';
 import { useToast } from '../../context/ToastContext';
 import { useConfirmDialog } from '../../context/ConfirmDialogContext';
+import { Modal, Button } from '../ui';
 import './SceneEditor.css';
 
 /**
@@ -245,16 +245,29 @@ const SceneEditor = ({ scriptId, fullText, onScenesUpdated }) => {
             </div>
 
             {/* Scene Form Modal */}
-            {showSceneForm && selection && (
-                <div className="scene-form-overlay">
-                    <div className="scene-form-modal">
-                        <div className="modal-header">
-                            <h3>Create New Scene</h3>
-                            <button className="close-btn" onClick={handleCancel}>
-                                <X size={20} />
-                            </button>
-                        </div>
-
+            {selection && (
+                <Modal
+                    isOpen={showSceneForm}
+                    onClose={handleCancel}
+                    title="Create New Scene"
+                    footer={
+                        <>
+                            <Button variant="secondary" onClick={handleCancel}>
+                                Cancel
+                            </Button>
+                            <Button
+                                variant="primary"
+                                onClick={handleCreateScene}
+                                disabled={loading || !newSceneData.setting}
+                                loading={loading}
+                                icon={Check}
+                                iconPosition="right"
+                            >
+                                {loading ? 'Creating...' : 'Create Scene'}
+                            </Button>
+                        </>
+                    }
+                >
                         <div className="modal-body">
                             {/* Selected text preview */}
                             <div className="selection-preview">
@@ -339,22 +352,7 @@ const SceneEditor = ({ scriptId, fullText, onScenesUpdated }) => {
                                 </div>
                             </div>
                         </div>
-
-                        <div className="modal-footer">
-                            <button className="btn-secondary" onClick={handleCancel}>
-                                Cancel
-                            </button>
-                            <button 
-                                className="btn-primary" 
-                                onClick={handleCreateScene}
-                                disabled={loading || !newSceneData.setting}
-                            >
-                                {loading ? 'Creating...' : 'Create Scene'}
-                                <Check size={16} />
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                </Modal>
             )}
 
             {/* Main Content */}
