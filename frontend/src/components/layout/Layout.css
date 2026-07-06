@@ -1,10 +1,4 @@
-/* Layout Structure */
-:root {
-  --header-height: 64px;
-  --edge-padding: 2rem;
-  --sidebar-width-viewer: 320px;
-  /* Note: --bg-app is defined in index.css as var(--gray-900) for dark theme */
-}
+/* Layout Structure — design tokens live in index.css */
 
 .main-layout {
   display: flex;
@@ -38,36 +32,6 @@
   margin: 0 auto;
 }
 
-/* Sidebar Styling */
-.sidebar {
-  width: var(--sidebar-width);
-  height: 100vh;
-  position: fixed;
-  left: 0;
-  top: 0;
-  background-color: var(--gray-800);
-  border-right: 1px solid var(--border-color);
-  display: flex;
-  flex-direction: column;
-  z-index: 50;
-  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.02); /* Subtle depth */
-  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.sidebar.collapsed {
-  width: var(--sidebar-width-collapsed);
-}
-
-/* Sidebar Credits Section */
-.sidebar-credits {
-  padding: 16px;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.sidebar.collapsed .sidebar-credits {
-  padding: 12px 8px;
-}
-
 /* TopBar Credits */
 .topbar-credits {
   margin-left: 16px;
@@ -84,60 +48,6 @@
   white-space: nowrap;
   overflow: hidden;
   flex-shrink: 0;
-}
-
-.sidebar.collapsed .sidebar-header {
-  height: auto;
-  min-height: 120px; /* Give more room for vertical stack */
-  padding: 1.5rem 0;
-  justify-content: flex-start;
-  flex-direction: column;
-  gap: 1.5rem; /* More breathing room between Logo and Toggle */
-}
-
-.sidebar.collapsed .logo-container {
-  display: none; 
-}
-
-.sidebar.collapsed .logo-container {
-  display: flex;
-  justify-content: center;
-}
-.sidebar.collapsed .logo-text {
-  display: none;
-}
-
-/* Collapse Button */
-.collapse-btn {
-  background: transparent;
-  border: 1px solid transparent;
-  color: var(--text-secondary);
-  cursor: pointer;
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-}
-
-.collapse-btn:hover {
-  background-color: var(--gray-700);
-  color: var(--primary-500);
-  border-color: var(--border-color);
-}
-
-.sidebar.collapsed .collapse-btn {
-  margin-top: 0;
-  background-color: var(--gray-700);
-}
-
-
-.logo-container {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
 }
 
 .logo-icon {
@@ -160,94 +70,6 @@
   color: var(--primary-500);
 }
 
-.sidebar-nav {
-  padding: 1rem 1rem;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 2.5rem;
-  overflow-x: hidden;
-  overflow-y: auto; /* Allow scroll if needed */
-}
-
-.sidebar.collapsed .sidebar-nav {
-  padding: 1rem 0.5rem;
-  align-items: center;
-  gap: 2rem;
-}
-
-.nav-section {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  width: 100%;
-}
-
-.sidebar.collapsed .nav-section {
-  align-items: center;
-  gap: 0.75rem; /* More space between icons */
-}
-
-.nav-section.mt-auto {
-  margin-top: auto;
-}
-
-.nav-label {
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: var(--gray-400);
-  margin-bottom: 0.75rem;
-  padding-left: 1rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.nav-item {
-  display: flex;
-  align-items: center;
-  gap: 0.875rem;
-  padding: 0.75rem 1rem;
-  border-radius: 12px; /* Pill shape */
-  color: var(--text-secondary);
-  font-size: 0.95rem;
-  font-weight: 500;
-  transition: all 0.2s ease;
-  border: 1px solid transparent;
-  white-space: nowrap;
-  height: 44px; /* Fixed height for consistency */
-}
-
-.sidebar.collapsed .nav-item {
-  padding: 0;
-  justify-content: center;
-  width: 44px; /* Perfect square */
-  height: 44px;
-}
-
-.nav-item:hover {
-  background-color: var(--gray-700);
-  color: var(--text-primary);
-}
-
-.nav-item.active {
-  background-color: rgba(245, 158, 11, 0.15);
-  color: var(--primary-500);
-  font-weight: 600;
-}
-
-/* Disabled nav items (Coming Soon) */
-.nav-item.disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-.nav-item.disabled:hover {
-  background-color: transparent;
-  color: var(--text-secondary);
-}
-
 /* Coming Soon Badge */
 .coming-soon-badge {
   margin-left: auto;
@@ -256,42 +78,6 @@
   justify-content: center;
   color: var(--gray-400);
   opacity: 0.7;
-}
-
-.sidebar-footer {
-  padding: 1.5rem;
-  border-top: 1px solid var(--border-color);
-  overflow: hidden;
-  flex-shrink: 0;
-}
-
-.sidebar.collapsed .sidebar-footer {
-  padding: 1.5rem 0.5rem;
-  display: flex;
-  justify-content: center;
-}
-
-.user-profile {
-  display: flex;
-  align-items: center;
-  gap: 0.875rem;
-  padding: 0.75rem;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  border: 1px solid transparent;
-  white-space: nowrap;
-}
-
-.sidebar.collapsed .user-profile {
-  padding: 0.5rem;
-  gap: 0;
-  justify-content: center;
-}
-
-.user-profile:hover {
-  background-color: var(--gray-700);
-  border-color: var(--border-color);
 }
 
 .user-avatar {
@@ -318,12 +104,6 @@
   font-size: 0.9rem;
   font-weight: 600;
   color: var(--text-primary);
-}
-
-.user-role {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-  font-weight: 500;
 }
 
 /* TopBar Styling - Horizontal Navigation */
