@@ -48,6 +48,7 @@
   --header-height: 64px;
   --edge-padding: 2rem;
   --sidebar-width-viewer: 320px;
+  --container-max: 1400px;
 
   /* Shadows for dark mode */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
@@ -154,6 +155,13 @@ a {
 button {
   cursor: pointer;
   font-family: inherit;
+}
+
+/* One contained-width standard for text/table pages (full-bleed pages skip it) */
+.page-container {
+  max-width: var(--container-max);
+  margin: 0 auto;
+  width: 100%;
 }
 
 h1, h2, h3, h4, h5, h6 {
