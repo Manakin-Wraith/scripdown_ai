@@ -4,6 +4,8 @@
  * Styled confirmation modal that matches the dark theme.
  */
 
+.confirm-title-row { display: inline-flex; align-items: center; gap: var(--space-2); }
+
 /* Overlay */
 .confirm-overlay {
     position: fixed;

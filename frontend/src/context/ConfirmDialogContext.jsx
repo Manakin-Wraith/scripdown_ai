@@ -16,6 +16,8 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { AlertTriangle, Trash2, Info, X } from 'lucide-react';
 import './ConfirmDialog.css';
+import Modal from '../components/ui/Modal';
+import Button from '../components/ui/Button';
 
 const ConfirmDialogContext = createContext(null);
 
@@ -85,15 +87,6 @@ export const ConfirmDialogProvider = ({ children }) => {
         setDialogState({ isOpen: false, config: null, resolve: null });
     }, [dialogState.resolve]);
 
-    // Handle keyboard events
-    const handleKeyDown = useCallback((e) => {
-        if (e.key === 'Escape') {
-            handleCancel();
-        } else if (e.key === 'Enter') {
-            handleConfirm();
-        }
-    }, [handleCancel, handleConfirm]);
-
     return (
         <ConfirmDialogContext.Provider value={{ confirm }}>
             {children}
@@ -102,7 +95,6 @@ export const ConfirmDialogProvider = ({ children }) => {
                     config={dialogState.config}
                     onConfirm={handleConfirm}
                     onCancel={handleCancel}
-                    onKeyDown={handleKeyDown}
                 />
             )}
         </ConfirmDialogContext.Provider>
@@ -112,66 +104,33 @@ export const ConfirmDialogProvider = ({ children }) => {
 /**
  * Confirm Dialog Component
  */
-const ConfirmDialog = ({ config, onConfirm, onCancel, onKeyDown }) => {
+const ConfirmDialog = ({ config, onConfirm, onCancel }) => {
     const variant = VARIANTS[config.variant] || VARIANTS.info;
     const Icon = variant.icon;
     const confirmText = config.confirmText || variant.confirmText;
-
-    // Focus trap - focus the cancel button on mount
-    React.useEffect(() => {
-        const handleKeyDown = (e) => {
-            if (e.key === 'Escape') {
-                onCancel();
-            }
-        };
-        
-        document.addEventListener('keydown', handleKeyDown);
-        return () => document.removeEventListener('keydown', handleKeyDown);
-    }, [onCancel]);
+    const btnVariant = config.variant === 'danger' ? 'danger' : 'primary';
 
     return (
-        <div className="confirm-overlay" onClick={onCancel}>
-            <div 
-                className={`confirm-dialog ${variant.className}`}
-                onClick={(e) => e.stopPropagation()}
-                role="alertdialog"
-                aria-modal="true"
-                aria-labelledby="confirm-title"
-                aria-describedby="confirm-message"
-            >
-                {/* Icon */}
-                <div className="confirm-icon">
-                    <Icon size={28} />
-                </div>
-
-                {/* Content */}
-                <div className="confirm-content">
-                    <h3 id="confirm-title" className="confirm-title">
-                        {config.title}
-                    </h3>
-                    <p id="confirm-message" className="confirm-message">
-                        {config.message}
-                    </p>
-                </div>
-
-                {/* Actions */}
-                <div className="confirm-actions">
-                    <button 
-                        className="confirm-btn cancel"
-                        onClick={onCancel}
-                    >
-                        {config.cancelText}
-                    </button>
-                    <button 
-                        className="confirm-btn primary"
-                        onClick={onConfirm}
-                        autoFocus
-                    >
-                        {confirmText}
-                    </button>
-                </div>
-            </div>
-        </div>
+        <Modal
+            isOpen
+            onClose={onCancel}
+            size="sm"
+            showClose={false}
+            title={
+                <span className="confirm-title-row">
+                    <Icon size={20} />
+                    {config.title}
+                </span>
+            }
+            footer={
+                <>
+                    <Button variant="secondary" onClick={onCancel}>{config.cancelText}</Button>
+                    <Button variant={btnVariant} onClick={onConfirm} autoFocus>{confirmText}</Button>
+                </>
+            }
+        >
+            <p className="confirm-message">{config.message}</p>
+        </Modal>
     );
 };
 
