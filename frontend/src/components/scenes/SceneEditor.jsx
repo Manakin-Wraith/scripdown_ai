@@ -268,7 +268,6 @@ const SceneEditor = ({ scriptId, fullText, onScenesUpdated }) => {
                         </>
                     }
                 >
-                        <div className="modal-body">
                             {/* Selected text preview */}
                             <div className="selection-preview">
                                 <label>Selected Text:</label>
@@ -351,7 +350,6 @@ const SceneEditor = ({ scriptId, fullText, onScenesUpdated }) => {
                                     </button>
                                 </div>
                             </div>
-                        </div>
                 </Modal>
             )}
 
