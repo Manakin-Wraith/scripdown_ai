@@ -34,7 +34,7 @@
 
 .scene-setting {
   font-size: 0.875rem;
-  color: #94a3b8;
+  color: var(--gray-400);
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -43,7 +43,7 @@
 .scene-description {
   margin-bottom: 20px;
   line-height: 1.6;
-  color: #e2e8f0;
+  color: var(--gray-200);
 }
 
 .scene-atmosphere {
@@ -55,7 +55,7 @@
   border-left: 3px solid #667eea;
   border-radius: 8px;
   margin-bottom: 20px;
-  color: #cbd5e1;
+  color: var(--gray-300);
   font-size: 0.875rem;
   font-style: italic;
 }
@@ -71,7 +71,7 @@
 .scene-section h4 {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #cbd5e1;
+  color: var(--gray-300);
   margin-bottom: 8px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -142,7 +142,7 @@
   padding: 8px 12px;
   background: rgba(255, 255, 255, 0.05);
   border-radius: 8px;
-  color: #cbd5e1;
+  color: var(--gray-300);
   font-size: 0.875rem;
   border-left: 2px solid rgba(102, 126, 234, 0.3);
 }

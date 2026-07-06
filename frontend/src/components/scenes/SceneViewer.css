@@ -65,7 +65,7 @@
 
 .analysis-progress-bar.analyzing {
     background: linear-gradient(135deg, rgba(245, 158, 11, 0.08), rgba(245, 158, 11, 0.03));
-    border-bottom-color: rgba(245, 158, 11, 0.3);
+    border-bottom-color: var(--primary-alpha-30);
 }
 
 /* Progress Header */
@@ -144,9 +144,9 @@
 }
 
 .cancel-btn:hover {
-    background: rgba(239, 68, 68, 0.1);
+    background: var(--danger-bg);
     border-color: rgba(239, 68, 68, 0.5);
-    color: #ef4444;
+    color: var(--danger);
 }
 
 /* Progress Track */
@@ -172,7 +172,7 @@
 @keyframes progressPulse {
     0%, 100% { 
         opacity: 1;
-        box-shadow: 0 0 8px rgba(245, 158, 11, 0.4);
+        box-shadow: 0 0 8px var(--primary-alpha-40);
     }
     50% { 
         opacity: 0.85;
@@ -304,7 +304,7 @@
 }
 
 .pdf-toggle-btn.active {
-    background: rgba(245, 158, 11, 0.15);
+    background: var(--primary-alpha-15);
     color: var(--primary-500);
     border-color: var(--primary-500);
 }
@@ -372,10 +372,10 @@
 }
 
 .tab-btn.active {
-    background-color: rgba(245, 158, 11, 0.15);
+    background-color: var(--primary-alpha-15);
     color: var(--primary-500);
     border-color: var(--primary-600);
-    box-shadow: 0 1px 2px rgba(245, 158, 11, 0.1);
+    box-shadow: 0 1px 2px var(--primary-alpha-10);
 }
 
 /* Main Content (Right Pane) - Fluid Width */
@@ -423,7 +423,7 @@
 }
 
 .error-icon {
-    color: #ef4444;
+    color: var(--danger);
     margin-bottom: 1rem;
 }
 
@@ -449,13 +449,13 @@
     font-weight: 600;
     transition: all 0.2s ease;
     border: none;
-    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+    box-shadow: 0 2px 8px var(--primary-alpha-30);
 }
 
 .btn-primary:hover {
     background: linear-gradient(135deg, var(--primary-400), var(--primary-500));
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+    box-shadow: 0 4px 12px var(--primary-alpha-40);
 }
 
 /* Responsive Mobile Styles */

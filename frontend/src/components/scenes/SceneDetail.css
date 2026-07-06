@@ -60,7 +60,7 @@ button.scene-number-label.editable-label {
 }
 button.scene-number-label.editable-label:hover {
     background: rgba(99, 102, 241, 0.08);
-    color: #a5b4fc;
+    color: var(--primary-300);
 }
 button.scene-number-label.editable-label:hover .edit-hint-icon {
     opacity: 1;
@@ -111,14 +111,14 @@ button.scene-title.editable-title:hover .edit-hint-icon {
     padding: 0.15rem 0.4rem;
     font-size: 0.8rem;
     font-weight: 600;
-    background: var(--bg-surface, #1e2130);
+    background: var(--bg-surface);
     border: 1px solid rgba(99, 102, 241, 0.5);
     border-radius: 4px;
     color: var(--text-primary);
     outline: none;
 }
 .scene-number-input:focus {
-    border-color: #818cf8;
+    border-color: var(--primary-400);
     box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
 }
 
@@ -137,12 +137,12 @@ button.scene-title.editable-title:hover .edit-hint-icon {
     background: rgba(99, 102, 241, 0.12);
     border: 1px solid rgba(99, 102, 241, 0.45);
     border-radius: 4px;
-    color: #818cf8;
+    color: var(--primary-400);
     cursor: pointer;
     outline: none;
 }
 .int-ext-select:focus {
-    border-color: #818cf8;
+    border-color: var(--primary-400);
     box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
 }
 .setting-input {
@@ -152,7 +152,7 @@ button.scene-title.editable-title:hover .edit-hint-icon {
     font-size: 1.1rem;
     font-weight: 700;
     letter-spacing: 0.02em;
-    background: var(--bg-surface, #1e2130);
+    background: var(--bg-surface);
     border: 1px solid rgba(99, 102, 241, 0.5);
     border-radius: 6px;
     color: var(--text-primary);
@@ -160,7 +160,7 @@ button.scene-title.editable-title:hover .edit-hint-icon {
     outline: none;
 }
 .setting-input:focus {
-    border-color: #818cf8;
+    border-color: var(--primary-400);
     box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
 }
 
@@ -169,17 +169,17 @@ button.scene-title.editable-title:hover .edit-hint-icon {
     padding: 0.25rem 0.5rem;
     font-size: 0.8rem;
     font-weight: 600;
-    background: rgba(245, 158, 11, 0.1);
-    border: 1px solid rgba(245, 158, 11, 0.4);
+    background: var(--primary-alpha-10);
+    border: 1px solid var(--primary-alpha-40);
     border-radius: 4px;
-    color: #fbbf24;
+    color: var(--primary-400);
     cursor: pointer;
     outline: none;
     letter-spacing: 0.02em;
 }
 .time-of-day-select:focus {
-    border-color: #fbbf24;
-    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
+    border-color: var(--primary-400);
+    box-shadow: 0 0 0 2px var(--primary-alpha-20);
 }
 
 /* Confirm / Cancel action buttons */
@@ -201,14 +201,14 @@ button.scene-title.editable-title:hover .edit-hint-icon {
 }
 .edit-action-btn.confirm {
     background: rgba(34, 197, 94, 0.15);
-    color: #4ade80;
+    color: var(--success);
 }
 .edit-action-btn.confirm:hover:not(:disabled) {
     background: rgba(34, 197, 94, 0.28);
 }
 .edit-action-btn.cancel {
     background: rgba(239, 68, 68, 0.15);
-    color: #f87171;
+    color: var(--danger);
 }
 .edit-action-btn.cancel:hover:not(:disabled) {
     background: rgba(239, 68, 68, 0.24);
@@ -223,7 +223,7 @@ button.scene-title.editable-title:hover .edit-hint-icon {
 /* Save error message */
 .save-error {
     font-size: 0.78rem;
-    color: #f87171;
+    color: var(--danger);
     margin: 0.25rem 0 0;
 }
 
@@ -262,7 +262,7 @@ button.scene-title.editable-title:hover .edit-hint-icon {
     border-radius: 4px;
     font-size: 0.85rem;
     font-weight: 700;
-    color: #818cf8;
+    color: var(--primary-400);
     letter-spacing: 0.02em;
     margin-right: 0.25rem;
 }
@@ -391,14 +391,14 @@ button.scene-title.editable-title:hover .edit-hint-icon {
 
 .character-tag {
     background-color: rgba(59, 130, 246, 0.15);
-    color: #60a5fa;
+    color: var(--primary-400);
     border: 1px solid rgba(59, 130, 246, 0.3);
 }
 
 .prop-tag {
-    background-color: rgba(245, 158, 11, 0.15);
+    background-color: var(--primary-alpha-15);
     color: var(--primary-500);
-    border: 1px solid rgba(245, 158, 11, 0.3);
+    border: 1px solid var(--primary-alpha-30);
 }
 
 .fx-tag {
@@ -439,7 +439,7 @@ button.scene-title.editable-title:hover .edit-hint-icon {
 
 .stunt-tag {
     background-color: rgba(239, 68, 68, 0.15);
-    color: #f87171;
+    color: var(--danger);
     border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
@@ -490,7 +490,7 @@ button.scene-title.editable-title:hover .edit-hint-icon {
 .analyze-prompt.analyzing {
     border-style: solid;
     border-color: var(--primary-600);
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, var(--gray-800) 100%);
+    background: linear-gradient(135deg, var(--primary-alpha-10) 0%, var(--gray-800) 100%);
 }
 
 .prompt-icon {
@@ -506,7 +506,7 @@ button.scene-title.editable-title:hover .edit-hint-icon {
 }
 
 .analyze-prompt.analyzing .prompt-icon {
-    background: rgba(245, 158, 11, 0.15);
+    background: var(--primary-alpha-15);
     color: var(--primary-500);
 }
 
@@ -538,13 +538,13 @@ button.scene-title.editable-title:hover .edit-hint-icon {
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
-    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+    box-shadow: 0 2px 8px var(--primary-alpha-30);
 }
 
 .analyze-btn:hover {
     background: linear-gradient(135deg, var(--primary-400), var(--primary-500));
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+    box-shadow: 0 4px 12px var(--primary-alpha-40);
 }
 
 .analyze-btn:active {
@@ -591,8 +591,8 @@ button.scene-title.editable-title:hover .edit-hint-icon {
     gap: 0.2rem;
     margin-left: auto;
     padding: 0.15rem 0.4rem;
-    background: rgba(245, 158, 11, 0.2);
-    color: #f59e0b;
+    background: var(--primary-alpha-20);
+    color: var(--primary-500);
     border-radius: 9999px;
     font-size: 0.65rem;
     font-weight: 700;
@@ -605,7 +605,7 @@ button.scene-title.editable-title:hover .edit-hint-icon {
     margin-left: 0;
     padding: 0.2rem 0.5rem;
     background: rgba(99, 102, 241, 0.2);
-    color: #818CF8;
+    color: var(--primary-400);
     border-radius: 9999px;
     font-size: 0.7rem;
     font-weight: 600;
@@ -678,7 +678,7 @@ button.scene-title.editable-title:hover .edit-hint-icon {
 .parse-method-badge.regex {
     background: rgba(245, 158, 11, 0.12);
     border: 1px solid rgba(245, 158, 11, 0.35);
-    color: #fbbf24;
+    color: var(--primary-400);
 }
 
 /* Story Day Badge */
@@ -720,7 +720,7 @@ button.scene-title.editable-title:hover .edit-hint-icon {
 .story-day-badge.timeline-montage {
     background: rgba(245, 158, 11, 0.12);
     border: 1px solid rgba(245, 158, 11, 0.35);
-    color: #fbbf24;
+    color: var(--primary-400);
 }
 
 .story-day-badge.timeline-title_card {
@@ -770,7 +770,7 @@ button.scene-title.editable-title:hover .edit-hint-icon {
     align-items: center;
     gap: 0.4rem;
     background: var(--gray-750, rgba(30, 41, 59, 0.6));
-    border: 1px solid var(--border-color, #334155);
+    border: 1px solid var(--border-color);
     border-radius: 8px;
     padding: 0.35rem 0.5rem;
 }
@@ -829,15 +829,15 @@ button.scene-title.editable-title:hover .edit-hint-icon {
 }
 
 .sd-action-btn.active {
-    background: rgba(245, 158, 11, 0.15);
-    border-color: rgba(245, 158, 11, 0.4);
-    color: #fbbf24;
+    background: var(--primary-alpha-15);
+    border-color: var(--primary-alpha-40);
+    color: var(--primary-400);
 }
 
 .sd-action-btn.locked {
     background: rgba(239, 68, 68, 0.12);
     border-color: rgba(239, 68, 68, 0.35);
-    color: #f87171;
+    color: var(--danger);
 }
 
 .sd-action-btn:disabled {
