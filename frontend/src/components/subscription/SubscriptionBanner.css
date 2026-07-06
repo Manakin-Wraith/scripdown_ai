@@ -62,13 +62,13 @@
 
 /* Banner variants */
 .banner-warning {
-    background: linear-gradient(135deg, #F59E0B, #D97706);
-    color: #000000;
+    background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
+    color: var(--gray-900);
 }
 
 .banner-urgent {
-    background: linear-gradient(135deg, #EF4444, #DC2626);
-    color: #FFFFFF;
+    background: linear-gradient(135deg, var(--danger), var(--danger));
+    color: var(--gray-50);
 }
 
 .banner-expired {

@@ -33,13 +33,13 @@
 .subscription-gate-icon {
     width: 56px;
     height: 56px;
-    background: linear-gradient(135deg, #F59E0B, #D97706);
+    background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
     border-radius: 14px;
     display: flex;
     align-items: center;
     justify-content: center;
     margin: 0 auto 1rem;
-    color: #000000;
+    color: var(--gray-900);
 }
 
 .subscription-gate-message {
@@ -54,8 +54,8 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.75rem 1.5rem;
-    background: linear-gradient(135deg, #F59E0B, #D97706);
-    color: #000000;
+    background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
+    color: var(--gray-900);
     border: none;
     border-radius: 8px;
     font-size: 0.875rem;
@@ -66,7 +66,7 @@
 
 .subscription-gate-btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+    box-shadow: 0 4px 12px var(--primary-alpha-30);
 }
 
 /* Inline variant for smaller elements */

@@ -40,19 +40,19 @@
 
 /* Toast Types */
 .toast-success {
-    border-left-color: #10b981;
+    border-left-color: var(--success);
 }
 
 .toast-success .toast-icon {
-    color: #10b981;
+    color: var(--success);
 }
 
 .toast-error {
-    border-left-color: #ef4444;
+    border-left-color: var(--danger);
 }
 
 .toast-error .toast-icon {
-    color: #ef4444;
+    color: var(--danger);
 }
 
 .toast-info {
@@ -64,11 +64,11 @@
 }
 
 .toast-warning {
-    border-left-color: #f59e0b;
+    border-left-color: var(--primary-500);
 }
 
 .toast-warning .toast-icon {
-    color: #f59e0b;
+    color: var(--primary-500);
 }
 
 /* Toast Icon */
@@ -114,7 +114,7 @@
 }
 
 .toast-action:hover {
-    background: rgba(245, 158, 11, 0.15);
+    background: var(--primary-alpha-15);
     border-color: var(--primary-500);
 }
 

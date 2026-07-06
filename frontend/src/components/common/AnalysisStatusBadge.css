@@ -31,15 +31,15 @@
 
 /* Colors */
 .analysis-status-badge.gray {
-    background-color: #f3f4f6;
-    color: #6b7280;
-    border: 1px solid #e5e7eb;
+    background-color: var(--gray-100);
+    color: var(--gray-500);
+    border: 1px solid var(--gray-200);
 }
 
 .analysis-status-badge.yellow {
-    background-color: #fef3c7;
+    background-color: var(--primary-100);
     color: #92400e;
-    border: 1px solid #fcd34d;
+    border: 1px solid var(--primary-300);
 }
 
 .analysis-status-badge.blue {
@@ -77,8 +77,8 @@
 }
 
 .analysis-status-badge.gray.clickable:hover {
-    background-color: #e5e7eb;
-    border-color: #d1d5db;
+    background-color: var(--gray-200);
+    border-color: var(--gray-300);
 }
 
 .analysis-status-badge.red.clickable:hover {
@@ -149,7 +149,7 @@
 
 .progress-bar-mini .progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, #3b82f6, #6366f1);
+    background: linear-gradient(90deg, #3b82f6, var(--primary-500));
     transition: width 0.3s ease;
 }
 

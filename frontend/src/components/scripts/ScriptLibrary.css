@@ -36,13 +36,13 @@
     border: none;
     cursor: pointer;
     transition: all 0.2s ease;
-    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+    box-shadow: 0 2px 8px var(--primary-alpha-30);
 }
 
 .upload-new-btn:hover {
     background: linear-gradient(135deg, var(--primary-400), var(--primary-500));
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+    box-shadow: 0 4px 12px var(--primary-alpha-40);
 }
 
 /* Loading State */
@@ -71,8 +71,8 @@
 
 /* Error Banner */
 .error-banner {
-    background-color: rgba(239, 68, 68, 0.1);
-    color: #ef4444;
+    background-color: var(--danger-bg);
+    color: var(--danger);
     padding: 1rem;
     border-radius: 8px;
     border: 1px solid rgba(239, 68, 68, 0.3);

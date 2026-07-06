@@ -62,21 +62,21 @@
 /* Variant: Danger */
 .confirm-danger .confirm-icon {
     background: rgba(239, 68, 68, 0.15);
-    color: #ef4444;
+    color: var(--danger);
 }
 
 .confirm-danger .confirm-btn.primary {
-    background: #ef4444;
+    background: var(--danger);
     color: white;
 }
 
 .confirm-danger .confirm-btn.primary:hover {
-    background: #dc2626;
+    background: var(--danger);
 }
 
 /* Variant: Warning */
 .confirm-warning .confirm-icon {
-    background: rgba(245, 158, 11, 0.15);
+    background: var(--primary-alpha-15);
     color: var(--primary-500);
 }
 
@@ -154,7 +154,7 @@
 
 .confirm-btn.primary:focus {
     outline: none;
-    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.3);
+    box-shadow: 0 0 0 3px var(--primary-alpha-30);
 }
 
 .confirm-btn.cancel:focus {

@@ -32,7 +32,7 @@ select:hover {
 select:focus {
     outline: none;
     border-color: var(--primary-500);
-    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+    box-shadow: 0 0 0 3px var(--primary-alpha-10);
 }
 
 select option {
@@ -75,7 +75,7 @@ input[type="search"]:focus,
 textarea:focus {
     outline: none;
     border-color: var(--primary-500);
-    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+    box-shadow: 0 0 0 3px var(--primary-alpha-10);
 }
 
 input::placeholder,

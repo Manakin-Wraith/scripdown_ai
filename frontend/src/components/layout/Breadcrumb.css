@@ -1,7 +1,7 @@
 /* Breadcrumb Bar */
 .breadcrumb-bar {
-    background: var(--bg-secondary, #1e293b);
-    border-bottom: 1px solid var(--border-color, #334155);
+    background: var(--bg-secondary, var(--gray-800));
+    border-bottom: 1px solid var(--border-color);
     padding: 0.5rem 1.5rem;
     min-height: 36px;
     display: flex;
@@ -24,13 +24,13 @@
 }
 
 .breadcrumb-separator {
-    color: var(--gray-500, #64748b);
+    color: var(--gray-500);
     margin: 0 0.5rem;
     flex-shrink: 0;
 }
 
 .breadcrumb-link {
-    color: var(--text-secondary, #94a3b8);
+    color: var(--text-secondary);
     text-decoration: none;
     font-size: 0.85rem;
     font-weight: 500;
@@ -39,11 +39,11 @@
 }
 
 .breadcrumb-link:hover {
-    color: var(--primary-400, #818cf8);
+    color: var(--primary-400);
 }
 
 .breadcrumb-current {
-    color: var(--text-primary, #f1f5f9);
+    color: var(--text-primary);
     font-size: 0.85rem;
     font-weight: 600;
     white-space: nowrap;
@@ -54,7 +54,7 @@
     display: flex;
     align-items: center;
     gap: 0.35rem;
-    color: var(--text-secondary, #94a3b8);
+    color: var(--text-secondary);
     text-decoration: none;
     font-size: 0.85rem;
     font-weight: 500;
@@ -62,7 +62,7 @@
 }
 
 .breadcrumb-back:hover {
-    color: var(--primary-400, #818cf8);
+    color: var(--primary-400);
 }
 
 /* Responsive visibility */

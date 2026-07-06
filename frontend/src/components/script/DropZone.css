@@ -14,18 +14,18 @@
 
 .dropzone:hover:not(.disabled) {
     border-color: var(--primary-500);
-    background-color: rgba(245, 158, 11, 0.1);
+    background-color: var(--primary-alpha-10);
 }
 
 .dropzone.active {
     border-color: var(--primary-500);
-    background-color: rgba(245, 158, 11, 0.15);
+    background-color: var(--primary-alpha-15);
     transform: scale(1.01);
 }
 
 .dropzone.reject {
-    border-color: #ef4444;
-    background-color: rgba(239, 68, 68, 0.1);
+    border-color: var(--danger);
+    background-color: var(--danger-bg);
 }
 
 .dropzone.disabled {
@@ -67,7 +67,7 @@
 }
 
 .dropzone-icon.error {
-    color: #ef4444;
+    color: var(--danger);
 }
 
 .dropzone-title {
@@ -92,6 +92,6 @@
 }
 
 .dropzone-text.error {
-    color: #ef4444;
+    color: var(--danger);
     font-weight: 500;
 }

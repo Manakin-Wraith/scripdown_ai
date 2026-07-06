@@ -154,18 +154,18 @@
 }
 
 .status-badge.in_progress {
-    background: rgba(245, 158, 11, 0.15);
+    background: var(--primary-alpha-15);
     color: var(--primary-500);
 }
 
 .status-badge.complete {
     background: rgba(34, 197, 94, 0.15);
-    color: #4ade80;
+    color: var(--success);
 }
 
 .status-badge.failed {
     background: rgba(239, 68, 68, 0.15);
-    color: #ef4444;
+    color: var(--danger);
 }
 
 /* Jobs List */
@@ -190,16 +190,16 @@
 }
 
 .job-item.completed {
-    background: rgba(34, 197, 94, 0.1);
+    background: var(--success-bg);
 }
 
 .job-item.processing {
-    background: rgba(245, 158, 11, 0.1);
+    background: var(--primary-alpha-10);
     border: 1px solid var(--primary-600);
 }
 
 .job-item.failed {
-    background: rgba(239, 68, 68, 0.1);
+    background: var(--danger-bg);
 }
 
 .job-icon {
@@ -218,18 +218,18 @@
 }
 
 .job-item.processing .job-icon {
-    background: rgba(245, 158, 11, 0.2);
+    background: var(--primary-alpha-20);
     color: var(--primary-500);
 }
 
 .job-item.completed .job-icon {
     background: rgba(34, 197, 94, 0.2);
-    color: #4ade80;
+    color: var(--success);
 }
 
 .job-item.failed .job-icon {
     background: rgba(239, 68, 68, 0.2);
-    color: #ef4444;
+    color: var(--danger);
 }
 
 .job-info {
@@ -263,7 +263,7 @@
 }
 
 .status-icon.failed {
-    color: #dc2626;
+    color: var(--danger);
 }
 
 .status-icon.cancelled {
@@ -297,7 +297,7 @@
 
 .job-error {
     font-size: 0.75rem;
-    color: #dc2626;
+    color: var(--danger);
     margin: 0.5rem 0 0;
 }
 
@@ -344,9 +344,9 @@
 }
 
 .cancel-btn:hover:not(:disabled) {
-    background: rgba(239, 68, 68, 0.1);
+    background: var(--danger-bg);
     border-color: rgba(239, 68, 68, 0.3);
-    color: #ef4444;
+    color: var(--danger);
 }
 
 .cancel-btn:disabled {
