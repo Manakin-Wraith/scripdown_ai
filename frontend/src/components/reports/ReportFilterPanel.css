@@ -603,7 +603,7 @@
 .save-preset-btn:hover {
     border-color: var(--primary-500);
     color: var(--primary-400);
-    background: rgba(245, 158, 11, 0.05);
+    background: var(--primary-alpha-05);
 }
 
 .save-preset-input {

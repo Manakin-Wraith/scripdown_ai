@@ -107,10 +107,10 @@
     align-items: center;
     gap: 0.75rem;
     padding: 1rem;
-    background: rgba(239, 68, 68, 0.1);
+    background: var(--danger-bg);
     border: 1px solid rgba(239, 68, 68, 0.3);
     border-radius: 8px;
-    color: #f87171;
+    color: var(--danger);
     margin-bottom: 1.5rem;
     font-size: 0.875rem;
 }
@@ -129,7 +129,7 @@
 }
 
 .required {
-    color: #f87171;
+    color: var(--danger);
     margin-left: 0.25rem;
 }
 
@@ -165,7 +165,7 @@
 .preset-select:focus {
     outline: none;
     border-color: var(--primary-500);
-    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+    box-shadow: 0 0 0 3px var(--primary-alpha-10);
 }
 
 .select-icon {
@@ -208,7 +208,7 @@
 .title-input:focus {
     outline: none;
     border-color: var(--primary-500);
-    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+    box-shadow: 0 0 0 3px var(--primary-alpha-10);
 }
 
 /* Info Box */
@@ -216,14 +216,14 @@
     display: flex;
     gap: 0.75rem;
     padding: 1rem;
-    background: rgba(99, 102, 241, 0.05);
-    border: 1px solid rgba(99, 102, 241, 0.2);
+    background: var(--primary-alpha-05);
+    border: 1px solid var(--primary-alpha-20);
     border-radius: 8px;
     margin-top: 1.5rem;
 }
 
 .info-box svg {
-    color: #818cf8;
+    color: var(--primary-400);
     flex-shrink: 0;
     margin-top: 0.125rem;
 }
@@ -292,13 +292,13 @@
 .btn-primary {
     background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
     color: var(--gray-900);
-    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+    box-shadow: 0 2px 8px var(--primary-alpha-30);
 }
 
 .btn-primary:hover:not(:disabled) {
     background: linear-gradient(135deg, var(--primary-400), var(--primary-500));
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+    box-shadow: 0 4px 12px var(--primary-alpha-40);
 }
 
 .btn-primary:active:not(:disabled) {
