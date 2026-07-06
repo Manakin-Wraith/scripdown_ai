@@ -94,6 +94,10 @@
   --font-mono: 'SF Mono', 'Monaco', 'Consolas', monospace;
   --font-screenplay: 'Courier New', Courier, monospace;
 
+  /* Overlay scrims (modal/drawer backdrops) */
+  --scrim: rgba(0, 0, 0, 0.6);
+  --scrim-soft: rgba(0, 0, 0, 0.5);
+
   /* Primary (amber) alpha tints — --primary-alpha-10 == --warning-bg */
   --primary-alpha-05: rgba(245, 158, 11, 0.05);
   --primary-alpha-10: rgba(245, 158, 11, 0.1);
