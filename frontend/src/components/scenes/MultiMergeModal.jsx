@@ -80,7 +80,6 @@ const MultiMergeModal = ({ isOpen, onClose, scenes, scriptId, onSuccess }) => {
                 </>
             }
         >
-                <div className="modal-content">
                     {/* Info Banner */}
                     <div className="info-banner warning">
                         <AlertCircle size={16} />
@@ -134,7 +133,6 @@ const MultiMergeModal = ({ isOpen, onClose, scenes, scriptId, onSuccess }) => {
                             )}
                         </p>
                     </div>
-                </div>
         </Modal>
     );
 };

@@ -116,6 +116,7 @@ const ConfirmDialog = ({ config, onConfirm, onCancel }) => {
             onClose={onCancel}
             size="sm"
             showClose={false}
+            overlayClassName="ui-modal-overlay--confirm"
             title={
                 <span className="confirm-title-row">
                     <Icon size={20} />

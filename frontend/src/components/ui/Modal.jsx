@@ -7,19 +7,21 @@ import './Modal.css';
  * @param {{
  *  isOpen: boolean, onClose: () => void, title?: React.ReactNode,
  *  size?: 'sm'|'md'|'lg', footer?: React.ReactNode, showClose?: boolean,
- *  closeOnOverlay?: boolean, closeOnEscape?: boolean, children?: React.ReactNode
+ *  closeOnOverlay?: boolean, closeOnEscape?: boolean, overlayClassName?: string,
+ *  children?: React.ReactNode
  * }} props
  */
 const Modal = ({
   isOpen, onClose, title, size = 'md', footer,
-  showClose = true, closeOnOverlay = true, closeOnEscape = true, children,
+  showClose = true, closeOnOverlay = true, closeOnEscape = true,
+  overlayClassName = '', children,
 }) => {
   useOverlay({ isOpen, onClose, closeOnEscape });
   if (!isOpen) return null;
 
   return createPortal(
     <div
-      className="ui-modal-overlay"
+      className={`ui-modal-overlay ${overlayClassName}`.trim()}
       onClick={closeOnOverlay ? onClose : undefined}
     >
       <div

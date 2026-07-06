@@ -82,7 +82,6 @@ const AddSceneModal = ({ isOpen, onClose, scriptId, insertAfterScene, onSuccess 
             }
         >
             <form id="add-scene-form" onSubmit={handleSubmit}>
-                    <div className="modal-content">
                         {/* Insert Position Info */}
                         {insertAfterScene && (
                             <div className="insert-info">
@@ -158,7 +157,6 @@ const AddSceneModal = ({ isOpen, onClose, scriptId, insertAfterScene, onSuccess 
                                 {formData.int_ext}. {formData.setting || 'LOCATION'} - {formData.time_of_day}
                             </span>
                         </div>
-                    </div>
             </form>
         </Modal>
     );

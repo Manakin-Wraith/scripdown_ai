@@ -68,7 +68,6 @@ const SceneSplitModal = ({ isOpen, onClose, scene, scriptId, onSuccess }) => {
                 </>
             }
         >
-                <div className="modal-content">
                     {/* Info Banner */}
                     <div className="info-banner">
                         <AlertCircle size={16} />
@@ -129,7 +128,6 @@ const SceneSplitModal = ({ isOpen, onClose, scene, scriptId, onSuccess }) => {
                             </div>
                         </div>
                     </div>
-                </div>
         </Modal>
     );
 };

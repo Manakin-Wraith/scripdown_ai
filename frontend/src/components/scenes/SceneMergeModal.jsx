@@ -62,7 +62,6 @@ const SceneMergeModal = ({ isOpen, onClose, scene, adjacentScene, scriptId, onSu
                 </>
             }
         >
-                <div className="modal-content">
                     {/* Info Banner */}
                     <div className="info-banner warning">
                         <AlertCircle size={16} />
@@ -146,7 +145,6 @@ const SceneMergeModal = ({ isOpen, onClose, scene, adjacentScene, scriptId, onSu
                             will be marked as OMITTED but will retain its number for continuity.
                         </p>
                     </div>
-                </div>
         </Modal>
     );
 };
