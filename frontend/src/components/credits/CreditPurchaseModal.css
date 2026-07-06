@@ -130,7 +130,7 @@
 
 .bm-row:hover {
     border-color: var(--primary-500);
-    box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.15);
+    box-shadow: 0 0 0 1px var(--primary-alpha-15);
 }
 
 /* Best value highlight */
