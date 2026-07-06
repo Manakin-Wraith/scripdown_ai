@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { 
     User, 
     Mail, 
@@ -17,7 +17,6 @@ import './ScriptHeader.css';
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const ScriptHeader = ({ metadata, sceneCount = 0 }) => {
-    const navigate = useNavigate();
     const { scriptId } = useParams();
     const [infoOpen, setInfoOpen] = useState(false);
     const [copiedField, setCopiedField] = useState(null);
