@@ -8,10 +8,6 @@ import {
     Copy,
     Check,
     FileText,
-    List,
-    ClipboardList,
-    LayoutGrid,
-    CalendarDays,
     Users
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -128,44 +124,8 @@ const ScriptHeader = ({ metadata, sceneCount = 0 }) => {
                 )}
 
                 {/* Action buttons */}
-                <button 
-                    className="header-action-btn primary" 
-                    title="One-Liner / Stripboard"
-                    onClick={() => navigate(`/scripts/${scriptId}/stripboard`)}
-                >
-                    <List size={18} />
-                    <span>Stripboard</span>
-                </button>
-
-                <button 
-                    className="header-action-btn primary" 
-                    title="Zoomable Board"
-                    onClick={() => navigate(`/scripts/${scriptId}/board`)}
-                >
-                    <LayoutGrid size={18} />
-                    <span>Board</span>
-                </button>
-
-                <button 
-                    className="header-action-btn primary" 
-                    title="Generate Reports"
-                    onClick={() => navigate(`/scripts/${scriptId}/reports`)}
-                >
-                    <ClipboardList size={18} />
-                    <span>Reports</span>
-                </button>
-
-                <button 
-                    className="header-action-btn primary" 
-                    title="Shooting Schedule"
-                    onClick={() => navigate(`/scripts/${scriptId}/schedule`)}
-                >
-                    <CalendarDays size={18} />
-                    <span>Schedule</span>
-                </button>
-
-                <button 
-                    className="header-action-btn primary" 
+                <button
+                    className="header-action-btn primary"
                     title="Team Members"
                     onClick={() => setTeamDrawerOpen(true)}
                 >

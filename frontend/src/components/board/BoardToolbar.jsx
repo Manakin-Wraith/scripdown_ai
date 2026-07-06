@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { ZoomIn, ZoomOut, Maximize, RotateCcw, Filter, Layers, MousePointer2, Hand, Move, BoxSelect, CalendarPlus, X } from 'lucide-react';
 import { countActiveFilters } from './boardModel';
 import SchedulePopover from './SchedulePopover';
-import ViewSwitcher from '../shared/ViewSwitcher';
 import './BoardToolbar.css';
 
 const BoardToolbar = ({ groupBy, filters, uniqueDays, uniqueCharacters, totalVisible, totalScenes, zoomApiRef, dispatch, toolMode, selectedCount, scriptId, selectedSceneIds, onScheduled }) => {
@@ -18,8 +17,6 @@ const BoardToolbar = ({ groupBy, filters, uniqueDays, uniqueCharacters, totalVis
         <div className="board-toolbar">
             {/* Left: View switcher + Tool mode toggle + Zoom controls */}
             <div className="toolbar-section">
-                <ViewSwitcher scriptId={scriptId} />
-
                 <div className="toolbar-tool-modes">
                     <button
                         className={`tool-mode-btn ${toolMode === 'select' ? 'active' : ''}`}

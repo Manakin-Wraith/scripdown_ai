@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Loader, Plus, CalendarDays, Trash2, Pencil, Check, X, ZoomIn, ZoomOut, Maximize, RotateCcw, Printer } from 'lucide-react';
 import SchedulePrintView from './SchedulePrintView';
-import ViewSwitcher from '../shared/ViewSwitcher';
 import { useToast } from '../../context/ToastContext';
 import { useScript } from '../../context/ScriptContext';
 import {
@@ -169,7 +168,6 @@ const ShootingSchedulePage = () => {
             {/* Header */}
             <div className="schedule-header">
                 <div className="schedule-header-left">
-                    <ViewSwitcher scriptId={scriptId} />
                     <div className="schedule-title-group">
                         <span className="schedule-script-name">{metadata?.title || 'Untitled'}</span>
                     </div>
