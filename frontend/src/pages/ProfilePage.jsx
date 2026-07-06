@@ -17,12 +17,12 @@ import {
     Loader,
     AlertCircle,
     CheckCircle,
-    ArrowLeft,
     Crown,
     Users
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
+import PageHeader from '../components/layout/PageHeader';
 import './ProfilePage.css';
 
 const ProfilePage = () => {
@@ -175,15 +175,8 @@ const ProfilePage = () => {
 
     return (
         <div className="profile-page">
-            <div className="profile-container">
-                {/* Header */}
-                <div className="profile-header">
-                    <button className="back-btn" onClick={() => navigate(-1)}>
-                        <ArrowLeft size={20} />
-                        <span>Back</span>
-                    </button>
-                    <h1>My Profile</h1>
-                </div>
+            <div className="page-container">
+                <PageHeader title="My Profile" />
 
                 {/* Messages */}
                 {error && (
