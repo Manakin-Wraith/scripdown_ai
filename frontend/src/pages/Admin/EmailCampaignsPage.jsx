@@ -146,6 +146,7 @@ const EmailCampaignsPage = () => {
             title: 'Send Campaign',
             message: 'Are you sure you want to send this campaign? This action cannot be undone.',
             variant: 'warning',
+            confirmText: 'Send Now',
         })) {
             try { await sendCampaign(campaignId); await loadAll(); }
             catch (err) { console.error('Error sending campaign:', err); }
@@ -157,6 +158,7 @@ const EmailCampaignsPage = () => {
             title: 'Delete Campaign',
             message: 'Are you sure you want to delete this campaign? This action cannot be undone.',
             variant: 'danger',
+            confirmText: 'Delete',
         })) {
             try { await deleteCampaign(campaignId); await loadAll(); }
             catch (err) { console.error('Error deleting campaign:', err); }
