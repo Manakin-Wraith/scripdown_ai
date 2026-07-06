@@ -410,13 +410,13 @@
 }
 
 .story-day-divider-label.timeline-montage {
-    color: var(--primary-300);
-    background: var(--primary-alpha-30);
+    color: #fcd34d;
+    background: rgba(245, 158, 11, 0.3);
     border: 1px solid rgba(245, 158, 11, 0.5);
 }
 
 .story-day-divider-label.timeline-title_card {
-    color: var(--gray-300);
+    color: #cbd5e1;
     background: rgba(148, 163, 184, 0.3);
     border: 1px solid rgba(148, 163, 184, 0.5);
 }
@@ -455,12 +455,12 @@
 
 .story-day-pill.timeline-montage {
     background: rgba(245, 158, 11, 0.35);
-    color: var(--primary-300);
+    color: #fcd34d;
 }
 
 .story-day-pill.timeline-title_card {
     background: rgba(148, 163, 184, 0.35);
-    color: var(--gray-300);
+    color: #cbd5e1;
 }
 
 .entity-header-right {

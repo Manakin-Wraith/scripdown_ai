@@ -3,6 +3,15 @@
 // Usage: node scripts/ui/color-codemod.mjs [--dry] <file.css> [more.css ...]
 import { readFileSync, writeFileSync } from 'node:fs';
 
+// --- Tokens actually defined in index.css --------------------------------
+// Used to gate the dead-fallback pre-pass: only strip `var(--tok, #hex)` ->
+// `var(--tok)` when --tok is defined; otherwise the hex fallback is load-
+// bearing (the token is undefined) and must be preserved.
+const defined = new Set(
+  [...readFileSync(new URL('../../frontend/src/index.css', import.meta.url), 'utf8')
+     .matchAll(/(--[a-z0-9-]+)\s*:/gi)].map((m) => m[1].toLowerCase())
+);
+
 // --- Mapping table: normalized-literal -> replacement -------------------
 // Hex keys are lowercase. rgba keys have NO spaces.
 const MAP = {
@@ -54,7 +63,9 @@ const norm = (s) => s.toLowerCase().replace(/\s+/g, '');
 for (const file of files) {
   let css = readFileSync(file, 'utf8');
   // pre-pass: drop dead fallbacks  var(--token, #hex) -> var(--token)
-  css = css.replace(/var\((--[a-z0-9-]+),\s*#[0-9a-fA-F]{3,8}\)/gi, 'var($1)');
+  // only when --token is actually defined; otherwise the fallback is real.
+  css = css.replace(/var\((--[a-z0-9-]+),\s*#[0-9a-fA-F]{3,8}\)/gi,
+    (m, tok) => defined.has(tok.toLowerCase()) ? `var(${tok})` : m);
   const replaced = {}; const unmapped = {};
   const apply = (re) => {
     css = css.replace(re, (m) => {

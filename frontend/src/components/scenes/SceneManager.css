@@ -24,7 +24,7 @@
 }
 
 .scene-manager-error {
-    color: var(--error-500);
+    color: var(--error-500, #ef4444);
 }
 
 .btn-retry {
@@ -365,7 +365,7 @@
 
 .omitted-label {
     font-size: 0.65rem;
-    color: var(--error-500);
+    color: var(--error-500, #ef4444);
     letter-spacing: 0.05em;
 }
 
@@ -579,8 +579,8 @@
 }
 
 .story-day-badge-sm.timeline-montage {
-    background: var(--primary-alpha-15);
-    color: var(--primary-400);
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
 }
 
 .story-day-badge-sm.timeline-title_card {
@@ -717,8 +717,8 @@
 }
 
 .action-btn.omit:hover:not(:disabled) {
-    border-color: var(--error-500);
-    color: var(--error-500);
+    border-color: var(--error-500, #ef4444);
+    color: var(--error-500, #ef4444);
 }
 
 .action-btn.restore:hover:not(:disabled) {

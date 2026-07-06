@@ -111,7 +111,7 @@ button.scene-title.editable-title:hover .edit-hint-icon {
     padding: 0.15rem 0.4rem;
     font-size: 0.8rem;
     font-weight: 600;
-    background: var(--bg-surface);
+    background: var(--bg-surface, #1e2130);
     border: 1px solid rgba(99, 102, 241, 0.5);
     border-radius: 4px;
     color: var(--text-primary);
@@ -152,7 +152,7 @@ button.scene-title.editable-title:hover .edit-hint-icon {
     font-size: 1.1rem;
     font-weight: 700;
     letter-spacing: 0.02em;
-    background: var(--bg-surface);
+    background: var(--bg-surface, #1e2130);
     border: 1px solid rgba(99, 102, 241, 0.5);
     border-radius: 6px;
     color: var(--text-primary);
@@ -720,7 +720,7 @@ button.scene-title.editable-title:hover .edit-hint-icon {
 .story-day-badge.timeline-montage {
     background: rgba(245, 158, 11, 0.12);
     border: 1px solid rgba(245, 158, 11, 0.35);
-    color: var(--primary-400);
+    color: #fbbf24;
 }
 
 .story-day-badge.timeline-title_card {
