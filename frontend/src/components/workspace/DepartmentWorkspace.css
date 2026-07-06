@@ -239,7 +239,7 @@
 
 .stat-card.pending .stat-value { color: var(--primary-400); }
 .stat-card.progress .stat-value { color: #60A5FA; }
-.stat-card.complete .stat-value { color: var(--success); }
+.stat-card.complete .stat-value { color: #34D399; }
 
 .dashboard-section {
     background: var(--gray-800);
@@ -440,7 +440,7 @@
     justify-content: center;
 }
 
-.status-complete { color: var(--success); }
+.status-complete { color: #34D399; }
 .status-progress { color: #60A5FA; }
 .status-pending { color: var(--primary-400); }
 .status-hold { color: var(--danger); }
@@ -517,7 +517,7 @@
 
 .thread-status.resolved {
     background: rgba(52, 211, 153, 0.2);
-    color: var(--success);
+    color: #34D399;
 }
 
 .thread-participants {

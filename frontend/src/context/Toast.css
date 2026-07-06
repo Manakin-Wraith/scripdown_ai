@@ -40,11 +40,11 @@
 
 /* Toast Types */
 .toast-success {
-    border-left-color: var(--success);
+    border-left-color: #10b981;
 }
 
 .toast-success .toast-icon {
-    color: var(--success);
+    color: #10b981;
 }
 
 .toast-error {

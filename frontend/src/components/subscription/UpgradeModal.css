@@ -134,7 +134,7 @@
 }
 
 .upgrade-modal-features li svg {
-    color: var(--success);
+    color: #10B981;
     flex-shrink: 0;
 }
 

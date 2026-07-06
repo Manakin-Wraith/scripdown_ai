@@ -35,7 +35,7 @@
     height: 18px;
     padding: 0 5px;
     border-radius: 99px;
-    background: linear-gradient(135deg, var(--danger), var(--danger));
+    background: linear-gradient(135deg, #EF4444, #DC2626);
     color: white;
     font-size: 0.625rem;
     font-weight: 700;

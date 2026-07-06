@@ -67,8 +67,8 @@
 }
 
 .banner-urgent {
-    background: linear-gradient(135deg, var(--danger), var(--danger));
-    color: var(--gray-50);
+    background: linear-gradient(135deg, #EF4444, #DC2626);
+    color: #FFFFFF;
 }
 
 .banner-expired {

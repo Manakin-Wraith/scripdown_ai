@@ -229,7 +229,7 @@
 }
 
 .card-avatar.location-avatar {
-    background: linear-gradient(135deg, var(--primary-500), #2563eb);
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
 }
 
 .card-avatar.location-avatar.exterior {

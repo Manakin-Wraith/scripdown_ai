@@ -94,7 +94,7 @@
 }
 
 .step-icon.completed {
-    color: var(--success); /* green-500 */
+    color: #10b981; /* green-500 */
 }
 
 .step-icon.spinner {

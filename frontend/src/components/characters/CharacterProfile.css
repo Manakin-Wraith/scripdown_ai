@@ -667,7 +667,7 @@
 
 .bar.intensity-9,
 .bar.intensity-10 {
-    background: linear-gradient(180deg, var(--danger), var(--danger));
+    background: linear-gradient(180deg, #f87171, #ef4444);
 }
 
 .bar-emotion {
@@ -720,7 +720,7 @@
 }
 
 .legend-color.extreme {
-    background: linear-gradient(180deg, var(--danger), var(--danger));
+    background: linear-gradient(180deg, #f87171, #ef4444);
 }
 
 /* Scene Breakdown Section */
