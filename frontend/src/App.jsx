@@ -68,7 +68,8 @@ function App() {
                     <Route path="scripts/:scriptId/reports" element={<ReportBuilder />} />
                     <Route path="scripts/:scriptId/board" element={<ZoomableStripboard />} />
                     <Route path="scripts/:scriptId/schedule" element={<ShootingSchedulePage />} />
-                    
+                    <Route path="profile" element={<ProfilePage />} />
+
                     {/* Phase 2+ routes (deferred - commented out) */}
                     {/* <Route path="scenes/:scriptId/workspace/:departmentCode" element={<DepartmentWorkspace />} /> */}
                     {/* <Route path="scenes/:scriptId/workspace" element={<DepartmentWorkspace />} /> */}
@@ -79,14 +80,7 @@ function App() {
                     {/* <Route path="scripts/:scriptId/workspace/:departmentCode" element={<DepartmentWorkspace />} /> */}
                     {/* <Route path="scripts/:scriptId/workspace" element={<DepartmentWorkspace />} /> */}
                   </Route>
-                  
-                  {/* Protected routes outside MainLayout */}
-                  <Route path="profile" element={
-                    <ProtectedRoute>
-                      <ProfilePage />
-                    </ProtectedRoute>
-                  } />
-                  
+
                   {/* Admin routes (superuser only) */}
                   <Route path="admin" element={
                     <AdminRoute>

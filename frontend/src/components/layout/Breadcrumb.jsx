@@ -11,12 +11,12 @@ import './Breadcrumb.css';
 const ROUTE_CONFIG = {
     '/scripts': { label: 'My Scripts', parent: null },
     '/scenes/:scriptId': { label: 'Scene Breakdown', parent: '/scripts' },
-    '/scripts/:scriptId/edit': { label: 'Edit Scenes', parent: '/scripts' },
-    '/scripts/:scriptId/manage': { label: 'Scene Manager', parent: '/scripts' },
-    '/scripts/:scriptId/reports': { label: 'Reports', parent: '/scripts' },
     '/scripts/:scriptId/stripboard': { label: 'Stripboard', parent: '/scripts' },
-    '/scripts/:scriptId/characters/:characterName': { label: 'Character', parent: '/scripts' },
+    '/scripts/:scriptId/board': { label: 'Board', parent: '/scripts' },
+    '/scripts/:scriptId/reports': { label: 'Reports', parent: '/scripts' },
+    '/scripts/:scriptId/schedule': { label: 'Schedule', parent: '/scripts' },
     '/upload': { label: 'Upload Script', parent: '/scripts' },
+    '/profile': { label: 'Profile', parent: null },
 };
 
 /**

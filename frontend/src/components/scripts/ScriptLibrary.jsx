@@ -7,6 +7,7 @@ import EmptyLibrary from './EmptyLibrary';
 import { Plus } from 'lucide-react';
 import { useConfirmDialog } from '../../context/ConfirmDialogContext';
 import { useToast } from '../../context/ToastContext';
+import PageHeader from '../layout/PageHeader';
 import './ScriptLibrary.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -155,7 +156,7 @@ const ScriptLibrary = () => {
 
     if (loading) {
         return (
-            <div className="library-container loading-state">
+            <div className="library-container loading-state page-container">
                 <div className="spinner"></div>
                 <p>Loading library...</p>
             </div>
@@ -163,22 +164,17 @@ const ScriptLibrary = () => {
     }
 
     return (
-        <div className="library-container">
-            <div className="library-header">
-                <div>
-                    <h1>My Scripts</h1>
-                    <p className="library-subtitle">Manage your screenplays and breakdowns</p>
-                </div>
-                {scripts.length > 0 && (
-                    <button
-                        className="upload-new-btn"
-                        onClick={() => navigate('/upload')}
-                    >
+        <div className="library-container page-container">
+            <PageHeader
+                title="My Scripts"
+                subtitle="Manage your screenplays and breakdowns"
+                actions={scripts.length > 0 && (
+                    <button className="upload-new-btn" onClick={() => navigate('/upload')}>
                         <Plus size={18} />
                         Upload New
                     </button>
                 )}
-            </div>
+            />
 
             {error && <div className="error-banner">{error}</div>}
 

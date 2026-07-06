@@ -13,6 +13,7 @@ import { useScript } from '../../context/ScriptContext';
 import { useStoryDayListener } from '../../context/StoryDayContext';
 import { getScenes, getScriptMetadata, getScriptItems } from '../../services/apiService';
 import { getSceneEighthsDisplay, getSceneEighths, formatEighths } from '../../utils/sceneUtils';
+import PageHeader from '../layout/PageHeader';
 import './Stripboard.css';
 
 const Stripboard = () => {
@@ -292,7 +293,7 @@ const Stripboard = () => {
     });
 
     return (
-        <div className="stripboard">
+        <div className="stripboard page-container">
             {/* Print-only Professional Header */}
             <div className="print-header">
                 <div className="print-header-top">
@@ -348,12 +349,7 @@ const Stripboard = () => {
             </div>
 
             {/* Header */}
-            <div className="stripboard-header">
-                <h1>
-                    <List size={24} />
-                    One-Liner / Stripboard
-                </h1>
-            </div>
+            <PageHeader icon={<List size={24} />} title="One-Liner / Stripboard" />
 
             {/* Stats Bar */}
             <div className="stripboard-stats">
