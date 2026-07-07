@@ -40,15 +40,6 @@
     color: var(--text-secondary);
 }
 
-.sp-spin {
-    animation: sp-rotate 0.8s linear infinite;
-}
-
-@keyframes sp-rotate {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-}
-
 .sp-body {
     padding: 0.35rem;
     max-height: 300px;

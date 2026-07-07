@@ -1,10 +1,11 @@
 import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { 
-    X, Upload, FileText, AlertCircle, CheckCircle, 
-    Plus, Minus, RefreshCw, ArrowRight, Loader2 
+import {
+    X, Upload, FileText, AlertCircle, CheckCircle,
+    Plus, Minus, RefreshCw, ArrowRight
 } from 'lucide-react';
 import { importRevision } from '../../services/apiService';
+import { Spinner } from '../ui';
 import './RevisionImportWizard.css';
 
 const REVISION_COLORS = [
@@ -339,7 +340,7 @@ const RevisionImportWizard = ({ isOpen, onClose, scriptId, scriptTitle, onImport
                             >
                                 {loading ? (
                                     <>
-                                        <Loader2 size={18} className="spin" />
+                                        <Spinner size={18} />
                                         Analyzing...
                                     </>
                                 ) : (
@@ -364,7 +365,7 @@ const RevisionImportWizard = ({ isOpen, onClose, scriptId, scriptTitle, onImport
                             >
                                 {loading ? (
                                     <>
-                                        <Loader2 size={18} className="spin" />
+                                        <Spinner size={18} />
                                         Importing...
                                     </>
                                 ) : (

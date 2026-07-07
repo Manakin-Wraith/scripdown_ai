@@ -40,6 +40,7 @@ import {
     getScriptNotes, getDepartments, createNote, deleteNote, updateNoteStatus, createReply,
     getSceneItems, createSceneItem, updateSceneItem, deleteSceneItem, removeAiItem 
 } from '../../services/apiService';
+import { Spinner } from '../ui';
 import './BreakdownDrawer.css';
 
 // Category to department mapping
@@ -475,7 +476,7 @@ const BreakdownDrawer = ({
                     {activeTab === 'items' ? (
                         // ========== ITEMS TAB ==========
                         itemsLoading ? (
-                            <div className="bd-loading"><Loader size={24} className="spin" /><span>Loading items...</span></div>
+                            <div className="bd-loading"><Spinner size={24} /><span>Loading items...</span></div>
                         ) : (
                             <>
                                 {/* Collapsible Script Text with Highlights */}
@@ -701,7 +702,7 @@ const BreakdownDrawer = ({
                                                     Cancel
                                                 </button>
                                                 <button type="submit" className="bd-submit-btn" disabled={submittingItem || !newItemName.trim()}>
-                                                    {submittingItem ? <Loader size={14} className="spin" /> : <Plus size={14} />}
+                                                    {submittingItem ? <Spinner size={14} /> : <Plus size={14} />}
                                                     Add
                                                 </button>
                                             </div>
@@ -741,7 +742,7 @@ const BreakdownDrawer = ({
                     ) : (
                         // ========== NOTES TAB ==========
                         notesLoading ? (
-                            <div className="bd-loading"><Loader size={24} className="spin" /><span>Loading notes...</span></div>
+                            <div className="bd-loading"><Spinner size={24} /><span>Loading notes...</span></div>
                         ) : (
                             <>
                                 <div className="bd-notes-list">
@@ -826,7 +827,7 @@ const BreakdownDrawer = ({
                                                                 autoFocus
                                                             />
                                                             <button className="bd-send-reply" onClick={() => handleReply(note.id)} disabled={submittingReply || !replyContent.trim()}>
-                                                                {submittingReply ? <Loader size={14} className="spin" /> : <Send size={14} />}
+                                                                {submittingReply ? <Spinner size={14} /> : <Send size={14} />}
                                                             </button>
                                                         </div>
                                                     )}
@@ -857,7 +858,7 @@ const BreakdownDrawer = ({
                                                 Cancel
                                             </button>
                                             <button type="submit" className="bd-submit-btn" disabled={submittingNote || !newNoteContent.trim()}>
-                                                {submittingNote ? <Loader size={14} className="spin" /> : <Plus size={14} />}
+                                                {submittingNote ? <Spinner size={14} /> : <Plus size={14} />}
                                                 Add Note
                                             </button>
                                         </div>
