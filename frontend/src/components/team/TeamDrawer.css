@@ -466,13 +466,6 @@
     cursor: not-allowed;
 }
 
-/* Responsive */
-@media (max-width: 480px) {
-    .team-drawer {
-        width: 100vw;
-        max-width: 100vw;
-    }
-}
 
 /* Header title node (icon + label), replaces .team-drawer .drawer-header h3 */
 .team-drawer-title {
