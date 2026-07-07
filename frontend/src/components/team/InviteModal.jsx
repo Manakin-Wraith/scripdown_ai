@@ -6,10 +6,9 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { 
-    X, 
-    Mail, 
-    Users, 
+import {
+    Mail,
+    Users,
     Copy,
     Check,
     Send,
@@ -20,7 +19,7 @@ import {
 import { useToast } from '../../context/ToastContext';
 import { useSubscription } from '../../hooks/useSubscription';
 import { UpgradeModal } from '../subscription';
-import { Spinner, Button } from '../ui';
+import { Spinner, Button, Modal } from '../ui';
 import './InviteModal.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -139,45 +138,38 @@ const InviteModal = ({ isOpen, onClose, scriptId, scriptTitle }) => {
         setCopied(false);
     };
 
-    if (!isOpen) return null;
-
     // If no team access, show upgrade prompt
     if (!hasTeamAccess) {
         return (
             <>
-                <div className="invite-modal-overlay" onClick={onClose}>
-                    <div className="invite-modal" onClick={e => e.stopPropagation()}>
-                        <header className="invite-modal-header">
-                            <div className="header-content">
-                                <Users size={24} />
-                                <div>
-                                    <h2>Invite Team Member</h2>
-                                    <p className="script-name">{scriptTitle}</p>
-                                </div>
-                            </div>
-                            <button className="close-btn" onClick={onClose}>
-                                <X size={20} />
-                            </button>
-                        </header>
-
-                        <div className="invite-modal-body invite-locked">
-                            <div className="locked-content">
-                                <div className="locked-icon">
-                                    <Lock size={32} />
-                                </div>
-                                <h3>Team Collaboration Locked</h3>
-                                <p>Upgrade to invite team members and collaborate on your scripts.</p>
-                                <button 
-                                    className="upgrade-btn"
-                                    onClick={() => setShowUpgradeModal(true)}
-                                >
-                                    <Sparkles size={18} />
-                                    Subscribe — $49/month
-                                </button>
+                <Modal
+                    isOpen={isOpen}
+                    onClose={onClose}
+                    size="md"
+                    title={
+                        <div className="header-content">
+                            <Users size={24} />
+                            <div>
+                                <h2>Invite Team Member</h2>
+                                <p className="script-name">{scriptTitle}</p>
                             </div>
                         </div>
+                    }
+                >
+                    <div className="invite-locked">
+                        <div className="locked-content">
+                            <div className="locked-icon">
+                                <Lock size={32} />
+                            </div>
+                            <h3>Team Collaboration Locked</h3>
+                            <p>Upgrade to invite team members and collaborate on your scripts.</p>
+                            <button className="upgrade-btn" onClick={() => setShowUpgradeModal(true)}>
+                                <Sparkles size={18} />
+                                Subscribe — $49/month
+                            </button>
+                        </div>
                     </div>
-                </div>
+                </Modal>
                 <UpgradeModal
                     isOpen={showUpgradeModal}
                     onClose={() => setShowUpgradeModal(false)}
@@ -190,161 +182,134 @@ const InviteModal = ({ isOpen, onClose, scriptId, scriptTitle }) => {
     }
 
     return (
-        <div className="invite-modal-overlay" onClick={onClose}>
-            <div className="invite-modal" onClick={e => e.stopPropagation()}>
-                <header className="invite-modal-header">
-                    <div className="header-content">
-                        <Users size={24} />
-                        <div>
-                            <h2>Invite Team Member</h2>
-                            <p className="script-name">{scriptTitle}</p>
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            size="md"
+            title={
+                <div className="header-content">
+                    <Users size={24} />
+                    <div>
+                        <h2>Invite Team Member</h2>
+                        <p className="script-name">{scriptTitle}</p>
+                    </div>
+                </div>
+            }
+        >
+            {!inviteResult ? (
+                <form onSubmit={handleSubmit}>
+                    {/* Email Input */}
+                    <div className="form-group">
+                        <label>
+                            <Mail size={16} />
+                            Email Address
+                        </label>
+                        <input
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            placeholder="teammate@example.com"
+                            required
+                        />
+                    </div>
+
+                    {/* Department Selection */}
+                    <div className="form-group">
+                        <label>
+                            <Users size={16} />
+                            Department
+                        </label>
+                        <div className="department-grid">
+                            {departments.map(dept => (
+                                <button
+                                    key={dept.code}
+                                    type="button"
+                                    className={`department-option ${department === dept.code ? 'selected' : ''}`}
+                                    onClick={() => setDepartment(dept.code)}
+                                    style={{
+                                        '--dept-color': dept.color,
+                                        borderColor: department === dept.code ? dept.color : undefined
+                                    }}
+                                >
+                                    <span className="dept-dot" style={{ backgroundColor: dept.color }} />
+                                    {dept.name}
+                                </button>
+                            ))}
                         </div>
                     </div>
-                    <button className="close-btn" onClick={onClose}>
-                        <X size={20} />
-                    </button>
-                </header>
 
-                <div className="invite-modal-body">
-                    {!inviteResult ? (
-                        <form onSubmit={handleSubmit}>
-                            {/* Email Input */}
-                            <div className="form-group">
-                                <label>
-                                    <Mail size={16} />
-                                    Email Address
+                    {/* Role Selection */}
+                    <div className="form-group">
+                        <label>Role</label>
+                        <div className="role-options">
+                            {ROLES.map(r => (
+                                <label key={r.value} className={`role-option ${role === r.value ? 'selected' : ''}`}>
+                                    <input
+                                        type="radio"
+                                        name="role"
+                                        value={r.value}
+                                        checked={role === r.value}
+                                        onChange={(e) => setRole(e.target.value)}
+                                    />
+                                    <div className="role-content">
+                                        <span className="role-name">{r.label}</span>
+                                        <span className="role-desc">{r.description}</span>
+                                    </div>
                                 </label>
-                                <input
-                                    type="email"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    placeholder="teammate@example.com"
-                                    required
-                                />
-                            </div>
-
-                            {/* Department Selection */}
-                            <div className="form-group">
-                                <label>
-                                    <Users size={16} />
-                                    Department
-                                </label>
-                                <div className="department-grid">
-                                    {departments.map(dept => (
-                                        <button
-                                            key={dept.code}
-                                            type="button"
-                                            className={`department-option ${department === dept.code ? 'selected' : ''}`}
-                                            onClick={() => setDepartment(dept.code)}
-                                            style={{
-                                                '--dept-color': dept.color,
-                                                borderColor: department === dept.code ? dept.color : undefined
-                                            }}
-                                        >
-                                            <span 
-                                                className="dept-dot" 
-                                                style={{ backgroundColor: dept.color }}
-                                            />
-                                            {dept.name}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Role Selection */}
-                            <div className="form-group">
-                                <label>Role</label>
-                                <div className="role-options">
-                                    {ROLES.map(r => (
-                                        <label 
-                                            key={r.value} 
-                                            className={`role-option ${role === r.value ? 'selected' : ''}`}
-                                        >
-                                            <input
-                                                type="radio"
-                                                name="role"
-                                                value={r.value}
-                                                checked={role === r.value}
-                                                onChange={(e) => setRole(e.target.value)}
-                                            />
-                                            <div className="role-content">
-                                                <span className="role-name">{r.label}</span>
-                                                <span className="role-desc">{r.description}</span>
-                                            </div>
-                                        </label>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Submit Button */}
-                            <button 
-                                type="submit" 
-                                className="submit-btn"
-                                disabled={loading || !email || !department}
-                            >
-                                {loading ? (
-                                    <>
-                                        <Spinner size={18} />
-                                        Creating Invite...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Send size={18} />
-                                        Create Invite Link
-                                    </>
-                                )}
-                            </button>
-                        </form>
-                    ) : (
-                        <div className="invite-success">
-                            <div className="success-icon">
-                                <Check size={32} />
-                            </div>
-                            <h3>Invite Created!</h3>
-                            <p>
-                                Share this link with <strong>{inviteResult.email}</strong> to invite them 
-                                as <strong>{inviteResult.department}</strong>
-                            </p>
-                            
-                            <div className="invite-link-box">
-                                <LinkIcon size={16} />
-                                <input 
-                                    type="text" 
-                                    value={inviteResult.invite_url} 
-                                    readOnly 
-                                />
-                                <button 
-                                    className="copy-btn"
-                                    onClick={copyInviteLink}
-                                >
-                                    {copied ? <Check size={16} /> : <Copy size={16} />}
-                                    {copied ? 'Copied!' : 'Copy'}
-                                </button>
-                            </div>
-                            
-                            <p className="expires-note">
-                                This link expires in 7 days
-                            </p>
-                            
-                            <div className="success-actions">
-                                <Button
-                                    variant="secondary"
-                                    onClick={sendAnotherInvite}
-                                >
-                                    Invite Another
-                                </Button>
-                                <Button
-                                    variant="primary"
-                                    onClick={onClose}
-                                >
-                                    Done
-                                </Button>
-                            </div>
+                            ))}
                         </div>
-                    )}
+                    </div>
+
+                    {/* Submit Button */}
+                    <button type="submit" className="submit-btn" disabled={loading || !email || !department}>
+                        {loading ? (
+                            <>
+                                <Spinner size={18} />
+                                Creating Invite...
+                            </>
+                        ) : (
+                            <>
+                                <Send size={18} />
+                                Create Invite Link
+                            </>
+                        )}
+                    </button>
+                </form>
+            ) : (
+                <div className="invite-success">
+                    <div className="success-icon">
+                        <Check size={32} />
+                    </div>
+                    <h3>Invite Created!</h3>
+                    <p>
+                        Share this link with <strong>{inviteResult.email}</strong> to invite them
+                        as <strong>{inviteResult.department}</strong>
+                    </p>
+
+                    <div className="invite-link-box">
+                        <LinkIcon size={16} />
+                        <input type="text" value={inviteResult.invite_url} readOnly />
+                        <button className="copy-btn" onClick={copyInviteLink}>
+                            {copied ? <Check size={16} /> : <Copy size={16} />}
+                            {copied ? 'Copied!' : 'Copy'}
+                        </button>
+                    </div>
+
+                    <p className="expires-note">
+                        This link expires in 7 days
+                    </p>
+
+                    <div className="success-actions">
+                        <Button variant="secondary" onClick={sendAnotherInvite}>
+                            Invite Another
+                        </Button>
+                        <Button variant="primary" onClick={onClose}>
+                            Done
+                        </Button>
+                    </div>
                 </div>
-            </div>
-        </div>
+            )}
+        </Modal>
     );
 };
 
