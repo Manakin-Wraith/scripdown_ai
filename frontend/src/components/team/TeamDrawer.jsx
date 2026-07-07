@@ -20,10 +20,10 @@ import {
     UserPlus,
     Link as LinkIcon,
     ChevronDown,
-    ChevronUp,
-    Trash2
+    ChevronUp
 } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
+import { useConfirmDialog } from '../../context/ConfirmDialogContext';
 import InviteModal from './InviteModal';
 import { Spinner, Drawer } from '../ui';
 import './TeamDrawer.css';
@@ -39,7 +39,8 @@ const TeamDrawer = ({
     isOwner
 }) => {
     const toast = useToast();
-    
+    const { confirm } = useConfirmDialog();
+
     const [owner, setOwner] = useState(null);
     const [members, setMembers] = useState([]);
     const [invites, setInvites] = useState([]);
@@ -47,9 +48,6 @@ const TeamDrawer = ({
     const [error, setError] = useState(null);
     const [showInvites, setShowInvites] = useState(false);
     const [inviteModalOpen, setInviteModalOpen] = useState(false);
-    const [removeConfirm, setRemoveConfirm] = useState(null);
-    const [revokeConfirm, setRevokeConfirm] = useState(null);
-    const [actionLoading, setActionLoading] = useState(null);
 
     // Fetch team data when drawer opens
     useEffect(() => {
@@ -106,8 +104,6 @@ const TeamDrawer = ({
     }, [isOpen, scriptId, isOwner]);
 
     const handleRemoveMember = async (memberId, memberName) => {
-        setActionLoading(memberId);
-        
         try {
             const { supabase } = await import('../../lib/supabase');
             const { data: { session } } = await supabase.auth.getSession();
@@ -129,20 +125,15 @@ const TeamDrawer = ({
             
             // Update local state
             setMembers(prev => prev.filter(m => m.id !== memberId));
-            setRemoveConfirm(null);
             toast.success('Member Removed', `${memberName} has been removed from the team`);
-            
+
         } catch (err) {
             console.error('Error removing member:', err);
             toast.error('Error', err.message);
-        } finally {
-            setActionLoading(null);
         }
     };
 
     const handleRevokeInvite = async (inviteId, email) => {
-        setActionLoading(inviteId);
-        
         try {
             const { supabase } = await import('../../lib/supabase');
             const { data: { session } } = await supabase.auth.getSession();
@@ -164,15 +155,34 @@ const TeamDrawer = ({
             
             // Update local state
             setInvites(prev => prev.filter(i => i.id !== inviteId));
-            setRevokeConfirm(null);
             toast.success('Invite Revoked', `Invite to ${email} has been revoked`);
-            
+
         } catch (err) {
             console.error('Error revoking invite:', err);
             toast.error('Error', err.message);
-        } finally {
-            setActionLoading(null);
         }
+    };
+
+    const handleRemoveClick = async (member) => {
+        const ok = await confirm({
+            title: 'Remove Team Member?',
+            message: `${member.name} will lose access to this script. Their notes will remain.`,
+            variant: 'danger',
+            confirmText: 'Remove'
+        });
+        if (!ok) return;
+        await handleRemoveMember(member.id, member.name);
+    };
+
+    const handleRevokeClick = async (invite) => {
+        const ok = await confirm({
+            title: 'Revoke Invite?',
+            message: `The invite to ${invite.email} will no longer work.`,
+            variant: 'warning',
+            confirmText: 'Revoke'
+        });
+        if (!ok) return;
+        await handleRevokeInvite(invite.id, invite.email);
     };
 
     const formatDate = (dateString) => {
@@ -322,12 +332,9 @@ const TeamDrawer = ({
                                                     </span>
                                                 </div>
                                                 {isOwner && (
-                                                    <button 
+                                                    <button
                                                         className="remove-btn"
-                                                        onClick={() => setRemoveConfirm({
-                                                            id: member.id,
-                                                            name: member.name
-                                                        })}
+                                                        onClick={() => handleRemoveClick(member)}
                                                         title="Remove member"
                                                     >
                                                         <UserX size={16} />
@@ -362,12 +369,9 @@ const TeamDrawer = ({
                                                             <span className="expiry-text">{getExpiryText(invite.expires_at)}</span>
                                                         </div>
                                                     </div>
-                                                    <button 
+                                                    <button
                                                         className="revoke-btn"
-                                                        onClick={() => setRevokeConfirm({
-                                                            id: invite.id,
-                                                            email: invite.email
-                                                        })}
+                                                        onClick={() => handleRevokeClick(invite)}
                                                         title="Revoke invite"
                                                     >
                                                         <LinkIcon size={14} />
@@ -393,80 +397,6 @@ const TeamDrawer = ({
                     )}
                 </div>
             </Drawer>
-
-            {/* Remove Member Confirmation Modal */}
-            {removeConfirm && (
-                <div className="confirm-overlay">
-                    <div className="confirm-modal">
-                        <div className="confirm-icon danger">
-                            <UserX size={24} />
-                        </div>
-                        <h4>Remove Team Member?</h4>
-                        <p className="confirm-name">{removeConfirm.name}</p>
-                        <p className="confirm-warning">
-                            They will lose access to this script and all their notes will remain.
-                        </p>
-                        <div className="confirm-actions">
-                            <button 
-                                className="confirm-cancel"
-                                onClick={() => setRemoveConfirm(null)}
-                                disabled={actionLoading === removeConfirm.id}
-                            >
-                                Cancel
-                            </button>
-                            <button 
-                                className="confirm-delete"
-                                onClick={() => handleRemoveMember(removeConfirm.id, removeConfirm.name)}
-                                disabled={actionLoading === removeConfirm.id}
-                            >
-                                {actionLoading === removeConfirm.id ? (
-                                    <Spinner size={14} />
-                                ) : (
-                                    <UserX size={14} />
-                                )}
-                                Remove
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Revoke Invite Confirmation Modal */}
-            {revokeConfirm && (
-                <div className="confirm-overlay">
-                    <div className="confirm-modal">
-                        <div className="confirm-icon warning">
-                            <Trash2 size={24} />
-                        </div>
-                        <h4>Revoke Invite?</h4>
-                        <p className="confirm-name">{revokeConfirm.email}</p>
-                        <p className="confirm-warning">
-                            The invite link will no longer work.
-                        </p>
-                        <div className="confirm-actions">
-                            <button 
-                                className="confirm-cancel"
-                                onClick={() => setRevokeConfirm(null)}
-                                disabled={actionLoading === revokeConfirm.id}
-                            >
-                                Cancel
-                            </button>
-                            <button 
-                                className="confirm-delete warning"
-                                onClick={() => handleRevokeInvite(revokeConfirm.id, revokeConfirm.email)}
-                                disabled={actionLoading === revokeConfirm.id}
-                            >
-                                {actionLoading === revokeConfirm.id ? (
-                                    <Spinner size={14} />
-                                ) : (
-                                    <Trash2 size={14} />
-                                )}
-                                Revoke
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {/* Invite Modal */}
             <InviteModal
