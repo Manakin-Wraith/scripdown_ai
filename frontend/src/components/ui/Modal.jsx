@@ -32,7 +32,7 @@ const Modal = ({
       >
         {(title || showClose) && (
           <div className="ui-modal-header">
-            <span className="ui-modal-title">{title}</span>
+            <div className="ui-modal-title">{title}</div>
             {showClose && (
               <button className="ui-modal-close" onClick={onClose} aria-label="Close">
                 <X size={20} />

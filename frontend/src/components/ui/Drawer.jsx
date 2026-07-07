@@ -29,7 +29,7 @@ const Drawer = ({
         {(title || showClose) && (
           <div className="ui-drawer-header">
             <div className="ui-drawer-title-group">
-              {title && <span className="ui-drawer-title">{title}</span>}
+              {title && <div className="ui-drawer-title">{title}</div>}
               {subtitle && <span className="ui-drawer-subtitle">{subtitle}</span>}
             </div>
             {showClose && (
