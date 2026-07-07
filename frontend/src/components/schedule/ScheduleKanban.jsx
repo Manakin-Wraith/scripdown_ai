@@ -18,6 +18,7 @@ import {
 import DayColumn from './DayColumn';
 import ScheduleSceneCard from './ScheduleSceneCard';
 import SelectionSummary from './SelectionSummary';
+import { useToast } from '../../context/ToastContext';
 
 // Custom collision: try pointerWithin first (works for empty droppable
 // containers), then fall back to rectIntersection for sortable items.
@@ -74,6 +75,7 @@ function moveBetweenDays(days, sourceDayId, targetDayId, activeId, targetIndex) 
 // ─────────────────────────────────────────────────────────────────────────────
 
 const ScheduleKanban = ({ scheduleId, days: propDays, refreshDays, zoomApiRef }) => {
+    const toast = useToast();
     // Mirror prop days into local state so we can apply optimistic updates instantly
     const [localDays, setLocalDays] = useState(propDays);
     const [activeItem, setActiveItem] = useState(null);
@@ -162,6 +164,7 @@ const ScheduleKanban = ({ scheduleId, days: propDays, refreshDays, zoomApiRef })
             } catch (err) {
                 console.error('Reorder failed, rolling back:', err);
                 await refreshDays(); // rollback via parent
+                toast.error('Reorder Failed', 'Your change was reverted.');
             }
         } else {
             // ── Move between days ────────────────────────────────────────────
@@ -181,9 +184,10 @@ const ScheduleKanban = ({ scheduleId, days: propDays, refreshDays, zoomApiRef })
             } catch (err) {
                 console.error('Move failed, rolling back:', err);
                 await refreshDays(); // rollback via parent
+                toast.error('Move Failed', 'Your change was reverted.');
             }
         }
-    }, [localDays, findDayForScene, refreshDays]);
+    }, [localDays, findDayForScene, refreshDays, toast]);
 
     const handleAddDay = async () => {
         try {
@@ -191,6 +195,7 @@ const ScheduleKanban = ({ scheduleId, days: propDays, refreshDays, zoomApiRef })
             await refreshDays();
         } catch (err) {
             console.error('Failed to create day:', err);
+            toast.error('Add Day Failed', 'Could not create a new day.');
         }
     };
 
@@ -214,13 +219,17 @@ const ScheduleKanban = ({ scheduleId, days: propDays, refreshDays, zoomApiRef })
             })
             .map(sceneId =>
                 moveSceneToDay(sceneMap[sceneId].dayId, sceneId, targetDayId, null)
-                    .catch(err => console.error(`Failed to move scene ${sceneId}:`, err))
+                    .then(() => true)
+                    .catch(err => { console.error(`Failed to move scene ${sceneId}:`, err); return false; })
             );
 
-        await Promise.all(moves);
+        const results = await Promise.all(moves);
         // Sync to get server-authoritative order after bulk move
         await refreshDays();
-    }, [localDays, sceneMap, clearSelection, refreshDays]);
+        if (results.some(r => r === false)) {
+            toast.error('Some Moves Failed', 'Not all scenes could be moved.');
+        }
+    }, [localDays, sceneMap, clearSelection, refreshDays, toast]);
 
     return (
         <DndContext
