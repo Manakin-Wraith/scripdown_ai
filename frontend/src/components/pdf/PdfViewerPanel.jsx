@@ -2,20 +2,20 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Worker, Viewer, SpecialZoomLevel } from '@react-pdf-viewer/core';
 import { defaultLayoutPlugin } from '@react-pdf-viewer/default-layout';
 import { pageNavigationPlugin } from '@react-pdf-viewer/page-navigation';
-import { 
-    FileText, 
-    X, 
-    ZoomIn, 
-    ZoomOut, 
-    ChevronLeft, 
+import {
+    FileText,
+    X,
+    ZoomIn,
+    ZoomOut,
+    ChevronLeft,
     ChevronRight,
     Maximize2,
     Minimize2,
-    Loader,
     AlertCircle,
     RefreshCw,
     Link2
 } from 'lucide-react';
+import { Spinner } from '../ui';
 import { getPdfUrl } from '../../services/apiService';
 
 // Import styles
@@ -229,7 +229,7 @@ const PdfViewerPanel = ({
             <div className="pdf-panel-content">
                 {loading && (
                     <div className="pdf-loading">
-                        <Loader size={32} className="spin" />
+                        <Spinner size={32} />
                         <p>Loading PDF...</p>
                     </div>
                 )}

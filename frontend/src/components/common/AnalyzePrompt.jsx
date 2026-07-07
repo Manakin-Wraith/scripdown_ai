@@ -6,7 +6,8 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Sparkles, Loader, CheckCircle, AlertCircle, Clock } from 'lucide-react';
+import { Sparkles, CheckCircle, AlertCircle, Clock } from 'lucide-react';
+import { Spinner } from '../ui';
 import { queueCharacterAnalysis, queueLocationAnalysis } from '../../services/apiService';
 import { useToast } from '../../context/ToastContext';
 import './AnalyzePrompt.css';
@@ -98,7 +99,7 @@ const AnalyzePrompt = ({
 
             {status === 'analyzing' && (
                 <div className="analyze-prompt-status analyzing">
-                    <Loader size={20} className="spin" />
+                    <Spinner size={20} />
                     <span>Analyzing {name}...</span>
                     <p className="status-hint">This page will update automatically when complete.</p>
                 </div>

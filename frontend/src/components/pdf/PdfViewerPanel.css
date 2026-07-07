@@ -118,8 +118,7 @@
     color: var(--text-secondary);
 }
 
-.pdf-loading .spin {
-    animation: spin 1s linear infinite;
+.pdf-loading .ui-spinner {
     color: var(--primary-500);
 }
 
@@ -314,15 +313,6 @@
 
 .pdf-viewer-panel::before:hover {
     background: var(--primary-500);
-}
-
-/* ============================================ */
-/* Animations */
-/* ============================================ */
-
-@keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
 }
 
 /* ============================================ */

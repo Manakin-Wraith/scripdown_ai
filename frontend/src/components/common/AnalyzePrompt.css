@@ -125,16 +125,6 @@
     border-color: var(--gray-500);
 }
 
-/* Spinning animation */
-.spin {
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-}
-
 /* Compact variant for inline use */
 .analyze-prompt.compact {
     padding: 1rem;
