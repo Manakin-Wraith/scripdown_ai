@@ -9,10 +9,9 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { 
-    X, 
-    Crown, 
-    Shield, 
+import {
+    Crown,
+    Shield,
     UserX,
     Clock,
     Users,
@@ -26,7 +25,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 import InviteModal from './InviteModal';
-import { Spinner } from '../ui';
+import { Spinner, Drawer } from '../ui';
 import './TeamDrawer.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -232,27 +231,15 @@ const TeamDrawer = ({
 
     return (
         <>
-            {/* Backdrop */}
-            <div className="drawer-backdrop" onClick={onClose} />
-            
-            {/* Drawer */}
-            <div className={`team-drawer ${isOpen ? 'open' : ''}`}>
-                {/* Header */}
-                <div className="drawer-header">
-                    <div className="drawer-title-group">
-                        <h3>
-                            <Users size={18} />
-                            Team Members
-                        </h3>
-                        <span className="drawer-subtitle">{scriptTitle}</span>
-                    </div>
-                    <button className="close-btn" onClick={onClose}>
-                        <X size={20} />
-                    </button>
-                </div>
-
-                {/* Content */}
-                <div className="drawer-content">
+            <Drawer
+                isOpen={isOpen}
+                onClose={onClose}
+                side="right"
+                width="420px"
+                title={<span className="team-drawer-title"><Users size={18} /> Team Members</span>}
+                subtitle={scriptTitle}
+            >
+                <div className="team-drawer-body">
                     {loading ? (
                         <div className="drawer-loading">
                             <Spinner size={24} />
@@ -405,7 +392,7 @@ const TeamDrawer = ({
                         </>
                     )}
                 </div>
-            </div>
+            </Drawer>
 
             {/* Remove Member Confirmation Modal */}
             {removeConfirm && (

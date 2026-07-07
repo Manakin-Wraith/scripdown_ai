@@ -1,56 +1,5 @@
 /* Team Drawer - Slide-out Panel */
 
-/* Drawer (reuses backdrop from NoteDrawer) */
-.team-drawer {
-    position: fixed;
-    top: 0;
-    right: 0;
-    width: 420px;
-    max-width: 90vw;
-    height: 100vh;
-    background: var(--gray-900);
-    border-left: 1px solid var(--gray-700);
-    z-index: 1000;
-    display: flex;
-    flex-direction: column;
-    transform: translateX(100%);
-    transition: transform 0.3s ease;
-}
-
-.team-drawer.open {
-    transform: translateX(0);
-}
-
-/* Header */
-.team-drawer .drawer-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem 1.25rem;
-    border-bottom: 1px solid var(--gray-700);
-    background: var(--gray-800);
-}
-
-.team-drawer .drawer-header h3 {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin: 0;
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--gray-100);
-}
-
-/* Content */
-.team-drawer .drawer-content {
-    flex: 1;
-    overflow-y: auto;
-    padding: 1rem;
-    display: flex;
-    flex-direction: column;
-    gap: 1.25rem;
-}
-
 /* Team Sections */
 .team-section {
     display: flex;
@@ -375,28 +324,28 @@
 /* Confirmation Modal Overrides */
 /* ============================================ */
 
-.team-drawer ~ .confirm-overlay .confirm-icon.danger {
+.confirm-overlay .confirm-icon.danger {
     background: rgba(239, 68, 68, 0.15);
     color: var(--danger);
 }
 
-.team-drawer ~ .confirm-overlay .confirm-icon.warning {
+.confirm-overlay .confirm-icon.warning {
     background: var(--primary-alpha-15);
     color: var(--primary-500);
 }
 
-.team-drawer ~ .confirm-overlay .confirm-name {
+.confirm-overlay .confirm-name {
     margin: 0 0 0.5rem;
     font-size: 1rem;
     font-weight: 600;
     color: var(--gray-100);
 }
 
-.team-drawer ~ .confirm-overlay .confirm-delete.warning {
+.confirm-overlay .confirm-delete.warning {
     background: var(--primary-500);
 }
 
-.team-drawer ~ .confirm-overlay .confirm-delete.warning:hover {
+.confirm-overlay .confirm-delete.warning:hover {
     background: var(--primary-600);
 }
 
@@ -517,10 +466,33 @@
     cursor: not-allowed;
 }
 
-/* Responsive */
-@media (max-width: 480px) {
-    .team-drawer {
-        width: 100vw;
-        max-width: 100vw;
-    }
+
+/* Header title node (icon + label), replaces .team-drawer .drawer-header h3 */
+.team-drawer-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Body vertical rhythm (was provided by .team-drawer .drawer-content) */
+.team-drawer-body {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+/* TeamDrawer body uses these loading/error state styles */
+.drawer-loading,
+.drawer-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 3rem 1rem;
+    color: var(--gray-400);
+}
+
+.drawer-error {
+    color: var(--danger);
 }
