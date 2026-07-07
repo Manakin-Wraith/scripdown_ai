@@ -7,12 +7,12 @@ import './Drawer.css';
  * @param {{
  *  isOpen: boolean, onClose: () => void, title?: React.ReactNode,
  *  subtitle?: React.ReactNode, side?: 'right'|'left', width?: string,
- *  footer?: React.ReactNode, showClose?: boolean, children?: React.ReactNode
+ *  subHeader?: React.ReactNode, footer?: React.ReactNode, showClose?: boolean, children?: React.ReactNode
  * }} props
  */
 const Drawer = ({
   isOpen, onClose, title, subtitle, side = 'right', width = '480px',
-  footer, showClose = true, children,
+  subHeader, footer, showClose = true, children,
 }) => {
   useOverlay({ isOpen, onClose });
   if (!isOpen) return null;
@@ -39,6 +39,7 @@ const Drawer = ({
             )}
           </div>
         )}
+        {subHeader && <div className="ui-drawer-subheader">{subHeader}</div>}
         <div className="ui-drawer-body">{children}</div>
         {footer && <div className="ui-drawer-footer">{footer}</div>}
       </div>

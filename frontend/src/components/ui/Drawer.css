@@ -35,6 +35,7 @@
   color: var(--text-secondary); padding: var(--space-1); border-radius: var(--radius-md);
 }
 .ui-drawer-close:hover { background: var(--gray-700); color: var(--text-primary); }
+.ui-drawer-subheader { flex-shrink: 0; }
 .ui-drawer-body { padding: var(--space-6); overflow-y: auto; flex: 1; }
 .ui-drawer-footer {
   display: flex; align-items: center; justify-content: flex-end; gap: var(--space-3);
