@@ -5,7 +5,7 @@ import {
     Plus, Minus, RefreshCw, ArrowRight
 } from 'lucide-react';
 import { importRevision } from '../../services/apiService';
-import { Spinner } from '../ui';
+import { Spinner, Button } from '../ui';
 import './RevisionImportWizard.css';
 
 const REVISION_COLORS = [
@@ -330,11 +330,11 @@ const RevisionImportWizard = ({ isOpen, onClose, scriptId, scriptTitle, onImport
                 <div className="wizard-footer">
                     {step === 1 && (
                         <>
-                            <button className="btn-secondary" onClick={handleClose}>
+                            <Button variant="secondary" onClick={handleClose}>
                                 Cancel
-                            </button>
-                            <button 
-                                className="btn-primary" 
+                            </Button>
+                            <Button
+                                variant="primary"
                                 onClick={handlePreview}
                                 disabled={!file || loading}
                             >
@@ -349,17 +349,17 @@ const RevisionImportWizard = ({ isOpen, onClose, scriptId, scriptTitle, onImport
                                         <ArrowRight size={18} />
                                     </>
                                 )}
-                            </button>
+                            </Button>
                         </>
                     )}
 
                     {step === 2 && (
                         <>
-                            <button className="btn-secondary" onClick={() => setStep(1)}>
+                            <Button variant="secondary" onClick={() => setStep(1)}>
                                 Back
-                            </button>
-                            <button 
-                                className="btn-primary" 
+                            </Button>
+                            <Button
+                                variant="primary"
                                 onClick={handleImport}
                                 disabled={loading}
                             >
@@ -374,14 +374,14 @@ const RevisionImportWizard = ({ isOpen, onClose, scriptId, scriptTitle, onImport
                                         <CheckCircle size={18} />
                                     </>
                                 )}
-                            </button>
+                            </Button>
                         </>
                     )}
 
                     {step === 3 && (
-                        <button className="btn-primary" onClick={handleClose}>
+                        <Button variant="primary" onClick={handleClose}>
                             Done
-                        </button>
+                        </Button>
                     )}
                 </div>
             </div>
