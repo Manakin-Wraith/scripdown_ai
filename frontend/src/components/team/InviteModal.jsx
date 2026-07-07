@@ -198,7 +198,7 @@ const InviteModal = ({ isOpen, onClose, scriptId, scriptTitle }) => {
             }
         >
             {!inviteResult ? (
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={handleSubmit} className="invite-form">
                     {/* Email Input */}
                     <div className="form-group">
                         <label>
