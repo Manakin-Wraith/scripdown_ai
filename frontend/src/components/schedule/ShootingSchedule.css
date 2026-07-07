@@ -23,7 +23,8 @@
     .schedule-zoom-controls,
     .kanban-board-wrapper,
     .print-controls-bar,
-    .print-preview-overlay {
+    .print-preview-overlay,
+    .schedule-page .ui-empty {
         display: none !important;
     }
 
