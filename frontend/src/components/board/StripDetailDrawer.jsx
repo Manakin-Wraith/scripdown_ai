@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { X, Users, Package, Shirt, Car, Sparkles, Volume2, Cloud, MapPin, CalendarDays, Sun, Pencil, Check } from 'lucide-react';
 import { formatEighths } from '../../utils/sceneUtils';
 import { toggleNewDay, setTimelineCode, setStoryDay } from '../../services/apiService';
 import { useStoryDayNotify } from '../../context/StoryDayContext';
+import { Drawer } from '../ui';
 import './StripDetailDrawer.css';
 
 const TIMELINE_CODE_OPTIONS = ['PRESENT', 'FLASHBACK', 'DREAM', 'FANTASY', 'MONTAGE', 'TITLE_CARD'];
@@ -10,15 +11,6 @@ const TIMELINE_CODE_OPTIONS = ['PRESENT', 'FLASHBACK', 'DREAM', 'FANTASY', 'MONT
 const StripDetailDrawer = ({ stripId, scenes, userItemsByScene, onClose, scriptId, onStoryDayChanged }) => {
     const scene = scenes.find(s => (s.id || s.scene_id) === stripId);
     const userItems = userItemsByScene?.[stripId] || {};
-
-    // Close on Escape
-    useEffect(() => {
-        const handleKey = (e) => {
-            if (e.key === 'Escape') onClose();
-        };
-        window.addEventListener('keydown', handleKey);
-        return () => window.removeEventListener('keydown', handleKey);
-    }, [onClose]);
 
     const notifyStoryDayChange = useStoryDayNotify();
     const [sdEditing, setSdEditing] = useState(false);
@@ -58,19 +50,19 @@ const StripDetailDrawer = ({ stripId, scenes, userItemsByScene, onClose, scriptI
     ];
 
     return (
-        <>
-            <div className="drawer-backdrop" onClick={onClose} />
-            <div className="strip-detail-drawer">
-                <div className="drawer-header">
+        <Drawer
+            isOpen
+            onClose={onClose}
+            side="right"
+            width="400px"
+            title={
+                <div className="sdd-header-content">
                     <div className="drawer-title-row">
                         <span className="drawer-scene-number">Scene {scene.scene_number}</span>
                         <span className={`drawer-ie-badge ${scene.int_ext === 'INT' ? 'int' : 'ext'}`}>
                             {scene.int_ext}
                         </span>
                         <span className="drawer-time">{scene.time_of_day}</span>
-                        <button className="drawer-close-btn" onClick={onClose} title="Close (Esc)">
-                            <X size={18} />
-                        </button>
                     </div>
 
                     <div className="drawer-setting">
@@ -161,39 +153,39 @@ const StripDetailDrawer = ({ stripId, scenes, userItemsByScene, onClose, scriptI
                         )}
                     </div>
                 </div>
-
-                <div className="drawer-body">
-                    {breakdownSections.map(section => (
-                        <div key={section.label} className="drawer-section">
-                            <div className="drawer-section-header" style={{ '--section-color': section.color }}>
-                                <section.icon size={14} />
-                                <span>{section.label}</span>
-                                <span className="drawer-section-count">{section.items.length}</span>
-                            </div>
-                            {section.items.length > 0 ? (
-                                <ul className="drawer-item-list">
-                                    {section.items.map((item, i) => (
-                                        <li key={i}>{item}</li>
-                                    ))}
-                                </ul>
-                            ) : (
-                                <span className="drawer-empty">None</span>
-                            )}
+            }
+        >
+            <div className="drawer-body">
+                {breakdownSections.map(section => (
+                    <div key={section.label} className="drawer-section">
+                        <div className="drawer-section-header" style={{ '--section-color': section.color }}>
+                            <section.icon size={14} />
+                            <span>{section.label}</span>
+                            <span className="drawer-section-count">{section.items.length}</span>
                         </div>
-                    ))}
+                        {section.items.length > 0 ? (
+                            <ul className="drawer-item-list">
+                                {section.items.map((item, i) => (
+                                    <li key={i}>{item}</li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <span className="drawer-empty">None</span>
+                        )}
+                    </div>
+                ))}
 
-                    {atmosphere && (
-                        <div className="drawer-section">
-                            <div className="drawer-section-header" style={{ '--section-color': '#94a3b8' }}>
-                                <Cloud size={14} />
-                                <span>Atmosphere</span>
-                            </div>
-                            <p className="drawer-atmosphere-text">{atmosphere}</p>
+                {atmosphere && (
+                    <div className="drawer-section">
+                        <div className="drawer-section-header" style={{ '--section-color': '#94a3b8' }}>
+                            <Cloud size={14} />
+                            <span>Atmosphere</span>
                         </div>
-                    )}
-                </div>
+                        <p className="drawer-atmosphere-text">{atmosphere}</p>
+                    </div>
+                )}
             </div>
-        </>
+        </Drawer>
     );
 };
 
