@@ -6,7 +6,6 @@ import {
   FileText,
   CreditCard,
   Mail,
-  MessageSquare,
   Activity,
   ChevronLeft,
   ExternalLink,
@@ -20,7 +19,6 @@ const NAV_ITEMS = [
   { path: '/admin/scripts', label: 'Scripts', icon: FileText },
   { path: '/admin/payments', label: 'Payments', icon: CreditCard, badge: 'pending' },
   { path: '/admin/emails', label: 'Email Campaigns', icon: Mail },
-  { path: '/admin/feedback', label: 'Feedback', icon: MessageSquare },
 ];
 
 export default function AdminLayout({ children, pendingPayments = 0 }) {
