@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
+import { FileText, SearchX } from 'lucide-react';
 import GroupLane from './GroupLane';
+import { EmptyState } from '../ui';
 import useBoardDrag from '../../hooks/useBoardDrag';
 import './BoardCanvas.css';
 
@@ -130,9 +132,11 @@ const BoardCanvas = ({ viewModel, state, dispatch, zoomApiRef, scriptId, handleR
     if (viewModel.totalScenes === 0) {
         return (
             <div className="board-empty-state">
-                <div className="board-empty-icon">📋</div>
-                <h3>No scenes found</h3>
-                <p>Upload and analyze a script to see the board view.</p>
+                <EmptyState
+                    icon={FileText}
+                    title="No scenes found"
+                    message="Upload and analyze a script to see the board view."
+                />
             </div>
         );
     }
@@ -140,15 +144,19 @@ const BoardCanvas = ({ viewModel, state, dispatch, zoomApiRef, scriptId, handleR
     if (viewModel.totalScenes > 0 && viewModel.totalVisible === 0) {
         return (
             <div className="board-empty-state">
-                <div className="board-empty-icon">🔍</div>
-                <h3>No scenes match filters</h3>
-                <p>Try adjusting or clearing your filters.</p>
-                <button
-                    className="board-clear-filters-btn"
-                    onClick={() => dispatch({ type: 'CLEAR_FILTERS' })}
-                >
-                    Clear All Filters
-                </button>
+                <EmptyState
+                    icon={SearchX}
+                    title="No scenes match filters"
+                    message="Try adjusting or clearing your filters."
+                    action={
+                        <button
+                            className="board-clear-filters-btn"
+                            onClick={() => dispatch({ type: 'CLEAR_FILTERS' })}
+                        >
+                            Clear All Filters
+                        </button>
+                    }
+                />
             </div>
         );
     }
