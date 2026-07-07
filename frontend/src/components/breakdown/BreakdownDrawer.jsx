@@ -440,8 +440,7 @@ const BreakdownDrawer = ({
     const totalNotes = notes.length;
 
     return (
-        <>
-            <Drawer
+        <Drawer
                 isOpen={isOpen}
                 onClose={onClose}
                 width="640px"
@@ -870,7 +869,6 @@ const BreakdownDrawer = ({
                     )}
                 </div>
             </Drawer>
-        </>
     );
 };
 
