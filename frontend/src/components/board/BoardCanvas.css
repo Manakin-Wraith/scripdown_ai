@@ -35,35 +35,14 @@
     min-height: max-content;
 }
 
-/* Empty states */
+/* Empty states — positioning wrapper; <EmptyState> supplies icon/title/message chrome */
 .board-empty-state {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     flex: 1;
-    gap: 0.75rem;
-    color: var(--text-secondary);
     padding: 3rem;
-    text-align: center;
-}
-
-.board-empty-icon {
-    font-size: 2.5rem;
-    margin-bottom: 0.5rem;
-}
-
-.board-empty-state h3 {
-    font-size: 1.125rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin: 0;
-}
-
-.board-empty-state p {
-    font-size: 0.875rem;
-    margin: 0;
-    max-width: 280px;
 }
 
 .board-clear-filters-btn {
