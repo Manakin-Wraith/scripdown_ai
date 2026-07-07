@@ -10,9 +10,8 @@ import {
     X, 
     Mail, 
     Users, 
-    Copy, 
-    Check, 
-    Loader,
+    Copy,
+    Check,
     Send,
     Link as LinkIcon,
     Lock,
@@ -21,6 +20,7 @@ import {
 import { useToast } from '../../context/ToastContext';
 import { useSubscription } from '../../hooks/useSubscription';
 import { UpgradeModal } from '../subscription';
+import { Spinner } from '../ui';
 import './InviteModal.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -284,7 +284,7 @@ const InviteModal = ({ isOpen, onClose, scriptId, scriptTitle }) => {
                             >
                                 {loading ? (
                                     <>
-                                        <Loader size={18} className="spin" />
+                                        <Spinner size={18} />
                                         Creating Invite...
                                     </>
                                 ) : (

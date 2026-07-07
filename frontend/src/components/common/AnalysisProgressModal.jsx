@@ -9,11 +9,10 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-    X, 
-    CheckCircle, 
-    Clock, 
-    Loader, 
+import {
+    X,
+    CheckCircle,
+    Clock,
     AlertCircle,
     Clapperboard,
     Users,
@@ -22,6 +21,7 @@ import {
     BookOpen,
     XCircle
 } from 'lucide-react';
+import { Spinner } from '../ui';
 import { useAnalysis } from '../../context/AnalysisContext';
 import { cancelScriptAnalysis } from '../../services/apiService';
 import { useToast } from '../../context/ToastContext';
@@ -138,7 +138,7 @@ const AnalysisProgressModal = ({ scriptId, scriptName, isOpen, onClose }) => {
             case 'completed':
                 return <CheckCircle size={18} className="status-icon completed" />;
             case 'processing':
-                return <Loader size={18} className="status-icon processing spin" />;
+                return <Spinner size={18} className="status-icon processing" />;
             case 'failed':
                 return <AlertCircle size={18} className="status-icon failed" />;
             case 'cancelled':
@@ -247,7 +247,7 @@ const AnalysisProgressModal = ({ scriptId, scriptName, isOpen, onClose }) => {
                         >
                             {isCancelling ? (
                                 <>
-                                    <Loader size={16} className="spin" />
+                                    <Spinner size={16} />
                                     Cancelling...
                                 </>
                             ) : (

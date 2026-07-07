@@ -1,16 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { NavLink, Link, useNavigate } from 'react-router-dom';
-import { 
-  Library, 
-  Settings, 
+import {
+  Library,
+  Settings,
   LogOut,
   ChevronDown,
   User,
-  Loader,
   Film,
   LogIn,
   Shield
 } from 'lucide-react';
+import { Spinner } from '../ui';
 import { useAnalysis } from '../../context/AnalysisContext';
 import { useAuth } from '../../context/AuthContext';
 import NotificationBell from '../notifications/NotificationBell';
@@ -91,7 +91,7 @@ const TopBar = () => {
         {/* Global Analysis Status Indicator */}
         {hasActiveAnalysis && (
           <div className="analysis-indicator">
-            <Loader size={16} className="spin" />
+            <Spinner size={16} />
             <span>Analyzing...</span>
           </div>
         )}
@@ -105,7 +105,7 @@ const TopBar = () => {
         {/* User Dropdown or Login Button */}
         {authLoading ? (
           <div className="auth-loading">
-            <Loader size={18} className="spin" />
+            <Spinner size={18} />
           </div>
         ) : isAuthenticated ? (
           <div className="user-menu-container" ref={menuRef}>

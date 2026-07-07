@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { CalendarPlus, Plus, ChevronDown, Check, Loader2 } from 'lucide-react';
+import { CalendarPlus, Plus, ChevronDown, Check } from 'lucide-react';
 import { getSchedules, getShootingDays, quickAddToSchedule } from '../../services/apiService';
+import { Spinner } from '../ui';
 import './SchedulePopover.css';
 
 const SchedulePopover = ({ scriptId, selectedSceneIds, onSuccess, onClose, onScheduled }) => {
@@ -96,7 +97,7 @@ const SchedulePopover = ({ scriptId, selectedSceneIds, onSuccess, onClose, onSch
             </div>
 
             {loading ? (
-                <div className="sp-loading"><Loader2 size={16} className="sp-spin" /> Loading...</div>
+                <div className="sp-loading"><Spinner size={16} /> Loading...</div>
             ) : (
                 <div className="sp-body">
                     {/* Quick action: New schedule + new day */}
@@ -107,7 +108,7 @@ const SchedulePopover = ({ scriptId, selectedSceneIds, onSuccess, onClose, onSch
                     >
                         <Plus size={14} />
                         <span>New Schedule &amp; New Day</span>
-                        {submitting && <Loader2 size={14} className="sp-spin" />}
+                        {submitting && <Spinner size={14} />}
                     </button>
 
                     {/* Existing schedules */}

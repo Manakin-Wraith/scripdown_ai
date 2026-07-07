@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Loader, Plus, CalendarDays, Trash2, Pencil, Check, X, ZoomIn, ZoomOut, Maximize, RotateCcw, Printer } from 'lucide-react';
+import { Plus, CalendarDays, Trash2, Pencil, Check, X, ZoomIn, ZoomOut, Maximize, RotateCcw, Printer } from 'lucide-react';
+import { Spinner } from '../ui';
 import SchedulePrintView from './SchedulePrintView';
 import { useToast } from '../../context/ToastContext';
 import { useScript } from '../../context/ScriptContext';
@@ -156,7 +157,7 @@ const ShootingSchedulePage = () => {
         return (
             <div className="schedule-page">
                 <div className="schedule-loading">
-                    <Loader className="spin" size={32} />
+                    <Spinner size={32} />
                     <p>Loading schedule...</p>
                 </div>
             </div>

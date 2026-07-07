@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Camera, AlertCircle, CheckCircle, Loader } from 'lucide-react';
+import { X, Camera, AlertCircle, CheckCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { submitFeedback } from '../../services/apiService';
+import { Spinner } from '../ui';
 import './FeedbackDrawer.css';
 
 const FeedbackDrawer = ({ isOpen, onClose, anchorRef }) => {
@@ -325,7 +326,7 @@ const FeedbackDrawer = ({ isOpen, onClose, anchorRef }) => {
         >
           {isSubmitting ? (
             <>
-              <Loader size={16} className="spin" />
+              <Spinner size={16} />
               <span>Submitting...</span>
             </>
           ) : (

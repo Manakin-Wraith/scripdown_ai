@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Lock, Unlock, X, AlertTriangle, Loader, CheckCircle } from 'lucide-react';
+import { Lock, Unlock, X, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Spinner } from '../ui';
 import { lockScript, unlockScript } from '../../services/apiService';
 import { useToast } from '../../context/ToastContext';
 import './LockScriptModal.css';
@@ -189,7 +190,7 @@ const LockScriptModal = ({ isOpen, onClose, script, onSuccess }) => {
                         >
                             {loading ? (
                                 <>
-                                    <Loader size={16} className="spin" />
+                                    <Spinner size={16} />
                                     Unlocking...
                                 </>
                             ) : (
@@ -207,7 +208,7 @@ const LockScriptModal = ({ isOpen, onClose, script, onSuccess }) => {
                         >
                             {loading ? (
                                 <>
-                                    <Loader size={16} className="spin" />
+                                    <Spinner size={16} />
                                     Locking...
                                 </>
                             ) : (

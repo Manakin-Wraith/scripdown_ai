@@ -1,6 +1,6 @@
 import React, { useReducer, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Loader, ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 import { useScript } from '../../context/ScriptContext';
 import { useStoryDayListener } from '../../context/StoryDayContext';
@@ -11,6 +11,7 @@ import BoardToolbar from './BoardToolbar';
 import BoardCanvas from './BoardCanvas';
 import StripDetailDrawer from './StripDetailDrawer';
 import SelectionSummary from '../schedule/SelectionSummary';
+import { Spinner } from '../ui';
 import './ZoomableStripboard.css';
 
 const STORAGE_VERSION = 1;
@@ -169,7 +170,7 @@ const ZoomableStripboard = () => {
     if (state.loading) {
         return (
             <div className="board-loading">
-                <Loader className="spin" size={32} />
+                <Spinner size={32} />
                 <p>Loading board...</p>
             </div>
         );

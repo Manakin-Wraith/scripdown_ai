@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { 
-    Video, 
-    Camera, 
-    Clapperboard, 
-    MapPin, 
-    ChevronRight, 
-    Loader,
+import {
+    Video,
+    Camera,
+    Clapperboard,
+    MapPin,
+    ChevronRight,
     Filter,
     BarChart3
 } from 'lucide-react';
 import { getScenes } from '../../services/apiService';
+import { Spinner } from '../ui';
 import './CameraDeptView.css';
 
 /**
@@ -89,7 +89,7 @@ const CameraDeptView = ({ scriptId }) => {
     if (loading) {
         return (
             <div className="camera-loading">
-                <Loader size={24} className="spin" />
+                <Spinner size={24} />
                 <span>Loading shot data...</span>
             </div>
         );

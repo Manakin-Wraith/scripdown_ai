@@ -2,9 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { 
     X, 
     Plus, 
-    Trash2, 
-    Clock, 
-    Loader,
+    Trash2,
+    Clock,
     MessageSquare,
     AlertCircle,
     Circle,
@@ -28,6 +27,7 @@ import {
     User
 } from 'lucide-react';
 import { getScriptNotes, getDepartments, createNote, deleteNote, updateNoteStatus, createReply } from '../../services/apiService';
+import { Spinner } from '../ui';
 import './NoteDrawer.css';
 
 // Category to department mapping
@@ -258,7 +258,7 @@ const NoteDrawer = ({
                 <div className="drawer-content">
                     {loading ? (
                         <div className="drawer-loading">
-                            <Loader size={24} className="spin" />
+                            <Spinner size={24} />
                             <span>Loading notes...</span>
                         </div>
                     ) : error ? (
@@ -392,7 +392,7 @@ const NoteDrawer = ({
                                                             onClick={() => handleReply(note.id)}
                                                             disabled={submittingReply || !replyContent.trim()}
                                                         >
-                                                            {submittingReply ? <Loader size={14} className="spin" /> : <Send size={14} />}
+                                                            {submittingReply ? <Spinner size={14} /> : <Send size={14} />}
                                                         </button>
                                                     </div>
                                                 )}
@@ -438,7 +438,7 @@ const NoteDrawer = ({
                                             disabled={submitting || !newNote.content.trim()}
                                         >
                                             {submitting ? (
-                                                <Loader size={16} className="spin" />
+                                                <Spinner size={16} />
                                             ) : (
                                                 <Plus size={16} />
                                             )}

@@ -3,9 +3,10 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { 
     FileText, Download, Share2, Printer, ChevronRight, 
     Users, MapPin, Package, Shirt, Film, List, BookOpen,
-    Loader, Check, Clock, Trash2, ExternalLink,
+    Check, Clock, Trash2, ExternalLink,
     UserPlus, Zap, Flame, CalendarDays
 } from 'lucide-react';
+import { Spinner } from '../ui';
 import { useToast } from '../../context/ToastContext';
 import { useScript } from '../../context/ScriptContext';
 import { useAuth } from '../../context/AuthContext';
@@ -193,7 +194,7 @@ const ReportBuilder = () => {
     if (loading) {
         return (
             <div className="report-builder-loading">
-                <Loader className="spin" size={32} />
+                <Spinner size={32} />
                 <p>Loading report builder...</p>
             </div>
         );
@@ -325,7 +326,7 @@ const ReportBuilder = () => {
                             >
                                 {isGenerating ? (
                                     <>
-                                        <Loader size={16} className="spin" />
+                                        <Spinner size={16} />
                                         Generating...
                                     </>
                                 ) : (

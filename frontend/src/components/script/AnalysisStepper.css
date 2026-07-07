@@ -145,7 +145,3 @@
 .step-item.completed .step-title {
     color: var(--text-primary);
 }
-
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}

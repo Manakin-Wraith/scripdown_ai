@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { 
     FileText, Download, Printer, Clock, AlertCircle, 
-    Users, MapPin, Package, Film, Loader, CalendarDays
+    Users, MapPin, Package, Film, CalendarDays
 } from 'lucide-react';
-import { 
+import { Spinner } from '../ui';
+import {
     getSharedReport, 
     getSharedReportPdfUrl, 
     getSharedReportPrintUrl 
@@ -48,7 +49,7 @@ const SharedReportView = () => {
     if (loading) {
         return (
             <div className="shared-report-loading">
-                <Loader className="spin" size={32} />
+                <Spinner size={32} />
                 <p>Loading report...</p>
             </div>
         );

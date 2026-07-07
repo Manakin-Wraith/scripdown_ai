@@ -14,7 +14,6 @@ import {
     Building2,
     Shield,
     Save,
-    Loader,
     AlertCircle,
     CheckCircle,
     Crown,
@@ -23,6 +22,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import PageHeader from '../components/layout/PageHeader';
+import { Spinner } from '../components/ui';
 import './ProfilePage.css';
 
 const ProfilePage = () => {
@@ -166,7 +166,7 @@ const ProfilePage = () => {
         return (
             <div className="profile-page">
                 <div className="profile-loading">
-                    <Loader size={32} className="spin" />
+                    <Spinner size={32} />
                     <p>Loading profile...</p>
                 </div>
             </div>
@@ -204,7 +204,7 @@ const ProfilePage = () => {
                                 {!profile?.avatar_url && getInitials()}
                                 <div className="avatar-overlay">
                                     {uploadingAvatar ? (
-                                        <Loader size={24} className="spin" />
+                                        <Spinner size={24} />
                                     ) : (
                                         <Camera size={24} />
                                     )}
@@ -295,7 +295,7 @@ const ProfilePage = () => {
                                 >
                                     {saving ? (
                                         <>
-                                            <Loader size={18} className="spin" />
+                                            <Spinner size={18} />
                                             Saving...
                                         </>
                                     ) : (

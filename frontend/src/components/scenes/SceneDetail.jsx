@@ -9,7 +9,6 @@ import {
     Clapperboard,
     MapPin,
     Zap,
-    Loader,
     Clock,
     MessageSquare,
     Building2,
@@ -30,6 +29,7 @@ import {
     Sun,
     RefreshCw
 } from 'lucide-react';
+import { Spinner } from '../ui';
 import BreakdownDrawer from '../breakdown/BreakdownDrawer';
 import { getScriptNotes, getSceneItems, updateSceneHeader, toggleNewDay, setTimelineCode, setStoryDay } from '../../services/apiService';
 import { useStoryDayNotify } from '../../context/StoryDayContext';
@@ -368,7 +368,7 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
                 {/* Analyzing State */}
                 <div className="analyze-prompt analyzing">
                     <div className="prompt-icon">
-                        <Loader size={48} className="spin" />
+                        <Spinner size={48} />
                     </div>
                     <h3>Analyzing Scene...</h3>
                     <p>AI is extracting breakdown details. This usually takes 10-30 seconds.</p>

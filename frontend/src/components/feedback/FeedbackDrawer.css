@@ -326,19 +326,6 @@
   transform: none;
 }
 
-.submit-btn .spin {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
 /* Success State */
 .feedback-success {
   padding: 60px 40px;

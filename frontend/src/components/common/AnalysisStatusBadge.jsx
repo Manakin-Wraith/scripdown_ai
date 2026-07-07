@@ -8,15 +8,15 @@
  */
 
 import React from 'react';
-import { 
-    CheckCircle, 
-    Loader, 
-    Clock, 
-    AlertCircle, 
+import {
+    CheckCircle,
+    Clock,
+    AlertCircle,
     Sparkles,
     Play,
     RefreshCw
 } from 'lucide-react';
+import { Spinner } from '../ui';
 import { useAnalysis } from '../../context/AnalysisContext';
 import './AnalysisStatusBadge.css';
 
@@ -61,7 +61,7 @@ const AnalysisStatusBadge = ({
             clickable: false
         },
         in_progress: {
-            icon: <Loader size={size === 'small' ? 12 : size === 'large' ? 18 : 14} className="spin" />,
+            icon: <Spinner size={size === 'small' ? 12 : size === 'large' ? 18 : 14} />,
             label: `Analyzing${status.progress ? ` ${status.progress}%` : '...'}`,
             color: 'blue',
             clickable: false
@@ -100,7 +100,7 @@ const AnalysisStatusBadge = ({
             title={config.clickable ? config.actionLabel : config.label}
         >
             <span className="status-icon">
-                {isLoading ? <Loader size={size === 'small' ? 12 : 14} className="spin" /> : config.icon}
+                {isLoading ? <Spinner size={size === 'small' ? 12 : 14} /> : config.icon}
             </span>
             
             {showLabel && (

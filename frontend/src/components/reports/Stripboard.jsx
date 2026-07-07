@@ -3,11 +3,12 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { 
     List, Sun, Moon, Home, Building2, Users, MapPin,
     GripVertical, ArrowLeft,
-    Loader, Filter, SortAsc, SortDesc,
+    Filter, SortAsc, SortDesc,
     Package, Shirt, Sparkles, Car, Volume2, Cloud,
     CheckCircle, AlertCircle, Clock, FileText, MessageSquare,
     CalendarDays
 } from 'lucide-react';
+import { Spinner } from '../ui';
 import { useToast } from '../../context/ToastContext';
 import { useScript } from '../../context/ScriptContext';
 import { useStoryDayListener } from '../../context/StoryDayContext';
@@ -279,7 +280,7 @@ const Stripboard = () => {
     if (loading) {
         return (
             <div className="stripboard-loading">
-                <Loader className="spin" size={32} />
+                <Spinner size={32} />
                 <p>Loading stripboard...</p>
             </div>
         );

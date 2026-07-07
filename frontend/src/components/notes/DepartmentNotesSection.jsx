@@ -9,7 +9,6 @@ import {
     Clock,
     AlertCircle,
     CheckCircle,
-    Loader,
     X,
     // Department icons
     Clapperboard,
@@ -26,6 +25,7 @@ import {
     User
 } from 'lucide-react';
 import { getSceneNotes, getDepartments, createNote, deleteNote, updateNote } from '../../services/apiService';
+import { Spinner } from '../ui';
 import './DepartmentNotesSection.css';
 
 // Icon mapping for departments
@@ -180,7 +180,7 @@ const DepartmentNotesSection = ({ sceneId, scriptId }) => {
     if (loading) {
         return (
             <div className="notes-section loading">
-                <Loader size={20} className="spin" />
+                <Spinner size={20} />
                 <span>Loading notes...</span>
             </div>
         );
@@ -254,7 +254,7 @@ const DepartmentNotesSection = ({ sceneId, scriptId }) => {
                         rows={3}
                     />
                     <button type="submit" disabled={submitting}>
-                        {submitting ? <Loader size={16} className="spin" /> : <Plus size={16} />}
+                        {submitting ? <Spinner size={16} /> : <Plus size={16} />}
                         {submitting ? 'Adding...' : 'Add Note'}
                     </button>
                 </form>
