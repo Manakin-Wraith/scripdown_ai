@@ -3,11 +3,6 @@
    Items CRUD + Notes per breakdown category
    ============================================ */
 
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
 /* ============================================
    Tabs
    ============================================ */
@@ -992,96 +987,5 @@
 .bd-legend-item mark {
     font-size: 0.62rem;
     padding: 0.05rem 0.25rem;
-}
-
-/* ============================================
-   Confirmation Modal
-   ============================================ */
-
-.bd-confirm-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.7);
-    z-index: 1100;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    animation: fadeIn 0.15s ease;
-}
-
-.bd-confirm-modal {
-    background: var(--gray-800);
-    border: 1px solid var(--gray-600);
-    border-radius: 12px;
-    padding: 1.5rem;
-    max-width: 360px;
-    width: 90%;
-    text-align: center;
-}
-
-.bd-confirm-icon {
-    color: var(--danger);
-    margin-bottom: 0.75rem;
-}
-
-.bd-confirm-modal h4 {
-    font-size: 1.05rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    margin: 0 0 0.5rem;
-}
-
-.bd-confirm-name {
-    font-size: 0.88rem;
-    color: var(--text-secondary);
-    margin: 0 0 0.25rem;
-    font-style: italic;
-}
-
-.bd-confirm-warning {
-    font-size: 0.8rem;
-    color: var(--gray-500);
-    margin: 0 0 1rem;
-}
-
-.bd-confirm-actions {
-    display: flex;
-    gap: 0.75rem;
-    justify-content: center;
-}
-
-.bd-confirm-cancel {
-    background: var(--gray-700);
-    border: 1px solid var(--gray-600);
-    border-radius: 8px;
-    color: var(--text-secondary);
-    padding: 0.5rem 1rem;
-    font-size: 0.85rem;
-    cursor: pointer;
-    transition: all 0.15s;
-}
-
-.bd-confirm-cancel:hover {
-    border-color: var(--text-secondary);
-    color: var(--text-primary);
-}
-
-.bd-confirm-delete {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    background: var(--danger);
-    border: none;
-    border-radius: 8px;
-    color: white;
-    padding: 0.5rem 1rem;
-    font-size: 0.85rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.15s;
-}
-
-.bd-confirm-delete:hover {
-    background: var(--danger);
 }
 

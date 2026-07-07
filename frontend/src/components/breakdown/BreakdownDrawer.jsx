@@ -41,6 +41,7 @@ import {
     getSceneItems, createSceneItem, updateSceneItem, deleteSceneItem, removeAiItem 
 } from '../../services/apiService';
 import { Spinner, EmptyState, Drawer } from '../ui';
+import { useConfirmDialog } from '../../context/ConfirmDialogContext';
 import './BreakdownDrawer.css';
 
 // Category to department mapping
@@ -102,6 +103,8 @@ const BreakdownDrawer = ({
     onAiItemRemoved,           // callback to refresh parent scene data
     sceneText = ''             // raw scene text for highlighted display
 }) => {
+    const { confirm } = useConfirmDialog();
+
     // --- Tab state ---
     const [activeTab, setActiveTab] = useState('items'); // 'items' | 'notes'
     
@@ -119,7 +122,6 @@ const BreakdownDrawer = ({
     const [newItemPriority, setNewItemPriority] = useState('normal');
     const [submittingItem, setSubmittingItem] = useState(false);
     const [editingItem, setEditingItem] = useState(null); // { id, item_name, description }
-    const [deleteItemConfirm, setDeleteItemConfirm] = useState(null);
 
     // --- Notes state ---
     const [notes, setNotes] = useState([]);
@@ -128,7 +130,6 @@ const BreakdownDrawer = ({
     const [showAddNote, setShowAddNote] = useState(false);
     const [newNoteContent, setNewNoteContent] = useState('');
     const [submittingNote, setSubmittingNote] = useState(false);
-    const [deleteNoteConfirm, setDeleteNoteConfirm] = useState(null);
     const [expandedReplies, setExpandedReplies] = useState({});
     const [replyingTo, setReplyingTo] = useState(null);
     const [replyContent, setReplyContent] = useState('');
@@ -249,11 +250,9 @@ const BreakdownDrawer = ({
             if (removedItem) {
                 setRemovedItems(prev => [...prev, { ...removedItem, status: 'removed' }]);
             }
-            setDeleteItemConfirm(null);
         } catch (err) {
             console.error('Error deleting item:', err);
             setError('Failed to delete item');
-            setDeleteItemConfirm(null);
         }
     };
 
@@ -293,12 +292,33 @@ const BreakdownDrawer = ({
         try {
             await deleteNote(noteId);
             setNotes(prev => prev.filter(n => n.id !== noteId));
-            setDeleteNoteConfirm(null);
         } catch (err) {
             console.error('Error deleting note:', err);
             setError('Failed to delete note');
-            setDeleteNoteConfirm(null);
         }
+    };
+
+    const handleDeleteItemClick = async (item) => {
+        const ok = await confirm({
+            title: 'Delete Item?',
+            message: `"${item.item_name}" will be permanently removed. This action cannot be undone.`,
+            variant: 'danger',
+            confirmText: 'Delete'
+        });
+        if (!ok) return;
+        await handleDeleteItem(item.id);
+    };
+
+    const handleDeleteNoteClick = async (note) => {
+        const preview = note.content.substring(0, 50) + (note.content.length > 50 ? '...' : '');
+        const ok = await confirm({
+            title: 'Delete Note?',
+            message: `"${preview}" will be permanently deleted. This action cannot be undone.`,
+            variant: 'danger',
+            confirmText: 'Delete'
+        });
+        if (!ok) return;
+        await handleDeleteNote(note.id);
     };
 
     const handleToggleNoteStatus = async (noteId, currentStatus) => {
@@ -607,7 +627,7 @@ const BreakdownDrawer = ({
                                                                         <Edit3 size={14} />
                                                                     </button>
                                                                 )}
-                                                                <button className="bd-action-btn delete" onClick={() => setDeleteItemConfirm({ id: item.id, name: item.item_name })} title="Delete">
+                                                                <button className="bd-action-btn delete" onClick={() => handleDeleteItemClick(item)} title="Delete">
                                                                     <Trash2 size={14} />
                                                                 </button>
                                                             </div>
@@ -775,7 +795,7 @@ const BreakdownDrawer = ({
                                                         <button className="bd-reply-btn" onClick={() => { setReplyingTo(replyingTo === note.id ? null : note.id); setReplyContent(''); }}>
                                                             <Reply size={14} /> Reply
                                                         </button>
-                                                        <button className="bd-delete-btn" onClick={() => setDeleteNoteConfirm({ id: note.id, preview: note.content.substring(0, 50) + (note.content.length > 50 ? '...' : '') })}>
+                                                        <button className="bd-delete-btn" onClick={() => handleDeleteNoteClick(note)}>
                                                             <Trash2 size={14} />
                                                         </button>
                                                     </div>
@@ -850,42 +870,6 @@ const BreakdownDrawer = ({
                     )}
                 </div>
             </Drawer>
-
-            {/* Delete Item Confirmation */}
-            {deleteItemConfirm && (
-                <div className="bd-confirm-overlay">
-                    <div className="bd-confirm-modal">
-                        <div className="bd-confirm-icon"><Trash2 size={24} /></div>
-                        <h4>Delete Item?</h4>
-                        <p className="bd-confirm-name">"{deleteItemConfirm.name}"</p>
-                        <p className="bd-confirm-warning">This action cannot be undone.</p>
-                        <div className="bd-confirm-actions">
-                            <button className="bd-confirm-cancel" onClick={() => setDeleteItemConfirm(null)}>Cancel</button>
-                            <button className="bd-confirm-delete" onClick={() => handleDeleteItem(deleteItemConfirm.id)}>
-                                <Trash2 size={14} /> Delete
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Delete Note Confirmation */}
-            {deleteNoteConfirm && (
-                <div className="bd-confirm-overlay">
-                    <div className="bd-confirm-modal">
-                        <div className="bd-confirm-icon"><Trash2 size={24} /></div>
-                        <h4>Delete Note?</h4>
-                        <p className="bd-confirm-name">"{deleteNoteConfirm.preview}"</p>
-                        <p className="bd-confirm-warning">This action cannot be undone.</p>
-                        <div className="bd-confirm-actions">
-                            <button className="bd-confirm-cancel" onClick={() => setDeleteNoteConfirm(null)}>Cancel</button>
-                            <button className="bd-confirm-delete" onClick={() => handleDeleteNote(deleteNoteConfirm.id)}>
-                                <Trash2 size={14} /> Delete
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </>
     );
 };
