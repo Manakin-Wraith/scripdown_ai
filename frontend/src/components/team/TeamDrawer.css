@@ -488,7 +488,7 @@
     gap: 1.25rem;
 }
 
-/* Relocated from NoteDrawer.css (deleted in Task 3); TeamDrawer body still uses these */
+/* TeamDrawer body uses these loading/error state styles */
 .drawer-loading,
 .drawer-error {
     display: flex;
