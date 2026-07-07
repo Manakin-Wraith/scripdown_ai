@@ -264,42 +264,6 @@
     color: var(--danger);
 }
 
-/* Buttons */
-.btn-primary {
-    background: var(--primary-600);
-    color: white;
-    border: none;
-    border-radius: 8px;
-    padding: 0.75rem 1.25rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.btn-primary:hover:not(:disabled) {
-    background: var(--primary-500);
-}
-
-.btn-primary:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-
-.btn-secondary {
-    background: var(--bg-secondary);
-    color: var(--text-primary);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 0.75rem 1.25rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.btn-secondary:hover {
-    background: var(--gray-700);
-}
-
 /* Responsive */
 @media (max-width: 1100px) {
     .report-builder-layout {

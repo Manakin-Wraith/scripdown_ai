@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import DropZone from './DropZone';
 import { AlertTriangle, X, CheckCircle, ArrowRight, Clapperboard, Sparkles, AlertCircle, FileText, Scissors, Lock, Zap } from 'lucide-react';
-import { Spinner } from '../ui';
+import { Spinner, Button } from '../ui';
 import { useToast } from '../../context/ToastContext';
 import { supabase } from '../../lib/supabase';
 import { UpgradeModal } from '../subscription';
@@ -274,23 +274,24 @@ const ScriptUpload = () => {
                                     <span>or</span>
                                 </div>
                                 
-                                <button 
-                                    className="btn-secondary"
+                                <Button
+                                    variant="secondary"
+                                    fullWidth
                                     onClick={goToSceneViewer}
                                 >
                                     <FileText size={18} />
                                     View Full Script
-                                </button>
+                                </Button>
                                 <p className="option-hint">
                                     View the script without scene breakdown
                                 </p>
-                                
-                                <button 
-                                    className="btn-tertiary"
+
+                                <Button
+                                    variant="ghost"
                                     onClick={resetUpload}
                                 >
                                     Upload Different File
-                                </button>
+                                </Button>
                             </div>
                         </div>
                     </div>
@@ -325,19 +326,19 @@ const ScriptUpload = () => {
                             </p>
                             
                             <div className="success-actions">
-                                <button 
-                                    className="btn-primary"
+                                <Button
+                                    variant="primary"
                                     onClick={goToSceneViewer}
                                 >
                                     View Scenes
                                     <ArrowRight size={18} />
-                                </button>
-                                <button 
-                                    className="btn-tertiary"
+                                </Button>
+                                <Button
+                                    variant="ghost"
                                     onClick={resetUpload}
                                 >
                                     Upload Another
-                                </button>
+                                </Button>
                             </div>
                         </div>
                     </div>

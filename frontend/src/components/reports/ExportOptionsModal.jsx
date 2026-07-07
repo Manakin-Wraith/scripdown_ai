@@ -7,6 +7,7 @@ import {
     ChevronDown,
     Info
 } from 'lucide-react';
+import { Button } from '../ui';
 import './ExportOptionsModal.css';
 
 const ExportOptionsModal = ({ isOpen, onClose, scriptId, onGenerate }) => {
@@ -220,15 +221,15 @@ const ExportOptionsModal = ({ isOpen, onClose, scriptId, onGenerate }) => {
 
                 {/* Footer */}
                 <div className="modal-footer">
-                    <button 
-                        className="btn-secondary" 
+                    <Button
+                        variant="secondary"
                         onClick={onClose}
                         disabled={loading}
                     >
                         Cancel
-                    </button>
-                    <button 
-                        className="btn-primary" 
+                    </Button>
+                    <Button
+                        variant="primary"
                         onClick={handleGenerate}
                         disabled={loading}
                     >
@@ -243,7 +244,7 @@ const ExportOptionsModal = ({ isOpen, onClose, scriptId, onGenerate }) => {
                                 Generate Report
                             </>
                         )}
-                    </button>
+                    </Button>
                 </div>
             </div>
         </div>

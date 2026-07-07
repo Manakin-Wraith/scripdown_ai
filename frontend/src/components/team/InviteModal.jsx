@@ -20,7 +20,7 @@ import {
 import { useToast } from '../../context/ToastContext';
 import { useSubscription } from '../../hooks/useSubscription';
 import { UpgradeModal } from '../subscription';
-import { Spinner } from '../ui';
+import { Spinner, Button } from '../ui';
 import './InviteModal.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -327,18 +327,18 @@ const InviteModal = ({ isOpen, onClose, scriptId, scriptTitle }) => {
                             </p>
                             
                             <div className="success-actions">
-                                <button 
-                                    className="btn-secondary"
+                                <Button
+                                    variant="secondary"
                                     onClick={sendAnotherInvite}
                                 >
                                     Invite Another
-                                </button>
-                                <button 
-                                    className="btn-primary"
+                                </Button>
+                                <Button
+                                    variant="primary"
                                     onClick={onClose}
                                 >
                                     Done
-                                </button>
+                                </Button>
                             </div>
                         </div>
                     )}

@@ -6,7 +6,7 @@ import {
     Check, Clock, Trash2, ExternalLink,
     UserPlus, Zap, Flame, CalendarDays
 } from 'lucide-react';
-import { Spinner } from '../ui';
+import { Spinner, Button } from '../ui';
 import { useToast } from '../../context/ToastContext';
 import { useScript } from '../../context/ScriptContext';
 import { useAuth } from '../../context/AuthContext';
@@ -319,8 +319,9 @@ const ReportBuilder = () => {
                                 placeholder={`Custom title (optional)`}
                                 className="config-title-input"
                             />
-                            <button 
-                                className="btn-primary generate-btn"
+                            <Button
+                                variant="primary"
+                                className="generate-btn"
                                 onClick={handleGenerate}
                                 disabled={isGenerating}
                             >
@@ -335,7 +336,7 @@ const ReportBuilder = () => {
                                         Generate Report
                                     </>
                                 )}
-                            </button>
+                            </Button>
                         </div>
                     </div>
 

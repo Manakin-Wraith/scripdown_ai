@@ -535,8 +535,7 @@
     border-top: 1px solid var(--border-color);
 }
 
-.btn-cancel,
-.btn-primary {
+.btn-cancel {
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -546,9 +545,6 @@
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
-}
-
-.btn-cancel {
     background: var(--gray-700);
     border: 1px solid var(--border-color);
     color: var(--text-primary);
@@ -558,18 +554,7 @@
     background: var(--gray-600);
 }
 
-.btn-primary {
-    background: var(--primary-600);
-    border: none;
-    color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-    background: var(--primary-700);
-}
-
-.btn-cancel:disabled,
-.btn-primary:disabled {
+.btn-cancel:disabled {
     opacity: 0.5;
     cursor: not-allowed;
 }
