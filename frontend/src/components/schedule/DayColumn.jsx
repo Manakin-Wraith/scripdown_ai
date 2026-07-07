@@ -6,12 +6,14 @@ import { useDroppable } from '@dnd-kit/core';
 import { removeSceneFromDay, deleteShootingDay, updateShootingDay } from '../../services/apiService';
 import ScheduleSceneCard from './ScheduleSceneCard';
 import { formatEighths, getSceneEighths } from '../../utils/sceneUtils';
+import { useToast } from '../../context/ToastContext';
 
 const DayColumn = ({ day, refreshDays, selectedSceneIds, onToggleSelect }) => {
     const [editingDate, setEditingDate] = useState(false);
     const [localDate, setLocalDate] = useState(day.shoot_date || '');
     const dateInputRef = useRef(null);
     const { confirm } = useConfirmDialog();
+    const toast = useToast();
 
     const scenes = (day.scenes || []).map(ds => ({
         ...ds,
@@ -50,6 +52,7 @@ const DayColumn = ({ day, refreshDays, selectedSceneIds, onToggleSelect }) => {
             await refreshDays();
         } catch (err) {
             console.error('Failed to remove scene:', err);
+            toast.error('Remove Failed', 'Could not remove the scene from this day.');
         }
     };
 
@@ -65,6 +68,7 @@ const DayColumn = ({ day, refreshDays, selectedSceneIds, onToggleSelect }) => {
             await refreshDays();
         } catch (err) {
             console.error('Failed to delete day:', err);
+            toast.error('Delete Failed', 'Could not delete the day.');
         }
     };
 
@@ -79,6 +83,7 @@ const DayColumn = ({ day, refreshDays, selectedSceneIds, onToggleSelect }) => {
         } catch (err) {
             console.error('Failed to update shoot date:', err);
             setLocalDate(day.shoot_date || '');
+            toast.error('Update Failed', 'Could not update the shoot date.');
         }
     };
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { CalendarPlus, Plus, ChevronDown, Check } from 'lucide-react';
 import { getSchedules, getShootingDays, quickAddToSchedule } from '../../services/apiService';
 import { Spinner } from '../ui';
+import { useToast } from '../../context/ToastContext';
 import './SchedulePopover.css';
 
 const SchedulePopover = ({ scriptId, selectedSceneIds, onSuccess, onClose, onScheduled }) => {
@@ -12,6 +13,7 @@ const SchedulePopover = ({ scriptId, selectedSceneIds, onSuccess, onClose, onSch
     const [submitting, setSubmitting] = useState(false);
     const [result, setResult] = useState(null);
     const popoverRef = useRef(null);
+    const toast = useToast();
 
     // Close on outside click
     useEffect(() => {
@@ -69,6 +71,7 @@ const SchedulePopover = ({ scriptId, selectedSceneIds, onSuccess, onClose, onSch
         } catch (err) {
             console.error('Failed to add to schedule:', err);
             setResult({ error: err.message || 'Failed to add' });
+            toast.error('Add Failed', err.message || 'Could not add to the schedule.');
             setSubmitting(false);
         }
     };
