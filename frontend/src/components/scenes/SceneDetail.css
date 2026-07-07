@@ -5,24 +5,6 @@
     background-color: var(--bg-app);
 }
 
-.scene-detail-empty {
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: var(--bg-app);
-    color: var(--text-secondary);
-}
-
-.empty-content {
-    text-align: center;
-}
-
-.empty-icon {
-    margin-bottom: 1rem;
-    opacity: 0.5;
-}
-
 /* Header */
 .detail-header {
     margin-bottom: 2rem;

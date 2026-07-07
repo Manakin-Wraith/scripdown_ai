@@ -2,6 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Users, Clapperboard, Star, TrendingUp, ChevronRight, Sparkles, RefreshCw } from 'lucide-react';
 import { analyzeCharacters } from '../../services/apiService';
+import { EmptyState } from '../ui';
 import './Dashboard.css';
 
 const CharacterDashboard = ({ characters, scenes, onSelectCharacter, scriptId }) => {
@@ -103,11 +104,11 @@ const CharacterDashboard = ({ characters, scenes, onSelectCharacter, scriptId })
 
     if (Object.keys(characters).length === 0) {
         return (
-            <div className="dashboard-empty">
-                <Users size={48} className="empty-icon" />
-                <h3>No Characters Found</h3>
-                <p>Characters will appear here once the script is analyzed</p>
-            </div>
+            <EmptyState
+                icon={Users}
+                title="No Characters Found"
+                message="Characters will appear here once the script is analyzed"
+            />
         );
     }
 

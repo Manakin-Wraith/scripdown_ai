@@ -40,7 +40,7 @@ import {
     getScriptNotes, getDepartments, createNote, deleteNote, updateNoteStatus, createReply,
     getSceneItems, createSceneItem, updateSceneItem, deleteSceneItem, removeAiItem 
 } from '../../services/apiService';
-import { Spinner } from '../ui';
+import { Spinner, EmptyState } from '../ui';
 import './BreakdownDrawer.css';
 
 // Category to department mapping
@@ -567,11 +567,7 @@ const BreakdownDrawer = ({
                                 {/* User-Added Items (Editable) */}
                                 <div className="bd-section">
                                     {userItems.length === 0 && localAiItems.length === 0 ? (
-                                        <div className="bd-empty">
-                                            <Plus size={32} />
-                                            <p>No items yet</p>
-                                            <span>Add breakdown items for this category</span>
-                                        </div>
+                                        <EmptyState icon={Plus} title="No items yet" message="Add breakdown items for this category" size="sm" />
                                     ) : userItems.length === 0 ? (
                                         <p className="bd-empty-hint">No team-added items yet</p>
                                     ) : (
@@ -747,11 +743,7 @@ const BreakdownDrawer = ({
                             <>
                                 <div className="bd-notes-list">
                                     {notes.length === 0 ? (
-                                        <div className="bd-empty">
-                                            <MessageSquare size={32} />
-                                            <p>No notes yet</p>
-                                            <span>Add a note to start collaborating</span>
-                                        </div>
+                                        <EmptyState icon={MessageSquare} title="No notes yet" message="Add a note to start collaborating" size="sm" />
                                     ) : (
                                         notes.map(note => {
                                             const isResolved = note.status === 'resolved';

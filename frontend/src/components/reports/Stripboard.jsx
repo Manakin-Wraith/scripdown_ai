@@ -8,7 +8,7 @@ import {
     CheckCircle, AlertCircle, Clock, FileText, MessageSquare,
     CalendarDays
 } from 'lucide-react';
-import { Spinner } from '../ui';
+import { Spinner, EmptyState } from '../ui';
 import { useToast } from '../../context/ToastContext';
 import { useScript } from '../../context/ScriptContext';
 import { useStoryDayListener } from '../../context/StoryDayContext';
@@ -783,10 +783,7 @@ const Stripboard = () => {
             </div>
 
             {filteredScenes.length === 0 && (
-                <div className="stripboard-empty">
-                    <List size={32} />
-                    <p>No scenes match the current filters</p>
-                </div>
+                <EmptyState icon={List} title="No scenes match the current filters" />
             )}
         </div>
     );

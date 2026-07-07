@@ -182,26 +182,6 @@
 }
 
 /* Empty */
-.bd-empty {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 2rem 1rem;
-    color: var(--text-secondary);
-    text-align: center;
-}
-
-.bd-empty p {
-    font-weight: 600;
-    color: var(--text-primary);
-    margin: 0;
-}
-
-.bd-empty span {
-    font-size: 0.85rem;
-}
-
 .bd-empty-hint {
     color: var(--text-secondary);
     font-size: 0.85rem;
