@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { getSceneNotes, getDepartments, createNote, deleteNote, updateNote } from '../../services/apiService';
 import { Spinner } from '../ui';
+import { useConfirmDialog } from '../../context/ConfirmDialogContext';
 import './DepartmentNotesSection.css';
 
 // Icon mapping for departments
@@ -58,6 +59,7 @@ const DepartmentNotesSection = ({ sceneId, scriptId }) => {
         priority: 'normal'
     });
     const [submitting, setSubmitting] = useState(false);
+    const { confirm } = useConfirmDialog();
 
     // Fetch departments and notes
     useEffect(() => {
@@ -137,8 +139,14 @@ const DepartmentNotesSection = ({ sceneId, scriptId }) => {
     };
 
     const handleDeleteNote = async (noteId) => {
-        if (!window.confirm('Delete this note?')) return;
-        
+        const ok = await confirm({
+            title: 'Delete Note?',
+            message: 'This note will be permanently deleted.',
+            variant: 'danger'
+        });
+        if (!ok) return;
+
+
         try {
             await deleteNote(noteId);
             // Refresh notes

@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { Spinner, Modal } from '../ui';
 import { useToast } from '../../context/ToastContext';
+import { useConfirmDialog } from '../../context/ConfirmDialogContext';
 import { 
     createReportShareLink, 
     revokeReportShareLink,
@@ -15,6 +16,7 @@ import './ShareModal.css';
 
 const ShareModal = ({ report, onClose, onUpdate }) => {
     const toast = useToast();
+    const { confirm } = useConfirmDialog();
     const [isCreating, setIsCreating] = useState(false);
     const [isRevoking, setIsRevoking] = useState(false);
     const [copied, setCopied] = useState(false);
@@ -49,8 +51,15 @@ const ShareModal = ({ report, onClose, onUpdate }) => {
     };
 
     const handleRevokeLink = async () => {
-        if (!window.confirm('Revoke this share link? Anyone with the link will lose access.')) return;
-        
+        const ok = await confirm({
+            title: 'Revoke Share Link?',
+            message: 'Anyone with the link will lose access.',
+            variant: 'warning',
+            confirmText: 'Revoke'
+        });
+        if (!ok) return;
+
+
         setIsRevoking(true);
         try {
             await revokeReportShareLink(report.id);

@@ -4,6 +4,7 @@ import { Plus, CalendarDays, Trash2, Pencil, Check, X, ZoomIn, ZoomOut, Maximize
 import { Spinner, EmptyState } from '../ui';
 import SchedulePrintView from './SchedulePrintView';
 import { useToast } from '../../context/ToastContext';
+import { useConfirmDialog } from '../../context/ConfirmDialogContext';
 import { useScript } from '../../context/ScriptContext';
 import {
     getSchedules, createSchedule, getShootingDays,
@@ -16,6 +17,7 @@ const ShootingSchedulePage = () => {
     const { scriptId } = useParams();
     const navigate = useNavigate();
     const toast = useToast();
+    const { confirm } = useConfirmDialog();
     const { setScript } = useScript();
 
     const [schedules, setSchedules] = useState([]);
@@ -112,7 +114,12 @@ const ShootingSchedulePage = () => {
 
     const handleDeleteSchedule = async (schedId) => {
         const sched = schedules.find(s => s.id === schedId);
-        if (!window.confirm(`Delete "${sched?.name || 'this schedule'}" and all its shooting days? This cannot be undone.`)) return;
+        const ok = await confirm({
+            title: 'Delete Schedule?',
+            message: `"${sched?.name || 'This schedule'}" and all its shooting days will be permanently deleted.`,
+            variant: 'danger'
+        });
+        if (!ok) return;
         try {
             await deleteSchedule(schedId);
             const remaining = schedules.filter(s => s.id !== schedId);

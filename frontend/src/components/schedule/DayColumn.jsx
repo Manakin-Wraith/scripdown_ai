@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useRef } from 'react';
 import { Trash2, FileText, Users, MapPin, CalendarDays } from 'lucide-react';
+import { useConfirmDialog } from '../../context/ConfirmDialogContext';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
 import { removeSceneFromDay, deleteShootingDay, updateShootingDay } from '../../services/apiService';
@@ -10,6 +11,7 @@ const DayColumn = ({ day, refreshDays, selectedSceneIds, onToggleSelect }) => {
     const [editingDate, setEditingDate] = useState(false);
     const [localDate, setLocalDate] = useState(day.shoot_date || '');
     const dateInputRef = useRef(null);
+    const { confirm } = useConfirmDialog();
 
     const scenes = (day.scenes || []).map(ds => ({
         ...ds,
@@ -52,7 +54,12 @@ const DayColumn = ({ day, refreshDays, selectedSceneIds, onToggleSelect }) => {
     };
 
     const handleDeleteDay = async () => {
-        if (!window.confirm(`Delete Day ${day.day_number} and unschedule all its scenes?`)) return;
+        const ok = await confirm({
+            title: 'Delete Day?',
+            message: `Day ${day.day_number} will be deleted and all its scenes unscheduled.`,
+            variant: 'danger'
+        });
+        if (!ok) return;
         try {
             await deleteShootingDay(day.id);
             await refreshDays();

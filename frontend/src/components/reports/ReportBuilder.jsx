@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { Spinner, Button, Badge } from '../ui';
 import { useToast } from '../../context/ToastContext';
+import { useConfirmDialog } from '../../context/ConfirmDialogContext';
 import { useScript } from '../../context/ScriptContext';
 import { useAuth } from '../../context/AuthContext';
 import { 
@@ -48,6 +49,7 @@ const ReportBuilder = () => {
     const { scriptId } = useParams();
     const navigate = useNavigate();
     const toast = useToast();
+    const { confirm } = useConfirmDialog();
     const { setScript } = useScript();
     const { canAccess, status, daysRemaining } = useSubscription();
     
@@ -176,8 +178,14 @@ const ReportBuilder = () => {
     };
 
     const handleDelete = async (reportId) => {
-        if (!window.confirm('Delete this report?')) return;
-        
+        const ok = await confirm({
+            title: 'Delete Report?',
+            message: 'This report will be permanently deleted.',
+            variant: 'danger'
+        });
+        if (!ok) return;
+
+
         try {
             await deleteReport(reportId);
             setExistingReports(prev => prev.filter(r => r.id !== reportId));
