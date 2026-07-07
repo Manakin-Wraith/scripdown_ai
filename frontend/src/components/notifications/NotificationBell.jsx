@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Bell, Check, CheckCheck, X, UserPlus, FileText } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
+import { EmptyState } from '../ui';
 import './NotificationBell.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -253,10 +254,7 @@ const NotificationBell = () => {
 
                     <div className="notification-list">
                         {notifications.length === 0 ? (
-                            <div className="notification-empty">
-                                <Bell size={32} />
-                                <p>No notifications yet</p>
-                            </div>
+                            <EmptyState icon={Bell} title="No notifications yet" size="sm" />
                         ) : (
                             notifications.map(notification => (
                                 <div 

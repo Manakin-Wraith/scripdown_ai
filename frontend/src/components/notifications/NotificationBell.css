@@ -133,26 +133,6 @@
     border-radius: 3px;
 }
 
-/* Empty State */
-.notification-empty {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 3rem 1.5rem;
-    color: var(--text-muted);
-}
-
-.notification-empty svg {
-    margin-bottom: 0.75rem;
-    opacity: 0.5;
-}
-
-.notification-empty p {
-    font-size: 0.875rem;
-    margin: 0;
-}
-
 /* Notification Item */
 .notification-item {
     display: flex;

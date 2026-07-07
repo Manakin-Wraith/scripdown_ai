@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Plus, CalendarDays, Trash2, Pencil, Check, X, ZoomIn, ZoomOut, Maximize, RotateCcw, Printer } from 'lucide-react';
-import { Spinner } from '../ui';
+import { Spinner, EmptyState } from '../ui';
 import SchedulePrintView from './SchedulePrintView';
 import { useToast } from '../../context/ToastContext';
 import { useScript } from '../../context/ScriptContext';
@@ -316,14 +316,16 @@ const ShootingSchedulePage = () => {
                     zoomApiRef={zoomApiRef}
                 />
             ) : (
-                <div className="schedule-empty">
-                    <CalendarDays size={48} />
-                    <h2>No schedules yet</h2>
-                    <p>Go to the Board, select scenes, and click "Schedule" to start building your shooting days.</p>
-                    <button className="schedule-create-btn" onClick={handleCreateSchedule}>
-                        <Plus size={16} /> Create Schedule
-                    </button>
-                </div>
+                <EmptyState
+                    icon={CalendarDays}
+                    title="No schedules yet"
+                    message='Go to the Board, select scenes, and click "Schedule" to start building your shooting days.'
+                    action={
+                        <button className="schedule-create-btn" onClick={handleCreateSchedule}>
+                            <Plus size={16} /> Create Schedule
+                        </button>
+                    }
+                />
             )}
         </div>
     );
