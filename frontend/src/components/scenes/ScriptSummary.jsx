@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { Users, MapPin, CheckCircle, Clock, AlertTriangle, Merge, X, Check, Edit3 } from 'lucide-react';
 import { Badge } from '../ui';
+import { useToast } from '../../context/ToastContext';
 import './ScriptSummary.css';
 
 /**
@@ -59,6 +60,7 @@ const ScriptSummary = ({ characters, locations, stats, scriptId, onMergeComplete
     const [customName, setCustomName] = useState('');
     const [showCustomInput, setShowCustomInput] = useState(false);
     const [mergeSuccess, setMergeSuccess] = useState(null);
+    const toast = useToast();
 
     const sortedCharacters = useMemo(() =>
         Object.entries(characters).sort((a, b) => b[1].count - a[1].count),
@@ -133,7 +135,7 @@ const ScriptSummary = ({ characters, locations, stats, scriptId, onMergeComplete
             if (onMergeComplete) onMergeComplete();
         } catch (err) {
             console.error('Merge failed:', err);
-            alert('Merge failed: ' + (err.response?.data?.error || err.message));
+            toast.error('Merge Failed', err.response?.data?.error || err.message);
         } finally {
             setMerging(false);
         }
