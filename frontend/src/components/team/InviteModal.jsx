@@ -145,6 +145,7 @@ const InviteModal = ({ isOpen, onClose, scriptId, scriptTitle }) => {
                 <Modal
                     isOpen={isOpen}
                     onClose={onClose}
+                    closeOnEscape={!showUpgradeModal}
                     size="md"
                     title={
                         <div className="header-content">
