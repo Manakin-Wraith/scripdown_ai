@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { 
     X, Copy, Check, Link2, Clock, Printer, 
-    Download, ExternalLink, AlertCircle, Loader
+    Download, ExternalLink, AlertCircle
 } from 'lucide-react';
+import { Spinner } from '../ui';
 import { useToast } from '../../context/ToastContext';
 import { 
     createReportShareLink, 
@@ -166,7 +167,7 @@ const ShareModal = ({ report, onClose, onUpdate }) => {
                             >
                                 {isRevoking ? (
                                     <>
-                                        <Loader size={14} className="spin" />
+                                        <Spinner size={14} />
                                         Revoking...
                                     </>
                                 ) : (
@@ -202,7 +203,7 @@ const ShareModal = ({ report, onClose, onUpdate }) => {
                             >
                                 {isCreating ? (
                                     <>
-                                        <Loader size={16} className="spin" />
+                                        <Spinner size={16} />
                                         Creating...
                                     </>
                                 ) : (
