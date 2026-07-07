@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Merge, AlertCircle, ChevronRight } from 'lucide-react';
 import { mergeScenes } from '../../services/apiService';
 import { useToast } from '../../context/ToastContext';
-import { Modal, Button } from '../ui';
+import { Modal, Button, Badge } from '../ui';
 import './SceneModals.css';
 
 /**
@@ -76,9 +76,9 @@ const SceneMergeModal = ({ isOpen, onClose, scene, adjacentScene, scriptId, onSu
                             <div className="merge-scene-header">
                                 <span className="scene-badge">{firstScene.scene_number}</span>
                                 {keepNumber === 'first' ? (
-                                    <span className="status-badge kept">KEPT</span>
+                                    <Badge variant="success">KEPT</Badge>
                                 ) : (
-                                    <span className="status-badge omitted">OMITTED</span>
+                                    <Badge variant="danger">OMITTED</Badge>
                                 )}
                             </div>
                             <div className="merge-scene-content">
@@ -94,9 +94,9 @@ const SceneMergeModal = ({ isOpen, onClose, scene, adjacentScene, scriptId, onSu
                             <div className="merge-scene-header">
                                 <span className="scene-badge">{secondScene.scene_number}</span>
                                 {keepNumber === 'second' ? (
-                                    <span className="status-badge kept">KEPT</span>
+                                    <Badge variant="success">KEPT</Badge>
                                 ) : (
-                                    <span className="status-badge omitted">OMITTED</span>
+                                    <Badge variant="danger">OMITTED</Badge>
                                 )}
                             </div>
                             <div className="merge-scene-content">
