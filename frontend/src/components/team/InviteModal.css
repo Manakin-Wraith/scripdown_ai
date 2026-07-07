@@ -1,51 +1,6 @@
 /* Invite Modal Styles */
 
-.invite-modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(4px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    padding: 1rem;
-}
-
-.invite-modal {
-    background: var(--gray-800);
-    border: 1px solid var(--border-color);
-    border-radius: 16px;
-    width: 100%;
-    max-width: 560px;
-    max-height: 90vh;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    animation: modalSlideIn 0.2s ease;
-}
-
-@keyframes modalSlideIn {
-    from {
-        opacity: 0;
-        transform: translateY(-20px) scale(0.95);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
-}
-
 /* Header */
-.invite-modal-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 1.25rem 1.5rem;
-    border-bottom: 1px solid var(--border-color);
-    background: var(--gray-850);
-}
-
 .header-content {
     display: flex;
     align-items: center;
@@ -66,31 +21,6 @@
     font-size: 0.8rem;
     color: var(--text-secondary);
     margin: 0.25rem 0 0 0;
-}
-
-.close-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 36px;
-    height: 36px;
-    background: transparent;
-    border: none;
-    border-radius: 8px;
-    color: var(--text-secondary);
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.close-btn:hover {
-    background: var(--gray-700);
-    color: var(--text-primary);
-}
-
-/* Body */
-.invite-modal-body {
-    padding: 1.5rem;
-    overflow-y: auto;
 }
 
 /* Form */
@@ -340,11 +270,6 @@
 
 /* Responsive */
 @media (max-width: 600px) {
-    .invite-modal {
-        max-height: 100vh;
-        border-radius: 0;
-    }
-    
     .department-grid {
         grid-template-columns: repeat(2, 1fr);
     }
@@ -356,7 +281,7 @@
 
 /* Locked State */
 .invite-locked {
-    padding: 3rem 2rem;
+    padding: 1.5rem 0.5rem;
 }
 
 .locked-content {

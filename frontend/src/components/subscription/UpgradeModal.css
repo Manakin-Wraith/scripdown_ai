@@ -1,60 +1,5 @@
 /* UpgradeModal Styles */
 
-.upgrade-modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.8);
-    backdrop-filter: blur(4px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    padding: 1rem;
-}
-
-.upgrade-modal {
-    background: #1A1A1A;
-    border: 1px solid #2A2A2A;
-    border-radius: 16px;
-    max-width: 440px;
-    width: 100%;
-    padding: 2rem;
-    position: relative;
-    animation: modalSlideIn 0.3s ease-out;
-}
-
-@keyframes modalSlideIn {
-    from {
-        opacity: 0;
-        transform: translateY(-20px) scale(0.95);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
-}
-
-.upgrade-modal-close {
-    position: absolute;
-    top: 1rem;
-    right: 1rem;
-    background: transparent;
-    border: none;
-    color: var(--gray-500);
-    cursor: pointer;
-    padding: 0.5rem;
-    border-radius: 8px;
-    transition: all 0.2s;
-}
-
-.upgrade-modal-close:hover {
-    background: #262626;
-    color: #FFFFFF;
-}
-
 .upgrade-modal-header {
     text-align: center;
     margin-bottom: 1.5rem;
@@ -222,10 +167,6 @@
 
 /* Responsive */
 @media (max-width: 480px) {
-    .upgrade-modal {
-        padding: 1.5rem;
-    }
-
     .upgrade-modal-features ul {
         grid-template-columns: 1fr;
     }

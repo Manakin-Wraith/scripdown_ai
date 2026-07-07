@@ -4,7 +4,8 @@
  */
 
 import React from 'react';
-import { X, Sparkles, Check, CreditCard, Clock } from 'lucide-react';
+import { Sparkles, Check, CreditCard, Clock } from 'lucide-react';
+import { Modal } from '../ui';
 import './UpgradeModal.css';
 
 const WISE_PAYMENT_LINK = 'https://wise.com/pay/r/8j9W0j5SUuPivxk';
@@ -18,8 +19,6 @@ const UpgradeModal = ({
     daysRemaining = null,
     isExpired = false
 }) => {
-    if (!isOpen) return null;
-
     const handleUpgrade = () => {
         window.open(WISE_PAYMENT_LINK, '_blank');
     };
@@ -43,80 +42,56 @@ const UpgradeModal = ({
     };
 
     return (
-        <div className="upgrade-modal-overlay" onClick={onClose}>
-            <div className="upgrade-modal" onClick={e => e.stopPropagation()}>
-                <button className="upgrade-modal-close" onClick={onClose}>
-                    <X size={20} />
-                </button>
-
-                <div className="upgrade-modal-header">
-                    <div className="upgrade-modal-icon">
-                        <Sparkles size={32} />
-                    </div>
-                    <h2>{getTitle()}</h2>
-                    <p>{getMessage()}</p>
+        <Modal isOpen={isOpen} onClose={onClose} size="sm">
+            <div className="upgrade-modal-header">
+                <div className="upgrade-modal-icon">
+                    <Sparkles size={32} />
                 </div>
-
-                {daysRemaining !== null && daysRemaining > 0 && !isExpired && (
-                    <div className="upgrade-modal-urgency">
-                        <Clock size={16} />
-                        <span>{daysRemaining} {daysRemaining === 1 ? 'day' : 'days'} remaining</span>
-                    </div>
-                )}
-
-                <div className="upgrade-modal-features">
-                    <h3>What you'll get:</h3>
-                    <ul>
-                        <li>
-                            <Check size={16} />
-                            <span>Unlimited script uploads</span>
-                        </li>
-                        <li>
-                            <Check size={16} />
-                            <span>Full AI-powered breakdown</span>
-                        </li>
-                        <li>
-                            <Check size={16} />
-                            <span>Team collaboration (up to 10 members)</span>
-                        </li>
-                        <li>
-                            <Check size={16} />
-                            <span>Reports & PDF exports</span>
-                        </li>
-                        <li>
-                            <Check size={16} />
-                            <span>Stripboard editing</span>
-                        </li>
-                        <li>
-                            <Check size={16} />
-                            <span>Department notes</span>
-                        </li>
-                    </ul>
-                </div>
-
-                <div className="upgrade-modal-pricing">
-                    <div className="upgrade-modal-price">
-                        <span className="price-amount">$49</span>
-                        <span className="price-period">/month</span>
-                    </div>
-                    <p className="price-note">Unlimited breakdowns • Full production infrastructure</p>
-                </div>
-
-                <div className="upgrade-modal-actions">
-                    <button className="upgrade-btn-primary" onClick={handleUpgrade}>
-                        <CreditCard size={18} />
-                        Subscribe Now — $49/month
-                    </button>
-                    <button className="upgrade-btn-secondary" onClick={onClose}>
-                        Maybe Later
-                    </button>
-                </div>
-
-                <p className="upgrade-modal-footer">
-                    Secure payment via Wise. Access activated after payment verification.
-                </p>
+                <h2>{getTitle()}</h2>
+                <p>{getMessage()}</p>
             </div>
-        </div>
+
+            {daysRemaining !== null && daysRemaining > 0 && !isExpired && (
+                <div className="upgrade-modal-urgency">
+                    <Clock size={16} />
+                    <span>{daysRemaining} {daysRemaining === 1 ? 'day' : 'days'} remaining</span>
+                </div>
+            )}
+
+            <div className="upgrade-modal-features">
+                <h3>What you'll get:</h3>
+                <ul>
+                    <li><Check size={16} /><span>Unlimited script uploads</span></li>
+                    <li><Check size={16} /><span>Full AI-powered breakdown</span></li>
+                    <li><Check size={16} /><span>Team collaboration (up to 10 members)</span></li>
+                    <li><Check size={16} /><span>Reports & PDF exports</span></li>
+                    <li><Check size={16} /><span>Stripboard editing</span></li>
+                    <li><Check size={16} /><span>Department notes</span></li>
+                </ul>
+            </div>
+
+            <div className="upgrade-modal-pricing">
+                <div className="upgrade-modal-price">
+                    <span className="price-amount">$49</span>
+                    <span className="price-period">/month</span>
+                </div>
+                <p className="price-note">Unlimited breakdowns • Full production infrastructure</p>
+            </div>
+
+            <div className="upgrade-modal-actions">
+                <button className="upgrade-btn-primary" onClick={handleUpgrade}>
+                    <CreditCard size={18} />
+                    Subscribe Now — $49/month
+                </button>
+                <button className="upgrade-btn-secondary" onClick={onClose}>
+                    Maybe Later
+                </button>
+            </div>
+
+            <p className="upgrade-modal-footer">
+                Secure payment via Wise. Access activated after payment verification.
+            </p>
+        </Modal>
     );
 };
 

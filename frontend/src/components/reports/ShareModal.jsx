@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { 
-    X, Copy, Check, Link2, Clock, Printer, 
+import {
+    Copy, Check, Link2, Clock, Printer,
     Download, ExternalLink, AlertCircle
 } from 'lucide-react';
-import { Spinner } from '../ui';
+import { Spinner, Modal } from '../ui';
 import { useToast } from '../../context/ToastContext';
 import { 
     createReportShareLink, 
@@ -94,135 +94,104 @@ const ShareModal = ({ report, onClose, onUpdate }) => {
     };
 
     return (
-        <div className="share-modal-overlay" onClick={onClose}>
-            <div className="share-modal" onClick={e => e.stopPropagation()}>
-                <div className="share-modal-header">
-                    <h2>
-                        <Link2 size={20} />
-                        Share Report
-                    </h2>
-                    <button className="close-btn" onClick={onClose}>
-                        <X size={20} />
-                    </button>
-                </div>
+        <Modal
+            isOpen
+            onClose={onClose}
+            size="sm"
+            title={
+                <span className="share-modal-title">
+                    <Link2 size={20} />
+                    Share Report
+                </span>
+            }
+        >
+            <div className="report-info">
+                <span className="report-name">{report.title}</span>
+            </div>
 
-                <div className="share-modal-content">
-                    <div className="report-info">
-                        <span className="report-name">{report.title}</span>
+            {report.share_token ? (
+                /* Existing Share Link */
+                <div className="share-link-section">
+                    <label>Share Link</label>
+                    <div className="share-link-input">
+                        <input type="text" value={shareUrl} readOnly />
+                        <button className="copy-btn" onClick={handleCopy}>
+                            {copied ? <Check size={16} /> : <Copy size={16} />}
+                        </button>
                     </div>
 
-                    {report.share_token ? (
-                        /* Existing Share Link */
-                        <div className="share-link-section">
-                            <label>Share Link</label>
-                            <div className="share-link-input">
-                                <input 
-                                    type="text" 
-                                    value={shareUrl} 
-                                    readOnly 
-                                />
-                                <button 
-                                    className="copy-btn"
-                                    onClick={handleCopy}
-                                >
-                                    {copied ? <Check size={16} /> : <Copy size={16} />}
-                                </button>
-                            </div>
-                            
-                            <div className="link-meta">
-                                <span className="expires">
-                                    <Clock size={12} />
-                                    Expires: {expiresAt}
-                                </span>
-                            </div>
+                    <div className="link-meta">
+                        <span className="expires">
+                            <Clock size={12} />
+                            Expires: {expiresAt}
+                        </span>
+                    </div>
 
-                            <div className="share-actions">
-                                <button 
-                                    className="action-btn"
-                                    onClick={handleOpenPrint}
-                                >
-                                    <Printer size={16} />
-                                    Print View
-                                </button>
-                                <button 
-                                    className="action-btn"
-                                    onClick={handleOpenPdf}
-                                >
-                                    <Download size={16} />
-                                    Download PDF
-                                </button>
-                                <button 
-                                    className="action-btn"
-                                    onClick={() => window.open(shareUrl, '_blank')}
-                                >
-                                    <ExternalLink size={16} />
-                                    Open Link
-                                </button>
-                            </div>
+                    <div className="share-actions">
+                        <button className="action-btn" onClick={handleOpenPrint}>
+                            <Printer size={16} />
+                            Print View
+                        </button>
+                        <button className="action-btn" onClick={handleOpenPdf}>
+                            <Download size={16} />
+                            Download PDF
+                        </button>
+                        <button className="action-btn" onClick={() => window.open(shareUrl, '_blank')}>
+                            <ExternalLink size={16} />
+                            Open Link
+                        </button>
+                    </div>
 
-                            <button 
-                                className="revoke-btn"
-                                onClick={handleRevokeLink}
-                                disabled={isRevoking}
-                            >
-                                {isRevoking ? (
-                                    <>
-                                        <Spinner size={14} />
-                                        Revoking...
-                                    </>
-                                ) : (
-                                    'Revoke Share Link'
-                                )}
-                            </button>
-                        </div>
-                    ) : (
-                        /* Create New Link */
-                        <div className="create-link-section">
-                            <p className="create-info">
-                                Create a shareable link that anyone can use to view this report.
-                            </p>
-
-                            <div className="expiry-selector">
-                                <label>Link expires in:</label>
-                                <select 
-                                    value={expiresInDays}
-                                    onChange={(e) => setExpiresInDays(Number(e.target.value))}
-                                >
-                                    <option value={1}>1 day</option>
-                                    <option value={7}>7 days</option>
-                                    <option value={14}>14 days</option>
-                                    <option value={30}>30 days</option>
-                                    <option value={90}>90 days</option>
-                                </select>
-                            </div>
-
-                            <button 
-                                className="create-btn"
-                                onClick={handleCreateLink}
-                                disabled={isCreating}
-                            >
-                                {isCreating ? (
-                                    <>
-                                        <Spinner size={16} />
-                                        Creating...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Link2 size={16} />
-                                        Create Share Link
-                                    </>
-                                )}
-                            </button>
-
-                            <div className="share-note">
-                                <AlertCircle size={14} />
-                                <span>Anyone with the link can view and print this report</span>
-                            </div>
-                        </div>
-                    )}
+                    <button className="revoke-btn" onClick={handleRevokeLink} disabled={isRevoking}>
+                        {isRevoking ? (
+                            <>
+                                <Spinner size={14} />
+                                Revoking...
+                            </>
+                        ) : (
+                            'Revoke Share Link'
+                        )}
+                    </button>
                 </div>
-            </div>
-        </div>
+            ) : (
+                /* Create New Link */
+                <div className="create-link-section">
+                    <p className="create-info">
+                        Create a shareable link that anyone can use to view this report.
+                    </p>
+
+                    <div className="expiry-selector">
+                        <label>Link expires in:</label>
+                        <select value={expiresInDays} onChange={(e) => setExpiresInDays(Number(e.target.value))}>
+                            <option value={1}>1 day</option>
+                            <option value={7}>7 days</option>
+                            <option value={14}>14 days</option>
+                            <option value={30}>30 days</option>
+                            <option value={90}>90 days</option>
+                        </select>
+                    </div>
+
+                    <button className="create-btn" onClick={handleCreateLink} disabled={isCreating}>
+                        {isCreating ? (
+                            <>
+                                <Spinner size={16} />
+                                Creating...
+                            </>
+                        ) : (
+                            <>
+                                <Link2 size={16} />
+                                Create Share Link
+                            </>
+                        )}
+                    </button>
+
+                    <div className="share-note">
+                        <AlertCircle size={14} />
+                        <span>Anyone with the link can view and print this report</span>
+                    </div>
+                </div>
+            )}
+        </Modal>
     );
 };
 
