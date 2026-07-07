@@ -58,17 +58,7 @@ class FeatureAnnouncementEmail(BaseEmailTemplate):
                 Open {self.APP_NAME} →
             </a>
         </div>
-        
-        <!-- Feedback Request -->
-        <div style="background-color: #1E293B; border-left: 4px solid {self.COLORS['primary']}; border-radius: 8px; padding: {self.SPACING['lg']}; margin-top: {self.SPACING['lg']};">
-            <p style="margin: 0 0 {self.SPACING['sm']} 0; font-size: {self.TYPOGRAPHY['body_lg']}; color: {self.COLORS['text_primary']}; font-weight: 600;">
-                💬 We'd Love Your Feedback!
-            </p>
-            <p style="margin: 0; font-size: {self.TYPOGRAPHY['body_sm']}; color: {self.COLORS['text_muted']}; line-height: 1.6;">
-                Your input helps us build better tools for filmmakers. Try out these new features and let us know what you think by replying to this email or using the in-app feedback system.
-            </p>
-        </div>
-        
+
         <p style="margin: {self.SPACING['xl']} 0 0 0; font-size: {self.TYPOGRAPHY['body_lg']}; color: {self.COLORS['text_muted']}; line-height: 1.6; text-align: center;">
             Thanks for being part of the {self.APP_NAME} community!
         </p>
@@ -98,11 +88,6 @@ class FeatureAnnouncementEmail(BaseEmailTemplate):
     def _get_default_features(self) -> List[Dict]:
         """Default features if none provided"""
         return [
-            {
-                'icon': '💬',
-                'title': 'Feedback System',
-                'description': 'Share your thoughts and suggestions directly in the app. We read every piece of feedback!'
-            },
             {
                 'icon': '📊',
                 'title': 'Enhanced Reports',
