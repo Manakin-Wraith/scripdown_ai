@@ -40,7 +40,7 @@ import {
     getScriptNotes, getDepartments, createNote, deleteNote, updateNoteStatus, createReply,
     getSceneItems, createSceneItem, updateSceneItem, deleteSceneItem, removeAiItem 
 } from '../../services/apiService';
-import { Spinner, EmptyState } from '../ui';
+import { Spinner, EmptyState, Drawer } from '../ui';
 import './BreakdownDrawer.css';
 
 // Category to department mapping
@@ -416,53 +416,42 @@ const BreakdownDrawer = ({
         return { highlightedLines: lines, notFoundItems: notFound };
     }, [sceneText, localAiItems, userItems]);
 
-    if (!isOpen) return null;
-
     const totalItems = localAiItems.length + userItems.length;
     const totalNotes = notes.length;
 
     return (
         <>
-            {/* Backdrop */}
-            <div className="drawer-backdrop" onClick={onClose} />
-            
-            {/* Drawer */}
-            <div className={`breakdown-drawer ${isOpen ? 'open' : ''}`}>
-                {/* Header */}
-                <div className="bd-header">
-                    <div className="bd-title-group">
-                        <h3>{categoryTitle}</h3>
-                        {sceneNumber && (
-                            <span className="bd-subtitle">
-                                Scene {sceneNumber}
-                                {sceneSetting && ` · ${sceneSetting}`}
-                                {pageStart && ` · p.${pageStart}${pageEnd && pageEnd !== pageStart ? `-${pageEnd}` : ''}`}
-                            </span>
-                        )}
+            <Drawer
+                isOpen={isOpen}
+                onClose={onClose}
+                width="640px"
+                title={categoryTitle}
+                subtitle={sceneNumber && (
+                    <>
+                        Scene {sceneNumber}
+                        {sceneSetting && ` · ${sceneSetting}`}
+                        {pageStart && ` · p.${pageStart}${pageEnd && pageEnd !== pageStart ? `-${pageEnd}` : ''}`}
+                    </>
+                )}
+                subHeader={
+                    <div className="bd-tabs">
+                        <button
+                            className={`bd-tab ${activeTab === 'items' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('items')}
+                        >
+                            <Zap size={14} />
+                            Items {totalItems > 0 && <span className="bd-tab-count">{totalItems}</span>}
+                        </button>
+                        <button
+                            className={`bd-tab ${activeTab === 'notes' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('notes')}
+                        >
+                            <MessageSquare size={14} />
+                            Notes {totalNotes > 0 && <span className="bd-tab-count">{totalNotes}</span>}
+                        </button>
                     </div>
-                    <button className="bd-close-btn" onClick={onClose}>
-                        <X size={20} />
-                    </button>
-                </div>
-
-                {/* Tabs */}
-                <div className="bd-tabs">
-                    <button 
-                        className={`bd-tab ${activeTab === 'items' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('items')}
-                    >
-                        <Zap size={14} />
-                        Items {totalItems > 0 && <span className="bd-tab-count">{totalItems}</span>}
-                    </button>
-                    <button 
-                        className={`bd-tab ${activeTab === 'notes' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('notes')}
-                    >
-                        <MessageSquare size={14} />
-                        Notes {totalNotes > 0 && <span className="bd-tab-count">{totalNotes}</span>}
-                    </button>
-                </div>
-
+                }
+            >
                 {/* Content */}
                 <div className="bd-content">
                     {error && (
@@ -860,7 +849,7 @@ const BreakdownDrawer = ({
                         )
                     )}
                 </div>
-            </div>
+            </Drawer>
 
             {/* Delete Item Confirmation */}
             {deleteItemConfirm && (
