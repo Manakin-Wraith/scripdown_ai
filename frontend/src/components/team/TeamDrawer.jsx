@@ -14,8 +14,7 @@ import {
     Crown, 
     Shield, 
     UserX,
-    Clock, 
-    Loader,
+    Clock,
     Users,
     AlertCircle,
     Mail,
@@ -27,6 +26,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 import InviteModal from './InviteModal';
+import { Spinner } from '../ui';
 import './TeamDrawer.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -255,7 +255,7 @@ const TeamDrawer = ({
                 <div className="drawer-content">
                     {loading ? (
                         <div className="drawer-loading">
-                            <Loader size={24} className="spin" />
+                            <Spinner size={24} />
                             <span>Loading team...</span>
                         </div>
                     ) : error ? (
@@ -433,7 +433,7 @@ const TeamDrawer = ({
                                 disabled={actionLoading === removeConfirm.id}
                             >
                                 {actionLoading === removeConfirm.id ? (
-                                    <Loader size={14} className="spin" />
+                                    <Spinner size={14} />
                                 ) : (
                                     <UserX size={14} />
                                 )}
@@ -470,7 +470,7 @@ const TeamDrawer = ({
                                 disabled={actionLoading === revokeConfirm.id}
                             >
                                 {actionLoading === revokeConfirm.id ? (
-                                    <Loader size={14} className="spin" />
+                                    <Spinner size={14} />
                                 ) : (
                                     <Trash2 size={14} />
                                 )}
