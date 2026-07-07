@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { Users, MapPin, CheckCircle, Clock, AlertTriangle, Merge, X, Check, Edit3 } from 'lucide-react';
+import { Badge } from '../ui';
 import './ScriptSummary.css';
 
 /**
@@ -279,7 +280,7 @@ const ScriptSummary = ({ characters, locations, stats, scriptId, onMergeComplete
                                 <span className="merge-option-name">{name}</span>
                                 <span className="merge-option-count">{count} scenes</span>
                                 {canonicalChoice === name && !showCustomInput && selectedArr[0].name === name && (
-                                    <span className="merge-recommended-badge">Recommended</span>
+                                    <Badge variant="success">Recommended</Badge>
                                 )}
                             </label>
                         ))}

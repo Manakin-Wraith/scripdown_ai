@@ -1,5 +1,6 @@
 import React from 'react';
 import { GripVertical, Users, Package, Shirt, Car, Sparkles, Volume2, CalendarCheck } from 'lucide-react';
+import { Badge } from '../ui';
 import { formatEighths } from '../../utils/sceneUtils';
 import './StripCard.css';
 
@@ -104,13 +105,14 @@ const StripCard = ({ strip, index, laneId, dispatch, dragState, handlePointerDow
                     {strip.intExt}
                 </span>
                 {(isScheduled || strip.isScheduled) && (
-                    <span
+                    <Badge
+                        variant="success"
+                        icon={CalendarCheck}
                         className="strip-scheduled-badge"
                         title={(scheduledDayLabel || strip.scheduledDayLabel) ? `Scheduled: ${scheduledDayLabel || strip.scheduledDayLabel}` : 'Scheduled'}
                     >
-                        <CalendarCheck size={9} />
                         {(scheduledDayLabel || strip.scheduledDayLabel) || 'Sched'}
-                    </span>
+                    </Badge>
                 )}
             </div>
 

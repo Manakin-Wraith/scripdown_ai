@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Merge, AlertCircle } from 'lucide-react';
 import { mergeMultipleScenes } from '../../services/apiService';
 import { useToast } from '../../context/ToastContext';
-import { Modal, Button } from '../ui';
+import { Modal, Button, Badge } from '../ui';
 import './SceneModals.css';
 
 /**
@@ -109,9 +109,9 @@ const MultiMergeModal = ({ isOpen, onClose, scenes, scriptId, onSuccess }) => {
                                         <span className="scene-header">{formatSceneHeader(scene)}</span>
                                     </div>
                                     {keepSceneId === scene.id ? (
-                                        <span className="status-badge kept">KEEP</span>
+                                        <Badge variant="success">KEEP</Badge>
                                     ) : (
-                                        <span className="status-badge omitted">OMIT</span>
+                                        <Badge variant="danger">OMIT</Badge>
                                     )}
                                 </label>
                             </div>

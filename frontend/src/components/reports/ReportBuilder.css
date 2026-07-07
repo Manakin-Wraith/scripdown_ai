@@ -223,18 +223,6 @@
     color: var(--text-secondary);
 }
 
-.shared-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    padding: 0.15rem 0.4rem;
-    background: rgba(34, 197, 94, 0.15);
-    color: var(--success);
-    border-radius: 4px;
-    font-size: 0.65rem;
-    font-weight: 600;
-}
-
 .report-item-actions {
     display: flex;
     gap: 0.25rem;
