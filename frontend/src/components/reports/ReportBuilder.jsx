@@ -185,7 +185,6 @@ const ReportBuilder = () => {
         });
         if (!ok) return;
 
-
         try {
             await deleteReport(reportId);
             setExistingReports(prev => prev.filter(r => r.id !== reportId));

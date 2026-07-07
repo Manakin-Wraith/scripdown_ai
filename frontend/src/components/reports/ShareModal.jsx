@@ -59,7 +59,6 @@ const ShareModal = ({ report, onClose, onUpdate }) => {
         });
         if (!ok) return;
 
-
         setIsRevoking(true);
         try {
             await revokeReportShareLink(report.id);

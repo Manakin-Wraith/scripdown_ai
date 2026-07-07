@@ -146,7 +146,6 @@ const DepartmentNotesSection = ({ sceneId, scriptId }) => {
         });
         if (!ok) return;
 
-
         try {
             await deleteNote(noteId);
             // Refresh notes
