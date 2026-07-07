@@ -17,46 +17,6 @@
     color: var(--gray-400);
 }
 
-/* Container */
-.profile-container {
-    max-width: 1000px;
-    margin: 0 auto;
-}
-
-/* Header */
-.profile-header {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 2rem;
-}
-
-.profile-header .back-btn {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    background: var(--gray-800);
-    border: 1px solid var(--gray-700);
-    border-radius: 8px;
-    color: var(--gray-300);
-    font-size: 0.875rem;
-    cursor: pointer;
-    transition: all 0.15s ease;
-}
-
-.profile-header .back-btn:hover {
-    background: var(--gray-700);
-    color: var(--gray-100);
-}
-
-.profile-header h1 {
-    margin: 0;
-    font-size: 1.75rem;
-    font-weight: 700;
-    color: var(--gray-100);
-}
-
 /* Messages */
 .profile-message {
     display: flex;
@@ -430,9 +390,5 @@
     
     .form-row {
         grid-template-columns: 1fr;
-    }
-    
-    .profile-header h1 {
-        font-size: 1.5rem;
     }
 }

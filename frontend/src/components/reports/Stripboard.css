@@ -16,23 +16,6 @@
 }
 
 /* Header */
-.stripboard-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.5rem;
-}
-
-.stripboard-header h1 {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    margin: 0;
-}
-
 .header-actions {
     display: flex;
     gap: 0.5rem;
@@ -742,7 +725,6 @@
 
 /* Print Styles */
 @media print {
-    .stripboard-header,
     .stripboard-stats,
     .stripboard-filters {
         display: none !important;
