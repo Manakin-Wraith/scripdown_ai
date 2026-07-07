@@ -3,6 +3,7 @@ import { X, Users, Package, Shirt, Car, Sparkles, Volume2, Cloud, MapPin, Calend
 import { formatEighths } from '../../utils/sceneUtils';
 import { toggleNewDay, setTimelineCode, setStoryDay } from '../../services/apiService';
 import { useStoryDayNotify } from '../../context/StoryDayContext';
+import { useToast } from '../../context/ToastContext';
 import { Drawer } from '../ui';
 import './StripDetailDrawer.css';
 
@@ -13,6 +14,7 @@ const StripDetailDrawer = ({ stripId, scenes, userItemsByScene, onClose, scriptI
     const userItems = userItemsByScene?.[stripId] || {};
 
     const notifyStoryDayChange = useStoryDayNotify();
+    const toast = useToast();
     const [sdEditing, setSdEditing] = useState(false);
     const [sdDraft, setSdDraft] = useState('');
     const [sdSaving, setSdSaving] = useState(false);
@@ -25,7 +27,10 @@ const StripDetailDrawer = ({ stripId, scenes, userItemsByScene, onClose, scriptI
         try {
             await action();
             notifyStoryDayChange(scriptId);
-        } catch (e) { console.error('Story day action error:', e); }
+        } catch (e) {
+            console.error('Story day action error:', e);
+            toast.error('Update Failed', 'Your story day change could not be saved.');
+        }
         finally { setSdSaving(false); }
     };
 
