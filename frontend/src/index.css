@@ -188,3 +188,17 @@ h1, h2, h3, h4, h5, h6 {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--gray-500);
 }
+
+/* ========================================
+   Canonical spin animation — one keyframe for the whole app.
+   <Spinner> uses its own scoped ui-spin (Spinner.css); this global rule
+   drives residual .spin icons (e.g. RefreshCw) after local copies are removed.
+   ======================================== */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
