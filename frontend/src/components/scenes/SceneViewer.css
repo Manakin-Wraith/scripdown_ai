@@ -85,7 +85,7 @@
     font-weight: 500;
 }
 
-.progress-status .spin {
+.progress-status .ui-spinner {
     color: var(--primary-500);
 }
 
