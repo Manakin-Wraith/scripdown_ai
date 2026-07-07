@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { MapPin, Home, TreePine, Sun, Moon, Sunrise, Clapperboard, ChevronRight, Users, Sparkles, RefreshCw } from 'lucide-react';
 import { analyzeLocations } from '../../services/apiService';
+import { EmptyState } from '../ui';
 import './Dashboard.css';
 
 const LocationDashboard = ({ locations, scenes, onSelectLocation, scriptId }) => {
@@ -113,11 +114,11 @@ const LocationDashboard = ({ locations, scenes, onSelectLocation, scriptId }) =>
 
     if (Object.keys(locations).length === 0) {
         return (
-            <div className="dashboard-empty">
-                <MapPin size={48} className="empty-icon" />
-                <h3>No Locations Found</h3>
-                <p>Locations will appear here once the script is analyzed</p>
-            </div>
+            <EmptyState
+                icon={MapPin}
+                title="No Locations Found"
+                message="Locations will appear here once the script is analyzed"
+            />
         );
     }
 

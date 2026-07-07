@@ -213,23 +213,6 @@
 
 /* Scene Item Card Variant - inherits from .scene-item */
 
-/* Empty State */
-.list-empty {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    padding: 2rem;
-    color: var(--text-secondary);
-    text-align: center;
-}
-
-.empty-icon-small {
-    color: var(--gray-300);
-    margin-bottom: 0.5rem;
-}
-
 /* ============================================ */
 /* Status Indicator Styles */
 /* ============================================ */

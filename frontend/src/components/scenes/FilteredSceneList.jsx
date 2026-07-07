@@ -1,18 +1,17 @@
 import React from 'react';
 import { MapPin, Clapperboard, Users } from 'lucide-react';
 import SceneDetail from './SceneDetail';
+import { EmptyState } from '../ui';
 import './FilteredSceneList.css';
 
 const FilteredSceneList = ({ title, type, scenes }) => {
     if (!title) {
         return (
-            <div className="scene-detail-empty">
-                <div className="empty-content">
-                    {type === 'character' ? <Users size={64} /> : <MapPin size={64} />}
-                    <h3>Select a {type}</h3>
-                    <p>Choose from the sidebar to view their scenes</p>
-                </div>
-            </div>
+            <EmptyState
+                icon={type === 'character' ? Users : MapPin}
+                title={`Select a ${type}`}
+                message="Choose from the sidebar to view their scenes"
+            />
         );
     }
 

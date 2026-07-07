@@ -29,7 +29,7 @@ import {
     Sun,
     RefreshCw
 } from 'lucide-react';
-import { Spinner } from '../ui';
+import { Spinner, EmptyState } from '../ui';
 import BreakdownDrawer from '../breakdown/BreakdownDrawer';
 import { getScriptNotes, getSceneItems, updateSceneHeader, toggleNewDay, setTimelineCode, setStoryDay } from '../../services/apiService';
 import { useStoryDayNotify } from '../../context/StoryDayContext';
@@ -244,13 +244,11 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
 
     if (!scene) {
         return (
-            <div className="scene-detail-empty">
-                <div className="empty-content">
-                    <Clapperboard size={64} className="empty-icon" />
-                    <h3>Select a scene</h3>
-                    <p>Choose a scene from the list to view its full breakdown</p>
-                </div>
-            </div>
+            <EmptyState
+                icon={Clapperboard}
+                title="Select a scene"
+                message="Choose a scene from the list to view its full breakdown"
+            />
         );
     }
 

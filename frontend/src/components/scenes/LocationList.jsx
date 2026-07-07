@@ -1,14 +1,12 @@
 import React from 'react';
 import { MapPin, ChevronRight } from 'lucide-react';
+import { EmptyState } from '../ui';
 import './SceneList.css';
 
 const LocationList = ({ locations, selectedLocation, onSelect }) => {
     if (!locations || Object.keys(locations).length === 0) {
         return (
-            <div className="list-empty">
-                <MapPin size={32} className="empty-icon-small" />
-                <p>No locations found</p>
-            </div>
+            <EmptyState icon={MapPin} title="No locations found" size="sm" />
         );
     }
 

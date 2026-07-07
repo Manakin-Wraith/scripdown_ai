@@ -1,14 +1,12 @@
 import React from 'react';
 import { Users, ChevronRight } from 'lucide-react';
+import { EmptyState } from '../ui';
 import './SceneList.css'; // Re-use basic list styles
 
 const CharacterList = ({ characters, selectedName, onSelect }) => {
     if (!characters || Object.keys(characters).length === 0) {
         return (
-            <div className="list-empty">
-                <Users size={32} className="empty-icon-small" />
-                <p>No characters found</p>
-            </div>
+            <EmptyState icon={Users} title="No characters found" size="sm" />
         );
     }
 
