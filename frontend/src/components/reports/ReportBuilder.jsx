@@ -6,7 +6,7 @@ import {
     Check, Clock, Trash2, ExternalLink,
     UserPlus, Zap, Flame, CalendarDays
 } from 'lucide-react';
-import { Spinner, Button } from '../ui';
+import { Spinner, Button, Badge } from '../ui';
 import { useToast } from '../../context/ToastContext';
 import { useScript } from '../../context/ScriptContext';
 import { useAuth } from '../../context/AuthContext';
@@ -364,10 +364,7 @@ const ReportBuilder = () => {
                                                         <Clock size={12} />
                                                         {generatedDate}
                                                         {report.is_public && (
-                                                            <span className="shared-badge">
-                                                                <Share2 size={10} />
-                                                                Shared
-                                                            </span>
+                                                            <Badge variant="success" icon={Share2}>Shared</Badge>
                                                         )}
                                                     </span>
                                                 </div>
