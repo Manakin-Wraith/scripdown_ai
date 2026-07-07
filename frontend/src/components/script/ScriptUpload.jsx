@@ -276,6 +276,7 @@ const ScriptUpload = () => {
                                 
                                 <Button
                                     variant="secondary"
+                                    fullWidth
                                     onClick={goToSceneViewer}
                                 >
                                     <FileText size={18} />
