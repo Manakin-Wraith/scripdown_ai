@@ -266,7 +266,3 @@
     animation: spin 1s linear infinite;
     color: var(--primary-500);
 }
-
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}

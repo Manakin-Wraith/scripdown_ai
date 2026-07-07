@@ -45,10 +45,6 @@
     margin-bottom: 1rem;
 }
 
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
-
 /* Error Banner */
 .error-banner {
     background-color: var(--danger-bg);

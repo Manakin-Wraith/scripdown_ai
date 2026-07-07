@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import DropZone from './DropZone';
-import { AlertTriangle, X, CheckCircle, Loader, ArrowRight, Clapperboard, Sparkles, AlertCircle, FileText, Scissors, Lock, Zap } from 'lucide-react';
+import { AlertTriangle, X, CheckCircle, ArrowRight, Clapperboard, Sparkles, AlertCircle, FileText, Scissors, Lock, Zap } from 'lucide-react';
+import { Spinner } from '../ui';
 import { useToast } from '../../context/ToastContext';
 import { supabase } from '../../lib/supabase';
 import { UpgradeModal } from '../subscription';
@@ -192,7 +193,7 @@ const ScriptUpload = () => {
                 ) : uploading ? (
                     <div className="upload-progress-container">
                         <div className="upload-progress-card">
-                            <Loader size={32} className="spin upload-spinner" />
+                            <Spinner size={32} className="upload-spinner" />
                             <h3>Processing Script...</h3>
                             <p className="file-name">{file?.name}</p>
                             <div className="upload-progress-bar">
@@ -240,7 +241,7 @@ const ScriptUpload = () => {
                                 >
                                     {isAiDetecting ? (
                                         <>
-                                            <Loader size={18} className="spin" />
+                                            <Spinner size={18} />
                                             Detecting Scenes...
                                         </>
                                     ) : (
