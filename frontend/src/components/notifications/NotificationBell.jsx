@@ -185,10 +185,7 @@ const NotificationBell = () => {
         }
 
         // Navigate based on notification type
-        if (notification.type === 'feedback_submitted' && notification.data?.feedback_id) {
-            navigate(`/admin/feedback/${notification.data.feedback_id}`);
-            setIsOpen(false);
-        } else if (notification.data?.script_id) {
+        if (notification.data?.script_id) {
             navigate(`/scenes/${notification.data.script_id}`);
             setIsOpen(false);
         }
@@ -202,8 +199,6 @@ const NotificationBell = () => {
                 return <UserPlus size={16} />;
             case 'script_shared':
                 return <FileText size={16} />;
-            case 'feedback_submitted':
-                return <Bell size={16} />;
             default:
                 return <Bell size={16} />;
         }
