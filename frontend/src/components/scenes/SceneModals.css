@@ -442,11 +442,11 @@
 }
 
 /* Form Elements */
-.form-group {
+#add-scene-form .form-group {
     margin-bottom: 1rem;
 }
 
-.form-group label {
+#add-scene-form .form-group label {
     display: block;
     font-size: 0.875rem;
     font-weight: 500;
@@ -454,21 +454,21 @@
     margin-bottom: 0.5rem;
 }
 
-.form-group .optional {
+#add-scene-form .form-group .optional {
     font-weight: 400;
     color: var(--gray-500);
 }
 
-.form-group .required {
+#add-scene-form .form-group .required {
     color: var(--danger);
 }
 
-.form-row {
+#add-scene-form .form-row {
     display: flex;
     gap: 1rem;
 }
 
-.form-row .form-group {
+#add-scene-form .form-row .form-group {
     flex: 1;
 }
 
@@ -554,7 +554,7 @@
         flex-direction: column;
     }
     
-    .form-row {
+    #add-scene-form .form-row {
         flex-direction: column;
         gap: 0;
     }

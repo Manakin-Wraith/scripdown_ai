@@ -236,13 +236,13 @@
 }
 
 /* Form Groups */
-.form-group {
+.revision-wizard .form-group {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
 }
 
-.form-group label {
+.revision-wizard .form-group label {
     font-weight: 500;
     color: var(--text-primary);
 }
@@ -253,7 +253,7 @@
     margin: 0;
 }
 
-.form-group textarea {
+.revision-wizard .form-group textarea {
     padding: 0.75rem;
     border: 1px solid var(--border-color);
     border-radius: 8px;
@@ -263,7 +263,7 @@
     resize: vertical;
 }
 
-.form-group textarea:focus {
+.revision-wizard .form-group textarea:focus {
     outline: none;
     border-color: var(--primary);
 }

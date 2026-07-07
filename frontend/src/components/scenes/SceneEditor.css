@@ -357,11 +357,11 @@
 }
 
 /* Form Groups */
-.form-group {
+.scene-editor .form-group {
     margin-bottom: 1.25rem;
 }
 
-.form-group label {
+.scene-editor .form-group label {
     display: block;
     font-size: 0.8rem;
     font-weight: 600;
@@ -369,7 +369,7 @@
     margin-bottom: 0.5rem;
 }
 
-.form-group input {
+.scene-editor .form-group input {
     width: 100%;
     padding: 0.75rem 1rem;
     border: 1px solid var(--border-color);
@@ -380,13 +380,13 @@
     color: var(--text-primary);
 }
 
-.form-group input:focus {
+.scene-editor .form-group input:focus {
     outline: none;
     border-color: var(--primary-500);
     box-shadow: 0 0 0 3px var(--primary-alpha-10);
 }
 
-.form-group input::placeholder {
+.scene-editor .form-group input::placeholder {
     color: var(--gray-400);
 }
 
