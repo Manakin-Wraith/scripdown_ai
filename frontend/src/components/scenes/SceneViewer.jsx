@@ -6,7 +6,8 @@ import SceneDetail from './SceneDetail';
 import ScriptHeader from '../metadata/ScriptHeader';
 import ScriptSummary from './ScriptSummary';
 import PdfViewerPanel from '../pdf/PdfViewerPanel';
-import { AlertCircle, ChevronDown, ChevronUp, Zap, FileText, List, Loader, XCircle, BookOpen, CalendarDays } from 'lucide-react';
+import { AlertCircle, ChevronDown, ChevronUp, Zap, FileText, List, XCircle, BookOpen, CalendarDays } from 'lucide-react';
+import { Spinner } from '../ui';
 import { useToast } from '../../context/ToastContext';
 import { useScript } from '../../context/ScriptContext';
 import { useStoryDayListener } from '../../context/StoryDayContext';
@@ -616,7 +617,7 @@ const SceneViewer = () => {
                         <div className="progress-status">
                             {isBulkAnalyzing ? (
                                 <>
-                                    <Loader size={16} className="spin" />
+                                    <Spinner size={16} />
                                     <span>Analyzing scenes...</span>
                                 </>
                             ) : (

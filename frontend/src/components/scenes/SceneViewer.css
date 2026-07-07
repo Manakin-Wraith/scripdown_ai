@@ -309,11 +309,6 @@
     border-color: var(--primary-500);
 }
 
-@keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-}
-
 /* Main Layout Container - Edge to Edge */
 .scene-viewer-layout {
     display: flex;
@@ -405,10 +400,6 @@
     border-radius: 50%;
     animation: spin 1s linear infinite;
     margin-bottom: 16px;
-}
-
-@keyframes spin {
-    to { transform: rotate(360deg); }
 }
 
 /* Error State */

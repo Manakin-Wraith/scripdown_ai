@@ -551,16 +551,6 @@ button.scene-title.editable-title:hover .edit-hint-icon {
     transform: translateY(0);
 }
 
-/* Spin animation */
-@keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-}
-
-.spin {
-    animation: spin 1s linear infinite;
-}
-
 /* ============================================ */
 /* Clickable Cards with Note Badges */
 /* ============================================ */

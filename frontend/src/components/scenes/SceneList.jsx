@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { Users, ChevronRight, CheckCircle, Clock, Loader, FileText, ArrowDownUp, CalendarDays, GripVertical, EyeOff, Eye } from 'lucide-react';
-import { EmptyState, Badge } from '../ui';
+import { Users, ChevronRight, CheckCircle, Clock, FileText, ArrowDownUp, CalendarDays, GripVertical, EyeOff, Eye } from 'lucide-react';
+import { EmptyState, Badge, Spinner } from '../ui';
 import { getSceneEighthsDisplay } from '../../utils/sceneUtils';
 import './SceneList.css';
 
@@ -174,7 +174,7 @@ const SceneList = ({ scenes, selectedId, onSelect, analyzingScenes = new Set(), 
                             <div className={`status-indicator status-${status} ${isRecentlyCompleted ? 'fade-out' : ''} ${status === 'complete' && !isRecentlyCompleted ? 'hidden' : ''}`}>
                                 {status === 'complete' && <CheckCircle size={14} />}
                                 {status === 'pending' && <Clock size={14} />}
-                                {status === 'analyzing' && <Loader size={14} className="spin" />}
+                                {status === 'analyzing' && <Spinner size={14} />}
                             </div>
                             
                             <div className="scene-item-content">
