@@ -6,6 +6,14 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from services.fdx_parser import _read_fdx, _normalize_speaker, _build_scenes
 from services.fdx_parser import _synthesize_pages, _extract_fdx_metadata, parse_fdx
+from services.script_service import _is_fdx
+
+
+def test_is_fdx_detection():
+    assert _is_fdx("My Script.fdx") is True
+    assert _is_fdx("My Script.FDX") is True
+    assert _is_fdx("My Script.pdf") is False
+    assert _is_fdx("noext") is False
 
 
 MINIMAL_FDX = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>

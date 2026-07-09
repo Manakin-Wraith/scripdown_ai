@@ -9,6 +9,11 @@ from db.db_connection import get_db
 UPLOAD_FOLDER = 'uploads'
 
 
+def _is_fdx(filename: str) -> bool:
+    """True when the uploaded filename is a Final Draft .fdx file."""
+    return os.path.splitext(filename)[1].lower() == ".fdx"
+
+
 def process_script_v2(file):
     """
     Process uploaded script using the new page-based pipeline.
@@ -38,18 +43,18 @@ def process_script_v2(file):
     file_path = os.path.join(UPLOAD_FOLDER, filename)
     file.save(file_path)
 
-    # Parse PDF with page awareness
-    print(f"[Upload] Parsing PDF with page awareness: {filename}")
-    pages, full_text = parse_pdf_with_pages(file_path)
-    print(f"[Upload] Parsed {len(pages)} pages")
-    
-    # Build scene candidates from detected headers
-    candidates = build_scene_candidates(pages, full_text)
-    print(f"[Upload] Found {len(candidates)} scene candidates")
-    
-    # Extract cover page metadata (from first page)
-    metadata = extract_metadata(file_path)
-    print(f"[Upload] Extracted metadata: {metadata}")
+    # Route by file type: FDX is structured; PDF is text-extracted.
+    if _is_fdx(filename):
+        from services.fdx_parser import parse_fdx
+        print(f"[Upload] Parsing Final Draft FDX: {filename}")
+        pages, full_text, candidates, metadata = parse_fdx(file_path)
+    else:
+        print(f"[Upload] Parsing PDF with page awareness: {filename}")
+        pages, full_text = parse_pdf_with_pages(file_path)
+        candidates = build_scene_candidates(pages, full_text)
+        metadata = extract_metadata(file_path)
+
+    print(f"[Upload] Parsed {len(pages)} pages, {len(candidates)} candidates")
 
     # Save script to Database
     db = get_db()
