@@ -5,8 +5,8 @@ import pytest
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from services.fdx_parser import _read_fdx, _normalize_speaker, _build_scenes
-from services.fdx_parser import _synthesize_pages, _extract_fdx_metadata, parse_fdx
-from services.script_service import _is_fdx
+from services.fdx_parser import _synthesize_page_dicts, _extract_fdx_metadata, parse_fdx_upload
+from services.fdx_parser import _is_fdx
 
 
 def test_is_fdx_detection():
@@ -100,6 +100,9 @@ def test_build_scenes_basic():
     assert scenes[0].parse_method == "fdx"
     # speaker extension stripped and normalized
     assert "JOHN" in scenes[0].speakers
+    # scene content / location hierarchy populated
+    assert scenes[0].scene_text != ""
+    assert isinstance(scenes[0].location_hierarchy, list)
     # scene 2
     assert scenes[1].scene_number_original == "2"
     assert scenes[1].int_ext == "EXT"
@@ -134,17 +137,22 @@ def test_build_scenes_page_range_grows_for_long_scene():
     assert scenes[0].page_end >= scenes[0].page_start
 
 
-def test_synthesize_pages_chunks_by_55_lines():
+def test_synthesize_page_dicts_chunks_by_55_lines():
     text = "\n".join(f"line {i}" for i in range(130))  # 130 lines -> 3 pages
-    pages = _synthesize_pages(text)
+    pages = _synthesize_page_dicts(text)
     assert len(pages) == 3
-    assert pages[0].page_number == 1
-    assert all(p.content_hash for p in pages)
+    assert [p["page_number"] for p in pages] == [1, 2, 3]
+    assert all("text" in p for p in pages)
 
 
-def test_synthesize_pages_single_page_for_short_text():
-    pages = _synthesize_pages("INT. HOUSE - DAY\nJohn enters.")
+def test_synthesize_page_dicts_single_page_for_short_text():
+    pages = _synthesize_page_dicts("INT. HOUSE - DAY\nJohn enters.")
     assert len(pages) == 1
+
+
+def test_synthesize_page_dicts_empty_for_blank_text():
+    assert _synthesize_page_dicts("") == []
+    assert _synthesize_page_dicts("   \n  ") == []
 
 
 def test_extract_metadata_finds_author():
@@ -153,21 +161,22 @@ def test_extract_metadata_finds_author():
         {"type": "", "text": "Written by Jane Doe", "number": None},
     ]
     meta = _extract_fdx_metadata(tp)
-    assert meta["writer_name"] == "Jane Doe"
+    assert meta["writers"] == "Jane Doe"
     assert meta["title"] == "MY GREAT SCRIPT"
-    assert meta["writer_email"] is None
 
 
-def test_parse_fdx_end_to_end(tmp_path):
+def test_parse_fdx_upload_end_to_end(tmp_path):
     path = _write_fdx(tmp_path, MINIMAL_FDX)
-    pages, full_text, candidates, metadata = parse_fdx(path)
+    pages_data, full_text, metadata, parsed_scenes = parse_fdx_upload(path)
 
-    assert len(candidates) == 1
-    c = candidates[0]
-    assert c.scene_number_original == "1"
-    assert c.setting == "COFFEE SHOP"
-    assert "JOHN" in c.speakers
-    assert c.parse_method == "fdx"
-    assert len(pages) >= 1
+    assert len(parsed_scenes) == 1
+    s = parsed_scenes[0]
+    assert s.scene_number_original == "1"
+    assert s.setting == "COFFEE SHOP"
+    assert "JOHN" in s.speakers
+    assert s.parse_method == "fdx"
+    assert s.scene_text != ""
+    assert len(pages_data) >= 1
+    assert pages_data[0]["page_number"] == 1
     assert "COFFEE SHOP" in full_text
-    assert metadata["writer_name"] == "Jane Doe"
+    assert metadata["writers"] == "Jane Doe"

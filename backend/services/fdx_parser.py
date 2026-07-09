@@ -1,37 +1,36 @@
 """
 FDX (Final Draft) import adapter.
 
-Reads Final Draft .fdx XML and emits the same (pages, full_text, candidates,
-metadata) contract that process_script_v2 already consumes for PDFs. FDX is
+Reads Final Draft .fdx XML and emits the (pages_data, full_text, metadata,
+parsed_scenes) contract that the live upload path consumes for PDFs. FDX is
 structured, so scene boundaries, scene numbers, and speakers are read directly
 rather than inferred.
 """
 
+import os
 import re
 
 # defusedxml, NOT stdlib ElementTree: FDX uploads are untrusted (XXE / billion-laughs).
 import defusedxml.ElementTree as ET
 
 from services.extraction_pipeline import (
-    SceneCandidate,
-    ExtractionStatus,
-    PageData,
     detect_scene_headers,
     compute_content_hash,
     assign_scene_numbers,
 )
+from services.screenplay_parser import ParsedScene, _parse_location_hierarchy
 
 LINES_PER_PAGE = 55
 
 
 _SPEAKER_EXTENSION_RE = re.compile(r"\s*\((?:CONT'D|CONTD|V\.?O\.?|O\.?S\.?|O\.?C\.?)\)\s*$", re.IGNORECASE)
 
-_METADATA_KEYS = [
-    "writer_name", "writer_email", "writer_phone", "draft_version",
-    "draft_date", "copyright_info", "wga_registration", "additional_credits",
-]
-
 _AUTHOR_RE = re.compile(r"^(?:written\s+by|by)\s+(.+)$", re.IGNORECASE)
+
+
+def _is_fdx(filename: str) -> bool:
+    """True when the uploaded filename is a Final Draft .fdx file."""
+    return os.path.splitext(filename)[1].lower() == ".fdx"
 
 
 def _normalize_speaker(name: str) -> str:
@@ -130,7 +129,7 @@ def _build_scenes(content_paragraphs):
             groups[-1]["body"].append(para)
         # paragraphs before the first heading are ignored (title/front matter)
 
-    candidates = []
+    scenes = []
     full_text = ""
     cumulative_lines = 0
 
@@ -162,7 +161,7 @@ def _build_scenes(content_paragraphs):
         full_text += scene_text + "\n"
         text_end = len(full_text)
 
-        candidates.append(SceneCandidate(
+        scenes.append(ParsedScene(
             scene_number_original=pseudo_headers[i]["scene_number"],
             scene_order=i + 1,
             int_ext=parsed["int_ext"],
@@ -173,51 +172,53 @@ def _build_scenes(content_paragraphs):
             text_start=text_start,
             text_end=text_end,
             content_hash=compute_content_hash(scene_text),
-            status=ExtractionStatus.PENDING,
+            scene_text=scene_text,
+            location_hierarchy=_parse_location_hierarchy(parsed["setting"]),
             speakers=speakers,
             parse_method="fdx",
         ))
 
-    return candidates, full_text
+    return scenes, full_text
 
 
-def _synthesize_pages(full_text: str):
-    """Chunk full_text into ~55-line PageData pages."""
+def _synthesize_page_dicts(full_text: str):
+    """Chunk full_text into ~55-line {'page_number', 'text'} dicts."""
     if not full_text.strip():
         return []
     lines = full_text.split("\n")
     pages = []
     for page_num, start in enumerate(range(0, len(lines), LINES_PER_PAGE), start=1):
         page_text = "\n".join(lines[start:start + LINES_PER_PAGE])
-        pages.append(PageData(
-            page_number=page_num,
-            text=page_text,
-            content_hash=compute_content_hash(page_text),
-        ))
+        pages.append({
+            "page_number": page_num,
+            "text": page_text,
+        })
     return pages
 
 
 def _extract_fdx_metadata(titlepage_paragraphs):
     """Best-effort metadata from the FDX title page."""
-    meta = {k: None for k in _METADATA_KEYS}
-    meta["title"] = None
-    for i, para in enumerate(titlepage_paragraphs):
+    meta = {"title": None, "writers": None}
+    for para in titlepage_paragraphs:
         text = para["text"].strip()
         if not text:
             continue
         if meta["title"] is None:
             meta["title"] = text
         m = _AUTHOR_RE.match(text)
-        if m and not meta["writer_name"]:
-            meta["writer_name"] = m.group(1).strip()
+        if m and not meta["writers"]:
+            meta["writers"] = m.group(1).strip()
     return meta
 
 
-def parse_fdx(file_path: str):
-    """Parse an .fdx file into the (pages, full_text, candidates, metadata)
-    contract consumed by process_script_v2."""
+def parse_fdx_upload(file_path: str):
+    """Parse an .fdx into the live-upload contract:
+    (pages_data, full_text, metadata, parsed_scenes).
+    pages_data is a list of {'page_number': int, 'text': str} dicts.
+    parsed_scenes is a list of ParsedScene. metadata has 'title'/'writers'.
+    """
     content_paras, titlepage_paras = _read_fdx(file_path)
-    candidates, full_text = _build_scenes(content_paras)
-    pages = _synthesize_pages(full_text)
+    parsed_scenes, full_text = _build_scenes(content_paras)
+    pages_data = _synthesize_page_dicts(full_text)
     metadata = _extract_fdx_metadata(titlepage_paras)
-    return pages, full_text, candidates, metadata
+    return pages_data, full_text, metadata, parsed_scenes
