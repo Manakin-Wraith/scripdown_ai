@@ -1,0 +1,20 @@
+# Keep the Docker build context small. Only backend/ is copied into the image.
+frontend
+docs
+scripts
+supabase
+.git
+.github
+.agent
+.agents
+.windsurf
+.claude
+**/__pycache__
+**/*.pyc
+backend/venv
+backend/uploads
+**/node_modules
+.DS_Store
+**/.DS_Store
+*.md
+*.sql
