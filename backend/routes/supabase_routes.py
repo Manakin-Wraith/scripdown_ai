@@ -20,6 +20,9 @@ load_dotenv()
 # Auth middleware
 from middleware.auth import require_auth, optional_auth, get_user_id, get_current_user
 
+# Location resolution (canonical base-place derivation)
+from services.location_resolver import derive_base_place
+
 # Supabase client
 from supabase import create_client
 
@@ -691,6 +694,9 @@ def create_scenes_from_parsed(script_id, parsed_scenes, full_text, pages_data, p
             'location_parent': loc_parent,
             'location_specific': loc_specific,
             'location_hierarchy': ps.location_hierarchy,
+            'location_canonical': derive_base_place(
+                ps.setting, ps.int_ext, ps.time_of_day, ps.location_hierarchy
+            ),
             'shot_type': ps.shot_type,
             'speakers': list(ps.speakers.keys()) if ps.speakers else [],
             'transitions': ps.transitions or [],
