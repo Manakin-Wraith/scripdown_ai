@@ -1138,9 +1138,15 @@ def create_scene():
             'is_manual': True,
             'analysis_status': 'pending'
         }
-        
+
+        loc_setting, loc_canonical = _apply_location_alias(
+            script_id, scene_data['setting'], scene_data['int_ext'],
+            scene_data['time_of_day'], None)
+        scene_data['setting'] = loc_setting
+        scene_data['location_canonical'] = loc_canonical
+
         result = supabase.table('scenes').insert(scene_data).execute()
-        
+
         return jsonify(result.data[0]), 201
         
     except Exception as e:
@@ -1163,11 +1169,23 @@ def update_scene(scene_id):
                           'special_fx', 'vehicles', 'analysis_status']
         
         update_data = {k: v for k, v in data.items() if k in allowed_fields}
-        
+
+        if 'setting' in update_data:
+            _sc = (supabase.table('scenes').select(
+                'script_id, int_ext, time_of_day, location_hierarchy'
+            ).eq('id', scene_id).single().execute().data) or {}
+            loc_setting, loc_canonical = _apply_location_alias(
+                _sc.get('script_id'), update_data.get('setting'),
+                update_data.get('int_ext', _sc.get('int_ext')),
+                update_data.get('time_of_day', _sc.get('time_of_day')),
+                _sc.get('location_hierarchy'))
+            update_data['setting'] = loc_setting
+            update_data['location_canonical'] = loc_canonical
+
         result = supabase.table('scenes').update(update_data).eq('id', scene_id).execute()
-        
+
         return jsonify(result.data[0] if result.data else {}), 200
-        
+
     except Exception as e:
         print(f"Error updating scene: {e}")
         return jsonify({'error': str(e)}), 500
@@ -1464,10 +1482,19 @@ def update_scene_header(script_id, scene_id):
         # Only allow updating header fields
         allowed_fields = ['scene_number', 'int_ext', 'setting', 'time_of_day']
         update_data = {k: v for k, v in data.items() if k in allowed_fields}
-        
+
         if not update_data:
             return jsonify({'error': 'No valid fields to update'}), 400
-        
+
+        if 'setting' in update_data:
+            loc_setting, loc_canonical = _apply_location_alias(
+                script_id, update_data.get('setting'),
+                update_data.get('int_ext', current_scene.data.get('int_ext')),
+                update_data.get('time_of_day', current_scene.data.get('time_of_day')),
+                None)
+            update_data['setting'] = loc_setting
+            update_data['location_canonical'] = loc_canonical
+
         result = supabase.table('scenes').update(update_data).eq('id', scene_id).execute()
         
         # Record history
@@ -1818,7 +1845,13 @@ def split_scene(script_id, scene_id):
             'page_start': original_scene.get('page_start'),
             'page_end': original_scene.get('page_end'),
         }
-        
+
+        loc_setting, loc_canonical = _apply_location_alias(
+            script_id, second_scene_data['setting'], second_scene_data.get('int_ext'),
+            second_scene_data.get('time_of_day'), original_scene.get('location_hierarchy'))
+        second_scene_data['setting'] = loc_setting
+        second_scene_data['location_canonical'] = loc_canonical
+
         new_scene_result = supabase.table('scenes').insert(second_scene_data).execute()
         new_scene = new_scene_result.data[0] if new_scene_result.data else None
         
@@ -2067,7 +2100,13 @@ def add_manual_scene(script_id):
             'is_manual': True,
             'analysis_status': 'pending'
         }
-        
+
+        loc_setting, loc_canonical = _apply_location_alias(
+            script_id, new_scene_data['setting'], new_scene_data['int_ext'],
+            new_scene_data['time_of_day'], None)
+        new_scene_data['setting'] = loc_setting
+        new_scene_data['location_canonical'] = loc_canonical
+
         result = supabase.table('scenes').insert(new_scene_data).execute()
         new_scene = result.data[0] if result.data else None
         

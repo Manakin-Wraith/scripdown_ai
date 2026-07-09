@@ -23,6 +23,11 @@ def get_worker_db():
     """Get database connection for worker (outside Flask context)."""
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
+    try:
+        conn.execute("ALTER TABLE scenes ADD COLUMN location_canonical TEXT")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass  # column already exists (or table not created yet) — non-fatal
     return conn
 
 # ============================================
