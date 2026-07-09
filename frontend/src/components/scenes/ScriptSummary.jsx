@@ -50,17 +50,17 @@ function detectDuplicates(names) {
 }
 
 /**
- * Client-side mirror of the backend name normalization, used to detect when
- * selected items already reduce to the same name (so a merge would be a no-op).
- * Locations additionally strip a leading article + surrounding punctuation
- * (matching normalize_place); characters only upcase, like the backend.
+ * Client-side mirror of the backend merge matching, used to detect when
+ * selected items already reduce to the same value (so a merge would be a no-op).
+ * Characters match case-insensitively (backend upcases). Locations now merge on
+ * raw setting text like character names, where a case-only difference IS a real
+ * merge (villa -> VILLA) — so only trim + collapse whitespace, preserving case.
  */
 function normalizeForMerge(type, name) {
-    let s = (name || '').trim().toUpperCase().replace(/\s+/g, ' ');
     if (type === 'locations') {
-        s = s.replace(/^(THE|A|AN)\s+/, '').replace(/^[\s.,\-–—:;]+|[\s.,\-–—:;]+$/g, '');
+        return (name || '').trim().replace(/\s+/g, ' ');
     }
-    return s;
+    return (name || '').trim().toUpperCase().replace(/\s+/g, ' ');
 }
 
 /** Count the number of distinct duplicate groups from a suspects map. */

@@ -4698,22 +4698,28 @@ def _apply_location_alias(script_id, setting, int_ext, time_of_day, location_hie
 @require_auth
 def merge_locations(script_id):
     """
-    Merge duplicate base-place locations across all scenes in a script.
+    Merge duplicate locations across all scenes in a script by their raw
+    setting text -- mirroring how merge_characters matches character names.
 
     Body: {
-        canonical_place: "COFFEE SHOP",              -- base place to keep
-        aliases: ["THE COFFEE SHOP", "COFEE SHOP"]   -- base places to replace
+        canonical_place: "VILLA",                 -- exact setting text to keep
+        aliases: ["villa", "viLLA", "vILLA"]      -- exact setting texts to replace
     }
-    Rewrites the place inside scenes.setting (preserving INT/EXT + time-of-day),
-    updates scenes.location_canonical, updates department_items, and stores the
-    mapping in location_aliases for future prevention.
+    Every scene whose setting matches an alias (case-insensitively) has its
+    setting rewritten to the chosen spelling verbatim, and its
+    location_canonical recomputed from that spelling. Distinct settings the
+    user did not select (e.g. "VILLA - BACHELORETTE") are left untouched.
+    department_items are updated and a base-place mapping is stored in
+    location_aliases for future prevention.
     """
     if not supabase:
         return jsonify({'error': 'Supabase not configured'}), 500
 
     try:
         data = request.get_json()
-        canonical_place = normalize_place(data.get('canonical_place') or '')
+        # Preserve the user's chosen spelling verbatim -- do NOT normalize_place
+        # it, or case-variant merges (villa -> VILLA) would collapse to a no-op.
+        canonical_place = (data.get('canonical_place') or '').strip()
         raw_aliases = data.get('aliases', [])
         user_id = get_user_id()
 
@@ -4725,37 +4731,39 @@ def merge_locations(script_id):
         if not raw_aliases or not isinstance(raw_aliases, list):
             return jsonify({'error': 'aliases must be a non-empty array'}), 400
 
-        aliases = list({normalize_place(a) for a in raw_aliases if normalize_place(a)})
-        aliases = [a for a in aliases if a != canonical_place]
+        # Distinct raw alias settings (case-insensitive), excluding the canonical
+        # spelling itself. Keep original casing for department_items lookups.
+        seen = set()
+        aliases = []
+        for a in raw_aliases:
+            a = (a or '').strip()
+            key = a.upper()
+            if not a or key == canonical_place.upper() or key in seen:
+                continue
+            seen.add(key)
+            aliases.append(a)
         if not aliases:
             return jsonify({'error': 'No valid aliases to merge'}), 400
 
-        # 1. Fetch scenes with the fields needed to re-derive base place
+        alias_keys = {a.upper() for a in aliases}
+        # Base place for production-view grouping, derived from the chosen spelling.
+        canonical_base = derive_base_place(canonical_place, None, None, None)
+
+        # 1. Fetch scenes (match on raw setting text, like character names)
         result = supabase.table('scenes').select(
-            'id, setting, int_ext, time_of_day, location_hierarchy, location_canonical'
+            'id, setting'
         ).eq('script_id', script_id).execute()
         scenes = result.data or []
         updated_count = 0
 
-        # 2. For each scene whose base place is an alias, rewrite setting + canonical
+        # 2. Rewrite every scene whose setting matches an alias
         for scene in scenes:
-            base = derive_base_place(
-                scene.get('setting'), scene.get('int_ext'),
-                scene.get('time_of_day'), scene.get('location_hierarchy'),
-            )
-            if base not in aliases:
+            setting = (scene.get('setting') or '').strip()
+            if setting.upper() not in alias_keys:
                 continue
-
-            old_setting = scene.get('setting') or ''
-            # Replace the alias place text inside setting with the canonical place,
-            # case-insensitively, preserving INT/EXT + time-of-day around it.
-            new_setting = re.sub(
-                re.escape(base), canonical_place, old_setting, flags=re.IGNORECASE
-            ) if base else old_setting
-
             supabase.table('scenes').update({
-                'setting': new_setting,
-                'location_canonical': canonical_place,
+                'setting': canonical_place,
+                'location_canonical': canonical_base,
             }).eq('id', scene['id']).execute()
             updated_count += 1
 
@@ -4770,13 +4778,19 @@ def merge_locations(script_id):
             except Exception as di_err:
                 print(f"Warning: department_items update failed for '{alias}': {di_err}")
 
-        # 4. Store alias mappings for future prevention
+        # 4. Store base-place mappings for future prevention. Pure case variants
+        # normalize to the same base as the canonical (re-analysis already
+        # derives it correctly), so only genuine spelling differences persist.
+        canonical_norm = normalize_place(canonical_place)
         for alias in aliases:
+            alias_norm = normalize_place(alias)
+            if not alias_norm or alias_norm == canonical_norm:
+                continue
             try:
                 supabase.table('location_aliases').upsert({
                     'script_id': script_id,
-                    'canonical_place': canonical_place,
-                    'alias_place': alias,
+                    'canonical_place': canonical_norm,
+                    'alias_place': alias_norm,
                     'merged_by': user_id,
                 }, on_conflict='script_id,alias_place').execute()
             except Exception as alias_err:
