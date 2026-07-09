@@ -5,6 +5,7 @@ import pytest
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from services.fdx_parser import _read_fdx, _normalize_speaker, _build_scenes
+from services.fdx_parser import _synthesize_pages, _extract_fdx_metadata
 
 
 MINIMAL_FDX = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -123,3 +124,27 @@ def test_build_scenes_page_range_grows_for_long_scene():
     # Scene 2 must start on a later page than scene 1 started.
     assert scenes[1].page_start >= scenes[0].page_start
     assert scenes[0].page_end >= scenes[0].page_start
+
+
+def test_synthesize_pages_chunks_by_55_lines():
+    text = "\n".join(f"line {i}" for i in range(130))  # 130 lines -> 3 pages
+    pages = _synthesize_pages(text)
+    assert len(pages) == 3
+    assert pages[0].page_number == 1
+    assert all(p.content_hash for p in pages)
+
+
+def test_synthesize_pages_single_page_for_short_text():
+    pages = _synthesize_pages("INT. HOUSE - DAY\nJohn enters.")
+    assert len(pages) == 1
+
+
+def test_extract_metadata_finds_author():
+    tp = [
+        {"type": "", "text": "MY GREAT SCRIPT", "number": None},
+        {"type": "", "text": "Written by Jane Doe", "number": None},
+    ]
+    meta = _extract_fdx_metadata(tp)
+    assert meta["writer_name"] == "Jane Doe"
+    assert meta["title"] == "MY GREAT SCRIPT"
+    assert meta["writer_email"] is None

@@ -15,6 +15,7 @@ import defusedxml.ElementTree as ET
 from services.extraction_pipeline import (
     SceneCandidate,
     ExtractionStatus,
+    PageData,
     detect_scene_headers,
     compute_content_hash,
     assign_scene_numbers,
@@ -24,6 +25,13 @@ LINES_PER_PAGE = 55
 
 
 _SPEAKER_EXTENSION_RE = re.compile(r"\s*\((?:CONT'D|CONTD|V\.?O\.?|O\.?S\.?|O\.?C\.?)\)\s*$", re.IGNORECASE)
+
+_METADATA_KEYS = [
+    "writer_name", "writer_email", "writer_phone", "draft_version",
+    "draft_date", "copyright_info", "wga_registration", "additional_credits",
+]
+
+_AUTHOR_RE = re.compile(r"^(?:written\s+by|by)\s+(.+)$", re.IGNORECASE)
 
 
 def _normalize_speaker(name: str) -> str:
@@ -171,3 +179,35 @@ def _build_scenes(content_paragraphs):
         ))
 
     return candidates, full_text
+
+
+def _synthesize_pages(full_text: str):
+    """Chunk full_text into ~55-line PageData pages."""
+    if not full_text.strip():
+        return []
+    lines = full_text.split("\n")
+    pages = []
+    for page_num, start in enumerate(range(0, len(lines), LINES_PER_PAGE), start=1):
+        page_text = "\n".join(lines[start:start + LINES_PER_PAGE])
+        pages.append(PageData(
+            page_number=page_num,
+            text=page_text,
+            content_hash=compute_content_hash(page_text),
+        ))
+    return pages
+
+
+def _extract_fdx_metadata(titlepage_paragraphs):
+    """Best-effort metadata from the FDX title page."""
+    meta = {k: None for k in _METADATA_KEYS}
+    meta["title"] = None
+    for i, para in enumerate(titlepage_paragraphs):
+        text = para["text"].strip()
+        if not text:
+            continue
+        if meta["title"] is None:
+            meta["title"] = text
+        m = _AUTHOR_RE.match(text)
+        if m and not meta["writer_name"]:
+            meta["writer_name"] = m.group(1).strip()
+    return meta
