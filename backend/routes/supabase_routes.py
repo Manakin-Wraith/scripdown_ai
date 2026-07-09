@@ -639,18 +639,6 @@ def create_scenes_from_parsed(script_id, parsed_scenes, full_text, pages_data, p
 
     parse_method = parse_meta.get("parse_method", "grammar")
 
-    # Build page boundaries for eighths calculation
-    page_boundaries = []
-    current_pos = 0
-    for page in pages_data:
-        page_text = page['text']
-        page_boundaries.append({
-            'page': page['page_number'],
-            'start': current_pos,
-            'end': current_pos + len(page_text)
-        })
-        current_pos += len(page_text) + 2
-
     # Build all records first, then batch insert for performance
     scene_records = []
     candidate_records = []
