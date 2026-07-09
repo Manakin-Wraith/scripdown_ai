@@ -12,6 +12,16 @@ import re
 # defusedxml, NOT stdlib ElementTree: FDX uploads are untrusted (XXE / billion-laughs).
 import defusedxml.ElementTree as ET
 
+from services.extraction_pipeline import (
+    SceneCandidate,
+    ExtractionStatus,
+    detect_scene_headers,
+    compute_content_hash,
+    assign_scene_numbers,
+)
+
+LINES_PER_PAGE = 55
+
 
 _SPEAKER_EXTENSION_RE = re.compile(r"\s*\((?:CONT'D|CONTD|V\.?O\.?|O\.?S\.?|O\.?C\.?)\)\s*$", re.IGNORECASE)
 
@@ -80,3 +90,84 @@ def _read_fdx(file_path: str):
                 })
 
     return content_paras, titlepage_paras
+
+
+def _parse_heading(heading_text: str) -> dict:
+    """Parse a scene-heading line into int_ext/setting/time_of_day using the
+    same regex the PDF path uses. Falls back to sensible defaults."""
+    headers = detect_scene_headers(heading_text)
+    if headers:
+        h = headers[0]
+        return {
+            "int_ext": h["int_ext"],
+            "setting": h["setting"],
+            "time_of_day": h["time_of_day"],
+        }
+    return {"int_ext": "INT", "setting": heading_text.strip(), "time_of_day": "DAY"}
+
+
+def _line_count(text: str) -> int:
+    """Number of rendered lines, minimum 1."""
+    return max(1, text.count("\n") + 1)
+
+
+def _build_scenes(content_paragraphs):
+    """Group paragraphs into scenes and return (candidates, full_text)."""
+    # Split paragraphs into scene groups on each Scene Heading.
+    groups = []  # list of dicts: {"heading": para, "body": [para, ...]}
+    for para in content_paragraphs:
+        if para["type"] == "Scene Heading":
+            groups.append({"heading": para, "body": []})
+        elif groups:
+            groups[-1]["body"].append(para)
+        # paragraphs before the first heading are ignored (title/front matter)
+
+    candidates = []
+    full_text = ""
+    cumulative_lines = 0
+
+    # Pre-assign scene numbers for headings that lack one, matching PDF behavior.
+    pseudo_headers = [{"scene_number": g["heading"]["number"]} for g in groups]
+    pseudo_headers = assign_scene_numbers(pseudo_headers)
+
+    for i, group in enumerate(groups):
+        heading_para = group["heading"]
+        parsed = _parse_heading(heading_para["text"])
+
+        # Assemble scene text: heading + body lines.
+        lines = [heading_para["text"]]
+        speakers = {}
+        for body in group["body"]:
+            lines.append(body["text"])
+            if body["type"] == "Character" and body["text"].strip():
+                name = _normalize_speaker(body["text"])
+                if name:
+                    speakers[name] = speakers.get(name, 0) + 1
+        scene_text = "\n".join(lines)
+
+        # Page range from running line counter (55 lines/page).
+        page_start = cumulative_lines // LINES_PER_PAGE + 1
+        cumulative_lines += _line_count(scene_text)
+        page_end = max(page_start, (cumulative_lines - 1) // LINES_PER_PAGE + 1)
+
+        text_start = len(full_text)
+        full_text += scene_text + "\n"
+        text_end = len(full_text)
+
+        candidates.append(SceneCandidate(
+            scene_number_original=pseudo_headers[i]["scene_number"],
+            scene_order=i + 1,
+            int_ext=parsed["int_ext"],
+            setting=parsed["setting"],
+            time_of_day=parsed["time_of_day"],
+            page_start=page_start,
+            page_end=page_end,
+            text_start=text_start,
+            text_end=text_end,
+            content_hash=compute_content_hash(scene_text),
+            status=ExtractionStatus.PENDING,
+            speakers=speakers,
+            parse_method="fdx",
+        ))
+
+    return candidates, full_text
