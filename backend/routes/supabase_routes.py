@@ -4588,6 +4588,27 @@ def get_character_aliases(script_id):
         return jsonify({'error': str(e)}), 500
 
 
+def _user_can_access_script(script_id, user_id):
+    """True if user owns the script or is a team member.
+
+    The backend uses the Supabase service-role key (bypasses RLS), so every
+    script-scoped endpoint MUST gate on this explicitly — do not rely on RLS.
+    """
+    if not user_id:
+        return False
+    try:
+        owned = supabase.table('scripts').select('id').eq(
+            'id', script_id).eq('user_id', user_id).limit(1).execute()
+        if owned.data:
+            return True
+        member = supabase.table('script_members').select('script_id').eq(
+            'script_id', script_id).eq('user_id', user_id).limit(1).execute()
+        return bool(member.data)
+    except Exception as e:
+        print(f"[Access] check failed for script {script_id}: {e}")
+        return False
+
+
 @supabase_bp.route('/api/scripts/<script_id>/locations/merge', methods=['POST'])
 @require_auth
 def merge_locations(script_id):
@@ -4610,6 +4631,9 @@ def merge_locations(script_id):
         canonical_place = normalize_place(data.get('canonical_place') or '')
         raw_aliases = data.get('aliases', [])
         user_id = get_user_id()
+
+        if not _user_can_access_script(script_id, user_id):
+            return jsonify({'error': 'Not authorized for this script'}), 403
 
         if not canonical_place:
             return jsonify({'error': 'canonical_place is required'}), 400
@@ -4695,6 +4719,10 @@ def get_location_aliases(script_id):
     if not supabase:
         return jsonify({'error': 'Supabase not configured'}), 500
     try:
+        user_id = get_user_id()
+        if not _user_can_access_script(script_id, user_id):
+            return jsonify({'error': 'Not authorized for this script'}), 403
+
         result = supabase.table('location_aliases').select('*').eq(
             'script_id', script_id
         ).execute()
@@ -4716,6 +4744,10 @@ def get_location_suggestions(script_id):
     if not supabase:
         return jsonify({'error': 'Supabase not configured'}), 500
     try:
+        user_id = get_user_id()
+        if not _user_can_access_script(script_id, user_id):
+            return jsonify({'error': 'Not authorized for this script'}), 403
+
         scenes = supabase.table('scenes').select(
             'setting, int_ext, time_of_day, location_hierarchy, location_canonical'
         ).eq('script_id', script_id).execute().data or []
