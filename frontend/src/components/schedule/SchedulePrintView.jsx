@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { formatEighths, getSceneEighths } from '../../utils/sceneUtils';
+import { locationKey } from '../../utils/locationKey';
 import './SchedulePrintView.css';
 
 const formatDisplayDate = (dateStr) => {
@@ -100,7 +101,7 @@ const SchedulePrintView = ({ days, scheduleName, metadata }) => {
                 const dayEighths = scenes.reduce((sum, s) => sum + getSceneEighths(s), 0);
                 const displayDate = formatDisplayDate(day.shoot_date);
 
-                const uniqueLocations = [...new Set(scenes.map(s => s.setting).filter(Boolean))];
+                const uniqueLocations = [...new Set(scenes.map(locationKey).filter(Boolean))];
                 const uniqueChars = new Set();
                 const uniqueStoryDays = new Set();
                 scenes.forEach(s => {
