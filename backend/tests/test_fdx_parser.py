@@ -5,7 +5,7 @@ import pytest
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from services.fdx_parser import _read_fdx, _normalize_speaker, _build_scenes
-from services.fdx_parser import _synthesize_pages, _extract_fdx_metadata
+from services.fdx_parser import _synthesize_pages, _extract_fdx_metadata, parse_fdx
 
 
 MINIMAL_FDX = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -148,3 +148,18 @@ def test_extract_metadata_finds_author():
     assert meta["writer_name"] == "Jane Doe"
     assert meta["title"] == "MY GREAT SCRIPT"
     assert meta["writer_email"] is None
+
+
+def test_parse_fdx_end_to_end(tmp_path):
+    path = _write_fdx(tmp_path, MINIMAL_FDX)
+    pages, full_text, candidates, metadata = parse_fdx(path)
+
+    assert len(candidates) == 1
+    c = candidates[0]
+    assert c.scene_number_original == "1"
+    assert c.setting == "COFFEE SHOP"
+    assert "JOHN" in c.speakers
+    assert c.parse_method == "fdx"
+    assert len(pages) >= 1
+    assert "COFFEE SHOP" in full_text
+    assert metadata["writer_name"] == "Jane Doe"

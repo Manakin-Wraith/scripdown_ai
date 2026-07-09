@@ -211,3 +211,13 @@ def _extract_fdx_metadata(titlepage_paragraphs):
         if m and not meta["writer_name"]:
             meta["writer_name"] = m.group(1).strip()
     return meta
+
+
+def parse_fdx(file_path: str):
+    """Parse an .fdx file into the (pages, full_text, candidates, metadata)
+    contract consumed by process_script_v2."""
+    content_paras, titlepage_paras = _read_fdx(file_path)
+    candidates, full_text = _build_scenes(content_paras)
+    pages = _synthesize_pages(full_text)
+    metadata = _extract_fdx_metadata(titlepage_paras)
+    return pages, full_text, candidates, metadata
