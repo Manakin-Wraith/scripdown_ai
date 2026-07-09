@@ -49,6 +49,20 @@ function detectDuplicates(names) {
     return suspects;
 }
 
+/**
+ * Client-side mirror of the backend name normalization, used to detect when
+ * selected items already reduce to the same name (so a merge would be a no-op).
+ * Locations additionally strip a leading article + surrounding punctuation
+ * (matching normalize_place); characters only upcase, like the backend.
+ */
+function normalizeForMerge(type, name) {
+    let s = (name || '').trim().toUpperCase().replace(/\s+/g, ' ');
+    if (type === 'locations') {
+        s = s.replace(/^(THE|A|AN)\s+/, '').replace(/^[\s.,\-–—:;]+|[\s.,\-–—:;]+$/g, '');
+    }
+    return s;
+}
+
 /** Count the number of distinct duplicate groups from a suspects map. */
 function countDuplicateGroups(suspects) {
     const groups = new Set();
@@ -160,6 +174,23 @@ const ScriptSummary = ({ characters, locations, stats, scriptId, onMergeComplete
 
         const aliases = Array.from(selected).filter(n => n !== finalCanonical);
         if (aliases.length === 0) return;
+
+        // Guard: if every selected alias already reduces to the canonical name
+        // (e.g. case/punctuation variants of the same place), the backend would
+        // reject with "No valid aliases to merge". Surface a clear message
+        // instead of firing a doomed request.
+        const canonNorm = normalizeForMerge(mergeType, finalCanonical);
+        const effectiveAliases = aliases.filter(a => {
+            const an = normalizeForMerge(mergeType, a);
+            return an && an !== canonNorm;
+        });
+        if (effectiveAliases.length === 0) {
+            toast.info(
+                'Already the same',
+                `These ${ENTITY_TYPES[mergeType].labelPlural} already share the same name — nothing to merge. If they look different, refresh the page and try again.`
+            );
+            return;
+        }
 
         setMerging(true);
         try {
