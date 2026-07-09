@@ -766,8 +766,8 @@ def _lazy_generate_fdx_preview(script_id, fdx_storage_path):
         data = supabase.storage.from_('scripts').download(fdx_storage_path)
         fd, tmp = tempfile.mkstemp(suffix='.fdx')
         try:
-            os.write(fd, data)
-            os.close(fd)
+            with os.fdopen(fd, 'wb') as fh:
+                fh.write(data)
             return store_fdx_preview(script_id, tmp)
         finally:
             try:
