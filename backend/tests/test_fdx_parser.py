@@ -4,7 +4,7 @@ import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from services.fdx_parser import _read_fdx
+from services.fdx_parser import _read_fdx, _normalize_speaker
 
 
 MINIMAL_FDX = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -53,3 +53,16 @@ def test_read_fdx_returns_content_and_titlepage(tmp_path):
     tp_texts = [p["text"] for p in titlepage]
     assert "MY GREAT SCRIPT" in tp_texts
     assert "Written by Jane Doe" in tp_texts
+
+
+@pytest.mark.parametrize("raw,expected", [
+    ("JOHN", "JOHN"),
+    ("john", "JOHN"),
+    ("  MARY  ", "MARY"),
+    ("JOHN (CONT'D)", "JOHN"),
+    ("MARY (V.O.)", "MARY"),
+    ("BOB (O.S.)", "BOB"),
+    ("SUE (O.C.)", "SUE"),
+])
+def test_normalize_speaker(raw, expected):
+    assert _normalize_speaker(raw) == expected

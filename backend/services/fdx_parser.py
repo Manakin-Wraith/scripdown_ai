@@ -7,8 +7,19 @@ structured, so scene boundaries, scene numbers, and speakers are read directly
 rather than inferred.
 """
 
+import re
+
 # defusedxml, NOT stdlib ElementTree: FDX uploads are untrusted (XXE / billion-laughs).
 import defusedxml.ElementTree as ET
+
+
+_SPEAKER_EXTENSION_RE = re.compile(r"\s*\((?:CONT'D|CONTD|V\.?O\.?|O\.?S\.?|O\.?C\.?)\)\s*$", re.IGNORECASE)
+
+
+def _normalize_speaker(name: str) -> str:
+    """Normalize a character cue: uppercase, trimmed, extensions removed."""
+    cleaned = _SPEAKER_EXTENSION_RE.sub("", name.strip())
+    return cleaned.strip().upper()
 
 
 def _paragraph_text(para) -> str:
