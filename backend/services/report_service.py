@@ -414,7 +414,7 @@ class ReportService:
         # Location filter (exact match on setting)
         if filters.get('locations'):
             locs = [l.upper() for l in filters['locations']]
-            filtered = [s for s in filtered if (s.get('setting') or '').upper() in locs]
+            filtered = [s for s in filtered if ((s.get('location_canonical') or s.get('setting')) or '').upper() in locs]
         
         # Location parent filter (matches if location_hierarchy contains parent)
         if filters.get('location_parents'):
@@ -495,7 +495,7 @@ class ReportService:
         
         for scene in scenes:
             # Locations
-            setting = scene.get('setting')
+            setting = scene.get('location_canonical') or scene.get('setting')
             if setting:
                 locations.add(setting)
             
@@ -627,7 +627,7 @@ class ReportService:
                     characters[char_name]['story_days'].add(scene_story_day)
             
             # Locations
-            setting = scene.get('setting', 'UNKNOWN')
+            setting = scene.get('location_canonical') or scene.get('setting', 'UNKNOWN')
             locations[setting]['count'] += 1
             locations[setting]['scenes'].append(scene_num)
             locations[setting]['int_ext'].add(scene.get('int_ext', 'INT'))
@@ -1808,7 +1808,7 @@ class ReportService:
         
         if group_by == 'location':
             for scene in scenes:
-                setting = scene.get('setting', 'UNKNOWN')
+                setting = scene.get('location_canonical') or scene.get('setting', 'UNKNOWN')
                 if setting not in groups:
                     groups[setting] = {
                         'scenes': [],

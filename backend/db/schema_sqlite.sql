@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS scenes (
     script_id INTEGER NOT NULL,
     scene_number INTEGER NOT NULL,
     setting TEXT,
+    location_canonical TEXT,
     description TEXT,
     characters TEXT, -- JSON array
     props TEXT,      -- JSON array

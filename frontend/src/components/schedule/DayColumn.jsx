@@ -6,6 +6,7 @@ import { useDroppable } from '@dnd-kit/core';
 import { removeSceneFromDay, deleteShootingDay, updateShootingDay } from '../../services/apiService';
 import ScheduleSceneCard from './ScheduleSceneCard';
 import { formatEighths, getSceneEighths } from '../../utils/sceneUtils';
+import { locationKey } from '../../utils/locationKey';
 import { useToast } from '../../context/ToastContext';
 
 const DayColumn = ({ day, refreshDays, selectedSceneIds, onToggleSelect }) => {
@@ -32,7 +33,7 @@ const DayColumn = ({ day, refreshDays, selectedSceneIds, onToggleSelect }) => {
     const totalEighths = activeScenes.reduce((sum, ds) => sum + getSceneEighths(ds.scene), 0);
 
     const uniqueLocations = new Set(
-        activeScenes.map(ds => ds.scene?.setting).filter(Boolean)
+        activeScenes.map(ds => ds.scene && locationKey(ds.scene)).filter(Boolean)
     );
 
     const uniqueCharacters = new Set();

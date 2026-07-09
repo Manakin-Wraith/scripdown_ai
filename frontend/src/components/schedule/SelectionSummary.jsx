@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useRef, useCallback } from 'react';
 import { X, FileText, Users, MapPin, Sun, Moon, Sunrise, Sunset, Clapperboard, ArrowRight, Loader, GripHorizontal } from 'lucide-react';
 import { formatEighths, getSceneEighths } from '../../utils/sceneUtils';
+import { locationKey } from '../../utils/locationKey';
 import './SelectionSummary.css';
 
 /**
@@ -75,7 +76,7 @@ const SelectionSummary = ({ scenes: rawScenes, days, selectedSceneIds, onClear, 
             }
         });
 
-        const locations = new Set(selected.map(s => s.setting).filter(Boolean));
+        const locations = new Set(selected.map(locationKey).filter(Boolean));
 
         const intCount = selected.filter(s => s.int_ext === 'INT').length;
         const extCount = selected.filter(s => s.int_ext === 'EXT').length;
