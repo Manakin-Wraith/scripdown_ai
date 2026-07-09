@@ -2779,6 +2779,10 @@ def analyze_scene(scene_id):
             print(f"[CharMerge] Alias map lookup skipped (non-fatal): {alias_err}")
         
         # Update scene with analysis results
+        loc_setting, loc_canonical = _apply_location_alias(
+            scene['script_id'], scene.get('setting'), scene.get('int_ext'),
+            scene.get('time_of_day'), scene.get('location_hierarchy'),
+        )
         update_data = {
             'characters': final_characters,
             'props': analysis.get('props', []),
@@ -2792,15 +2796,17 @@ def analyze_scene(scene_id):
             'description': analysis.get('description', ''),
             'page_length_eighths': page_length_eighths,
             'analysis_status': 'complete',
+            'setting': loc_setting,
+            'location_canonical': loc_canonical,
             # Story Days (Phase 1)
             'time_transition': analysis.get('time_transition', ''),
             'is_new_story_day': analysis.get('is_new_story_day', False),
             'story_day_confidence': 0.7,
             'timeline_code': analysis.get('timeline_code', 'PRESENT'),
         }
-        
+
         supabase.table('scenes').update(update_data).eq('id', scene_id).execute()
-        
+
         # Story Days: Trigger cascade recalculation from this scene onward
         story_day_fields = {}
         try:
@@ -3293,6 +3299,10 @@ def analyze_scene_internal(scene_id):
         print(f"[CharMerge] Alias map lookup skipped (non-fatal): {alias_err}")
     
     # Update scene with analysis results
+    loc_setting, loc_canonical = _apply_location_alias(
+        scene['script_id'], scene.get('setting'), scene.get('int_ext'),
+        scene.get('time_of_day'), scene.get('location_hierarchy'),
+    )
     update_data = {
         'characters': final_characters,
         'props': analysis.get('props', []),
@@ -3306,13 +3316,15 @@ def analyze_scene_internal(scene_id):
         'description': analysis.get('description', ''),
         'page_length_eighths': page_length_eighths,
         'analysis_status': 'complete',
+        'setting': loc_setting,
+        'location_canonical': loc_canonical,
         # Story Days (Phase 1)
         'time_transition': analysis.get('time_transition', ''),
         'is_new_story_day': analysis.get('is_new_story_day', False),
         'story_day_confidence': 0.7,
         'timeline_code': analysis.get('timeline_code', 'PRESENT'),
     }
-    
+
     supabase.table('scenes').update(update_data).eq('id', scene_id).execute()
     print(f"  ✓ Scene {scene_id} analyzed")
 
@@ -4607,6 +4619,25 @@ def _user_can_access_script(script_id, user_id):
     except Exception as e:
         print(f"[Access] check failed for script {script_id}: {e}")
         return False
+
+
+def _apply_location_alias(script_id, setting, int_ext, time_of_day, location_hierarchy):
+    """Return (setting, location_canonical) with location_aliases applied.
+    Non-fatal on lookup failure (degrades to derived base place)."""
+    base = derive_base_place(setting, int_ext, time_of_day, location_hierarchy)
+    canonical = base
+    try:
+        rows = supabase.table('location_aliases').select(
+            'alias_place, canonical_place'
+        ).eq('script_id', script_id).execute().data or []
+        alias_map = {r['alias_place']: r['canonical_place'] for r in rows}
+        canonical = alias_map.get(base, base)
+    except Exception as alias_err:
+        print(f"[LocMerge] Alias map lookup skipped (non-fatal): {alias_err}")
+    new_setting = setting or ''
+    if base and canonical != base:
+        new_setting = re.sub(re.escape(base), canonical, new_setting, flags=re.IGNORECASE)
+    return new_setting, normalize_place(canonical)
 
 
 @supabase_bp.route('/api/scripts/<script_id>/locations/merge', methods=['POST'])
