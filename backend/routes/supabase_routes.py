@@ -416,6 +416,12 @@ def upload_script():
                 scenes_detected, parse_meta = create_scenes_from_parsed(
                     script_id, parsed_scenes, full_text, pages_data, {'parse_method': 'fdx'}
                 )
+                # Best-effort: generate the screenplay preview PDF from the FDX.
+                # A failure must never fail the upload.
+                try:
+                    store_fdx_preview(script_id, tmp_path)
+                except Exception as preview_err:
+                    print(f"Warning: FDX preview generation failed: {preview_err}")
             else:
                 scenes_detected, parse_meta = detect_and_create_scenes_v2(
                     script_id, tmp_path, full_text, pages_data
@@ -748,6 +754,70 @@ def create_scenes_from_parsed(script_id, parsed_scenes, full_text, pages_data, p
 
     print(f"✓ Created {scenes_created} scenes + {candidates_created} candidates ({parse_method})")
     return scenes_created, parse_meta
+
+
+def _lazy_generate_fdx_preview(script_id, fdx_storage_path):
+    """Download the stored .fdx and generate+store its preview PDF on demand.
+    Returns the preview storage path, or None on failure."""
+    if not fdx_storage_path:
+        return None
+    import tempfile
+    try:
+        data = supabase.storage.from_('scripts').download(fdx_storage_path)
+        fd, tmp = tempfile.mkstemp(suffix='.fdx')
+        try:
+            with os.fdopen(fd, 'wb') as fh:
+                fh.write(data)
+            return store_fdx_preview(script_id, tmp)
+        finally:
+            try:
+                os.unlink(tmp)
+            except OSError:
+                pass
+    except Exception as e:
+        print(f"Lazy FDX preview generation failed: {e}")
+        return None
+
+
+def store_fdx_preview(script_id, fdx_path):
+    """Generate the screenplay preview PDF for an FDX script, store it, and
+    update scene page numbers to the generated pagination. Returns the storage
+    path, or None if there are no scenes. Best-effort: callers wrap in try/except.
+    """
+    from services.fdx_preview import generate_fdx_preview_pdf
+
+    scenes_res = supabase.table('scenes').select('id, scene_order') \
+        .eq('script_id', script_id).order('scene_order').execute()
+    scene_rows = scenes_res.data or []
+    if not scene_rows:
+        return None
+
+    pdf_bytes, scene_page_map = generate_fdx_preview_pdf(fdx_path, scene_rows)
+
+    preview_path = f"{script_id}/preview.pdf"
+    supabase.storage.from_('scripts').upload(
+        preview_path, pdf_bytes,
+        {'content-type': 'application/pdf', 'upsert': 'true'}
+    )
+    supabase.table('scripts').update({'preview_pdf_path': preview_path}) \
+        .eq('id', script_id).execute()
+
+    ordered = sorted(scene_rows, key=lambda r: r['scene_order'])
+    total_pages = max(scene_page_map.values(), default=1)
+    for idx, row in enumerate(ordered):
+        sid = str(row['id'])
+        page_start = scene_page_map.get(sid)
+        if not page_start:
+            continue
+        if idx + 1 < len(ordered):
+            nxt = scene_page_map.get(str(ordered[idx + 1]['id']))
+            page_end = max(page_start, nxt) if nxt else page_start
+        else:
+            page_end = max(page_start, total_pages)
+        supabase.table('scenes').update({'page_start': page_start, 'page_end': page_end}) \
+            .eq('id', sid).execute()
+
+    return preview_path
 
 
 def detect_and_create_scenes(script_id, full_text, pages_data=None):
@@ -2534,19 +2604,29 @@ def get_pdf_url(script_id):
         return jsonify({'error': 'Supabase not configured'}), 500
     
     try:
-        # Get the file path from the script record
-        result = supabase.table('scripts').select('file_path, file_name, title').eq('id', script_id).single().execute()
-        
+        # Get the file paths from the script record
+        result = supabase.table('scripts') \
+            .select('file_path, file_name, title, preview_pdf_path') \
+            .eq('id', script_id).single().execute()
+
         if not result.data:
             return jsonify({'error': 'Script not found'}), 404
-        
+
         file_path = result.data.get('file_path')
-        if not file_path:
-            return jsonify({'error': 'No PDF file associated with this script'}), 404
-        
+        file_name = (result.data.get('file_name') or '')
+        serve_path = result.data.get('preview_pdf_path')
+
+        # FDX scripts: generate the screenplay preview PDF on first request.
+        if not serve_path and file_name.lower().endswith('.fdx'):
+            serve_path = _lazy_generate_fdx_preview(script_id, file_path)
+
+        serve_path = serve_path or file_path
+        if not serve_path:
+            return jsonify({'error': 'No file associated with this script'}), 404
+
         # Generate a signed URL valid for 1 hour
         signed_url_response = supabase.storage.from_('scripts').create_signed_url(
-            file_path,
+            serve_path,
             3600  # 1 hour expiry
         )
         
