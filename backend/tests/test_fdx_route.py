@@ -1,5 +1,8 @@
+import io
 import os, sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
+import pytest
 
 from services.screenplay_parser import ParsedScene
 import routes.supabase_routes as sr
@@ -15,7 +18,19 @@ class _FakeQuery:
         return None
 
 
+class _FakeUpload:
+    def upload(self, *args, **kwargs):
+        return {}
+
+
+class _FakeStorage:
+    def from_(self, bucket):
+        return _FakeUpload()
+
+
 class _FakeSupabase:
+    storage = _FakeStorage()
+
     def __init__(self):
         self.records = {}
     def table(self, name):
@@ -54,3 +69,40 @@ def test_create_scenes_from_parsed_writes_fdx_records(monkeypatch):
     assert scene_rows[0]["page_length_eighths"] >= 1
     assert cand_rows[0]["speaker_list"] == {"JOHN": 2}     # candidates: dict
     assert cand_rows[0]["status"] == "detected"
+
+
+# Regression: a valid .fdx whose filename secure_filename() mangles (e.g. a
+# non-ASCII base name that loses its extension) must still take the FDX branch,
+# not fall through to pdfplumber ("No /Root object! - Is this really a PDF?").
+_VALID_FDX = """<?xml version="1.0" encoding="UTF-8"?>
+<FinalDraft DocumentType="Script" Version="5">
+  <Content>
+    <Paragraph Type="Scene Heading" Number="1">
+      <SceneProperties Length="1/8"/>
+      <Text>INT. COFFEE SHOP - DAY</Text>
+    </Paragraph>
+    <Paragraph Type="Action"><Text>John sips his coffee.</Text></Paragraph>
+    <Paragraph Type="Character"><Text>JOHN</Text></Paragraph>
+    <Paragraph Type="Dialogue"><Text>Morning.</Text></Paragraph>
+  </Content>
+</FinalDraft>
+"""
+
+
+@pytest.mark.parametrize("filename", ["剧本.fdx", "The Late Shift.fdx"])
+def test_upload_fdx_takes_fdx_branch_regardless_of_filename(monkeypatch, filename):
+    try:
+        import app as app_module
+    except Exception:
+        pytest.skip("Flask app requires env vars not present in this environment")
+
+    monkeypatch.setattr(sr, "supabase", _FakeSupabase())
+    client = app_module.app.test_client()
+
+    data = {"file": (io.BytesIO(_VALID_FDX.encode("utf-8")), filename)}
+    resp = client.post("/api/upload", data=data, content_type="multipart/form-data")
+
+    assert resp.status_code == 201, resp.get_json()
+    body = resp.get_json()
+    assert body["parse_method"] == "fdx"
+    assert body["scene_candidates"] == 1

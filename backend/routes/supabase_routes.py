@@ -302,8 +302,11 @@ def upload_script():
 
         # Read file content
         file_content = file.read()
+        # Detect format from the ORIGINAL filename: secure_filename() can strip
+        # the extension (e.g. non-ASCII base names collapse "剧本.fdx" -> "fdx"),
+        # which would misroute a valid .fdx into the PDF parser.
+        is_fdx = _is_fdx(file.filename)
         filename = secure_filename(file.filename)
-        is_fdx = _is_fdx(filename)
 
         # Save to temp file (pdfplumber needs a file path)
         suffix = '.fdx' if is_fdx else '.pdf'
