@@ -93,3 +93,25 @@ def build_render_scenes(fdx_path: str, scene_rows):
     for group, row in zip(groups, rows):
         render.append({"scene_id": str(row["id"]), "paragraphs": group})
     return render
+
+
+def generate_fdx_preview_pdf(fdx_path: str, scene_rows):
+    """Render the FDX scenes to a screenplay PDF and capture scene->page.
+
+    Returns (pdf_bytes, {scene_id: 1-indexed page number}).
+    """
+    from weasyprint import HTML, CSS
+
+    render_scenes = build_render_scenes(fdx_path, scene_rows)
+    html_str = render_fdx_html(render_scenes)
+
+    document = HTML(string=html_str).render(stylesheets=[CSS(string=screenplay_css())])
+    pdf_bytes = document.write_pdf()
+
+    scene_page_map = {}
+    for page_index, page in enumerate(document.pages, start=1):
+        for anchor in page.anchors:            # page.anchors is {anchor_id: (x, y)}
+            if anchor.startswith("scene-"):
+                sid = anchor[len("scene-"):]
+                scene_page_map.setdefault(sid, page_index)  # first page it appears on
+    return pdf_bytes, scene_page_map
