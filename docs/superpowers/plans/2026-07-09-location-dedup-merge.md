@@ -151,7 +151,9 @@ TIME_WORDS = {
 INT_EXT_TOKENS = {"INT", "EXT", "INT/EXT", "I/E"}
 
 _INT_EXT_PREFIX = re.compile(
-    r"^\s*(INT\.?/EXT\.?|INT\.?|EXT\.?|I/E\.?)\s*[-.:]?\s*",
+    # Require a boundary after the token so real names starting with INT/EXT
+    # (e.g. "INTERROGATION ROOM", "INTERSTATE 5") are NOT stripped.
+    r"^\s*(INT\.?/EXT\.?|INT\.?|EXT\.?|I/E\.?)(?=[\s.\-:]|$)\s*[-.:]?\s*",
     re.IGNORECASE,
 )
 _LEADING_ARTICLE = re.compile(r"^(THE|A|AN)\s+", re.IGNORECASE)
