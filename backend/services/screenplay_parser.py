@@ -63,6 +63,9 @@ class ParsedScene:
     shot_type: Optional[str] = None
     transitions: List[Dict] = field(default_factory=list)
     parse_method: str = "regex"
+    # Authoritative scene length in eighths when the source provides it
+    # (e.g. Final Draft <SceneProperties Length>). None → downstream estimates.
+    length_eighths: Optional[int] = None
 
 
 def extract_text_dual_path(file_path: str) -> Tuple[List[Dict], str, str]:

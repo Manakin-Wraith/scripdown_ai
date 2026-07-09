@@ -872,3 +872,42 @@ git commit -m "feat(fdx): tagger tag extraction scaffold (empty default)"
 **Type consistency:** `parse_fdx` returns `(pages, full_text, candidates, metadata)` consistently across Tasks 5 and 6. `_build_scenes` returns `(candidates, full_text)` consistently across Tasks 3 and 5. `SceneCandidate`, `PageData`, `compute_content_hash`, `detect_scene_headers`, `assign_scene_numbers`, `ExtractionStatus` are all imported from `services.extraction_pipeline` as they exist there. `calculate_eighths_from_content` convention (55 lines/page) is applied via the `LINES_PER_PAGE` constant.
 
 **Note on transitions:** `SceneCandidate.__post_init__` initializes `transitions=[]` and `shot_type=None`, so constructing candidates without those kwargs is valid.
+
+---
+
+## REVISION (2026-07-09, post-final-review): correct the integration target
+
+**Defect found by final review:** Tasks 1–6 built a correct FDX parser but wired routing into `process_script_v2` / `POST /api/upload_script` (`script_bp`), which is **dead code**. The live upload is `POST /api/upload` → `backend/routes/supabase_routes.py::upload_script` (Supabase/Postgres, `pdfplumber`, storage upload, `detect_and_create_scenes_v2`). The parser core (fdx_parser.py, Tasks 1–5) is sound and retained; only the output shape and integration point change.
+
+**Live-path contracts (verified):**
+- Scene detection consumes **`ParsedScene`** objects (from `services.screenplay_parser`) — fields: `scene_number_original, scene_order, int_ext, setting, time_of_day, page_start, page_end, text_start, text_end, content_hash, scene_text, location_hierarchy, speakers (dict), shot_type, transitions, parse_method`.
+- `upload_script` needs `pages_data` as `list[{'page_number': int, 'text': str}]`, a `full_text` string, and a `metadata` dict read via `.get()` with keys among `title, writers, draft_version, based_on, production_company, phone, email, address, copyright, wga_registration` (missing keys → `None`, so FDX supplies only `title` + `writers`).
+- `get_user_id()` (middleware) and `@optional_auth` already decorate the route — unchanged.
+
+### Task R1: Retarget FDX parser output to the live-path shapes
+
+**Files:** Modify `backend/services/fdx_parser.py`, `backend/tests/test_fdx_parser.py`. Revert the dead-code edit in `backend/services/script_service.py` (remove the `_is_fdx` helper + `.fdx` routing added in Task 6 — it targeted dead code).
+
+**Changes:**
+- Import `ParsedScene` and `_parse_location_hierarchy` from `services.screenplay_parser`.
+- `_build_scenes` now emits `ParsedScene` objects (not `SceneCandidate`): set `scene_text` (already computed), `location_hierarchy=_parse_location_hierarchy(setting)`, `speakers`, `parse_method="fdx"`; drop the `status` field. Remove now-unused `SceneCandidate`/`ExtractionStatus` imports (keep `detect_scene_headers`, `compute_content_hash`, `assign_scene_numbers`).
+- `_extract_fdx_metadata` returns the live-route shape: `{'title': <first title-page line>, 'writers': <author or None>}`. (Rename the author key from `writer_name` → `writers`.)
+- Add `_is_fdx(filename) -> bool` here (canonical home) — `os.path.splitext(filename)[1].lower() == ".fdx"`.
+- Add `parse_fdx_upload(file_path) -> (pages_data, full_text, metadata, parsed_scenes)`: `pages_data` is `list[{'page_number','text'}]` dicts (from `_synthesize_pages`, converted to dicts, or a dict-returning helper); `parsed_scenes` is the `_build_scenes` list; `metadata` from `_extract_fdx_metadata`. Remove the old `parse_fdx` (SceneCandidate/PageData variant) — it fed only the dead path.
+- Update tests to the new shapes: `metadata['writers']`, `ParsedScene` fields incl. `.scene_text`/`.location_hierarchy`, `pages_data` dicts, `parse_fdx_upload` end-to-end, and `_is_fdx`. Keep `_read_fdx`/`_normalize_speaker`/`_build_scenes` behavior tests (adjust type expectations).
+
+**Verify:** `cd backend && ./venv/bin/python -m pytest tests/test_fdx_parser.py -v` (all green); `./venv/bin/python -c "import services.fdx_parser"`; confirm `script_service.py` reverted cleanly (`./venv/bin/python -c "import services.script_service"`).
+
+### Task R2: Wire `.fdx` into the live Supabase upload path
+
+**Files:** Modify `backend/routes/supabase_routes.py`. Add a test `backend/tests/test_fdx_route.py`.
+
+**Changes:**
+- **Refactor** `detect_and_create_scenes_v2`: extract the scene-record-building + batch-insert body (current lines ~619–732) into a new module function `create_scenes_from_parsed(script_id, parsed_scenes, full_text, pages_data, parse_meta) -> (scenes_created, parse_meta)`. `detect_and_create_scenes_v2` keeps its `parse_screenplay(pdf_path)` call + fallbacks, then delegates to `create_scenes_from_parsed`. PDF behavior byte-identical.
+- **`upload_script`:** detect FDX via `_is_fdx(filename)` (import from `services.fdx_parser`).
+  - Temp file suffix `.fdx` (vs `.pdf`); storage `content-type` `application/xml` (vs `application/pdf`).
+  - FDX branch: `pages_data, full_text, metadata, parsed_scenes = parse_fdx_upload(tmp_path)`; `total_pages = len(pages_data)`; build the same `script_data` dict (title/writers via the shared `metadata.get(...)` calls — other keys resolve to None); insert script + `script_pages` exactly as the PDF branch does; then `scenes_detected, parse_meta = create_scenes_from_parsed(script_id, parsed_scenes, full_text, pages_data, {'parse_method': 'fdx'})`.
+  - PDF branch: unchanged (still `pdfplumber` + `detect_and_create_scenes_v2`).
+- **Test** (`test_fdx_route.py`): monkeypatch `supabase_routes.supabase` with a stub that records `.table(name).insert(rows).execute()` calls, then call `create_scenes_from_parsed(...)` with a small hand-built `ParsedScene` list and assert the `scenes`/`scene_candidates` rows have correct `scene_number`, `speakers` (list for scenes, dict for candidates), `parse_method='fdx'`, and non-zero `page_length_eighths`. This exercises the load-bearing new persistence path without a real DB.
+
+**Verify:** `cd backend && ./venv/bin/python -m pytest tests/test_fdx_route.py tests/test_fdx_parser.py -v`; `./venv/bin/python -c "import routes.supabase_routes"`; full suite `./venv/bin/python -m pytest tests/ -v` (no regressions).

@@ -298,52 +298,60 @@ def upload_script():
     try:
         import tempfile
         import pdfplumber
-        
+        from services.fdx_parser import _is_fdx, parse_fdx_upload
+
         # Read file content
         file_content = file.read()
         filename = secure_filename(file.filename)
-        
+        is_fdx = _is_fdx(filename)
+
         # Save to temp file (pdfplumber needs a file path)
-        tmp_fd, tmp_path = tempfile.mkstemp(suffix='.pdf')
+        suffix = '.fdx' if is_fdx else '.pdf'
+        tmp_fd, tmp_path = tempfile.mkstemp(suffix=suffix)
         try:
             os.write(tmp_fd, file_content)
             os.close(tmp_fd)
-            
+
             # Generate UUID for script
             script_id = str(uuid.uuid4())
-            
-            # Upload original PDF to Supabase Storage
+
+            # Upload original file to Supabase Storage
             storage_path = f"{script_id}/{filename}"
+            content_type = 'application/xml' if is_fdx else 'application/pdf'
             try:
                 supabase.storage.from_('scripts').upload(
                     storage_path,
                     file_content,
-                    {'content-type': 'application/pdf'}
+                    {'content-type': content_type}
                 )
-                print(f"✓ PDF uploaded to Storage: {storage_path}")
+                print(f"✓ File uploaded to Storage: {storage_path}")
             except Exception as storage_error:
                 print(f"Warning: Storage upload failed: {storage_error}")
-            
-            # Extract text via pdfplumber (replaces PyMuPDF)
-            pages_data = []
-            full_text_parts = []
-            
-            with pdfplumber.open(tmp_path) as pdf:
-                total_pages = len(pdf.pages)
-                for page_num, page in enumerate(pdf.pages, start=1):
-                    text = page.extract_text() or ""
-                    pages_data.append({
-                        'page_number': page_num,
-                        'text': text
-                    })
-                    full_text_parts.append(text)
-            
-            full_text = '\n\n'.join(full_text_parts)
-            
-            # Extract comprehensive metadata from title page
-            title_page_text = pages_data[0]['text'] if pages_data else full_text[:4000]
-            metadata = extract_title_page_metadata(title_page_text)
-            
+
+            if is_fdx:
+                pages_data, full_text, metadata, parsed_scenes = parse_fdx_upload(tmp_path)
+                total_pages = len(pages_data)
+            else:
+                # Extract text via pdfplumber (replaces PyMuPDF)
+                pages_data = []
+                full_text_parts = []
+
+                with pdfplumber.open(tmp_path) as pdf:
+                    total_pages = len(pdf.pages)
+                    for page_num, page in enumerate(pdf.pages, start=1):
+                        text = page.extract_text() or ""
+                        pages_data.append({
+                            'page_number': page_num,
+                            'text': text
+                        })
+                        full_text_parts.append(text)
+
+                full_text = '\n\n'.join(full_text_parts)
+
+                # Extract comprehensive metadata from title page
+                title_page_text = pages_data[0]['text'] if pages_data else full_text[:4000]
+                metadata = extract_title_page_metadata(title_page_text)
+
             raw_title = metadata.get('title')
             # Safety check: reject titles that look like scene headings after .title() conversion
             if raw_title and re.match(r'^(Int[\./]|Ext[\./]|Int/Ext)', raw_title, re.IGNORECASE):
@@ -399,10 +407,16 @@ def upload_script():
                 batch = page_records[i:i + BATCH_SIZE]
                 supabase.table('script_pages').insert(batch).execute()
             
-            # Run grammar-first scene detection with regex fallback
-            scenes_detected, parse_meta = detect_and_create_scenes_v2(
-                script_id, tmp_path, full_text, pages_data
-            )
+            # Run scene detection: FDX scenes are already structured; PDFs use
+            # grammar-first detection with regex fallback.
+            if is_fdx:
+                scenes_detected, parse_meta = create_scenes_from_parsed(
+                    script_id, parsed_scenes, full_text, pages_data, {'parse_method': 'fdx'}
+                )
+            else:
+                scenes_detected, parse_meta = detect_and_create_scenes_v2(
+                    script_id, tmp_path, full_text, pages_data
+                )
             
             return jsonify({
                 'message': 'Script uploaded successfully',
@@ -599,8 +613,6 @@ def detect_and_create_scenes_v2(script_id, pdf_path, full_text, pages_data):
     Returns:
         (scene_count, parse_meta_dict)
     """
-    from utils.scene_calculations import calculate_eighths_from_content, calculate_eighths_from_pages
-
     try:
         from services.screenplay_parser import parse_screenplay
 
@@ -616,17 +628,16 @@ def detect_and_create_scenes_v2(script_id, pdf_path, full_text, pages_data):
         print("⚠ Grammar returned 0 scenes, falling back to legacy regex")
         return detect_and_create_scenes(script_id, full_text, pages_data), {"parse_method": "regex", "reason": "0 scenes"}
 
-    # Build page boundaries for eighths calculation
-    page_boundaries = []
-    current_pos = 0
-    for page in pages_data:
-        page_text = page['text']
-        page_boundaries.append({
-            'page': page['page_number'],
-            'start': current_pos,
-            'end': current_pos + len(page_text)
-        })
-        current_pos += len(page_text) + 2
+    return create_scenes_from_parsed(script_id, parsed_scenes, full_text, pages_data, parse_meta)
+
+
+def create_scenes_from_parsed(script_id, parsed_scenes, full_text, pages_data, parse_meta):
+    """Build scene + scene_candidate records from ParsedScene objects and
+    batch-insert them. Shared by the PDF (grammar/regex) and FDX paths.
+    Returns (scenes_created, parse_meta)."""
+    from utils.scene_calculations import calculate_eighths_from_content, calculate_eighths_from_pages
+
+    parse_method = parse_meta.get("parse_method", "grammar")
 
     # Build all records first, then batch insert for performance
     scene_records = []
@@ -636,8 +647,12 @@ def detect_and_create_scenes_v2(script_id, pdf_path, full_text, pages_data):
         # Use scene text from parser (correct text source) with fallback
         scene_text = ps.scene_text or (full_text[ps.text_start:ps.text_end] if ps.text_start >= 0 else '')
 
-        # Calculate scene length in eighths
-        if scene_text and len(scene_text.strip()) > 50:
+        # Calculate scene length in eighths. Prefer an authoritative length
+        # supplied by the parser (e.g. Final Draft's own paginated length);
+        # otherwise estimate from content, then page range.
+        if getattr(ps, 'length_eighths', None):
+            page_length_eighths = ps.length_eighths
+        elif scene_text and len(scene_text.strip()) > 50:
             page_length_eighths = calculate_eighths_from_content(scene_text)
         elif ps.page_start and ps.page_end:
             page_length_eighths = calculate_eighths_from_pages(ps.page_start, ps.page_end)

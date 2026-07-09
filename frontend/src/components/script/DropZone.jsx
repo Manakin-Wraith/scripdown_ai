@@ -13,7 +13,9 @@ const DropZone = ({ onFileSelect, disabled }) => {
     const { getRootProps, getInputProps, isDragActive, isDragReject } = useDropzone({
         onDrop,
         accept: {
-            'application/pdf': ['.pdf']
+            'application/pdf': ['.pdf'],
+            'application/xml': ['.fdx'],
+            'text/xml': ['.fdx'],
         },
         maxFiles: 1,
         disabled
@@ -30,7 +32,7 @@ const DropZone = ({ onFileSelect, disabled }) => {
                 {isDragReject ? (
                     <>
                         <AlertCircle size={48} className="dropzone-icon error" />
-                        <p className="dropzone-text error">PDF files only, please</p>
+                        <p className="dropzone-text error">PDF or Final Draft (.fdx) files only, please</p>
                     </>
                 ) : (
                     <>
@@ -45,10 +47,10 @@ const DropZone = ({ onFileSelect, disabled }) => {
                             {isDragActive ? "Drop script here" : "Upload your script"}
                         </h3>
                         <p className="dropzone-subtitle">
-                            Drag and drop a PDF file here, or click to browse
+                            Drag and drop a PDF or Final Draft (.fdx) file here, or click to browse
                         </p>
                         <div className="dropzone-hint">
-                            Supports standard Screenplay PDFs (max 10MB)
+                            Supports Screenplay PDFs and Final Draft .fdx (max 10MB)
                         </div>
                     </>
                 )}

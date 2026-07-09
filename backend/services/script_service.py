@@ -42,11 +42,11 @@ def process_script_v2(file):
     print(f"[Upload] Parsing PDF with page awareness: {filename}")
     pages, full_text = parse_pdf_with_pages(file_path)
     print(f"[Upload] Parsed {len(pages)} pages")
-    
+
     # Build scene candidates from detected headers
     candidates = build_scene_candidates(pages, full_text)
     print(f"[Upload] Found {len(candidates)} scene candidates")
-    
+
     # Extract cover page metadata (from first page)
     metadata = extract_metadata(file_path)
     print(f"[Upload] Extracted metadata: {metadata}")
