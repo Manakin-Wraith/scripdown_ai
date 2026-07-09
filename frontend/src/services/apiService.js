@@ -2056,4 +2056,22 @@ export const getCharacterAliases = async (scriptId) => {
     return response.data;
 };
 
+export const mergeLocations = async (scriptId, canonicalPlace, aliases) => {
+    const response = await api.post(`/api/scripts/${scriptId}/locations/merge`, {
+        canonical_place: canonicalPlace,
+        aliases,
+    });
+    return response.data;
+};
+
+export const getLocationAliases = async (scriptId) => {
+    const response = await api.get(`/api/scripts/${scriptId}/locations/aliases`);
+    return response.data;
+};
+
+export const getLocationSuggestions = async (scriptId) => {
+    const response = await api.get(`/api/scripts/${scriptId}/locations/suggestions`);
+    return response.data;
+};
+
 export default api;
