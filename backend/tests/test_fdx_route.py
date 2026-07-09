@@ -158,3 +158,71 @@ def test_store_fdx_preview_uploads_and_updates(monkeypatch, tmp_path):
     # both scenes got page_start updated to the generated pages
     starts = [p.get("page_start") for _, p in calls["scene_updates"]]
     assert 1 in starts and 2 in starts
+
+
+def test_get_pdf_url_prefers_preview_path(monkeypatch):
+    import routes.supabase_routes as sr
+    try:
+        import app as app_module
+    except Exception:
+        import pytest; pytest.skip("Flask app requires env vars")
+
+    class Q:
+        def __init__(self, table): self.table = table
+        def select(self, *a, **k): return self
+        def eq(self, *a, **k): return self
+        def single(self): return self
+        def execute(self):
+            class R: data = {"file_path": "sid/orig.fdx", "file_name": "orig.fdx",
+                             "title": "T", "preview_pdf_path": "sid/preview.pdf"}
+            return R()
+    class Signed:
+        def create_signed_url(self, path, ttl):
+            return {"signedURL": f"https://signed/{path}"}
+    class St:
+        def from_(self, b): return Signed()
+    class FS:
+        storage = St()
+        def table(self, name): return Q(name)
+
+    monkeypatch.setattr(sr, "supabase", FS())
+    client = app_module.app.test_client()
+    r = client.get("/api/scripts/sid/pdf-url")
+    assert r.status_code == 200
+    assert r.get_json()["pdf_url"] == "https://signed/sid/preview.pdf"
+
+
+def test_get_pdf_url_lazy_generates_for_fdx(monkeypatch):
+    import routes.supabase_routes as sr
+    try:
+        import app as app_module
+    except Exception:
+        import pytest; pytest.skip("Flask app requires env vars")
+
+    signed = {}
+    class Q:
+        def __init__(self, table): self.table = table
+        def select(self, *a, **k): return self
+        def eq(self, *a, **k): return self
+        def single(self): return self
+        def execute(self):
+            class R: data = {"file_path": "sid/orig.fdx", "file_name": "orig.fdx",
+                             "title": "T", "preview_pdf_path": None}
+            return R()
+    class Signed:
+        def create_signed_url(self, path, ttl):
+            signed["path"] = path
+            return {"signedURL": f"https://signed/{path}"}
+    class St:
+        def from_(self, b): return Signed()
+    class FS:
+        storage = St()
+        def table(self, name): return Q(name)
+
+    monkeypatch.setattr(sr, "supabase", FS())
+    monkeypatch.setattr(sr, "_lazy_generate_fdx_preview",
+                        lambda script_id, fdx_path: "sid/preview.pdf")
+    client = app_module.app.test_client()
+    r = client.get("/api/scripts/sid/pdf-url")
+    assert r.status_code == 200
+    assert signed["path"] == "sid/preview.pdf"
