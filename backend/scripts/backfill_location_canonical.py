@@ -28,9 +28,11 @@ def main():
     # Page through scenes
     page, size, updated = 0, 500, 0
     while True:
+        # Order by id so offset paging is stable — without it, updating rows
+        # mid-iteration shifts the default ordering and skips scenes.
         rows = supabase.table('scenes').select(
             'id, script_id, setting, int_ext, time_of_day, location_hierarchy'
-        ).range(page * size, page * size + size - 1).execute().data or []
+        ).order('id').range(page * size, page * size + size - 1).execute().data or []
         if not rows:
             break
         for s in rows:
