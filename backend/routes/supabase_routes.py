@@ -21,7 +21,7 @@ load_dotenv()
 from middleware.auth import require_auth, optional_auth, get_user_id, get_current_user
 
 # Location resolution (canonical base-place derivation)
-from services.location_resolver import derive_base_place
+from services.location_resolver import derive_base_place, normalize_place, suggest_merges
 
 # Supabase client
 from supabase import create_client
@@ -4585,4 +4585,157 @@ def get_character_aliases(script_id):
         
     except Exception as e:
         print(f"Error getting character aliases: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@supabase_bp.route('/api/scripts/<script_id>/locations/merge', methods=['POST'])
+@require_auth
+def merge_locations(script_id):
+    """
+    Merge duplicate base-place locations across all scenes in a script.
+
+    Body: {
+        canonical_place: "COFFEE SHOP",              -- base place to keep
+        aliases: ["THE COFFEE SHOP", "COFEE SHOP"]   -- base places to replace
+    }
+    Rewrites the place inside scenes.setting (preserving INT/EXT + time-of-day),
+    updates scenes.location_canonical, updates department_items, and stores the
+    mapping in location_aliases for future prevention.
+    """
+    if not supabase:
+        return jsonify({'error': 'Supabase not configured'}), 500
+
+    try:
+        data = request.get_json()
+        canonical_place = normalize_place(data.get('canonical_place') or '')
+        raw_aliases = data.get('aliases', [])
+        user_id = get_user_id()
+
+        if not canonical_place:
+            return jsonify({'error': 'canonical_place is required'}), 400
+        if not raw_aliases or not isinstance(raw_aliases, list):
+            return jsonify({'error': 'aliases must be a non-empty array'}), 400
+
+        aliases = list({normalize_place(a) for a in raw_aliases if normalize_place(a)})
+        aliases = [a for a in aliases if a != canonical_place]
+        if not aliases:
+            return jsonify({'error': 'No valid aliases to merge'}), 400
+
+        # 1. Fetch scenes with the fields needed to re-derive base place
+        result = supabase.table('scenes').select(
+            'id, setting, int_ext, time_of_day, location_hierarchy, location_canonical'
+        ).eq('script_id', script_id).execute()
+        scenes = result.data or []
+        updated_count = 0
+
+        # 2. For each scene whose base place is an alias, rewrite setting + canonical
+        for scene in scenes:
+            base = derive_base_place(
+                scene.get('setting'), scene.get('int_ext'),
+                scene.get('time_of_day'), scene.get('location_hierarchy'),
+            )
+            if base not in aliases:
+                continue
+
+            old_setting = scene.get('setting') or ''
+            # Replace the alias place text inside setting with the canonical place,
+            # case-insensitively, preserving INT/EXT + time-of-day around it.
+            new_setting = re.sub(
+                re.escape(base), canonical_place, old_setting, flags=re.IGNORECASE
+            ) if base else old_setting
+
+            supabase.table('scenes').update({
+                'setting': new_setting,
+                'location_canonical': canonical_place,
+            }).eq('id', scene['id']).execute()
+            updated_count += 1
+
+        # 3. Update department_items (user-added location rows)
+        for alias in aliases:
+            try:
+                supabase.table('department_items').update({
+                    'item_name': canonical_place
+                }).eq('script_id', script_id).eq(
+                    'item_type', 'locations'
+                ).eq('item_name', alias).execute()
+            except Exception as di_err:
+                print(f"Warning: department_items update failed for '{alias}': {di_err}")
+
+        # 4. Store alias mappings for future prevention
+        for alias in aliases:
+            try:
+                supabase.table('location_aliases').upsert({
+                    'script_id': script_id,
+                    'canonical_place': canonical_place,
+                    'alias_place': alias,
+                    'merged_by': user_id,
+                }, on_conflict='script_id,alias_place').execute()
+            except Exception as alias_err:
+                print(f"Warning: failed to store location alias '{alias}': {alias_err}")
+
+        return jsonify({
+            'success': True,
+            'canonical_place': canonical_place,
+            'aliases_merged': aliases,
+            'scenes_updated': updated_count,
+            'total_scenes': len(scenes),
+        }), 200
+
+    except Exception as e:
+        print(f"Error merging locations: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@supabase_bp.route('/api/scripts/<script_id>/locations/aliases', methods=['GET'])
+@optional_auth
+def get_location_aliases(script_id):
+    """Get all location alias mappings for a script (for prevention + suggestions)."""
+    if not supabase:
+        return jsonify({'error': 'Supabase not configured'}), 500
+    try:
+        result = supabase.table('location_aliases').select('*').eq(
+            'script_id', script_id
+        ).execute()
+        alias_map = {row['alias_place']: row['canonical_place'] for row in (result.data or [])}
+        return jsonify({
+            'script_id': script_id,
+            'alias_map': alias_map,
+            'aliases': result.data or [],
+        }), 200
+    except Exception as e:
+        print(f"Error fetching location aliases: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@supabase_bp.route('/api/scripts/<script_id>/locations/suggestions', methods=['GET'])
+@optional_auth
+def get_location_suggestions(script_id):
+    """Suggest likely-duplicate base places for user-confirmed merging."""
+    if not supabase:
+        return jsonify({'error': 'Supabase not configured'}), 500
+    try:
+        scenes = supabase.table('scenes').select(
+            'setting, int_ext, time_of_day, location_hierarchy, location_canonical'
+        ).eq('script_id', script_id).execute().data or []
+
+        base_places = []
+        for s in scenes:
+            base = s.get('location_canonical') or derive_base_place(
+                s.get('setting'), s.get('int_ext'),
+                s.get('time_of_day'), s.get('location_hierarchy'),
+            )
+            if base:
+                base_places.append(base)
+
+        existing = supabase.table('location_aliases').select(
+            'alias_place, canonical_place'
+        ).eq('script_id', script_id).execute().data or []
+        existing_aliases = {r['alias_place']: r['canonical_place'] for r in existing}
+
+        suggestions = suggest_merges(base_places, existing_aliases)
+        return jsonify({'script_id': script_id, 'suggestions': suggestions}), 200
+    except Exception as e:
+        print(f"Error building location suggestions: {e}")
         return jsonify({'error': str(e)}), 500
