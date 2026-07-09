@@ -739,7 +739,11 @@ def process_overview_job(job):
                 all_chars.update(chars)
         
         # Get unique locations
-        cursor.execute("SELECT DISTINCT setting FROM scenes WHERE script_id = ?", (script_id,))
+        cursor.execute(
+            "SELECT DISTINCT COALESCE(NULLIF(location_canonical, ''), setting) "
+            "FROM scenes WHERE script_id = ?",
+            (script_id,),
+        )
         locations = [row[0] for row in cursor.fetchall() if row[0]]
         
         conn.close()
@@ -1085,9 +1089,10 @@ def process_locations_job(job):
         
         # Get all scenes grouped by location
         cursor.execute("""
-            SELECT setting, scene_number, description 
-            FROM scenes WHERE script_id = ? 
-            ORDER BY setting, scene_number
+            SELECT COALESCE(NULLIF(location_canonical, ''), setting) AS loc,
+                   scene_number, description
+            FROM scenes WHERE script_id = ?
+            ORDER BY loc, scene_number
         """, (script_id,))
         
         location_scenes = {}
@@ -1246,7 +1251,9 @@ def process_location_detail_job(job):
         # Get all scenes at this location
         cursor.execute("""
             SELECT scene_number, setting, description, characters
-            FROM scenes WHERE script_id = ? AND UPPER(setting) = UPPER(?)
+            FROM scenes
+            WHERE script_id = ?
+              AND UPPER(COALESCE(NULLIF(location_canonical, ''), setting)) = UPPER(?)
             ORDER BY scene_number
         """, (script_id, location_name))
         
