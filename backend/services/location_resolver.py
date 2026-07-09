@@ -43,6 +43,22 @@ def normalize_place(name: Optional[str]) -> str:
     return s
 
 
+def canonicalize_setting(setting: Optional[str]) -> str:
+    """Canonical *display* form for a scene setting.
+
+    Removes the casing / whitespace / curly-quote noise that produces false
+    duplicate locations (``villa`` / ``viLLA`` / ``VILLA``), while keeping the
+    setting human-readable: unlike :func:`normalize_place` it does NOT strip
+    articles or internal/trailing punctuation. Deterministic and idempotent —
+    applied at ingestion and on manual scene edits so variants never diverge.
+    """
+    if not setting:
+        return ""
+    s = str(setting).replace("’", "'").replace("‘", "'")
+    s = re.sub(r"\s+", " ", s).strip()
+    return s.upper()
+
+
 def derive_base_place(
     setting: Optional[str],
     int_ext: Optional[str] = None,

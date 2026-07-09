@@ -21,7 +21,12 @@ load_dotenv()
 from middleware.auth import require_auth, optional_auth, get_user_id, get_current_user
 
 # Location resolution (canonical base-place derivation)
-from services.location_resolver import derive_base_place, normalize_place, suggest_merges
+from services.location_resolver import (
+    canonicalize_setting,
+    derive_base_place,
+    normalize_place,
+    suggest_merges,
+)
 
 # Supabase client
 from supabase import create_client
@@ -675,12 +680,16 @@ def create_scenes_from_parsed(script_id, parsed_scenes, full_text, pages_data, p
         loc_parent = ps.location_hierarchy[0] if ps.location_hierarchy else None
         loc_specific = ps.location_hierarchy[-1] if len(ps.location_hierarchy) > 1 else None
 
+        # Normalize the setting at ingestion so casing/whitespace/quote variants
+        # (villa / viLLA / VILLA) never diverge into duplicate locations.
+        canon_setting = canonicalize_setting(ps.setting)
+
         scene_records.append({
             'script_id': script_id,
             'scene_number': ps.scene_number_original,
             'scene_order': ps.scene_order,
             'int_ext': ps.int_ext,
-            'setting': ps.setting,
+            'setting': canon_setting,
             'time_of_day': ps.time_of_day,
             'scene_text': scene_text[:5000],
             'text_start': ps.text_start,
@@ -695,7 +704,7 @@ def create_scenes_from_parsed(script_id, parsed_scenes, full_text, pages_data, p
             'location_specific': loc_specific,
             'location_hierarchy': ps.location_hierarchy,
             'location_canonical': derive_base_place(
-                ps.setting, ps.int_ext, ps.time_of_day, ps.location_hierarchy
+                canon_setting, ps.int_ext, ps.time_of_day, ps.location_hierarchy
             ),
             'shot_type': ps.shot_type,
             'speakers': list(ps.speakers.keys()) if ps.speakers else [],
@@ -708,7 +717,7 @@ def create_scenes_from_parsed(script_id, parsed_scenes, full_text, pages_data, p
             'scene_number_original': ps.scene_number_original,
             'scene_order': ps.scene_order,
             'int_ext': ps.int_ext,
-            'setting': ps.setting,
+            'setting': canon_setting,
             'time_of_day': ps.time_of_day,
             'page_start': ps.page_start,
             'page_end': ps.page_end,
@@ -4678,6 +4687,9 @@ def _user_can_access_script(script_id, user_id):
 def _apply_location_alias(script_id, setting, int_ext, time_of_day, location_hierarchy):
     """Return (setting, location_canonical) with location_aliases applied.
     Non-fatal on lookup failure (degrades to derived base place)."""
+    # Normalize casing/whitespace/quotes up front so manually created or edited
+    # scenes store the same canonical form as ingested ones.
+    setting = canonicalize_setting(setting)
     base = derive_base_place(setting, int_ext, time_of_day, location_hierarchy)
     canonical = base
     try:

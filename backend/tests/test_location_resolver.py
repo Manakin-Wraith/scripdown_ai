@@ -8,9 +8,49 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from services.location_resolver import (
     normalize_place,
+    canonicalize_setting,
     derive_base_place,
     suggest_merges,
 )
+
+
+def test_canonicalize_uppercases_and_trims():
+    assert canonicalize_setting("villa") == "VILLA"
+    assert canonicalize_setting("  Villa  ") == "VILLA"
+    assert canonicalize_setting("viLLA") == "VILLA"
+
+
+def test_canonicalize_collapses_internal_whitespace():
+    assert canonicalize_setting("VILLA  -  next morning") == "VILLA - NEXT MORNING"
+    assert canonicalize_setting("sphe & Jessie house, lounge   nighT") == \
+        "SPHE & JESSIE HOUSE, LOUNGE NIGHT"
+
+
+def test_canonicalize_straightens_curly_quotes():
+    # Curly apostrophe (U+2019) and opening single quote (U+2018) -> straight.
+    assert canonicalize_setting("tam’s room") == "TAM'S ROOM"
+    assert canonicalize_setting("‘quote’") == "'QUOTE'"
+    # Distinct spellings that only differed by quote style now match.
+    assert canonicalize_setting("TAM'S ROOM") == canonicalize_setting("tam’s room")
+
+
+def test_canonicalize_keeps_articles_and_internal_punctuation():
+    # Unlike normalize_place, canonicalize is display-facing: keep articles,
+    # keep internal/trailing punctuation, only kill casing/whitespace/quote noise.
+    assert canonicalize_setting("the beach") == "THE BEACH"
+    assert canonicalize_setting("Black.") == "BLACK."
+    assert canonicalize_setting("beach, the boys") == "BEACH, THE BOYS"
+
+
+def test_canonicalize_is_idempotent():
+    for raw in ["villa", "  Tam’s   Room ", "Black.", "beach, the boys"]:
+        once = canonicalize_setting(raw)
+        assert canonicalize_setting(once) == once
+
+
+def test_canonicalize_empty():
+    assert canonicalize_setting("") == ""
+    assert canonicalize_setting(None) == ""
 
 
 def test_normalize_strips_article_and_case():
