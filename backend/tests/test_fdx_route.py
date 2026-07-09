@@ -106,3 +106,55 @@ def test_upload_fdx_takes_fdx_branch_regardless_of_filename(monkeypatch, filenam
     body = resp.get_json()
     assert body["parse_method"] == "fdx"
     assert body["scene_candidates"] == 1
+
+
+def test_store_fdx_preview_uploads_and_updates(monkeypatch, tmp_path):
+    import routes.supabase_routes as sr
+
+    # Fake supabase that records inserts/updates/uploads and returns scenes.
+    calls = {"uploads": [], "script_updates": [], "scene_updates": []}
+
+    class Q:
+        def __init__(self, table): self.table = table; self._filter = None
+        def select(self, *a, **k): return self
+        def eq(self, *a, **k): self._filter = a; return self
+        def order(self, *a, **k): return self
+        def execute(self):
+            if self.table == "scenes":
+                class R: data = [{"id": "s1", "scene_order": 1},
+                                 {"id": "s2", "scene_order": 2}]
+                return R()
+            class R: data = []
+            return R()
+        def update(self, payload):
+            (calls["script_updates"] if self.table == "scripts"
+             else calls["scene_updates"]).append((self.table, payload))
+            return self
+
+    class Up:
+        def upload(self, path, content, opts):
+            calls["uploads"].append((path, opts)); return {}
+    class St:
+        def from_(self, b): return Up()
+    class FS:
+        storage = St()
+        def table(self, name): return Q(name)
+
+    monkeypatch.setattr(sr, "supabase", FS())
+    monkeypatch.setattr(
+        "services.fdx_preview.generate_fdx_preview_pdf",
+        lambda fdx_path, rows: (b"%PDF-fake", {"s1": 1, "s2": 2}),
+    )
+
+    fdx = tmp_path / "x.fdx"; fdx.write_text("<FinalDraft/>", encoding="utf-8")
+    path = sr.store_fdx_preview("script-9", str(fdx))
+
+    assert path == "script-9/preview.pdf"
+    assert calls["uploads"] and calls["uploads"][0][0] == "script-9/preview.pdf"
+    assert calls["uploads"][0][1].get("content-type") == "application/pdf"
+    # preview_pdf_path recorded on the script
+    assert any(p.get("preview_pdf_path") == "script-9/preview.pdf"
+               for _, p in calls["script_updates"])
+    # both scenes got page_start updated to the generated pages
+    starts = [p.get("page_start") for _, p in calls["scene_updates"]]
+    assert 1 in starts and 2 in starts

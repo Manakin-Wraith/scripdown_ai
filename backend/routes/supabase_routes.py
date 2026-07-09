@@ -416,6 +416,12 @@ def upload_script():
                 scenes_detected, parse_meta = create_scenes_from_parsed(
                     script_id, parsed_scenes, full_text, pages_data, {'parse_method': 'fdx'}
                 )
+                # Best-effort: generate the screenplay preview PDF from the FDX.
+                # A failure must never fail the upload.
+                try:
+                    store_fdx_preview(script_id, tmp_path)
+                except Exception as preview_err:
+                    print(f"Warning: FDX preview generation failed: {preview_err}")
             else:
                 scenes_detected, parse_meta = detect_and_create_scenes_v2(
                     script_id, tmp_path, full_text, pages_data
@@ -748,6 +754,47 @@ def create_scenes_from_parsed(script_id, parsed_scenes, full_text, pages_data, p
 
     print(f"✓ Created {scenes_created} scenes + {candidates_created} candidates ({parse_method})")
     return scenes_created, parse_meta
+
+
+def store_fdx_preview(script_id, fdx_path):
+    """Generate the screenplay preview PDF for an FDX script, store it, and
+    update scene page numbers to the generated pagination. Returns the storage
+    path, or None if there are no scenes. Best-effort: callers wrap in try/except.
+    """
+    from services.fdx_preview import generate_fdx_preview_pdf
+
+    scenes_res = supabase.table('scenes').select('id, scene_order') \
+        .eq('script_id', script_id).order('scene_order').execute()
+    scene_rows = scenes_res.data or []
+    if not scene_rows:
+        return None
+
+    pdf_bytes, scene_page_map = generate_fdx_preview_pdf(fdx_path, scene_rows)
+
+    preview_path = f"{script_id}/preview.pdf"
+    supabase.storage.from_('scripts').upload(
+        preview_path, pdf_bytes,
+        {'content-type': 'application/pdf', 'upsert': 'true'}
+    )
+    supabase.table('scripts').update({'preview_pdf_path': preview_path}) \
+        .eq('id', script_id).execute()
+
+    ordered = sorted(scene_rows, key=lambda r: r['scene_order'])
+    total_pages = max(scene_page_map.values(), default=1)
+    for idx, row in enumerate(ordered):
+        sid = str(row['id'])
+        page_start = scene_page_map.get(sid)
+        if not page_start:
+            continue
+        if idx + 1 < len(ordered):
+            nxt = scene_page_map.get(str(ordered[idx + 1]['id']))
+            page_end = max(page_start, nxt) if nxt else page_start
+        else:
+            page_end = max(page_start, total_pages)
+        supabase.table('scenes').update({'page_start': page_start, 'page_end': page_end}) \
+            .eq('id', sid).execute()
+
+    return preview_path
 
 
 def detect_and_create_scenes(script_id, full_text, pages_data=None):
