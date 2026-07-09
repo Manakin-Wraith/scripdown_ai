@@ -9,6 +9,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from services.location_resolver import (
     normalize_place,
     derive_base_place,
+    suggest_merges,
 )
 
 
@@ -68,3 +69,36 @@ def test_derive_does_not_strip_int_ext_inside_name():
     assert derive_base_place("INT. INTERROGATION ROOM - DAY") == "INTERROGATION ROOM"
     assert derive_base_place("EXTERIOR COURTYARD - GARDEN") == "EXTERIOR COURTYARD"
     assert derive_base_place("INTERSTATE 5 - NIGHT") == "INTERSTATE 5"
+
+
+def test_suggest_article_variant():
+    groups = suggest_merges(["COFFEE SHOP", "THE COFFEE SHOP", "COFFEE SHOP"])
+    assert len(groups) == 1
+    g = groups[0]
+    assert set(g["members"]) == {"COFFEE SHOP", "THE COFFEE SHOP"}
+    assert g["canonical"] == "COFFEE SHOP"  # most frequent
+
+
+def test_suggest_typo():
+    groups = suggest_merges(["COFFEE SHOP", "COFEE SHOP"])
+    assert len(groups) == 1
+    assert set(groups[0]["members"]) == {"COFFEE SHOP", "COFEE SHOP"}
+
+
+def test_suggest_short_string_guard():
+    # BAR vs CAR must NOT cluster (below MIN_FUZZY_LEN)
+    groups = suggest_merges(["BAR", "CAR"])
+    assert groups == []
+
+
+def test_suggest_excludes_known_aliases():
+    groups = suggest_merges(
+        ["COFFEE SHOP", "COFEE SHOP"],
+        existing_aliases={"COFEE SHOP": "COFFEE SHOP"},
+    )
+    assert groups == []
+
+
+def test_suggest_distinct_places_not_grouped():
+    groups = suggest_merges(["COFFEE SHOP", "POLICE STATION", "HOSPITAL"])
+    assert groups == []

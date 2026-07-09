@@ -10,7 +10,9 @@ Base place is the grouping/merge key stored in scenes.location_canonical.
 
 import re
 import json
-from typing import Optional
+from collections import Counter
+from difflib import SequenceMatcher
+from typing import Dict, List, Optional
 
 TIME_WORDS = {
     "DAY", "NIGHT", "DUSK", "DAWN", "MORNING", "EVENING",
@@ -18,6 +20,9 @@ TIME_WORDS = {
 }
 
 INT_EXT_TOKENS = {"INT", "EXT", "INT/EXT", "I/E"}
+
+FUZZY_THRESHOLD = 0.82
+MIN_FUZZY_LEN = 4
 
 _INT_EXT_PREFIX = re.compile(
     r"^\s*(INT\.?/EXT\.?|INT\.?|EXT\.?|I/E\.?)(?=[\s.\-:]|$)\s*[-.:]?\s*",
@@ -69,3 +74,50 @@ def derive_base_place(
     ]
     base = kept[0] if kept else s
     return normalize_place(base)
+
+
+def suggest_merges(
+    base_places: List[str],
+    existing_aliases: Optional[Dict[str, str]] = None,
+) -> List[Dict]:
+    """Cluster near-duplicate base places for user-confirmed merging.
+
+    Deterministic normalization catches article/spacing/case differences;
+    difflib catches true typos above FUZZY_THRESHOLD (short-string guarded).
+    Never applies a merge — returns suggestions only.
+    """
+    existing_aliases = existing_aliases or {}
+    counts = Counter(p for p in base_places if p)
+    uniques = [p for p in counts if p not in existing_aliases]
+    norm = {p: normalize_place(p) for p in uniques}
+
+    groups: List[Dict] = []
+    used: set = set()
+
+    for i, a in enumerate(uniques):
+        if a in used:
+            continue
+        members = [a]
+        for b in uniques[i + 1:]:
+            if b in used:
+                continue
+            na, nb = norm[a], norm[b]
+            if na == nb:
+                members.append(b)
+                used.add(b)
+            elif len(na) >= MIN_FUZZY_LEN and len(nb) >= MIN_FUZZY_LEN and \
+                    SequenceMatcher(None, na, nb).ratio() >= FUZZY_THRESHOLD:
+                members.append(b)
+                used.add(b)
+
+        if len(members) > 1:
+            used.add(a)
+            canonical = max(members, key=lambda m: (counts[m], -len(m)))
+            reason = "variant" if all(norm[m] == norm[members[0]] for m in members) else "typo"
+            groups.append({
+                "canonical": canonical,
+                "members": members,
+                "reason": reason,
+            })
+
+    return groups
