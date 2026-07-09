@@ -77,12 +77,22 @@ def test_suggest_article_variant():
     g = groups[0]
     assert set(g["members"]) == {"COFFEE SHOP", "THE COFFEE SHOP"}
     assert g["canonical"] == "COFFEE SHOP"  # most frequent
+    assert g["reason"] == "variant"
 
 
 def test_suggest_typo():
     groups = suggest_merges(["COFFEE SHOP", "COFEE SHOP"])
     assert len(groups) == 1
     assert set(groups[0]["members"]) == {"COFFEE SHOP", "COFEE SHOP"}
+    assert groups[0]["reason"] == "typo"
+
+
+def test_suggest_canonical_tiebreak_shortest():
+    # Equal counts -> shorter name wins as canonical
+    groups = suggest_merges(["THE COFFEE SHOP", "COFFEE SHOP"])
+    assert len(groups) == 1
+    assert groups[0]["canonical"] == "COFFEE SHOP"
+    assert groups[0]["reason"] == "variant"
 
 
 def test_suggest_short_string_guard():
