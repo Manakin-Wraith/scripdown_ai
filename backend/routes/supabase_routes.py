@@ -4640,21 +4640,36 @@ def get_character_aliases(script_id):
 
 
 def _user_can_access_script(script_id, user_id):
-    """True if user owns the script or is a team member.
+    """True if the user may act on this script.
 
-    The backend uses the Supabase service-role key (bypasses RLS), so every
-    script-scoped endpoint MUST gate on this explicitly — do not rely on RLS.
+    Mirrors the access model of the scripts-list endpoint: the script owner,
+    a team member, a superuser, or any authenticated user for a legacy
+    no-owner script. The backend uses the Supabase service-role key (bypasses
+    RLS), so every script-scoped endpoint MUST gate on this explicitly — do
+    not rely on RLS.
     """
     if not user_id:
         return False
     try:
-        owned = supabase.table('scripts').select('id').eq(
-            'id', script_id).eq('user_id', user_id).limit(1).execute()
-        if owned.data:
+        script = supabase.table('scripts').select('user_id').eq(
+            'id', script_id).limit(1).execute()
+        if not script.data:
+            return False  # script doesn't exist
+        owner = script.data[0].get('user_id')
+        # Owner, or legacy script with no owner.
+        if owner == user_id or owner is None:
             return True
+        # Team member.
         member = supabase.table('script_members').select('script_id').eq(
             'script_id', script_id).eq('user_id', user_id).limit(1).execute()
-        return bool(member.data)
+        if member.data:
+            return True
+        # Superuser (admins can access every script, matching require_superuser).
+        prof = supabase.table('profiles').select('is_superuser').eq(
+            'id', user_id).limit(1).execute()
+        if prof.data and prof.data[0].get('is_superuser'):
+            return True
+        return False
     except Exception as e:
         print(f"[Access] check failed for script {script_id}: {e}")
         return False
