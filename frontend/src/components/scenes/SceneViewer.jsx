@@ -14,7 +14,6 @@ import { useStoryDayListener } from '../../context/StoryDayContext';
 import { analyzeBulkScenes, analyzeScene, getPageMapping, reorderScenes, omitScene } from '../../services/apiService';
 import { useSubscription } from '../../hooks/useSubscription';
 import { UpgradeModal } from '../subscription';
-import { locationKey } from '../../utils/locationKey';
 import './SceneViewer.css';
 
 const SceneViewer = () => {
@@ -199,9 +198,12 @@ const SceneViewer = () => {
                 chars[char].scenes.push(scene.scene_number);
             });
 
-            // Aggregate Locations
+            // Aggregate Locations by raw setting text so each spelling variant
+            // (villa / viLLA / VILLA) is a distinct, selectable merge row — the
+            // same way characters show each raw name. Production views (schedule,
+            // reports) still collapse to location_canonical via locationKey.
             if (scene.setting) {
-                const locKey = locationKey(scene);
+                const locKey = scene.setting;
                 if (!locs[locKey]) locs[locKey] = { count: 0, scenes: [] };
                 locs[locKey].count++;
                 locs[locKey].scenes.push(scene.scene_number);
