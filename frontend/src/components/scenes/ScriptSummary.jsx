@@ -2,7 +2,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { Users, MapPin, CheckCircle, Clock, AlertTriangle, Merge, X, Check, Edit3 } from 'lucide-react';
 import { Badge } from '../ui';
 import { useToast } from '../../context/ToastContext';
-import LocationMergePanel from './LocationMergePanel';
+import { mergeCharacters, mergeLocations } from '../../services/apiService';
 import './ScriptSummary.css';
 
 /**
@@ -25,7 +25,7 @@ function levenshtein(a, b) {
 }
 
 /**
- * Detect suspected duplicate character names.
+ * Detect suspected duplicate names (characters or locations).
  * Returns a Map of name → Set of names it might be a duplicate of.
  */
 function detectDuplicates(names) {
@@ -49,11 +49,32 @@ function detectDuplicates(names) {
     return suspects;
 }
 
+/** Count the number of distinct duplicate groups from a suspects map. */
+function countDuplicateGroups(suspects) {
+    const groups = new Set();
+    suspects.forEach((partners, name) => {
+        groups.add([name, ...Array.from(partners)].sort().join('|'));
+    });
+    return groups.size;
+}
+
 /**
- * ScriptSummary - Collapsible panel showing aggregated script data
- * with character duplicate detection and merge capability.
+ * Per-entity-type config. Characters and locations share the exact same
+ * selection + merge-bar interaction; only the data source, labels, and
+ * merge API call differ.
+ */
+const ENTITY_TYPES = {
+    characters: { label: 'character', labelPlural: 'characters', mergeFn: mergeCharacters },
+    locations: { label: 'location', labelPlural: 'locations', mergeFn: mergeLocations },
+};
+
+/**
+ * ScriptSummary - Collapsible panel showing aggregated script data with
+ * duplicate detection and merge capability for BOTH characters and locations.
+ * A single selection/merge flow is active at a time (`mergeType`).
  */
 const ScriptSummary = ({ characters, locations, stats, scriptId, onMergeComplete }) => {
+    const [mergeType, setMergeType] = useState(null); // 'characters' | 'locations' | null
     const [selected, setSelected] = useState(new Set());
     const [showMergeBar, setShowMergeBar] = useState(false);
     const [merging, setMerging] = useState(false);
@@ -62,6 +83,11 @@ const ScriptSummary = ({ characters, locations, stats, scriptId, onMergeComplete
     const [showCustomInput, setShowCustomInput] = useState(false);
     const [mergeSuccess, setMergeSuccess] = useState(null);
     const toast = useToast();
+
+    const dataFor = useCallback(
+        (type) => (type === 'locations' ? locations : characters),
+        [characters, locations]
+    );
 
     const sortedCharacters = useMemo(() =>
         Object.entries(characters).sort((a, b) => b[1].count - a[1].count),
@@ -73,76 +99,20 @@ const ScriptSummary = ({ characters, locations, stats, scriptId, onMergeComplete
         [locations]
     );
 
-    const duplicateSuspects = useMemo(() =>
+    const characterSuspects = useMemo(() =>
         detectDuplicates(sortedCharacters.map(([name]) => name)),
         [sortedCharacters]
     );
 
-    const duplicateCount = useMemo(() => {
-        const groups = new Set();
-        duplicateSuspects.forEach((partners, name) => {
-            const key = [name, ...Array.from(partners)].sort().join('|');
-            groups.add(key);
-        });
-        return groups.size;
-    }, [duplicateSuspects]);
+    const locationSuspects = useMemo(() =>
+        detectDuplicates(sortedLocations.map(([name]) => name)),
+        [sortedLocations]
+    );
 
-    const toggleSelect = useCallback((name) => {
-        setSelected(prev => {
-            const next = new Set(prev);
-            if (next.has(name)) {
-                next.delete(name);
-            } else {
-                next.add(name);
-            }
-            if (next.size >= 2) {
-                setShowMergeBar(true);
-                // Auto-recommend: highest scene count among selected
-                const best = Array.from(next)
-                    .map(n => ({ name: n, count: characters[n]?.count || 0 }))
-                    .sort((a, b) => b.count - a.count)[0];
-                setCanonicalChoice(best.name);
-            } else {
-                setShowMergeBar(false);
-                setCanonicalChoice(null);
-            }
-            setShowCustomInput(false);
-            setCustomName('');
-            setMergeSuccess(null);
-            return next;
-        });
-    }, [characters]);
+    const characterDupCount = useMemo(() => countDuplicateGroups(characterSuspects), [characterSuspects]);
+    const locationDupCount = useMemo(() => countDuplicateGroups(locationSuspects), [locationSuspects]);
 
-    const handleMerge = useCallback(async () => {
-        const finalCanonical = showCustomInput && customName.trim()
-            ? customName.trim().toUpperCase()
-            : canonicalChoice;
-
-        if (!finalCanonical || !scriptId) return;
-
-        const aliases = Array.from(selected).filter(n => n !== finalCanonical);
-        if (aliases.length === 0) return;
-
-        setMerging(true);
-        try {
-            const { mergeCharacters } = await import('../../services/apiService');
-            const result = await mergeCharacters(scriptId, finalCanonical, aliases);
-            setMergeSuccess(result);
-            setSelected(new Set());
-            setShowMergeBar(false);
-            setCanonicalChoice(null);
-            setShowCustomInput(false);
-            setCustomName('');
-            if (onMergeComplete) onMergeComplete();
-        } catch (err) {
-            console.error('Merge failed:', err);
-            toast.error('Merge Failed', err.response?.data?.error || err.message);
-        } finally {
-            setMerging(false);
-        }
-    }, [selected, canonicalChoice, customName, showCustomInput, scriptId, onMergeComplete]);
-
-    const cancelMerge = useCallback(() => {
+    const resetMerge = useCallback(() => {
         setSelected(new Set());
         setShowMergeBar(false);
         setCanonicalChoice(null);
@@ -150,12 +120,133 @@ const ScriptSummary = ({ characters, locations, stats, scriptId, onMergeComplete
         setCustomName('');
     }, []);
 
-    const selectedArr = useMemo(() =>
-        Array.from(selected)
-            .map(n => ({ name: n, count: characters[n]?.count || 0 }))
-            .sort((a, b) => b.count - a.count),
-        [selected, characters]
-    );
+    const toggleSelect = useCallback((name, type) => {
+        // Switching entity type starts a fresh selection.
+        const switching = mergeType !== type;
+        const next = new Set(switching ? [] : selected);
+        if (next.has(name)) {
+            next.delete(name);
+        } else {
+            next.add(name);
+        }
+
+        const dataMap = dataFor(type);
+        setMergeType(next.size > 0 ? type : null);
+        setSelected(next);
+        setMergeSuccess(null);
+        setShowCustomInput(false);
+        setCustomName('');
+
+        if (next.size >= 2) {
+            // Auto-recommend the name with the highest scene count.
+            const best = Array.from(next)
+                .map(n => ({ name: n, count: dataMap[n]?.count || 0 }))
+                .sort((a, b) => b.count - a.count)[0];
+            setCanonicalChoice(best.name);
+            setShowMergeBar(true);
+        } else {
+            setCanonicalChoice(null);
+            setShowMergeBar(false);
+        }
+    }, [mergeType, selected, dataFor]);
+
+    const handleMerge = useCallback(async () => {
+        if (!mergeType || !scriptId) return;
+
+        const finalCanonical = showCustomInput && customName.trim()
+            ? customName.trim().toUpperCase()
+            : canonicalChoice;
+        if (!finalCanonical) return;
+
+        const aliases = Array.from(selected).filter(n => n !== finalCanonical);
+        if (aliases.length === 0) return;
+
+        setMerging(true);
+        try {
+            const result = await ENTITY_TYPES[mergeType].mergeFn(scriptId, finalCanonical, aliases);
+            setMergeSuccess({
+                type: mergeType,
+                // characters return canonical_name, locations return canonical_place
+                canonical: result.canonical_name || result.canonical_place || finalCanonical,
+                scenesUpdated: result.scenes_updated,
+            });
+            resetMerge();
+            setMergeType(null);
+            if (onMergeComplete) onMergeComplete();
+        } catch (err) {
+            console.error('Merge failed:', err);
+            toast.error('Merge Failed', err.response?.data?.error || err.message);
+        } finally {
+            setMerging(false);
+        }
+    }, [mergeType, selected, canonicalChoice, customName, showCustomInput, scriptId, onMergeComplete, resetMerge, toast]);
+
+    const cancelMerge = useCallback(() => {
+        resetMerge();
+        setMergeType(null);
+    }, [resetMerge]);
+
+    const selectedArr = useMemo(() => {
+        if (!mergeType) return [];
+        const dataMap = dataFor(mergeType);
+        return Array.from(selected)
+            .map(n => ({ name: n, count: dataMap[n]?.count || 0 }))
+            .sort((a, b) => b.count - a.count);
+    }, [selected, mergeType, dataFor]);
+
+    const renderColumn = (type, icon, title, sortedItems, suspects, dupCount) => {
+        const isActive = mergeType === type;
+        return (
+            <div className="summary-column">
+                <h4 className="column-title">
+                    {icon}
+                    {title}
+                    {dupCount > 0 && (
+                        <span
+                            className="duplicate-alert"
+                            title={`${dupCount} possible duplicate${dupCount > 1 ? 's' : ''} detected`}
+                        >
+                            <AlertTriangle size={12} />
+                            {dupCount}
+                        </span>
+                    )}
+                </h4>
+                {dupCount > 0 && !(isActive && selected.size > 0) && (
+                    <p className="duplicate-hint">Select {ENTITY_TYPES[type].labelPlural} to merge duplicates</p>
+                )}
+                <div className="summary-list">
+                    {sortedItems.length === 0 ? (
+                        <p className="empty-text">No {title.toLowerCase()} detected yet</p>
+                    ) : (
+                        sortedItems.map(([name, data]) => {
+                            const isSuspect = suspects.has(name);
+                            const isSelected = isActive && selected.has(name);
+                            const display = name.length > 40 ? name.substring(0, 40) + '...' : name;
+                            return (
+                                <div
+                                    key={name}
+                                    className={`summary-item ${isSuspect ? 'suspect' : ''} ${isSelected ? 'selected' : ''}`}
+                                    onClick={() => toggleSelect(name, type)}
+                                    title={isSuspect ? 'Possible duplicate — click to select for merge' : 'Click to select for merge'}
+                                >
+                                    <div className="item-left">
+                                        <span className={`item-checkbox ${isSelected ? 'checked' : ''}`}>
+                                            {isSelected && <Check size={10} />}
+                                        </span>
+                                        <span className="item-name">{display}</span>
+                                        {isSuspect && !isSelected && (
+                                            <AlertTriangle size={12} className="suspect-icon" />
+                                        )}
+                                    </div>
+                                    <span className="item-count">{data.count} scenes</span>
+                                </div>
+                            );
+                        })
+                    )}
+                </div>
+            </div>
+        );
+    };
 
     return (
         <div className="script-summary">
@@ -188,89 +279,23 @@ const ScriptSummary = ({ characters, locations, stats, scriptId, onMergeComplete
                 <div className="merge-success-banner">
                     <Check size={14} />
                     <span>
-                        Merged into <strong>{mergeSuccess.canonical_name}</strong> — {mergeSuccess.scenes_updated} scenes updated
+                        Merged into <strong>{mergeSuccess.canonical}</strong> — {mergeSuccess.scenesUpdated} scenes updated
                     </span>
                     <button onClick={() => setMergeSuccess(null)}><X size={12} /></button>
                 </div>
             )}
 
             <div className="summary-columns">
-                {/* Characters Column */}
-                <div className="summary-column">
-                    <h4 className="column-title">
-                        <Users size={14} />
-                        Characters
-                        {duplicateCount > 0 && (
-                            <span className="duplicate-alert" title={`${duplicateCount} possible duplicate${duplicateCount > 1 ? 's' : ''} detected`}>
-                                <AlertTriangle size={12} />
-                                {duplicateCount}
-                            </span>
-                        )}
-                    </h4>
-                    {duplicateCount > 0 && selected.size === 0 && (
-                        <p className="duplicate-hint">Select characters to merge duplicates</p>
-                    )}
-                    <div className="summary-list">
-                        {sortedCharacters.length === 0 ? (
-                            <p className="empty-text">No characters detected yet</p>
-                        ) : (
-                            sortedCharacters.map(([name, data]) => {
-                                const isSuspect = duplicateSuspects.has(name);
-                                const isSelected = selected.has(name);
-                                return (
-                                    <div
-                                        key={name}
-                                        className={`summary-item ${isSuspect ? 'suspect' : ''} ${isSelected ? 'selected' : ''}`}
-                                        onClick={() => toggleSelect(name)}
-                                        title={isSuspect ? `Possible duplicate — click to select for merge` : 'Click to select for merge'}
-                                    >
-                                        <div className="item-left">
-                                            <span className={`item-checkbox ${isSelected ? 'checked' : ''}`}>
-                                                {isSelected && <Check size={10} />}
-                                            </span>
-                                            <span className="item-name">{name}</span>
-                                            {isSuspect && !isSelected && (
-                                                <AlertTriangle size={12} className="suspect-icon" />
-                                            )}
-                                        </div>
-                                        <span className="item-count">{data.count} scenes</span>
-                                    </div>
-                                );
-                            })
-                        )}
-                    </div>
-                </div>
-
-                {/* Locations Column */}
-                <div className="summary-column">
-                    <h4 className="column-title">
-                        <MapPin size={14} />
-                        Locations
-                    </h4>
-                    <div className="summary-list">
-                        {sortedLocations.length === 0 ? (
-                            <p className="empty-text">No locations detected yet</p>
-                        ) : (
-                            sortedLocations.map(([name, data]) => (
-                                <div key={name} className="summary-item">
-                                    <span className="item-name" title={name}>
-                                        {name.length > 40 ? name.substring(0, 40) + '...' : name}
-                                    </span>
-                                    <span className="item-count">{data.count} scenes</span>
-                                </div>
-                            ))
-                        )}
-                    </div>
-                    <LocationMergePanel scriptId={scriptId} onMerged={onMergeComplete} />
-                </div>
+                {renderColumn('characters', <Users size={14} />, 'Characters', sortedCharacters, characterSuspects, characterDupCount)}
+                {renderColumn('locations', <MapPin size={14} />, 'Locations', sortedLocations, locationSuspects, locationDupCount)}
             </div>
 
             {/* Merge Bar */}
-            {showMergeBar && selected.size >= 2 && (
+            {showMergeBar && mergeType && selected.size >= 2 && (
                 <div className="merge-bar">
                     <div className="merge-bar-header">
                         <Merge size={16} />
-                        <span>Merge {selected.size} characters into:</span>
+                        <span>Merge {selected.size} {ENTITY_TYPES[mergeType].labelPlural} into:</span>
                     </div>
                     <div className="merge-options">
                         {selectedArr.map(({ name, count }) => (
