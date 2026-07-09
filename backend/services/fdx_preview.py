@@ -72,3 +72,24 @@ def render_fdx_html(render_scenes) -> str:
                 parts.append(f'<div class="{cls}">{text}</div>')
     parts.append("</body></html>")
     return "".join(parts)
+
+
+def build_render_scenes(fdx_path: str, scene_rows):
+    """Recover typed paragraphs from the .fdx and pair them to scene rows."""
+    from services.fdx_parser import _read_fdx
+
+    content_paras, _ = _read_fdx(fdx_path)
+
+    # Group paragraphs by Scene Heading (same grouping as fdx_parser._build_scenes).
+    groups = []
+    for para in content_paras:
+        if para["type"] == "Scene Heading":
+            groups.append([para])
+        elif groups:
+            groups[-1].append(para)
+
+    rows = sorted(scene_rows, key=lambda r: r["scene_order"])
+    render = []
+    for group, row in zip(groups, rows):
+        render.append({"scene_id": str(row["id"]), "paragraphs": group})
+    return render

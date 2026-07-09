@@ -2,7 +2,7 @@ import os
 import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from services.fdx_preview import render_fdx_html, screenplay_css
+from services.fdx_preview import render_fdx_html, screenplay_css, build_render_scenes
 
 
 SCENES = [
@@ -56,3 +56,42 @@ def test_screenplay_css_is_letter_monospace():
     assert "Letter" in css
     assert "12pt" in css
     assert "monospace" in css
+
+
+_FDX_XML = """<?xml version="1.0" encoding="UTF-8"?>
+<FinalDraft DocumentType="Script" Version="5">
+  <Content>
+    <Paragraph Type="Scene Heading" Number="1"><Text>INT. COFFEE SHOP - DAY</Text></Paragraph>
+    <Paragraph Type="Action"><Text>John sips.</Text></Paragraph>
+    <Paragraph Type="Character"><Text>JOHN</Text></Paragraph>
+    <Paragraph Type="Dialogue"><Text>Morning.</Text></Paragraph>
+    <Paragraph Type="Scene Heading" Number="2"><Text>EXT. PARK - NIGHT</Text></Paragraph>
+    <Paragraph Type="Action"><Text>Mary walks.</Text></Paragraph>
+  </Content>
+</FinalDraft>
+"""
+
+
+def _write(tmp_path, xml):
+    p = tmp_path / "s.fdx"
+    p.write_text(xml, encoding="utf-8")
+    return str(p)
+
+
+def test_build_render_scenes_pairs_by_order(tmp_path):
+    path = _write(tmp_path, _FDX_XML)
+    rows = [{"id": "id-1", "scene_order": 1}, {"id": "id-2", "scene_order": 2}]
+    render = build_render_scenes(path, rows)
+    assert [r["scene_id"] for r in render] == ["id-1", "id-2"]
+    assert render[0]["paragraphs"][0]["type"] == "Scene Heading"
+    assert render[0]["paragraphs"][0]["text"] == "INT. COFFEE SHOP - DAY"
+    # scene 1 group carries its body paragraphs
+    assert any(p["text"] == "Morning." for p in render[0]["paragraphs"])
+    assert render[1]["paragraphs"][0]["text"] == "EXT. PARK - NIGHT"
+
+
+def test_build_render_scenes_handles_unsorted_rows(tmp_path):
+    path = _write(tmp_path, _FDX_XML)
+    rows = [{"id": "id-2", "scene_order": 2}, {"id": "id-1", "scene_order": 1}]
+    render = build_render_scenes(path, rows)
+    assert [r["scene_id"] for r in render] == ["id-1", "id-2"]
