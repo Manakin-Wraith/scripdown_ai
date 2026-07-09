@@ -32,3 +32,22 @@ def test_no_retired_gemini_model_instantiated():
                     if model_id in RETIRED_MODEL_IDS:
                         offenders.append(f"{os.path.relpath(path, BACKEND)}:{lineno} -> {model_id}")
     assert not offenders, "Retired Gemini model still instantiated:\n" + "\n".join(offenders)
+
+
+def test_gemini_model_name_default(monkeypatch):
+    from utils.gemini_config import get_gemini_model_name, DEFAULT_GEMINI_MODEL
+    monkeypatch.delenv("GEMINI_MODEL", raising=False)
+    assert get_gemini_model_name() == DEFAULT_GEMINI_MODEL
+    assert DEFAULT_GEMINI_MODEL not in RETIRED_MODEL_IDS
+
+
+def test_gemini_model_name_env_override(monkeypatch):
+    from utils.gemini_config import get_gemini_model_name
+    monkeypatch.setenv("GEMINI_MODEL", "gemini-3.5-flash")
+    assert get_gemini_model_name() == "gemini-3.5-flash"
+
+
+def test_gemini_model_name_blank_env_falls_back(monkeypatch):
+    from utils.gemini_config import get_gemini_model_name, DEFAULT_GEMINI_MODEL
+    monkeypatch.setenv("GEMINI_MODEL", "")
+    assert get_gemini_model_name() == DEFAULT_GEMINI_MODEL

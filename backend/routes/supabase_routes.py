@@ -2767,9 +2767,8 @@ def analyze_scene_with_gemini(scene_text, setting, known_speakers=None, shot_typ
         raise ValueError("GEMINI_API_KEY not configured")
     
     genai.configure(api_key=api_key)
-    # gemini-2.0-flash was retired by Google (generateContent 404s). Use
-    # gemini-2.5-flash, matching the analysis worker and other services.
-    model = genai.GenerativeModel('gemini-2.5-flash')
+    from utils.gemini_config import get_gemini_model_name
+    model = genai.GenerativeModel(get_gemini_model_name())
     
     has_speakers = known_speakers and len(known_speakers) > 0
     

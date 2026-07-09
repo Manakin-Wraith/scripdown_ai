@@ -17,8 +17,8 @@ def get_gemini_model():
         raise ValueError("GEMINI_API_KEY not configured")
     
     genai.configure(api_key=api_key)
-    # Use gemini-2.5-flash - latest model with good quota
-    return genai.GenerativeModel('gemini-2.5-flash')
+    from utils.gemini_config import get_gemini_model_name
+    return genai.GenerativeModel(get_gemini_model_name())
 
 
 def rate_limit_wait():
