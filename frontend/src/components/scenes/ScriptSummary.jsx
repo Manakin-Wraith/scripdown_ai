@@ -2,6 +2,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { Users, MapPin, CheckCircle, Clock, AlertTriangle, Merge, X, Check, Edit3 } from 'lucide-react';
 import { Badge } from '../ui';
 import { useToast } from '../../context/ToastContext';
+import LocationMergePanel from './LocationMergePanel';
 import './ScriptSummary.css';
 
 /**
@@ -260,6 +261,7 @@ const ScriptSummary = ({ characters, locations, stats, scriptId, onMergeComplete
                             ))
                         )}
                     </div>
+                    <LocationMergePanel scriptId={scriptId} onMerged={onMergeComplete} />
                 </div>
             </div>
 
