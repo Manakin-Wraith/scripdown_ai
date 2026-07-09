@@ -23,6 +23,11 @@ def test_normalize_empty():
     assert normalize_place(None) == ""
 
 
+def test_normalize_strips_surrounding_punctuation():
+    assert normalize_place("OFFICE.") == "OFFICE"
+    assert normalize_place("  BAR, ") == "BAR"
+
+
 def test_derive_from_screenpy_prefix_and_tod():
     # regex/grammar form: "INT. COFFEE SHOP - DAY"
     assert derive_base_place("INT. COFFEE SHOP - DAY") == "COFFEE SHOP"
@@ -56,3 +61,10 @@ def test_derive_plain_name_no_prefix():
 def test_derive_empty_setting():
     assert derive_base_place("") == ""
     assert derive_base_place(None) == ""
+
+
+def test_derive_does_not_strip_int_ext_inside_name():
+    assert derive_base_place("INTERROGATION ROOM") == "INTERROGATION ROOM"
+    assert derive_base_place("INT. INTERROGATION ROOM - DAY") == "INTERROGATION ROOM"
+    assert derive_base_place("EXTERIOR COURTYARD - GARDEN") == "EXTERIOR COURTYARD"
+    assert derive_base_place("INTERSTATE 5 - NIGHT") == "INTERSTATE 5"

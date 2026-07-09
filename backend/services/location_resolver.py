@@ -10,13 +10,7 @@ Base place is the grouping/merge key stored in scenes.location_canonical.
 
 import re
 import json
-from collections import Counter
-from difflib import SequenceMatcher
-from typing import Dict, List, Optional
-
-# Fuzzy suggestion tuning — the ONLY place these live.
-FUZZY_THRESHOLD = 0.82
-MIN_FUZZY_LEN = 4
+from typing import Optional
 
 TIME_WORDS = {
     "DAY", "NIGHT", "DUSK", "DAWN", "MORNING", "EVENING",
@@ -26,7 +20,7 @@ TIME_WORDS = {
 INT_EXT_TOKENS = {"INT", "EXT", "INT/EXT", "I/E"}
 
 _INT_EXT_PREFIX = re.compile(
-    r"^\s*(INT\.?/EXT\.?|INT\.?|EXT\.?|I/E\.?)\s*[-.:]?\s*",
+    r"^\s*(INT\.?/EXT\.?|INT\.?|EXT\.?|I/E\.?)(?=[\s.\-:]|$)\s*[-.:]?\s*",
     re.IGNORECASE,
 )
 _LEADING_ARTICLE = re.compile(r"^(THE|A|AN)\s+", re.IGNORECASE)
