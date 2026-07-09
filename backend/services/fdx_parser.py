@@ -140,7 +140,7 @@ def _parse_fdx_length(length_str) -> int | None:
     pages). Returns None for empty/unrecognized/zero values so callers can
     fall back to an estimate.
     """
-    if not length_str:
+    if not length_str or not isinstance(length_str, str):
         return None
     s = length_str.strip()
     m = re.match(r"^(\d+)\s+(\d+)\s*/\s*8$", s)      # "N M/8"
