@@ -7,6 +7,7 @@ structured, so scene boundaries, scene numbers, and speakers are read directly
 rather than inferred.
 """
 
+import math
 import os
 import re
 
@@ -21,6 +22,10 @@ from services.extraction_pipeline import (
 from services.screenplay_parser import ParsedScene, _parse_location_hierarchy
 
 LINES_PER_PAGE = 55
+
+# Approximate rendered characters per screenplay line (used only when a scene
+# has no authoritative Final Draft length to fall back on).
+CHARS_PER_LINE = 58
 
 
 _SPEAKER_EXTENSION_RE = re.compile(r"\s*\((?:CONT'D|CONTD|V\.?O\.?|O\.?S\.?|O\.?C\.?)\)\s*$", re.IGNORECASE)
@@ -60,12 +65,21 @@ def _scene_number(para) -> str | None:
     return None
 
 
+def _scene_length(para) -> str | None:
+    """Read Final Draft's paginated scene length (eighths) from a child
+    <SceneProperties Length="..."> element. Returns None when absent."""
+    props = para.find("SceneProperties")
+    if props is not None and props.get("Length"):
+        return props.get("Length")
+    return None
+
+
 def _read_fdx(file_path: str):
     """Parse an .fdx file into (content_paragraphs, titlepage_paragraphs).
 
-    Each paragraph is {"type": str, "text": str, "number": str | None}.
-    Paragraphs with no type AND no direct text (e.g. DualDialogue wrappers)
-    are skipped.
+    Each paragraph is {"type": str, "text": str, "number": str | None,
+    "length": str | None}. Paragraphs with no type AND no direct text
+    (e.g. DualDialogue wrappers) are skipped.
     """
     tree = ET.parse(file_path)
     root = tree.getroot()
@@ -82,6 +96,7 @@ def _read_fdx(file_path: str):
                 "type": ptype or "",
                 "text": text,
                 "number": _scene_number(para),
+                "length": _scene_length(para),
             })
 
     titlepage_paras = []
@@ -118,6 +133,56 @@ def _line_count(text: str) -> int:
     return max(1, text.count("\n") + 1)
 
 
+def _parse_fdx_length(length_str) -> int | None:
+    """Parse a Final Draft <SceneProperties Length> value into total eighths.
+
+    Handles "M/8", "N M/8" (whole pages + eighths), and bare "N" (whole
+    pages). Returns None for empty/unrecognized/zero values so callers can
+    fall back to an estimate.
+    """
+    if not length_str:
+        return None
+    s = length_str.strip()
+    m = re.match(r"^(\d+)\s+(\d+)\s*/\s*8$", s)      # "N M/8"
+    if m:
+        whole, frac = int(m.group(1)), int(m.group(2))
+    else:
+        m = re.match(r"^(\d+)\s*/\s*8$", s)          # "M/8"
+        if m:
+            whole, frac = 0, int(m.group(1))
+        else:
+            m = re.match(r"^(\d+)$", s)              # "N"
+            if m:
+                whole, frac = int(m.group(1)), 0
+            else:
+                return None
+    eighths = whole * 8 + frac
+    return eighths if eighths > 0 else None
+
+
+def _estimate_scene_eighths(paragraph_texts) -> int:
+    """Estimate a scene's length in eighths when no authoritative Final Draft
+    length is available.
+
+    FDX stores each element as one paragraph with no vertical whitespace, so a
+    raw newline count collapses a full page of dialogue to a few lines. This
+    approximates real screenplay pagination: each element wraps by width
+    (~58 chars/line) and is followed by a blank line, then 55 lines = 1 page =
+    8 eighths.
+    """
+    rendered_lines = 0
+    for text in paragraph_texts:
+        t = (text or "").strip()
+        if not t:
+            continue
+        wrapped = max(1, math.ceil(len(t) / CHARS_PER_LINE))
+        rendered_lines += wrapped + 1  # blank line between elements
+    if rendered_lines == 0:
+        return 1
+    eighths = round(rendered_lines / LINES_PER_PAGE * 8)
+    return max(1, min(eighths, 80))
+
+
 def _build_scenes(content_paragraphs):
     """Group paragraphs into scenes and return (candidates, full_text)."""
     # Split paragraphs into scene groups on each Scene Heading.
@@ -152,6 +217,12 @@ def _build_scenes(content_paragraphs):
                     speakers[name] = speakers.get(name, 0) + 1
         scene_text = "\n".join(lines)
 
+        # Scene length in eighths: prefer Final Draft's own paginated Length,
+        # else a spacing-aware estimate (raw line count under-counts FDX text).
+        length_eighths = _parse_fdx_length(heading_para.get("length"))
+        if length_eighths is None:
+            length_eighths = _estimate_scene_eighths(lines)
+
         # Page range from running line counter (55 lines/page).
         page_start = cumulative_lines // LINES_PER_PAGE + 1
         cumulative_lines += _line_count(scene_text)
@@ -176,6 +247,7 @@ def _build_scenes(content_paragraphs):
             location_hierarchy=_parse_location_hierarchy(parsed["setting"]),
             speakers=speakers,
             parse_method="fdx",
+            length_eighths=length_eighths,
         ))
 
     return scenes, full_text

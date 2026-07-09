@@ -647,8 +647,12 @@ def create_scenes_from_parsed(script_id, parsed_scenes, full_text, pages_data, p
         # Use scene text from parser (correct text source) with fallback
         scene_text = ps.scene_text or (full_text[ps.text_start:ps.text_end] if ps.text_start >= 0 else '')
 
-        # Calculate scene length in eighths
-        if scene_text and len(scene_text.strip()) > 50:
+        # Calculate scene length in eighths. Prefer an authoritative length
+        # supplied by the parser (e.g. Final Draft's own paginated length);
+        # otherwise estimate from content, then page range.
+        if getattr(ps, 'length_eighths', None):
+            page_length_eighths = ps.length_eighths
+        elif scene_text and len(scene_text.strip()) > 50:
             page_length_eighths = calculate_eighths_from_content(scene_text)
         elif ps.page_start and ps.page_end:
             page_length_eighths = calculate_eighths_from_pages(ps.page_start, ps.page_end)

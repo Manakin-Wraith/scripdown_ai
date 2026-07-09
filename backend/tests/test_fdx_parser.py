@@ -180,3 +180,62 @@ def test_parse_fdx_upload_end_to_end(tmp_path):
     assert pages_data[0]["page_number"] == 1
     assert "COFFEE SHOP" in full_text
     assert metadata["writers"] == "Jane Doe"
+
+
+# ---------------------------------------------------------------------------
+# Eighths: prefer Final Draft <SceneProperties Length>, else spacing-aware estimate
+# ---------------------------------------------------------------------------
+
+from services.fdx_parser import _parse_fdx_length, _estimate_scene_eighths
+
+
+@pytest.mark.parametrize("raw,expected", [
+    ("1/8", 1),
+    ("2/8", 2),
+    ("7/8", 7),
+    ("8/8", 8),
+    ("1 3/8", 11),
+    ("2 0/8", 16),
+    ("2", 16),
+    ("", None),
+    (None, None),
+    ("garbage", None),
+    ("0/8", None),
+])
+def test_parse_fdx_length(raw, expected):
+    assert _parse_fdx_length(raw) == expected
+
+
+def test_estimate_scene_eighths_grows_with_paragraph_count():
+    short = _estimate_scene_eighths(["INT. HOUSE - DAY", "A quiet room."])
+    dialogue_heavy = _estimate_scene_eighths(
+        ["INT. HOUSE - DAY"] + [t for _ in range(20) for t in ("JOHN", "A line of dialogue here.")]
+    )
+    assert short >= 1
+    # 41 elements with per-element blank lines must read as well over 1/8.
+    assert dialogue_heavy >= 8
+    assert dialogue_heavy > short
+
+
+def test_build_scenes_uses_fdx_length_when_present():
+    paras = [
+        {"type": "Scene Heading", "text": "INT. HOUSE - DAY", "number": "1", "length": "2/8"},
+        {"type": "Action", "text": "Short.", "number": None, "length": None},
+    ]
+    scenes, _ = _build_scenes(paras)
+    assert scenes[0].length_eighths == 2   # from FDX Length, not the tiny content estimate
+
+
+def test_build_scenes_estimates_eighths_when_length_absent():
+    body = [t for _ in range(20) for t in ("JOHN", "A line of dialogue here.")]
+    paras = [{"type": "Scene Heading", "text": "INT. HOUSE - DAY", "number": None, "length": None}]
+    paras += [{"type": ("Character" if t == "JOHN" else "Dialogue"), "text": t, "number": None, "length": None} for t in body]
+    scenes, _ = _build_scenes(paras)
+    # No Length -> spacing-aware estimate; a 40-line dialogue scene must exceed 1/8.
+    assert scenes[0].length_eighths >= 8
+
+
+def test_parse_fdx_upload_populates_length_eighths(tmp_path):
+    path = _write_fdx(tmp_path, MINIMAL_FDX)
+    _, _, _, parsed_scenes = parse_fdx_upload(path)
+    assert parsed_scenes[0].length_eighths == 1   # MINIMAL_FDX heading has Length="1/8"
