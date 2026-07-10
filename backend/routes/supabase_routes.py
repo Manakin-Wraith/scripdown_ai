@@ -3141,6 +3141,67 @@ def analyze_bulk_scenes(script_id):
         return jsonify({'error': str(e)}), 500
 
 
+@supabase_bp.route('/api/scripts/<script_id>/scenes/retry-failed', methods=['POST'])
+@optional_auth
+def retry_failed_scenes(script_id):
+    """Re-run every scene currently marked 'failed' for a script.
+
+    Reuses the bulk background worker. Does not touch 'pending' scenes.
+    """
+    if not supabase:
+        return jsonify({'error': 'Supabase not configured'}), 500
+
+    user_id = get_user_id()
+    if user_id:
+        from services.subscription_service import get_subscription_status
+        sub_status = get_subscription_status(user_id)
+        if sub_status.get('status') != 'active':
+            return jsonify({
+                'error': 'Active subscription required for analysis',
+                'upgrade_url': 'https://wise.com/pay/r/8j9W0j5SUuPivxk',
+                'subscription_required': True
+            }), 403
+
+    try:
+        result = supabase.table('scenes').select('id, scene_number').eq(
+            'script_id', script_id).eq('analysis_status', 'failed').order('scene_number').execute()
+        failed_scenes = result.data or []
+        count = len(failed_scenes)
+
+        if count == 0:
+            return jsonify({'message': 'No failed scenes to retry', 'retrying': 0}), 200
+
+        job_id = str(uuid.uuid4())
+        scene_ids = [s['id'] for s in failed_scenes]
+        supabase.table('analysis_jobs').insert({
+            'id': job_id,
+            'script_id': script_id,
+            'job_type': 'retry_failed_scenes',
+            'status': 'queued',
+            'progress': 0,
+            'result_summary': f'Queued {count} failed scenes for retry',
+        }).execute()
+
+        threading.Thread(
+            target=process_bulk_analysis_job,
+            args=(job_id, script_id, scene_ids),
+            daemon=True,
+        ).start()
+
+        return jsonify({
+            'message': 'Retry started',
+            'job_id': job_id,
+            'retrying': count,
+            'status': 'queued',
+        }), 202
+
+    except Exception as e:
+        print(f"Error starting failed-scene retry: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
 def process_bulk_analysis_job(job_id, script_id, scene_ids):
     """
     Background worker to process scenes one-by-one.
