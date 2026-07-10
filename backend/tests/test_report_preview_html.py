@@ -53,3 +53,20 @@ def test_preview_html_invalid_type_returns_400(monkeypatch):
     )
     assert resp.status_code == 400
     assert resp.get_json()["success"] is False
+
+
+def test_reports_list_includes_config_and_type(monkeypatch):
+    fake_reports = [
+        {"id": "r1", "report_type": "scene_breakdown",
+         "config": {"filters": {"locations": ["INT. KITCHEN"]}, "group_by": "location"},
+         "title": "Wk1", "generated_at": "2026-07-08T00:00:00", "is_public": False},
+    ]
+    monkeypatch.setattr(rr.report_service, "get_script_reports",
+                        lambda script_id: fake_reports)
+    from app import app
+    app.config["TESTING"] = True
+    resp = app.test_client().get("/api/reports/scripts/scr-1/reports")
+    assert resp.status_code == 200
+    reports = resp.get_json()["reports"]
+    assert reports[0]["report_type"] == "scene_breakdown"
+    assert reports[0]["config"]["group_by"] == "location"
