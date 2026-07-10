@@ -16,7 +16,7 @@ from datetime import datetime, timedelta
 from flask import Blueprint, request, jsonify, g
 from db.supabase_client import get_supabase_client, get_supabase_admin
 from middleware.auth import require_auth, optional_auth, get_user_id
-from services.email_service import send_invite_accepted_notification, send_test_email, is_configured as email_configured
+from services.email_service import send_invite_accepted_notification, send_team_invite, send_test_email, is_configured as email_configured
 
 invite_bp = Blueprint('invite', __name__)
 
@@ -153,12 +153,41 @@ def create_invite(script_id):
         
         # Get department name
         dept_name = get_department_name(department_code)
-        
+
+        # Send invite email to the invitee
+        email_sent = False
+        if email_configured():
+            try:
+                # Resolve inviter's display name from their profile
+                inviter_name = 'A teammate'
+                inviter_result = supabase.table('profiles').select('full_name, email').eq('id', user_id).single().execute()
+                if inviter_result.data:
+                    inviter_name = (inviter_result.data.get('full_name')
+                                    or inviter_result.data.get('email', '').split('@')[0]
+                                    or 'A teammate')
+
+                send_result = send_team_invite(
+                    to_email=email,
+                    inviter_name=inviter_name,
+                    script_title=script['title'],
+                    department=dept_name,
+                    role=role,
+                    invite_url=invite_url
+                )
+                email_sent = bool(send_result and 'error' not in send_result)
+                if not email_sent:
+                    print(f"Warning: Failed to send invite email to {email}: {send_result}")
+            except Exception as email_err:
+                print(f"Warning: Failed to send invite email to {email}: {email_err}")
+        else:
+            print("Warning: Email not configured - invite email not sent")
+
         return jsonify({
             'invite': {
                 'id': invite['id'],
                 'email': email,
                 'department': dept_name,
+                'email_sent': email_sent,
                 'department_code': department_code,
                 'role': role,
                 'status': 'pending',

@@ -179,6 +179,147 @@ def send_invite_accepted_notification(
     return send_email(to_email, subject, html)
 
 
+def send_team_invite(
+    to_email: str,
+    inviter_name: str,
+    script_title: str,
+    department: str,
+    role: str,
+    invite_url: str,
+) -> Dict[str, Any]:
+    """
+    Send an invitation email to a prospective team member.
+
+    Args:
+        to_email: Email address of the person being invited
+        inviter_name: Name of the person sending the invite
+        script_title: Title of the script they're invited to
+        department: Department name they're invited as
+        role: Role they'll have (admin/member/viewer)
+        invite_url: Magic link to accept the invite
+    """
+    import html as _html
+
+    # HTML-escape every interpolated value to prevent HTML/email injection.
+    # inviter_name and script_title are user-controlled (profile name / script title).
+    safe_name = _html.escape(inviter_name or 'A teammate')
+    safe_title = _html.escape(script_title or 'Untitled')
+    safe_dept = _html.escape(department or '')
+    safe_role = _html.escape(role or '')
+
+    # Only allow invite links on our own frontend origin (blocks javascript:/data: URIs).
+    if not invite_url or not invite_url.startswith(APP_URL):
+        print(f"Warning: refusing to send invite email with untrusted URL: {invite_url!r}")
+        return {'error': 'Invalid invite URL'}
+    safe_url = _html.escape(invite_url, quote=True)
+
+    # Strip newlines from subject inputs to avoid header injection.
+    subject = f"🎬 {inviter_name} invited you to collaborate on {script_title}".replace('\r', ' ').replace('\n', ' ')
+
+    html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>{_html.escape(subject)}</title>
+    </head>
+    <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #0F0F0F; color: #FFFFFF;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #0F0F0F; padding: 40px 20px;">
+            <tr>
+                <td align="center">
+                    <table width="600" cellpadding="0" cellspacing="0" style="background-color: #1A1A1A; border-radius: 16px; overflow: hidden; border: 1px solid #2A2A2A;">
+                        <!-- Header -->
+                        <tr>
+                            <td style="background: linear-gradient(135deg, #F59E0B, #D97706); padding: 32px; text-align: center;">
+                                <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: #000000;">
+                                    🎬 {APP_NAME}
+                                </h1>
+                            </td>
+                        </tr>
+
+                        <!-- Content -->
+                        <tr>
+                            <td style="padding: 40px 32px;">
+                                <h2 style="margin: 0 0 24px 0; font-size: 28px; font-weight: 700; color: #FFFFFF; line-height: 1.3;">
+                                    You've been invited to collaborate
+                                </h2>
+
+                                <p style="margin: 0 0 24px 0; font-size: 16px; color: #D1D5DB; line-height: 1.5;">
+                                    <strong>{safe_name}</strong> has invited you to join their production team on {APP_NAME}.
+                                </p>
+
+                                <div style="background-color: #262626; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+                                    <table width="100%" cellpadding="0" cellspacing="0">
+                                        <tr>
+                                            <td style="padding-bottom: 16px;">
+                                                <span style="font-size: 12px; color: #9CA3AF; text-transform: uppercase; letter-spacing: 0.5px;">Script</span>
+                                                <p style="margin: 4px 0 0 0; font-size: 18px; font-weight: 600; color: #FFFFFF;">{safe_title}</p>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding-bottom: 16px;">
+                                                <span style="font-size: 12px; color: #9CA3AF; text-transform: uppercase; letter-spacing: 0.5px;">Department</span>
+                                                <p style="margin: 4px 0 0 0; font-size: 18px; font-weight: 600; color: #F59E0B;">{safe_dept}</p>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                <span style="font-size: 12px; color: #9CA3AF; text-transform: uppercase; letter-spacing: 0.5px;">Role</span>
+                                                <p style="margin: 4px 0 0 0; font-size: 18px; font-weight: 600; color: #FFFFFF; text-transform: capitalize;">{safe_role}</p>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
+
+                                <a href="{safe_url}" style="display: inline-block; background: linear-gradient(135deg, #F59E0B, #D97706); color: #000000; text-decoration: none; padding: 14px 28px; border-radius: 8px; font-weight: 600; font-size: 16px;">
+                                    Accept Invite →
+                                </a>
+
+                                <p style="margin: 24px 0 0 0; font-size: 13px; color: #6B7280; line-height: 1.5;">
+                                    This invite expires in 7 days. If the button doesn't work, copy and paste this link into your browser:<br>
+                                    <a href="{safe_url}" style="color: #F59E0B; word-break: break-all;">{safe_url}</a>
+                                </p>
+                            </td>
+                        </tr>
+
+                        <!-- Footer -->
+                        <tr>
+                            <td style="padding: 24px 32px; border-top: 1px solid #2A2A2A; text-align: center;">
+                                <p style="margin: 0; font-size: 12px; color: #6B7280;">
+                                    You received this email because {safe_name} invited you to collaborate on {APP_NAME}.
+                                </p>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </body>
+    </html>
+    """
+
+    result = send_email(
+        to=to_email,
+        subject=subject,
+        html=html,
+        from_email="hello@slateone.studio",
+        reply_to="hello@slateone.studio",
+    )
+
+    if result and 'error' not in result:
+        log_email_sent(
+            email_type='team_invite',
+            recipient_email=to_email,
+            recipient_name=to_email.split('@')[0],
+            resend_email_id=result.get('id'),
+            user_status='invited',
+            metadata={'script_title': script_title, 'department': department, 'role': role},
+        )
+
+    return result
+
+
 def send_welcome_credits_email(
     to_email: str,
     full_name: str,
