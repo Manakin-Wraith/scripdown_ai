@@ -3432,6 +3432,8 @@ def analyze_scene_internal(scene_id):
         'description': analysis.get('description', ''),
         'page_length_eighths': page_length_eighths,
         'analysis_status': 'complete',
+        'analysis_error': None,
+        'analysis_error_category': None,
         'setting': loc_setting,
         'location_canonical': loc_canonical,
         # Story Days (Phase 1)

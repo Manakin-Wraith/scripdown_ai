@@ -379,7 +379,7 @@ const SceneViewer = () => {
                     s => s.analysis_status === 'pending' || s.analysis_status === 'analyzing'
                 ).length;
                 const errorCount = fetchedScenes.filter(
-                    s => s.analysis_status === 'error'
+                    s => s.analysis_status === 'error' || s.analysis_status === 'failed'
                 ).length;
                 
                 if (pendingCount === 0) {
