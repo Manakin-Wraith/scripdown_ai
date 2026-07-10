@@ -781,6 +781,15 @@ export const getReportPrintUrl = (reportId) => {
 };
 
 /**
+ * Fetch a report's printable HTML with auth (JWT) and return an object URL.
+ * Caller is responsible for opening it and revoking the URL.
+ */
+export const fetchReportPrintUrl = async (reportId) => {
+    const response = await api.get(`/api/reports/reports/${reportId}/print`, { responseType: 'blob' });
+    return URL.createObjectURL(response.data);
+};
+
+/**
  * Create a share link for a report
  * @param {string} reportId - The report UUID
  * @param {number} expiresInDays - Days until link expires (default 7)

@@ -10,7 +10,7 @@ import { SubscriptionGate } from '../subscription';
 import PageHeader from '../layout/PageHeader';
 import {
     getReportTypes, generateReport, getScriptReports, deleteReport,
-    getReportPrintUrl, getScriptMetadata, getFilterOptions, getFilterPresets,
+    fetchReportPrintUrl, getScriptMetadata, getFilterOptions, getFilterPresets,
     saveFilterPreset, deleteFilterPreset, previewReportHtml,
 } from '../../services/apiService';
 import ReportRail from './ReportRail';
@@ -182,8 +182,20 @@ const ReportStudio = () => {
         triggerPreview();
     };
 
-    const handleDownload = (report) => window.open(getReportPrintUrl(report.id), '_blank');
-    const handlePrint = (report) => window.open(getReportPrintUrl(report.id), '_blank');
+    const openPrintable = async (report) => {
+        const win = window.open('', '_blank');
+        try {
+            const url = await fetchReportPrintUrl(report.id);
+            if (win) win.location = url; else window.open(url, '_blank');
+            setTimeout(() => URL.revokeObjectURL(url), 60000);
+        } catch (e) {
+            if (win) win.close();
+            toast.error('Error', 'Could not open the report');
+        }
+    };
+
+    const handleDownload = (report) => openPrintable(report);
+    const handlePrint = (report) => openPrintable(report);
 
     const handleDelete = async (report) => {
         const ok = await confirm({ title: 'Delete Report?', message: 'This report will be permanently deleted.', variant: 'danger' });
