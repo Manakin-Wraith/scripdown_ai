@@ -2792,14 +2792,28 @@ def analyze_scene(scene_id):
                 prev_scene_context = prev_scene
         
         # Call Gemini for analysis with pre-extracted context
-        analysis = analyze_scene_with_gemini(
-            scene_text, scene.get('setting', ''),
-            known_speakers=known_speakers if has_speakers else None,
-            shot_type=scene_shot_type,
-            location_hierarchy=scene_location_hierarchy,
-            prev_scene_context=prev_scene_context,
-        )
-        
+        try:
+            analysis = analyze_scene_with_gemini(
+                scene_text, scene.get('setting', ''),
+                known_speakers=known_speakers if has_speakers else None,
+                shot_type=scene_shot_type,
+                location_hierarchy=scene_location_hierarchy,
+                prev_scene_context=prev_scene_context,
+            )
+        except GeminiError as ge:
+            supabase.table('scenes').update({
+                'analysis_status': 'failed',
+                'analysis_error': ge.user_message,
+                'analysis_error_category': ge.category,
+            }).eq('id', scene_id).execute()
+            return jsonify({
+                'message': 'Scene analysis failed',
+                'scene_id': scene_id,
+                'analysis_status': 'failed',
+                'analysis_error': ge.user_message,
+                'analysis_error_category': ge.category,
+            }), 200
+
         # Recalculate scene length in eighths with full scene text
         from utils.scene_calculations import calculate_eighths_from_content, calculate_eighths_from_pages
         if scene_text and len(scene_text.strip()) > 50:
@@ -2846,6 +2860,8 @@ def analyze_scene(scene_id):
             'description': analysis.get('description', ''),
             'page_length_eighths': page_length_eighths,
             'analysis_status': 'complete',
+            'analysis_error': None,
+            'analysis_error_category': None,
             'setting': loc_setting,
             'location_canonical': loc_canonical,
             # Story Days (Phase 1)
