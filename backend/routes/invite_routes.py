@@ -16,7 +16,7 @@ from datetime import datetime, timedelta
 from flask import Blueprint, request, jsonify, g
 from db.supabase_client import get_supabase_client, get_supabase_admin
 from middleware.auth import require_auth, optional_auth, get_user_id
-from services.email_service import send_invite_accepted_notification, send_team_invite, send_test_email, is_configured as email_configured
+from services.email_service import send_invite_accepted_notification, send_team_invite, send_member_removed, send_invite_revoked, send_test_email, is_configured as email_configured
 
 invite_bp = Blueprint('invite', __name__)
 
@@ -253,20 +253,41 @@ def revoke_invite(invite_id):
     
     try:
         # Get invite and verify ownership
-        invite_result = supabase.table('script_invites').select('*, scripts(user_id)').eq('id', invite_id).single().execute()
-        
+        invite_result = supabase.table('script_invites').select('*, scripts(user_id, title)').eq('id', invite_id).single().execute()
+
         if not invite_result.data:
             return jsonify({'error': 'Invite not found'}), 404
-        
+
         invite = invite_result.data
-        
+
         # Check authorization
         if invite['scripts']['user_id'] != user_id and invite['invited_by'] != user_id:
             return jsonify({'error': 'Not authorized'}), 403
-        
+
+        # Only pending invites are worth notifying about
+        was_pending = invite.get('status') == 'pending'
+
         # Update status to revoked
         supabase.table('script_invites').update({'status': 'revoked'}).eq('id', invite_id).execute()
-        
+
+        # Email the invitee that their invitation was withdrawn
+        if was_pending and invite.get('email') and email_configured():
+            try:
+                revoker_name = 'The script owner'
+                revoker_result = supabase.table('profiles').select('full_name, email').eq('id', user_id).single().execute()
+                if revoker_result.data:
+                    revoker_name = (revoker_result.data.get('full_name')
+                                    or revoker_result.data.get('email', '').split('@')[0]
+                                    or 'The script owner')
+                script_title = (invite.get('scripts') or {}).get('title') or 'Unknown Script'
+                send_invite_revoked(
+                    to_email=invite['email'],
+                    script_title=script_title,
+                    inviter_name=revoker_name
+                )
+            except Exception as email_err:
+                print(f"Warning: Failed to send invite-revoked email: {email_err}")
+
         return jsonify({'success': True})
         
     except Exception as e:
@@ -711,17 +732,48 @@ def remove_member(script_id, member_id):
     
     try:
         # Verify ownership
-        script_result = supabase.table('scripts').select('user_id').eq('id', script_id).single().execute()
-        
+        script_result = supabase.table('scripts').select('user_id, title').eq('id', script_id).single().execute()
+
         if not script_result.data:
             return jsonify({'error': 'Script not found'}), 404
-        
+
         if script_result.data['user_id'] != user_id:
             return jsonify({'error': 'Only script owner can remove members'}), 403
-        
+
+        # Capture the removed member's contact details BEFORE deleting the row
+        removed_email = None
+        removed_name = 'there'
+        try:
+            member_row = supabase.table('script_members').select('user_id').eq('id', member_id).eq('script_id', script_id).single().execute()
+            if member_row.data and member_row.data.get('user_id'):
+                profile = supabase.table('profiles').select('email, full_name').eq('id', member_row.data['user_id']).single().execute()
+                if profile.data:
+                    removed_email = profile.data.get('email')
+                    removed_name = profile.data.get('full_name') or (removed_email.split('@')[0] if removed_email else 'there')
+        except Exception as lookup_err:
+            print(f"Warning: Could not look up removed member's profile: {lookup_err}")
+
         # Remove member
         supabase.table('script_members').delete().eq('id', member_id).eq('script_id', script_id).execute()
-        
+
+        # Email the removed member
+        if removed_email and email_configured():
+            try:
+                remover_name = 'The script owner'
+                remover_result = supabase.table('profiles').select('full_name, email').eq('id', user_id).single().execute()
+                if remover_result.data:
+                    remover_name = (remover_result.data.get('full_name')
+                                    or remover_result.data.get('email', '').split('@')[0]
+                                    or 'The script owner')
+                send_member_removed(
+                    to_email=removed_email,
+                    member_name=removed_name,
+                    script_title=script_result.data.get('title') or 'Unknown Script',
+                    remover_name=remover_name
+                )
+            except Exception as email_err:
+                print(f"Warning: Failed to send member-removed email: {email_err}")
+
         return jsonify({'success': True})
         
     except Exception as e:

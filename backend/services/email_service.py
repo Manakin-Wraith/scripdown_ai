@@ -320,6 +320,188 @@ def send_team_invite(
     return result
 
 
+def _render_notice_email(subject: str, heading: str, body_html: str, footer_note: str) -> str:
+    """
+    Render a simple branded notice email (no call-to-action button).
+
+    Caller is responsible for HTML-escaping any user-controlled values before
+    passing them in `heading`, `body_html`, or `footer_note`.
+    """
+    import html as _html
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>{_html.escape(subject)}</title>
+    </head>
+    <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #0F0F0F; color: #FFFFFF;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #0F0F0F; padding: 40px 20px;">
+            <tr>
+                <td align="center">
+                    <table width="600" cellpadding="0" cellspacing="0" style="background-color: #1A1A1A; border-radius: 16px; overflow: hidden; border: 1px solid #2A2A2A;">
+                        <!-- Header -->
+                        <tr>
+                            <td style="background: linear-gradient(135deg, #F59E0B, #D97706); padding: 32px; text-align: center;">
+                                <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: #000000;">
+                                    🎬 {APP_NAME}
+                                </h1>
+                            </td>
+                        </tr>
+
+                        <!-- Content -->
+                        <tr>
+                            <td style="padding: 40px 32px;">
+                                <h2 style="margin: 0 0 24px 0; font-size: 26px; font-weight: 700; color: #FFFFFF; line-height: 1.3;">
+                                    {heading}
+                                </h2>
+                                {body_html}
+                            </td>
+                        </tr>
+
+                        <!-- Footer -->
+                        <tr>
+                            <td style="padding: 24px 32px; border-top: 1px solid #2A2A2A; text-align: center;">
+                                <p style="margin: 0; font-size: 12px; color: #6B7280;">
+                                    {footer_note}
+                                </p>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </body>
+    </html>
+    """
+
+
+def send_member_removed(
+    to_email: str,
+    member_name: str,
+    script_title: str,
+    remover_name: str,
+) -> Dict[str, Any]:
+    """
+    Notify a team member that they've been removed from a script's team.
+
+    Args:
+        to_email: Email of the removed member
+        member_name: Display name of the removed member
+        script_title: Title of the script they were removed from
+        remover_name: Name of the owner who removed them
+    """
+    import html as _html
+
+    safe_member = _html.escape(member_name or 'there')
+    safe_title = _html.escape(script_title or 'Untitled')
+    safe_remover = _html.escape(remover_name or 'The script owner')
+
+    subject = f"Your access to \"{script_title}\" was removed".replace('\r', ' ').replace('\n', ' ')
+
+    body_html = f"""
+        <p style="margin: 0 0 16px 0; font-size: 16px; color: #D1D5DB; line-height: 1.6;">
+            Hi {safe_member},
+        </p>
+        <p style="margin: 0 0 16px 0; font-size: 16px; color: #D1D5DB; line-height: 1.6;">
+            {safe_remover} has removed you from the production team for
+            <strong style="color: #FFFFFF;">{safe_title}</strong> on {APP_NAME}.
+            You no longer have access to this script.
+        </p>
+        <p style="margin: 0; font-size: 14px; color: #9CA3AF; line-height: 1.6;">
+            Any notes and contributions you made remain with the production.
+            If you think this was a mistake, reach out to the script owner.
+        </p>
+    """
+
+    html = _render_notice_email(
+        subject=subject,
+        heading="You've been removed from a team",
+        body_html=body_html,
+        footer_note=f"You received this email because your access to a {APP_NAME} script changed.",
+    )
+
+    result = send_email(
+        to=to_email,
+        subject=subject,
+        html=html,
+        from_email="hello@slateone.studio",
+        reply_to="hello@slateone.studio",
+    )
+
+    if result and 'error' not in result:
+        log_email_sent(
+            email_type='member_removed',
+            recipient_email=to_email,
+            recipient_name=member_name or to_email.split('@')[0],
+            resend_email_id=result.get('id'),
+            user_status='removed',
+            metadata={'script_title': script_title},
+        )
+
+    return result
+
+
+def send_invite_revoked(
+    to_email: str,
+    script_title: str,
+    inviter_name: str,
+) -> Dict[str, Any]:
+    """
+    Notify a pending invitee that their invitation was withdrawn.
+
+    Args:
+        to_email: Email the invite was sent to
+        script_title: Title of the script they were invited to
+        inviter_name: Name of the person who withdrew the invite
+    """
+    import html as _html
+
+    safe_title = _html.escape(script_title or 'Untitled')
+    safe_inviter = _html.escape(inviter_name or 'The script owner')
+
+    subject = f"Your invitation to \"{script_title}\" was withdrawn".replace('\r', ' ').replace('\n', ' ')
+
+    body_html = f"""
+        <p style="margin: 0 0 16px 0; font-size: 16px; color: #D1D5DB; line-height: 1.6;">
+            {safe_inviter} has withdrawn your invitation to join the production team for
+            <strong style="color: #FFFFFF;">{safe_title}</strong> on {APP_NAME}.
+        </p>
+        <p style="margin: 0; font-size: 14px; color: #9CA3AF; line-height: 1.6;">
+            The invite link that was sent to you is no longer active.
+            If you think this was a mistake, reach out to the person who invited you.
+        </p>
+    """
+
+    html = _render_notice_email(
+        subject=subject,
+        heading="Your invitation was withdrawn",
+        body_html=body_html,
+        footer_note=f"You received this email because you were invited to collaborate on {APP_NAME}.",
+    )
+
+    result = send_email(
+        to=to_email,
+        subject=subject,
+        html=html,
+        from_email="hello@slateone.studio",
+        reply_to="hello@slateone.studio",
+    )
+
+    if result and 'error' not in result:
+        log_email_sent(
+            email_type='invite_revoked',
+            recipient_email=to_email,
+            recipient_name=to_email.split('@')[0],
+            resend_email_id=result.get('id'),
+            user_status='invited',
+            metadata={'script_title': script_title},
+        )
+
+    return result
+
+
 def send_welcome_credits_email(
     to_email: str,
     full_name: str,
