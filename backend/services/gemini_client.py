@@ -5,6 +5,7 @@ classification into user-friendly messages. Every analysis code path calls
 generate_with_retry() instead of talking to google.generativeai directly, so
 retries, the model id, and error copy live in exactly one place.
 """
+import re
 import time
 import google.generativeai as genai
 
@@ -55,12 +56,12 @@ def classify_exception(exc):
     msg = str(exc).lower()
     if "deadlineexceeded" in name or "504" in msg or "timed out" in msg or "timeout" in msg:
         return "timeout"
-    if "resourceexhausted" in name or "429" in msg or "quota" in msg or "rate" in msg:
+    if "resourceexhausted" in name or "429" in msg or "quota" in msg or re.search(r"\brate\b", msg):
         return "rate_limit"
-    if "notfound" in name or "no longer available" in msg or "404" in msg:
+    if "notfound" in name or "no longer available" in msg or re.search(r"\b404\b", msg):
         return "model_unavailable"
     if "serviceunavailable" in name or "internalservererror" in name \
-            or any(code in msg for code in ("500", "502", "503")):
+            or re.search(r"\b(500|502|503)\b", msg):
         return "server"
     return "unknown"
 

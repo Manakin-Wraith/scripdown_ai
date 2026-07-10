@@ -87,6 +87,15 @@ def test_classify_exception_shapes():
     assert classify_exception(Exception("weird boom")) == "unknown"
 
 
+def test_classify_does_not_confuse_generate_with_rate():
+    assert classify_exception(Exception("Failed to generate content: bad arg")) == "unknown"
+    assert classify_exception(Exception("429 rate limit exceeded")) == "rate_limit"
+    # digits embedded in a larger number must not falsely match bare "404"/"500" substrings
+    assert classify_exception(Exception("processed 15404 items, batch 25500")) == "unknown"
+    # a genuinely standalone 404 token still classifies as model_unavailable
+    assert classify_exception(Exception("scene had error code 404")) == "model_unavailable"
+
+
 def test_messages_never_say_ai():
     for cat in ("timeout", "rate_limit", "server", "model_unavailable", "bad_response", "unknown"):
         assert "ai" not in GeminiError(cat).user_message.lower().split()  # no standalone "AI"
