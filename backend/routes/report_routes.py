@@ -6,9 +6,28 @@ API endpoints for report generation, management, and sharing.
 
 from flask import Blueprint, request, jsonify, Response
 from services.report_service import report_service
-from middleware.auth import optional_auth, get_user_id
+from middleware.auth import optional_auth, require_auth, get_user_id
+from utils.report_access import script_access, report_script_id
 
 report_bp = Blueprint('reports', __name__)
+
+
+def _check_script(script_id):
+    """Guard: None if the current user may access script_id, else an error response."""
+    status = script_access(report_service.db.client, script_id, get_user_id())
+    if status == 'not_found':
+        return jsonify({'success': False, 'error': 'Script not found'}), 404
+    if status == 'forbidden':
+        return jsonify({'success': False, 'error': 'Not authorized'}), 403
+    return None
+
+
+def _check_report(report_id):
+    """Guard: None if the current user may access the report's script, else an error response."""
+    script_id = report_script_id(report_service.db.client, report_id)
+    if not script_id:
+        return jsonify({'success': False, 'error': 'Report not found'}), 404
+    return _check_script(script_id)
 
 
 # ============================================
@@ -49,11 +68,15 @@ def get_template(template_id):
 # ============================================
 
 @report_bp.route('/scripts/<script_id>/filter-options', methods=['GET'])
+@require_auth
 def get_filter_options(script_id):
     """
     Get unique values for each filter dimension.
     Used by frontend to populate filter dropdowns.
     """
+    denied = _check_script(script_id)
+    if denied:
+        return denied
     try:
         options = report_service.get_filter_options(script_id)
         return jsonify({
@@ -69,9 +92,12 @@ def get_filter_options(script_id):
 # ============================================
 
 @report_bp.route('/scripts/<script_id>/filter-presets', methods=['GET'])
-@optional_auth
+@require_auth
 def get_filter_presets(script_id):
     """Get filter presets (default + user's own) for a script."""
+    denied = _check_script(script_id)
+    if denied:
+        return denied
     try:
         user_id = get_user_id()
         presets = report_service.get_filter_presets(script_id, user_id=user_id)
@@ -84,11 +110,11 @@ def get_filter_presets(script_id):
 
 
 @report_bp.route('/scripts/<script_id>/filter-presets', methods=['POST'])
-@optional_auth
+@require_auth
 def save_filter_preset(script_id):
     """
     Save a new filter preset.
-    
+
     Request body:
     {
         "name": "My Preset",
@@ -97,6 +123,9 @@ def save_filter_preset(script_id):
         "group_by": "location"
     }
     """
+    denied = _check_script(script_id)
+    if denied:
+        return denied
     try:
         data = request.get_json() or {}
         name = data.get('name')
@@ -150,8 +179,12 @@ def delete_filter_preset(preset_id):
 # ============================================
 
 @report_bp.route('/scripts/<script_id>/reports', methods=['GET'])
+@require_auth
 def get_script_reports(script_id):
     """Get all reports for a script."""
+    denied = _check_script(script_id)
+    if denied:
+        return denied
     try:
         reports = report_service.get_script_reports(script_id)
         return jsonify({
@@ -163,10 +196,11 @@ def get_script_reports(script_id):
 
 
 @report_bp.route('/scripts/<script_id>/reports/generate', methods=['POST'])
+@require_auth
 def generate_report(script_id):
     """
     Generate a new report for a script.
-    
+
     Request body:
     {
         "report_type": "scene_breakdown" | "day_out_of_days" | "location" | "props" | "one_liner" | "full_breakdown",
@@ -174,6 +208,9 @@ def generate_report(script_id):
         "config": { optional configuration overrides }
     }
     """
+    denied = _check_script(script_id)
+    if denied:
+        return denied
     try:
         data = request.get_json() or {}
         report_type = data.get('report_type', 'scene_breakdown')
@@ -218,11 +255,15 @@ def generate_report(script_id):
 
 
 @report_bp.route('/scripts/<script_id>/reports/preview', methods=['POST'])
+@require_auth
 def preview_report(script_id):
     """
     Preview report data without saving.
     Returns aggregated data for the specified report type.
     """
+    denied = _check_script(script_id)
+    if denied:
+        return denied
     try:
         data = request.get_json() or {}
         report_type = data.get('report_type', 'scene_breakdown')
@@ -243,11 +284,15 @@ def preview_report(script_id):
 
 
 @report_bp.route('/scripts/<script_id>/reports/preview-html', methods=['POST'])
+@require_auth
 def preview_report_html(script_id):
     """
     Render report HTML from unsaved config for live preview. Does not persist.
     Body: { report_type, filters, group_by, categories, title }
     """
+    denied = _check_script(script_id)
+    if denied:
+        return denied
     try:
         data = request.get_json() or {}
         report_type = data.get('report_type', 'scene_breakdown')
