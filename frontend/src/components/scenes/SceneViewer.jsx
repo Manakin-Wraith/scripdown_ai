@@ -216,7 +216,8 @@ const SceneViewer = () => {
             totalScenes: activeScenes.length,
             analyzedScenes: analyzedCount,
             pendingScenes: activeScenes.length - analyzedCount,
-            omittedScenes: scenes.length - activeScenes.length
+            omittedScenes: scenes.length - activeScenes.length,
+            failedScenes: activeScenes.filter(s => s.analysis_status === 'failed').length
         };
     }, [scenes, userItemsByScene]);
 
@@ -607,7 +608,8 @@ const SceneViewer = () => {
                         stats={{
                             total: summaryData.totalScenes,
                             analyzed: summaryData.analyzedScenes,
-                            pending: summaryData.pendingScenes
+                            pending: summaryData.pendingScenes,
+                            failed: summaryData.failedScenes
                         }}
                         scriptId={scriptId}
                         onMergeComplete={async () => {
