@@ -281,10 +281,11 @@ const InviteModal = ({ isOpen, onClose, scriptId, scriptTitle }) => {
                     <div className="success-icon">
                         <Check size={32} />
                     </div>
-                    <h3>Invite Created!</h3>
+                    <h3>Invite Sent!</h3>
                     <p>
-                        Share this link with <strong>{inviteResult.email}</strong> to invite them
-                        as <strong>{inviteResult.department}</strong>
+                        {inviteResult.email_sent
+                            ? <>We emailed the invite to <strong>{inviteResult.email}</strong> as <strong>{inviteResult.department}</strong>. You can also share the link below.</>
+                            : <>Share this link with <strong>{inviteResult.email}</strong> to invite them as <strong>{inviteResult.department}</strong></>}
                     </p>
 
                     <div className="invite-link-box">
