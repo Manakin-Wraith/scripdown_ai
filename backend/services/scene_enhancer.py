@@ -20,6 +20,7 @@ from typing import Dict, List, Optional
 import google.generativeai as genai
 from utils.scene_calculations import calculate_eighths_from_content
 from services.entity_resolver import merge_to_character_list
+from services.gemini_client import generate_with_retry
 
 # Rate limiting
 RATE_LIMIT_SECONDS = 4  # Gemini free tier: 15 RPM = 4 seconds between calls
@@ -105,12 +106,8 @@ def enhance_scene(
     
     try:
         rate_limit_wait()
-        
-        model = get_gemini_model()
-        response = model.generate_content(prompt)
-        
-        # Parse response
-        response_text = response.text.strip()
+
+        response_text = generate_with_retry(prompt).strip()
         
         # Clean up markdown if present
         if response_text.startswith('```'):

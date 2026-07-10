@@ -2,6 +2,7 @@ import google.generativeai as genai
 import os
 import json
 import re
+from services.gemini_client import generate_with_retry
 
 def analyze_script(script_text):
     """
@@ -14,10 +15,7 @@ def analyze_script(script_text):
         raise ValueError("GEMINI_API_KEY not configured. Please add your API key to backend/.env")
     
     genai.configure(api_key=api_key)
-    
-    # Use Gemini Pro Latest (free tier available)
-    model = genai.GenerativeModel('gemini-pro-latest')
-    
+
     # Focus on first 3 scenes with detailed breakdown
     prompt = f"""
 Analyze this screenplay and extract DETAILED information for the FIRST 3 SCENES ONLY.
@@ -66,15 +64,14 @@ Return only the JSON, no markdown formatting or additional text.
     
     try:
         # Generate content with Gemini
-        response = model.generate_content(
+        response_text = generate_with_retry(
             prompt,
             generation_config=genai.GenerationConfig(
                 temperature=0.7,  # Lower temperature for more consistent output
-            )
-        )
-        
-        response_text = response.text.strip()
-        
+            ),
+        ).strip()
+
+
         # Remove markdown code blocks if present
         response_text = re.sub(r'^```json\s*', '', response_text)
         response_text = re.sub(r'\s*```$', '', response_text)
