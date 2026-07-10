@@ -47,6 +47,8 @@ class _FakeSupabaseClient:
 
 
 def test_preview_html_returns_html_and_counts(monkeypatch):
+    monkeypatch.setattr("middleware.auth.DEV_MODE", True)
+    monkeypatch.setattr(rr, "script_access", lambda c, sid, uid: "ok")
     calls = {"insert": 0}
 
     monkeypatch.setattr(rr.report_service, "aggregate_scene_data",
@@ -86,6 +88,8 @@ def test_preview_html_returns_html_and_counts(monkeypatch):
 
 
 def test_preview_html_invalid_type_returns_400(monkeypatch):
+    monkeypatch.setattr("middleware.auth.DEV_MODE", True)
+    monkeypatch.setattr(rr, "script_access", lambda c, sid, uid: "ok")
     from app import app
     app.config["TESTING"] = True
     resp = app.test_client().post(
@@ -97,6 +101,8 @@ def test_preview_html_invalid_type_returns_400(monkeypatch):
 
 
 def test_reports_list_includes_config_and_type(monkeypatch):
+    monkeypatch.setattr("middleware.auth.DEV_MODE", True)
+    monkeypatch.setattr(rr, "script_access", lambda c, sid, uid: "ok")
     fake_reports = [
         {"id": "r1", "report_type": "scene_breakdown",
          "config": {"filters": {"locations": ["INT. KITCHEN"]}, "group_by": "location"},
