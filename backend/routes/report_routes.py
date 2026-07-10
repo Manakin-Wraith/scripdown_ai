@@ -242,6 +242,51 @@ def preview_report(script_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@report_bp.route('/scripts/<script_id>/reports/preview-html', methods=['POST'])
+def preview_report_html(script_id):
+    """
+    Render report HTML from unsaved config for live preview. Does not persist.
+    Body: { report_type, filters, group_by, categories, title }
+    """
+    try:
+        data = request.get_json() or {}
+        report_type = data.get('report_type', 'scene_breakdown')
+        filters = data.get('filters')
+        group_by = data.get('group_by')
+        categories = data.get('categories')
+        title = data.get('title')
+
+        config = {}
+        if group_by:
+            config['group_by'] = group_by
+        if categories:
+            config['categories'] = categories
+
+        if report_type not in report_service.REPORT_TYPES:
+            return jsonify({
+                'success': False,
+                'error': f'Invalid report type. Valid types: {list(report_service.REPORT_TYPES.keys())}'
+            }), 400
+
+        result = report_service.render_preview_html(
+            script_id=script_id,
+            report_type=report_type,
+            config=config,
+            title=title,
+            filters=filters,
+        )
+        return jsonify({
+            'success': True,
+            'html': result['html'],
+            'match_count': result['match_count'],
+            'total_count': result['total_count'],
+        })
+    except ValueError as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 # ============================================
 # Report Management Endpoints
 # ============================================
