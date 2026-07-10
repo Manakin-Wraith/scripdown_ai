@@ -6,7 +6,7 @@ API endpoints for report generation, management, and sharing.
 
 from flask import Blueprint, request, jsonify, Response
 from services.report_service import report_service
-from middleware.auth import optional_auth, require_auth, get_user_id
+from middleware.auth import require_auth, get_user_id
 from utils.report_access import script_access, report_script_id
 
 report_bp = Blueprint('reports', __name__)
