@@ -166,7 +166,7 @@ const ReportStudio = () => {
     };
 
     const handleReopen = (report) => {
-        setSelectedType(report.report_type || 'scene_breakdown');
+        setSelectedType(report.report_type && reportTypes[report.report_type] ? report.report_type : 'scene_breakdown');
         const cfg = report.config || {};
         setFilters({
             ...EMPTY_FILTERS,

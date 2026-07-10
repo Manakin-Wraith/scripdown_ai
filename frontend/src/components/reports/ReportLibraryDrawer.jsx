@@ -16,7 +16,7 @@ const ReportLibraryDrawer = ({ open, reports, onClose, onReopen, onDownload, onS
     return (
         <>
             {open && <div className="library-backdrop" onClick={onClose} />}
-            <aside className={`library-drawer ${open ? 'open' : ''}`} aria-hidden={!open}>
+            <aside className={`library-drawer ${open ? 'open' : ''}`} aria-hidden={!open} {...(!open ? { inert: '' } : {})}>
                 <div className="library-header">
                     <strong>Library · past reports</strong>
                     <button className="library-close" onClick={onClose} title="Close"><X size={18} /></button>

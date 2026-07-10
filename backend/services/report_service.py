@@ -853,6 +853,7 @@ class ReportService:
             'title': title,
             'config': merged_config,
             'data_snapshot': data,
+            'generated_at': datetime.utcnow().isoformat(),
         }
         html = self._render_report_html(report)
 

@@ -282,7 +282,7 @@ def preview_report_html(script_id):
             'total_count': result['total_count'],
         })
     except ValueError as e:
-        return jsonify({'success': False, 'error': str(e)}), 400
+        return jsonify({'success': False, 'error': str(e)}), 404
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
