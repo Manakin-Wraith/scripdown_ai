@@ -28,7 +28,7 @@ import EmailCampaignsPage from './pages/Admin/EmailCampaignsPage';
 import './App.css';
 
 // Active imports
-import ReportBuilder from './components/reports/ReportBuilder';
+import ReportStudio from './components/reports/ReportStudio';
 import ShootingSchedulePage from './components/schedule/ShootingSchedulePage';
 import SharedReportView from './components/reports/SharedReportView';
 
@@ -64,7 +64,7 @@ function App() {
                     <Route path="scripts" element={<ScriptLibrary />} />
                     <Route path="scenes/:scriptId" element={<SceneViewer />} />
                     <Route path="scripts/:scriptId/stripboard" element={<Stripboard />} />
-                    <Route path="scripts/:scriptId/reports" element={<ReportBuilder />} />
+                    <Route path="scripts/:scriptId/reports" element={<ReportStudio />} />
                     <Route path="scripts/:scriptId/board" element={<ZoomableStripboard />} />
                     <Route path="scripts/:scriptId/schedule" element={<ShootingSchedulePage />} />
                     <Route path="profile" element={<ProfilePage />} />

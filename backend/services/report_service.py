@@ -821,7 +821,47 @@ class ReportService:
         
         result = self.db.client.table('reports').insert(report_data).execute()
         return result.data[0] if result.data else None
-    
+
+    def render_preview_html(
+        self,
+        script_id: str,
+        report_type: str,
+        config: Optional[Dict] = None,
+        title: Optional[str] = None,
+        filters: Optional[Dict] = None,
+    ) -> Dict:
+        """
+        Render report HTML from unsaved config for live preview.
+        Reuses the exact render path as PDF/print. Does NOT persist anything.
+        Returns { 'html', 'match_count', 'total_count' }.
+        """
+        if report_type not in self.REPORT_TYPES:
+            raise ValueError(f"Invalid report type: {report_type}")
+
+        data = self.aggregate_scene_data(script_id, filters=filters)
+
+        merged_config = dict(config or {})
+        if filters:
+            merged_config['filters'] = filters
+
+        if not title:
+            title = f"{data['script']['title']} - {self.REPORT_TYPES[report_type]['name']}"
+
+        # In-memory report dict — same shape _render_report_html expects, never saved.
+        report = {
+            'report_type': report_type,
+            'title': title,
+            'config': merged_config,
+            'data_snapshot': data,
+            'generated_at': datetime.utcnow().isoformat(),
+        }
+        html = self._render_report_html(report)
+
+        match_count = data.get('summary', {}).get('total_scenes', 0)
+        total_count = len(self.db.get_scenes(script_id))
+
+        return {'html': html, 'match_count': match_count, 'total_count': total_count}
+
     def get_report(self, report_id: str) -> Optional[Dict]:
         """Get a report by ID."""
         result = self.db.client.table('reports').select('*').eq('id', report_id).single().execute()

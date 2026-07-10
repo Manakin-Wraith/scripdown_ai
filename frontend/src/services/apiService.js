@@ -699,6 +699,25 @@ export const previewReport = async (scriptId, reportType, filters = null, groupB
 };
 
 /**
+ * Render report HTML from unsaved config for live preview (no DB write).
+ */
+export const previewReportHtml = async (scriptId, reportType, filters = null, groupBy = null, categories = null, title = null) => {
+    try {
+        const response = await api.post(`/api/reports/scripts/${scriptId}/reports/preview-html`, {
+            report_type: reportType,
+            filters,
+            group_by: groupBy,
+            categories,
+            title,
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error rendering report preview:', error);
+        return { success: false, error: error.response?.data?.error || error.message };
+    }
+};
+
+/**
  * Get all reports for a script
  * @param {string} scriptId - The script UUID
  * @returns {Promise<Object>} Reports list
