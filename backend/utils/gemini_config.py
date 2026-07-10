@@ -6,7 +6,7 @@ dotenv after import is still honored.
 """
 import os
 
-DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
+DEFAULT_GEMINI_MODEL = "gemini-flash-latest"
 
 
 def get_gemini_model_name() -> str:

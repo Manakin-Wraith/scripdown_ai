@@ -4,6 +4,7 @@ import json
 import re
 import time
 from db.db_connection import get_db
+from services.gemini_client import generate_with_retry
 
 # Rate limiting for Gemini API (free tier: 2 requests/minute)
 _last_request_time = 0
@@ -54,9 +55,7 @@ def analyze_characters(script_id, characters, scenes):
     
     # Rate limit before API call
     rate_limit_wait()
-    
-    model = get_gemini_model()
-    
+
     # Build detailed scene context with character info
     scene_details = []
     for s in scenes[:10]:
@@ -148,17 +147,15 @@ Return only the JSON, no markdown formatting.
 """
     
     try:
-        response = model.generate_content(
+        response_text = generate_with_retry(
             prompt,
-            generation_config=genai.GenerationConfig(temperature=0.7)
-        )
-        
-        response_text = response.text.strip()
+            generation_config=genai.GenerationConfig(temperature=0.7),
+        ).strip()
         response_text = re.sub(r'^```json\s*', '', response_text)
         response_text = re.sub(r'\s*```$', '', response_text)
-        
+
         result = json.loads(response_text)
-        
+
         # Cache the result
         cache_analysis(script_id, 'characters', result)
         
@@ -191,9 +188,7 @@ def analyze_locations(script_id, locations, scenes):
     
     # Rate limit before API call
     rate_limit_wait()
-    
-    model = get_gemini_model()
-    
+
     # Build context from scenes
     scene_context = "\n".join([
         f"Scene {s.get('scene_number', '?')} at {s.get('setting', 'Unknown')}: {s.get('description', 'No description')}"
@@ -244,17 +239,15 @@ Return only the JSON, no markdown formatting.
 """
     
     try:
-        response = model.generate_content(
+        response_text = generate_with_retry(
             prompt,
-            generation_config=genai.GenerationConfig(temperature=0.7)
-        )
-        
-        response_text = response.text.strip()
+            generation_config=genai.GenerationConfig(temperature=0.7),
+        ).strip()
         response_text = re.sub(r'^```json\s*', '', response_text)
         response_text = re.sub(r'\s*```$', '', response_text)
-        
+
         result = json.loads(response_text)
-        
+
         # Cache the result
         cache_analysis(script_id, 'locations', result)
         

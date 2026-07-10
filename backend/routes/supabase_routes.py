@@ -31,6 +31,8 @@ from services.location_resolver import (
 # Supabase client
 from supabase import create_client
 
+from services.gemini_client import generate_with_retry, GeminiError
+
 SUPABASE_URL = os.getenv('SUPABASE_URL')
 SUPABASE_SERVICE_KEY = os.getenv('SUPABASE_SERVICE_KEY', '').strip()
 SUPABASE_ANON_KEY = os.getenv('SUPABASE_ANON_KEY', '').strip()
@@ -2790,14 +2792,28 @@ def analyze_scene(scene_id):
                 prev_scene_context = prev_scene
         
         # Call Gemini for analysis with pre-extracted context
-        analysis = analyze_scene_with_gemini(
-            scene_text, scene.get('setting', ''),
-            known_speakers=known_speakers if has_speakers else None,
-            shot_type=scene_shot_type,
-            location_hierarchy=scene_location_hierarchy,
-            prev_scene_context=prev_scene_context,
-        )
-        
+        try:
+            analysis = analyze_scene_with_gemini(
+                scene_text, scene.get('setting', ''),
+                known_speakers=known_speakers if has_speakers else None,
+                shot_type=scene_shot_type,
+                location_hierarchy=scene_location_hierarchy,
+                prev_scene_context=prev_scene_context,
+            )
+        except GeminiError as ge:
+            supabase.table('scenes').update({
+                'analysis_status': 'failed',
+                'analysis_error': ge.user_message,
+                'analysis_error_category': ge.category,
+            }).eq('id', scene_id).execute()
+            return jsonify({
+                'message': 'Scene analysis failed',
+                'scene_id': scene_id,
+                'analysis_status': 'failed',
+                'analysis_error': ge.user_message,
+                'analysis_error_category': ge.category,
+            }), 200
+
         # Recalculate scene length in eighths with full scene text
         from utils.scene_calculations import calculate_eighths_from_content, calculate_eighths_from_pages
         if scene_text and len(scene_text.strip()) > 50:
@@ -2844,6 +2860,8 @@ def analyze_scene(scene_id):
             'description': analysis.get('description', ''),
             'page_length_eighths': page_length_eighths,
             'analysis_status': 'complete',
+            'analysis_error': None,
+            'analysis_error_category': None,
             'setting': loc_setting,
             'location_canonical': loc_canonical,
             # Story Days (Phase 1)
@@ -2907,9 +2925,7 @@ def analyze_scene_with_gemini(scene_text, setting, known_speakers=None, shot_typ
         raise ValueError("GEMINI_API_KEY not configured")
     
     genai.configure(api_key=api_key)
-    from utils.gemini_config import get_gemini_model_name
-    model = genai.GenerativeModel(get_gemini_model_name())
-    
+
     has_speakers = known_speakers and len(known_speakers) > 0
     
     # Build previous scene context block (Story Days Phase 1)
@@ -3006,53 +3022,35 @@ IMPORTANT:
 """
     
     try:
-        response = model.generate_content(
+        response_text = generate_with_retry(
             prompt,
-            generation_config=genai.GenerationConfig(temperature=0.3)
-        )
-        
-        response_text = response.text.strip()
-        
+            generation_config=genai.GenerationConfig(temperature=0.3),
+        ).strip()
+
         # Clean up response
         import re
         response_text = re.sub(r'^```json\s*', '', response_text)
         response_text = re.sub(r'\s*```$', '', response_text)
-        
-        result = json.loads(response_text)
-        
+
+        try:
+            result = json.loads(response_text)
+        except (ValueError, json.JSONDecodeError) as parse_err:
+            raise GeminiError("bad_response", raw=parse_err)
+
         # Phase 2: Entity resolution — merge speakers with AI characters
         if has_speakers:
             ai_characters = result.get('characters', []) + result.get('non_speaking_characters', [])
             result['characters'] = merge_to_character_list(known_speakers, ai_characters)
-        
+
         # Normalize story day fields
         result['time_transition'] = result.get('time_transition', '')
         result['is_new_story_day'] = bool(result.get('is_new_story_day', False))
         result['timeline_code'] = result.get('timeline_code', 'PRESENT')
-        
+
         return result
-        
-    except Exception as e:
-        print(f"Gemini analysis error: {e}")
-        fallback = {
-            'characters': [],
-            'props': [],
-            'wardrobe': [],
-            'special_fx': [],
-            'vehicles': [],
-            'makeup_hair': [],
-            'locations': [],
-            'sound': [],
-            'atmosphere': '',
-            'description': f'Analysis failed: {str(e)}',
-            'time_transition': '',
-            'is_new_story_day': False,
-            'timeline_code': 'PRESENT',
-        }
-        # Still merge speakers into fallback if available
-        if has_speakers:
-            fallback['characters'] = merge_to_character_list(known_speakers, [])
-        return fallback
+
+    except GeminiError:
+        raise  # caller records the failed scene state
 
 
 @supabase_bp.route('/api/scripts/<script_id>/analyze/bulk', methods=['POST'])
@@ -3143,6 +3141,67 @@ def analyze_bulk_scenes(script_id):
         return jsonify({'error': str(e)}), 500
 
 
+@supabase_bp.route('/api/scripts/<script_id>/scenes/retry-failed', methods=['POST'])
+@optional_auth
+def retry_failed_scenes(script_id):
+    """Re-run every scene currently marked 'failed' for a script.
+
+    Reuses the bulk background worker. Does not touch 'pending' scenes.
+    """
+    if not supabase:
+        return jsonify({'error': 'Supabase not configured'}), 500
+
+    user_id = get_user_id()
+    if user_id:
+        from services.subscription_service import get_subscription_status
+        sub_status = get_subscription_status(user_id)
+        if sub_status.get('status') != 'active':
+            return jsonify({
+                'error': 'Active subscription required for analysis',
+                'upgrade_url': 'https://wise.com/pay/r/8j9W0j5SUuPivxk',
+                'subscription_required': True
+            }), 403
+
+    try:
+        result = supabase.table('scenes').select('id, scene_number').eq(
+            'script_id', script_id).eq('analysis_status', 'failed').order('scene_number').execute()
+        failed_scenes = result.data or []
+        count = len(failed_scenes)
+
+        if count == 0:
+            return jsonify({'message': 'No failed scenes to retry', 'retrying': 0}), 200
+
+        job_id = str(uuid.uuid4())
+        scene_ids = [s['id'] for s in failed_scenes]
+        supabase.table('analysis_jobs').insert({
+            'id': job_id,
+            'script_id': script_id,
+            'job_type': 'retry_failed_scenes',
+            'status': 'queued',
+            'progress': 0,
+            'result_summary': f'Queued {count} failed scenes for retry',
+        }).execute()
+
+        threading.Thread(
+            target=process_bulk_analysis_job,
+            args=(job_id, script_id, scene_ids),
+            daemon=True,
+        ).start()
+
+        return jsonify({
+            'message': 'Retry started',
+            'job_id': job_id,
+            'retrying': count,
+            'status': 'queued',
+        }), 202
+
+    except Exception as e:
+        print(f"Error starting failed-scene retry: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
 def process_bulk_analysis_job(job_id, script_id, scene_ids):
     """
     Background worker to process scenes one-by-one.
@@ -3194,9 +3253,18 @@ def process_bulk_analysis_job(job_id, script_id, scene_ids):
                     print(f"  ✗ Scene {scene_id} failed (attempt {attempt}/{max_retries}): {e}")
                     if attempt == max_retries:
                         failed += 1
+                        if isinstance(e, GeminiError):
+                            err_msg, err_cat = e.user_message, e.category
+                        else:
+                            err_msg = "Analysis couldn't complete for this scene. Click Re-analyze to try again."
+                            err_cat = "unknown"
                         try:
-                            supabase.table('scenes').update({'analysis_status': 'error'}).eq('id', scene_id).execute()
-                        except:
+                            supabase.table('scenes').update({
+                                'analysis_status': 'failed',
+                                'analysis_error': err_msg,
+                                'analysis_error_category': err_cat,
+                            }).eq('id', scene_id).execute()
+                        except Exception:
                             pass
             
             # Update job progress (wrapped in try/except so it can't crash the loop)
@@ -3364,6 +3432,8 @@ def analyze_scene_internal(scene_id):
         'description': analysis.get('description', ''),
         'page_length_eighths': page_length_eighths,
         'analysis_status': 'complete',
+        'analysis_error': None,
+        'analysis_error_category': None,
         'setting': loc_setting,
         'location_canonical': loc_canonical,
         # Story Days (Phase 1)

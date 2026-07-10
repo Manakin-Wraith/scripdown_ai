@@ -48,6 +48,27 @@
     letter-spacing: 0.05em;
 }
 
+.retry-all-failed-btn {
+    margin-left: auto;
+    padding: 0.45rem 1rem;
+    border-radius: 6px;
+    border: 1px solid var(--color-warning, #d97706);
+    background: rgba(217, 119, 6, 0.08);
+    color: var(--color-warning, #d97706);
+    cursor: pointer;
+    font-size: 0.88rem;
+    font-weight: 500;
+}
+
+.retry-all-failed-btn:hover:not(:disabled) {
+    background: rgba(217, 119, 6, 0.16);
+}
+
+.retry-all-failed-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
 /* Two Column Layout */
 .summary-columns {
     display: grid;

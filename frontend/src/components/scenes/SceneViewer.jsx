@@ -216,7 +216,8 @@ const SceneViewer = () => {
             totalScenes: activeScenes.length,
             analyzedScenes: analyzedCount,
             pendingScenes: activeScenes.length - analyzedCount,
-            omittedScenes: scenes.length - activeScenes.length
+            omittedScenes: scenes.length - activeScenes.length,
+            failedScenes: activeScenes.filter(s => s.analysis_status === 'failed').length
         };
     }, [scenes, userItemsByScene]);
 
@@ -231,15 +232,25 @@ const SceneViewer = () => {
         
         try {
             const result = await analyzeScene(sceneId);
-            
-            // Update scenes array with new analysis data
+            const didFail = result?.analysis_status === 'failed';
+
+            // Update scenes array with new analysis data (respect failed result)
             setScenes(prevScenes => prevScenes.map(scene => {
                 if (scene.id === sceneId || scene.scene_id === sceneId) {
-                    const updatedScene = {
-                        ...scene,
-                        ...result.analysis,
-                        analysis_status: 'complete'
-                    };
+                    const updatedScene = didFail
+                        ? {
+                            ...scene,
+                            analysis_status: 'failed',
+                            analysis_error: result?.analysis_error || null,
+                            analysis_error_category: result?.analysis_error_category || null,
+                        }
+                        : {
+                            ...scene,
+                            ...result.analysis,
+                            analysis_status: 'complete',
+                            analysis_error: null,
+                            analysis_error_category: null,
+                        };
                     // Also update selectedScene if this is the one being viewed
                     if (selectedScene && (selectedScene.id === sceneId || selectedScene.scene_id === sceneId)) {
                         setSelectedScene(updatedScene);
@@ -248,13 +259,18 @@ const SceneViewer = () => {
                 }
                 return scene;
             }));
-            
+
+            if (didFail) {
+                toast.error('Analysis Failed', result?.analysis_error || 'Could not analyze scene.');
+                return;
+            }
+
             toast.success('Analysis Complete', 'Scene breakdown is ready!');
-            
+
             // Track as recently completed for fade-out animation
             const sceneIdToTrack = sceneId;
             setRecentlyCompletedScenes(prev => new Set([...prev, sceneIdToTrack]));
-            
+
             // Remove from recently completed after 1.5s (fade-out duration)
             setTimeout(() => {
                 setRecentlyCompletedScenes(prev => {
@@ -263,7 +279,7 @@ const SceneViewer = () => {
                     return next;
                 });
             }, 1500);
-            
+
         } catch (err) {
             toast.error('Analysis Failed', err.message || 'Could not analyze scene.');
         } finally {
@@ -363,7 +379,7 @@ const SceneViewer = () => {
                     s => s.analysis_status === 'pending' || s.analysis_status === 'analyzing'
                 ).length;
                 const errorCount = fetchedScenes.filter(
-                    s => s.analysis_status === 'error'
+                    s => s.analysis_status === 'error' || s.analysis_status === 'failed'
                 ).length;
                 
                 if (pendingCount === 0) {
@@ -592,7 +608,8 @@ const SceneViewer = () => {
                         stats={{
                             total: summaryData.totalScenes,
                             analyzed: summaryData.analyzedScenes,
-                            pending: summaryData.pendingScenes
+                            pending: summaryData.pendingScenes,
+                            failed: summaryData.failedScenes
                         }}
                         scriptId={scriptId}
                         onMergeComplete={async () => {

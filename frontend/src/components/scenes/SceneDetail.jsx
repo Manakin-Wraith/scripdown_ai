@@ -328,21 +328,39 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
                     {saveError && <p className="save-error">{saveError}</p>}
                 </div>
 
-                {/* Analyze Prompt */}
-                <div className="analyze-prompt">
-                    <div className="prompt-icon">
-                        <Clock size={48} />
+                {/* Failed state — distinct warning block with Re-analyze */}
+                {scene.analysis_status === 'failed' ? (
+                    <div className="scene-analysis-failed" role="alert">
+                        <span className="scene-analysis-failed__icon" aria-hidden="true">⚠️</span>
+                        <p className="scene-analysis-failed__msg">
+                            {scene.analysis_error || "Analysis couldn't complete for this scene. Click Re-analyze to try again."}
+                        </p>
+                        <button
+                            type="button"
+                            className="scene-analysis-failed__btn"
+                            onClick={() => onAnalyze(scene.scene_id)}
+                            disabled={isAnalyzing}
+                        >
+                            {isAnalyzing ? 'Re-analyzing…' : 'Re-analyze'}
+                        </button>
                     </div>
-                    <h3>Scene Not Analyzed</h3>
-                    <p>This scene hasn't been analyzed yet. Click below to extract characters, props, wardrobe, and other breakdown details.</p>
-                    <button 
-                        className="analyze-btn"
-                        onClick={() => onAnalyze(scene.scene_id)}
-                    >
-                        <Zap size={18} />
-                        Analyze This Scene
-                    </button>
-                </div>
+                ) : (
+                    /* Analyze Prompt */
+                    <div className="analyze-prompt">
+                        <div className="prompt-icon">
+                            <Clock size={48} />
+                        </div>
+                        <h3>Scene Not Analyzed</h3>
+                        <p>This scene hasn't been analyzed yet. Click below to extract characters, props, wardrobe, and other breakdown details.</p>
+                        <button
+                            className="analyze-btn"
+                            onClick={() => onAnalyze(scene.scene_id)}
+                        >
+                            <Zap size={18} />
+                            Analyze This Scene
+                        </button>
+                    </div>
+                )}
             </div>
         );
     }

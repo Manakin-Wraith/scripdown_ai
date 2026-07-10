@@ -2,7 +2,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { Users, MapPin, CheckCircle, Clock, AlertTriangle, Merge, X, Check, Edit3 } from 'lucide-react';
 import { Badge } from '../ui';
 import { useToast } from '../../context/ToastContext';
-import { mergeCharacters, mergeLocations } from '../../services/apiService';
+import { mergeCharacters, mergeLocations, retryFailedScenes } from '../../services/apiService';
 import './ScriptSummary.css';
 
 /**
@@ -96,7 +96,26 @@ const ScriptSummary = ({ characters, locations, stats, scriptId, onMergeComplete
     const [customName, setCustomName] = useState('');
     const [showCustomInput, setShowCustomInput] = useState(false);
     const [mergeSuccess, setMergeSuccess] = useState(null);
+    const [retryingFailed, setRetryingFailed] = useState(false);
     const toast = useToast();
+
+    const handleRetryFailed = useCallback(async () => {
+        if (!scriptId) return;
+        setRetryingFailed(true);
+        try {
+            const res = await retryFailedScenes(scriptId);
+            const count = res?.retrying;
+            toast.info(
+                'Retrying failed scenes',
+                count != null ? `Retrying ${count} scene${count === 1 ? '' : 's'}.` : 'Retrying failed scenes in the background.'
+            );
+            await onMergeComplete?.();
+        } catch (err) {
+            toast.error('Retry failed', err.response?.data?.error || err.message);
+        } finally {
+            setRetryingFailed(false);
+        }
+    }, [scriptId, onMergeComplete, toast]);
 
     const dataFor = useCallback(
         (type) => (type === 'locations' ? locations : characters),
@@ -303,6 +322,16 @@ const ScriptSummary = ({ characters, locations, stats, scriptId, onMergeComplete
                     <span className="stat-value">{sortedLocations.length}</span>
                     <span className="stat-label">Locations</span>
                 </div>
+                {stats.failed > 0 && (
+                    <button
+                        type="button"
+                        className="retry-all-failed-btn"
+                        onClick={handleRetryFailed}
+                        disabled={retryingFailed}
+                    >
+                        {retryingFailed ? 'Retrying…' : `Retry all failed (${stats.failed})`}
+                    </button>
+                )}
             </div>
 
             {/* Merge Success Banner */}

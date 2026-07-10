@@ -15,6 +15,7 @@ import re
 import os
 import google.generativeai as genai
 import sqlite3
+from services.gemini_client import generate_with_retry
 
 # Direct database path for worker (avoids Flask context issues)
 DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'db', 'script_breakdown.db')
@@ -76,14 +77,11 @@ def rate_limit_wait():
 def call_gemini(prompt, temperature=0.7):
     """Make a rate-limited call to Gemini API."""
     rate_limit_wait()
-    
-    model = get_gemini_model()
-    response = model.generate_content(
+
+    response_text = generate_with_retry(
         prompt,
-        generation_config=genai.GenerationConfig(temperature=temperature)
-    )
-    
-    response_text = response.text.strip()
+        generation_config=genai.GenerationConfig(temperature=temperature),
+    ).strip()
     response_text = re.sub(r'^```json\s*', '', response_text)
     response_text = re.sub(r'\s*```$', '', response_text)
     
