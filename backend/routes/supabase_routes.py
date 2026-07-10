@@ -3192,9 +3192,18 @@ def process_bulk_analysis_job(job_id, script_id, scene_ids):
                     print(f"  ✗ Scene {scene_id} failed (attempt {attempt}/{max_retries}): {e}")
                     if attempt == max_retries:
                         failed += 1
+                        if isinstance(e, GeminiError):
+                            err_msg, err_cat = e.user_message, e.category
+                        else:
+                            err_msg = "Analysis couldn't complete for this scene. Click Re-analyze to try again."
+                            err_cat = "unknown"
                         try:
-                            supabase.table('scenes').update({'analysis_status': 'error'}).eq('id', scene_id).execute()
-                        except:
+                            supabase.table('scenes').update({
+                                'analysis_status': 'failed',
+                                'analysis_error': err_msg,
+                                'analysis_error_category': err_cat,
+                            }).eq('id', scene_id).execute()
+                        except Exception:
                             pass
             
             # Update job progress (wrapped in try/except so it can't crash the loop)
