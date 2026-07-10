@@ -31,6 +31,8 @@ from services.location_resolver import (
 # Supabase client
 from supabase import create_client
 
+from services.gemini_client import generate_with_retry, GeminiError
+
 SUPABASE_URL = os.getenv('SUPABASE_URL')
 SUPABASE_SERVICE_KEY = os.getenv('SUPABASE_SERVICE_KEY', '').strip()
 SUPABASE_ANON_KEY = os.getenv('SUPABASE_ANON_KEY', '').strip()
@@ -2907,9 +2909,7 @@ def analyze_scene_with_gemini(scene_text, setting, known_speakers=None, shot_typ
         raise ValueError("GEMINI_API_KEY not configured")
     
     genai.configure(api_key=api_key)
-    from utils.gemini_config import get_gemini_model_name
-    model = genai.GenerativeModel(get_gemini_model_name())
-    
+
     has_speakers = known_speakers and len(known_speakers) > 0
     
     # Build previous scene context block (Story Days Phase 1)
@@ -3006,53 +3006,35 @@ IMPORTANT:
 """
     
     try:
-        response = model.generate_content(
+        response_text = generate_with_retry(
             prompt,
-            generation_config=genai.GenerationConfig(temperature=0.3)
-        )
-        
-        response_text = response.text.strip()
-        
+            generation_config=genai.GenerationConfig(temperature=0.3),
+        ).strip()
+
         # Clean up response
         import re
         response_text = re.sub(r'^```json\s*', '', response_text)
         response_text = re.sub(r'\s*```$', '', response_text)
-        
-        result = json.loads(response_text)
-        
+
+        try:
+            result = json.loads(response_text)
+        except (ValueError, json.JSONDecodeError) as parse_err:
+            raise GeminiError("bad_response", raw=parse_err)
+
         # Phase 2: Entity resolution — merge speakers with AI characters
         if has_speakers:
             ai_characters = result.get('characters', []) + result.get('non_speaking_characters', [])
             result['characters'] = merge_to_character_list(known_speakers, ai_characters)
-        
+
         # Normalize story day fields
         result['time_transition'] = result.get('time_transition', '')
         result['is_new_story_day'] = bool(result.get('is_new_story_day', False))
         result['timeline_code'] = result.get('timeline_code', 'PRESENT')
-        
+
         return result
-        
-    except Exception as e:
-        print(f"Gemini analysis error: {e}")
-        fallback = {
-            'characters': [],
-            'props': [],
-            'wardrobe': [],
-            'special_fx': [],
-            'vehicles': [],
-            'makeup_hair': [],
-            'locations': [],
-            'sound': [],
-            'atmosphere': '',
-            'description': f'Analysis failed: {str(e)}',
-            'time_transition': '',
-            'is_new_story_day': False,
-            'timeline_code': 'PRESENT',
-        }
-        # Still merge speakers into fallback if available
-        if has_speakers:
-            fallback['characters'] = merge_to_character_list(known_speakers, [])
-        return fallback
+
+    except GeminiError:
+        raise  # caller records the failed scene state
 
 
 @supabase_bp.route('/api/scripts/<script_id>/analyze/bulk', methods=['POST'])
