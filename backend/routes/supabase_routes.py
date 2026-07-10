@@ -2708,6 +2708,23 @@ def get_pdf_url(script_id):
 # Scene Analysis Endpoints
 # ============================================
 
+def _recalc_start_order(script_id, current_order):
+    """Choose the story-day recalculation start point for the single-scene path.
+
+    Returns 0 (a FULL recalc) when no scenes remain 'pending'/'analyzing' for the
+    script — i.e. this was the last scene to finish — otherwise ``current_order``
+    for a cheap incremental pass. A full recalc is required because the Day-1
+    baseline in recalculate_story_days is only established when start_from_order
+    is 0; without it a script analyzed entirely via this endpoint keeps a NULL
+    story_day. Mirrors the completion recalc the bulk worker already performs.
+    """
+    remaining = supabase.table('scenes').select('id', count='exact').eq(
+        'script_id', script_id).in_('analysis_status', ['pending', 'analyzing']).execute()
+    remaining_count = remaining.count if getattr(remaining, 'count', None) is not None \
+        else len(remaining.data or [])
+    return 0 if remaining_count == 0 else (current_order or 0)
+
+
 @supabase_bp.route('/api/scenes/<scene_id>/analyze', methods=['POST'])
 @optional_auth
 def analyze_scene(scene_id):
@@ -2873,11 +2890,16 @@ def analyze_scene(scene_id):
 
         supabase.table('scenes').update(update_data).eq('id', scene_id).execute()
 
-        # Story Days: Trigger cascade recalculation from this scene onward
+        # Story Days: recalc. On the last scene to finish analyzing, do a FULL
+        # pass (start_from_order=0) so the Day-1 baseline is always established;
+        # otherwise an incremental pass from this scene.
         story_day_fields = {}
         try:
             from services.story_day_service import recalculate_story_days
-            recalculate_story_days(scene['script_id'], start_from_order=current_order or 0)
+            recalculate_story_days(
+                scene['script_id'],
+                start_from_order=_recalc_start_order(scene['script_id'], current_order),
+            )
             # Re-read scene to get recalculated story_day values
             refreshed = supabase.table('scenes').select(
                 'story_day, story_day_label, is_new_story_day, story_day_is_locked, '
