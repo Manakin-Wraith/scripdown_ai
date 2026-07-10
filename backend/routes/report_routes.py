@@ -160,7 +160,7 @@ def save_filter_preset(script_id):
 
 
 @report_bp.route('/filter-presets/<preset_id>', methods=['DELETE'])
-@optional_auth
+@require_auth
 def delete_filter_preset(preset_id):
     """Delete a user's filter preset."""
     try:
@@ -337,8 +337,12 @@ def preview_report_html(script_id):
 # ============================================
 
 @report_bp.route('/reports/<report_id>', methods=['GET'])
+@require_auth
 def get_report(report_id):
     """Get a specific report."""
+    denied = _check_report(report_id)
+    if denied:
+        return denied
     try:
         report = report_service.get_report(report_id)
         if not report:
@@ -352,8 +356,12 @@ def get_report(report_id):
 
 
 @report_bp.route('/reports/<report_id>', methods=['DELETE'])
+@require_auth
 def delete_report(report_id):
     """Delete a report."""
+    denied = _check_report(report_id)
+    if denied:
+        return denied
     try:
         report_service.delete_report(report_id)
         return jsonify({
@@ -369,8 +377,12 @@ def delete_report(report_id):
 # ============================================
 
 @report_bp.route('/reports/<report_id>/pdf', methods=['GET'])
+@require_auth
 def download_pdf(report_id):
     """Download report as PDF."""
+    denied = _check_report(report_id)
+    if denied:
+        return denied
     try:
         report = report_service.get_report(report_id)
         if not report:
@@ -400,8 +412,12 @@ def download_pdf(report_id):
 
 
 @report_bp.route('/reports/<report_id>/print', methods=['GET'])
+@require_auth
 def get_printable_html(report_id):
     """Get printable HTML version of report."""
+    denied = _check_report(report_id)
+    if denied:
+        return denied
     try:
         report = report_service.get_report(report_id)
         if not report:
@@ -440,15 +456,19 @@ def get_printable_html(report_id):
 # ============================================
 
 @report_bp.route('/reports/<report_id>/share', methods=['POST'])
+@require_auth
 def create_share_link(report_id):
     """
     Create a shareable link for a report.
-    
+
     Request body:
     {
         "expires_in_days": 7  // optional, default 7
     }
     """
+    denied = _check_report(report_id)
+    if denied:
+        return denied
     try:
         data = request.get_json() or {}
         expires_in_days = data.get('expires_in_days', 7)
@@ -467,8 +487,12 @@ def create_share_link(report_id):
 
 
 @report_bp.route('/reports/<report_id>/share', methods=['DELETE'])
+@require_auth
 def revoke_share_link(report_id):
     """Revoke a share link."""
+    denied = _check_report(report_id)
+    if denied:
+        return denied
     try:
         report_service.revoke_share_link(report_id)
         return jsonify({
