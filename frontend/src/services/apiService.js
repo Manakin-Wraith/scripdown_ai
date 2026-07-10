@@ -478,6 +478,21 @@ export const analyzeBulkScenes = async (scriptId) => {
 };
 
 /**
+ * Retry every scene currently marked 'failed' for a script.
+ * @param {string} scriptId - The script UUID
+ * @returns {Promise<Object>} { retrying, job_id, status }
+ */
+export const retryFailedScenes = async (scriptId) => {
+    try {
+        const response = await api.post(`/api/scripts/${scriptId}/scenes/retry-failed`);
+        return response.data;
+    } catch (error) {
+        console.error('Error retrying failed scenes:', error);
+        throw error;
+    }
+};
+
+/**
  * Get analysis status for all scenes in a script
  * @param {number} scriptId - The script ID
  * @returns {Promise<Object>} Scenes with analysis status
