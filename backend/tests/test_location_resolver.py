@@ -123,6 +123,30 @@ def test_derive_does_not_strip_int_ext_inside_name():
     assert derive_base_place("INTERSTATE 5 - NIGHT") == "INTERSTATE 5"
 
 
+def test_derive_base_splits_on_comma():
+    # A comma marks a sub-area of a place — group by the base before the comma.
+    assert derive_base_place("TK'S HOUSE, KITCHEN") == "TK'S HOUSE"
+    assert derive_base_place("ABI'S HOUSE, BATHROOM") == "ABI'S HOUSE"
+    assert derive_base_place("SPHE & JESSIE HOUSE, LOUNGE NIGHT") == "SPHE & JESSIE HOUSE"
+
+
+def test_derive_base_keeps_hyphenated_names():
+    # A dash WITHOUT surrounding spaces is part of the name, not a separator.
+    assert derive_base_place("C-MAX PRISON, DAVEYTON") == "C-MAX PRISON"
+    assert derive_base_place("C-MAX PRISON") == "C-MAX PRISON"
+
+
+def test_derive_base_cleans_dirty_hierarchy_entry():
+    # A single dirty hierarchy entry collapses to its base segment.
+    assert derive_base_place("whatever", location_hierarchy=["TK'S HOUSE, KITCHEN"]) == "TK'S HOUSE"
+
+
+def test_derive_sub_from_comma():
+    assert derive_sub_place("TK'S HOUSE, KITCHEN") == "KITCHEN"
+    assert derive_sub_place("C-MAX PRISON, DAVEYTON") == "DAVEYTON"
+    assert derive_sub_place("whatever", location_hierarchy=["ABI'S HOUSE, BATHROOM"]) == "BATHROOM"
+
+
 def test_suggest_article_variant():
     groups = suggest_merges(["COFFEE SHOP", "THE COFFEE SHOP", "COFFEE SHOP"])
     assert len(groups) == 1

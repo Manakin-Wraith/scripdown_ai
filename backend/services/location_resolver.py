@@ -25,11 +25,14 @@ FUZZY_THRESHOLD = 0.82
 MIN_FUZZY_LEN = 4
 
 _INT_EXT_PREFIX = re.compile(
-    r"^\s*(INT\.?/EXT\.?|INT\.?|EXT\.?|I/E\.?)(?=[\s.\-:]|$)\s*[-.:]?\s*",
+    r"^\s*/?\s*(INT\.?/EXT\.?|INT\.?|EXT\.?|I/E\.?)(?=[\s.\-:]|$)\s*[-.:]?\s*",
     re.IGNORECASE,
 )
 _LEADING_ARTICLE = re.compile(r"^(THE|A|AN)\s+", re.IGNORECASE)
-_DASH_SPLIT = re.compile(r"\s*[-–—]\s*")
+# Sub-location separators: a comma (rooms of a place — "TK'S HOUSE, KITCHEN"),
+# or a dash that is surrounded by whitespace (slugline " - "). Requiring spaces
+# around the dash keeps hyphenated names intact ("C-MAX PRISON", "INTERSTATE 5").
+_SEP_SPLIT = re.compile(r"\s*,\s*|\s+[-–—]\s+")
 
 
 def normalize_place(name: Optional[str]) -> str:
@@ -83,11 +86,14 @@ def derive_base_place(
             except (ValueError, TypeError):
                 location_hierarchy = []
         if location_hierarchy:
-            return normalize_place(location_hierarchy[0])
+            # hierarchy[0] may itself be a dirty "PLACE, SUB", "PLACE - SUB", or
+            # "INT. PLACE ..." string; strip any INT/EXT prefix and keep the base.
+            h0 = _INT_EXT_PREFIX.sub("", str(location_hierarchy[0]))
+            return normalize_place(_SEP_SPLIT.split(h0)[0])
 
     # 2. Parse from the free-text setting
     s = _INT_EXT_PREFIX.sub("", setting or "")
-    parts = [p.strip() for p in _DASH_SPLIT.split(s) if p.strip()]
+    parts = [p.strip() for p in _SEP_SPLIT.split(s) if p.strip()]
     kept = [
         p for p in parts
         if p.upper() not in TIME_WORDS and normalize_place(p) not in INT_EXT_TOKENS
@@ -117,10 +123,17 @@ def derive_sub_place(
         if location_hierarchy:
             if len(location_hierarchy) > 1:
                 return normalize_place(" - ".join(location_hierarchy[1:]))
-            return ""
+            # A single dirty entry ("TK'S HOUSE, KITCHEN") still carries a sub
+            # after its first separator — recover it.
+            segs = [p.strip() for p in _SEP_SPLIT.split(str(location_hierarchy[0])) if p.strip()]
+            kept = [
+                p for p in segs
+                if p.upper() not in TIME_WORDS and normalize_place(p) not in INT_EXT_TOKENS
+            ]
+            return normalize_place(" - ".join(kept[1:])) if len(kept) > 1 else ""
 
     s = _INT_EXT_PREFIX.sub("", setting or "")
-    parts = [p.strip() for p in _DASH_SPLIT.split(s) if p.strip()]
+    parts = [p.strip() for p in _SEP_SPLIT.split(s) if p.strip()]
     kept = [
         p for p in parts
         if p.upper() not in TIME_WORDS and normalize_place(p) not in INT_EXT_TOKENS
