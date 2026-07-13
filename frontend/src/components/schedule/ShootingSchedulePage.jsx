@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Plus, CalendarDays, Trash2, Pencil, Check, X, ZoomIn, ZoomOut, Maximize, RotateCcw, Printer, MapPin } from 'lucide-react';
+import { Plus, CalendarDays, Trash2, Pencil, Check, X, ZoomIn, ZoomOut, Maximize, RotateCcw, Printer } from 'lucide-react';
 import { Spinner, EmptyState } from '../ui';
 import SchedulePrintView from './SchedulePrintView';
 import { useToast } from '../../context/ToastContext';
@@ -8,10 +8,9 @@ import { useConfirmDialog } from '../../context/ConfirmDialogContext';
 import { useScript } from '../../context/ScriptContext';
 import {
     getSchedules, createSchedule, getShootingDays,
-    getScriptMetadata, deleteSchedule, updateSchedule, getScenes,
+    getScriptMetadata, deleteSchedule, updateSchedule,
 } from '../../services/apiService';
 import ScheduleKanban from './ScheduleKanban';
-import LocationManager from '../scenes/LocationManager';
 import './ShootingSchedule.css';
 
 const ShootingSchedulePage = () => {
@@ -29,8 +28,6 @@ const ShootingSchedulePage = () => {
     const [editingScheduleId, setEditingScheduleId] = useState(null);
     const [editingScheduleName, setEditingScheduleName] = useState('');
     const [showPrintPreview, setShowPrintPreview] = useState(false);
-    const [scenes, setScenes] = useState([]);
-    const [showLocationManager, setShowLocationManager] = useState(false);
     const scheduleNameInputRef = useRef(null);
     const zoomApiRef = useRef(null);
 
@@ -44,15 +41,10 @@ const ShootingSchedulePage = () => {
     useEffect(() => {
         const load = async () => {
             try {
-                const [schedData, metaData, sceneData] = await Promise.all([
+                const [schedData, metaData] = await Promise.all([
                     getSchedules(scriptId),
                     getScriptMetadata(scriptId),
-                    getScenes(scriptId).catch((err) => {
-                        console.error('Failed to load scenes for location manager:', err);
-                        return { scenes: [] };
-                    }),
                 ]);
-                setScenes(sceneData.scenes || []);
                 setMetadata(metaData);
                 if (metaData) setScript(metaData);
 
@@ -94,16 +86,6 @@ const ShootingSchedulePage = () => {
             console.error('Failed to refresh days:', err);
         }
     }, [activeScheduleId]);
-
-    const refreshLocationsAndBoard = useCallback(async () => {
-        try {
-            const sceneData = await getScenes(scriptId);
-            setScenes(sceneData.scenes || []);
-        } catch (err) {
-            console.error('Failed to refresh scenes:', err);
-        }
-        await refreshDays();
-    }, [scriptId, refreshDays]);
 
     // Keyboard shortcuts for zoom
     useEffect(() => {
@@ -200,15 +182,6 @@ const ShootingSchedulePage = () => {
                 </div>
 
                 <div className="schedule-header-right">
-                    <button
-                        className="schedule-print-btn"
-                        onClick={() => setShowLocationManager(true)}
-                        title="Group and rename locations"
-                    >
-                        <MapPin size={14} />
-                        Manage locations
-                    </button>
-
                     {/* Print / Export button */}
                     {activeScheduleId && days.length > 0 && (
                         <button
@@ -298,15 +271,6 @@ const ShootingSchedulePage = () => {
                     </div>
                 </div>
             </div>
-
-            {showLocationManager && (
-                <LocationManager
-                    scriptId={scriptId}
-                    scenes={scenes}
-                    onClose={() => setShowLocationManager(false)}
-                    onChanged={refreshLocationsAndBoard}
-                />
-            )}
 
             {/* Print Preview Modal */}
             {showPrintPreview && (
