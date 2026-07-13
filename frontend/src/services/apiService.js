@@ -2171,4 +2171,9 @@ export const getLocationHealth = async (scriptId) => {
     return response.data; // { script_id, total, by_key }
 };
 
+export const getLocationHealthCounts = async () => {
+    const response = await api.get('/api/scripts/locations/health-counts');
+    return response.data; // { counts: { script_id: total } }
+};
+
 export default api;

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getScripts, deleteScript, reanalyzeScript, updateScript } from '../../services/apiService';
+import { getScripts, deleteScript, reanalyzeScript, updateScript, getLocationHealthCounts } from '../../services/apiService';
 import { useAnalysis } from '../../context/AnalysisContext';
 import ScriptTable from './ScriptTable';
 import EmptyLibrary from './EmptyLibrary';
@@ -17,6 +17,7 @@ const ScriptLibrary = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [reanalyzing, setReanalyzing] = useState(null);
+    const [locationHealthCounts, setLocationHealthCounts] = useState({});
     const navigate = useNavigate();
     const { hasActiveAnalysis, globalStatus } = useAnalysis();
     const { confirm } = useConfirmDialog();
@@ -40,6 +41,19 @@ const ScriptLibrary = () => {
     useEffect(() => {
         fetchScripts();
     }, [fetchScripts]);
+
+    // Location-quality badge counts (best-effort; no badges on failure)
+    useEffect(() => {
+        let cancelled = false;
+        getLocationHealthCounts()
+            .then((data) => {
+                if (!cancelled) setLocationHealthCounts(data.counts || {});
+            })
+            .catch((err) => {
+                console.error('Failed to load location health counts:', err);
+            });
+        return () => { cancelled = true; };
+    }, []);
 
     // Auto-refresh when there are active analyses (silent refresh - no loading spinner)
     useEffect(() => {
@@ -181,14 +195,15 @@ const ScriptLibrary = () => {
             {scripts.length === 0 ? (
                 <EmptyLibrary />
             ) : (
-                <ScriptTable 
-                    scripts={scripts} 
-                    onView={handleViewScenes} 
+                <ScriptTable
+                    scripts={scripts}
+                    onView={handleViewScenes}
                     onReanalyze={handleReanalyze}
                     onDelete={handleDelete}
                     onRename={handleRename}
                     onUpdateWriter={handleUpdateWriter}
                     reanalyzingId={reanalyzing}
+                    locationHealthCounts={locationHealthCounts}
                 />
             )}
         </div>
