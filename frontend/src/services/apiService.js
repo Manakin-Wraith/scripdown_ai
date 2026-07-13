@@ -2107,6 +2107,39 @@ export const mergeLocations = async (scriptId, canonicalPlace, aliases) => {
     return response.data;
 };
 
+export const renameParentLocation = async (scriptId, fromCanonical, toName) => {
+    const response = await api.post(`/api/scripts/${scriptId}/locations/rename-parent`, {
+        from_canonical: fromCanonical,
+        to_name: toName,
+    });
+    return response.data;
+};
+
+export const renameSubLocation = async (scriptId, parentCanonical, fromSub, toSub) => {
+    const response = await api.post(`/api/scripts/${scriptId}/locations/rename-sub`, {
+        parent_canonical: parentCanonical,
+        from_sub: fromSub,
+        to_sub: toSub,
+    });
+    return response.data;
+};
+
+export const reassignSceneLocation = async (scriptId, sceneId, toParentName) => {
+    const response = await api.post(`/api/scripts/${scriptId}/locations/reassign-scene`, {
+        scene_id: sceneId,
+        to_parent_name: toParentName,
+    });
+    return response.data;
+};
+
+export const mergeParentLocations = async (scriptId, canonicalName, sourceCanonicals) => {
+    const response = await api.post(`/api/scripts/${scriptId}/locations/merge-parents`, {
+        canonical_name: canonicalName,
+        source_canonicals: sourceCanonicals,
+    });
+    return response.data;
+};
+
 export const getLocationAliases = async (scriptId) => {
     const response = await api.get(`/api/scripts/${scriptId}/locations/aliases`);
     return response.data;

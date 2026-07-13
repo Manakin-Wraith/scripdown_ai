@@ -92,6 +92,40 @@ def derive_base_place(
     return normalize_place(base)
 
 
+def derive_sub_place(
+    setting: Optional[str],
+    int_ext: Optional[str] = None,
+    time_of_day: Optional[str] = None,
+    location_hierarchy=None,
+) -> str:
+    """Return the normalized sub-location (everything under the base place).
+
+    Mirrors derive_base_place but keeps parts[1:]. Prefers structured
+    location_hierarchy[1:] when present; otherwise parses the free-text setting.
+    Returns "" when the scene has no sub-location.
+    """
+    if location_hierarchy:
+        if isinstance(location_hierarchy, str):
+            try:
+                location_hierarchy = json.loads(location_hierarchy)
+            except (ValueError, TypeError):
+                location_hierarchy = []
+        if location_hierarchy:
+            if len(location_hierarchy) > 1:
+                return normalize_place(" - ".join(location_hierarchy[1:]))
+            return ""
+
+    s = _INT_EXT_PREFIX.sub("", setting or "")
+    parts = [p.strip() for p in _DASH_SPLIT.split(s) if p.strip()]
+    kept = [
+        p for p in parts
+        if p.upper() not in TIME_WORDS and normalize_place(p) not in INT_EXT_TOKENS
+    ]
+    if len(kept) > 1:
+        return normalize_place(" - ".join(kept[1:]))
+    return ""
+
+
 def suggest_merges(
     base_places: List[str],
     existing_aliases: Optional[Dict[str, str]] = None,
@@ -137,3 +171,46 @@ def suggest_merges(
             })
 
     return groups
+
+
+def rewrite_place_token(setting: Optional[str], from_token: str, to_token: str) -> str:
+    """Replace the first case-insensitive occurrence of from_token with to_token,
+    preserving the rest of the setting. Used for base and sub renames."""
+    if not setting or not from_token:
+        return setting or ""
+    return re.sub(re.escape(from_token), to_token, setting, count=1, flags=re.IGNORECASE)
+
+
+def resolve_location(
+    setting: Optional[str],
+    int_ext: Optional[str] = None,
+    time_of_day: Optional[str] = None,
+    location_hierarchy=None,
+    parent_alias_map: Optional[Dict[str, str]] = None,
+    sub_alias_map: Optional[Dict] = None,
+) -> tuple:
+    """Apply parent then sub aliases to a scene setting (pure).
+
+    Returns (new_setting, location_canonical_norm). Parent map is applied first
+    so the sub lookup is keyed on the final parent. Sub is re-derived from the
+    rewritten setting (not the possibly-stale hierarchy).
+    """
+    parent_alias_map = parent_alias_map or {}
+    sub_alias_map = sub_alias_map or {}
+
+    setting = canonicalize_setting(setting)
+    base = derive_base_place(setting, int_ext, time_of_day, location_hierarchy)
+    canonical = parent_alias_map.get(base, base)
+
+    new_setting = setting or ""
+    if base and normalize_place(canonical) != base:
+        new_setting = rewrite_place_token(new_setting, base, canonical)
+
+    parent_norm = normalize_place(canonical)
+    sub = derive_sub_place(new_setting, int_ext, time_of_day, None)
+    if sub:
+        new_sub = sub_alias_map.get((parent_norm, sub))
+        if new_sub and normalize_place(new_sub) != sub:
+            new_setting = rewrite_place_token(new_setting, sub, new_sub)
+
+    return new_setting, parent_norm

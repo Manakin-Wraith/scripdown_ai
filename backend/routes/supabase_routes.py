@@ -24,8 +24,11 @@ from middleware.auth import require_auth, optional_auth, get_user_id, get_curren
 from services.location_resolver import (
     canonicalize_setting,
     derive_base_place,
+    derive_sub_place,
     normalize_place,
     suggest_merges,
+    resolve_location,
+    rewrite_place_token,
 )
 
 # Supabase client
@@ -4777,25 +4780,247 @@ def _user_can_access_script(script_id, user_id):
 
 
 def _apply_location_alias(script_id, setting, int_ext, time_of_day, location_hierarchy):
-    """Return (setting, location_canonical) with location_aliases applied.
+    """Return (setting, location_canonical) with parent + sub aliases applied.
     Non-fatal on lookup failure (degrades to derived base place)."""
-    # Normalize casing/whitespace/quotes up front so manually created or edited
-    # scenes store the same canonical form as ingested ones.
-    setting = canonicalize_setting(setting)
-    base = derive_base_place(setting, int_ext, time_of_day, location_hierarchy)
-    canonical = base
+    parent_map = {}
+    sub_map = {}
     try:
         rows = supabase.table('location_aliases').select(
             'alias_place, canonical_place'
         ).eq('script_id', script_id).execute().data or []
-        alias_map = {r['alias_place']: r['canonical_place'] for r in rows}
-        canonical = alias_map.get(base, base)
+        parent_map = {r['alias_place']: r['canonical_place'] for r in rows}
     except Exception as alias_err:
-        print(f"[LocMerge] Alias map lookup skipped (non-fatal): {alias_err}")
-    new_setting = setting or ''
-    if base and canonical != base:
-        new_setting = re.sub(re.escape(base), canonical, new_setting, flags=re.IGNORECASE)
-    return new_setting, normalize_place(canonical)
+        print(f"[LocMerge] parent alias lookup skipped (non-fatal): {alias_err}")
+    try:
+        srows = supabase.table('sub_location_aliases').select(
+            'parent_place, alias_sub, canonical_sub'
+        ).eq('script_id', script_id).execute().data or []
+        sub_map = {(r['parent_place'], r['alias_sub']): r['canonical_sub'] for r in srows}
+    except Exception as sub_err:
+        print(f"[LocMerge] sub alias lookup skipped (non-fatal): {sub_err}")
+    return resolve_location(
+        setting, int_ext, time_of_day, location_hierarchy, parent_map, sub_map
+    )
+
+
+def _rename_parent(script_id, from_canonical, to_name, user_id):
+    """Rename a parent location across every scene grouped under it. Preserves
+    each scene's sub-location, updates department_items, and stores a sticky
+    location_aliases mapping. Returns the number of scenes updated."""
+    from_norm = normalize_place(from_canonical)
+    to_norm = normalize_place(to_name)
+
+    result = supabase.table('scenes').select(
+        'id, setting, location_hierarchy'
+    ).eq('script_id', script_id).eq('location_canonical', from_norm).execute()
+    scenes = result.data or []
+    updated = 0
+    for scene in scenes:
+        new_setting = rewrite_place_token(scene.get('setting') or '', from_norm, to_name)
+        hierarchy = scene.get('location_hierarchy') or []
+        if isinstance(hierarchy, list) and hierarchy:
+            hierarchy = [to_name] + hierarchy[1:]
+        supabase.table('scenes').update({
+            'setting': canonicalize_setting(new_setting),
+            'location_canonical': to_norm,
+            'location_hierarchy': hierarchy,
+        }).eq('id', scene['id']).execute()
+        updated += 1
+
+    try:
+        supabase.table('department_items').update({
+            'item_name': to_name
+        }).eq('script_id', script_id).eq(
+            'item_type', 'locations'
+        ).ilike('item_name', from_norm).execute()
+    except Exception as di_err:
+        print(f"Warning: department_items rename failed: {di_err}")
+
+    if to_norm != from_norm:
+        try:
+            supabase.table('location_aliases').upsert({
+                'script_id': script_id,
+                'canonical_place': to_norm,
+                'alias_place': from_norm,
+                'merged_by': user_id,
+            }, on_conflict='script_id,alias_place').execute()
+        except Exception as alias_err:
+            print(f"Warning: failed to store location alias: {alias_err}")
+
+        try:
+            supabase.table('sub_location_aliases').update({
+                'parent_place': to_norm
+            }).eq('script_id', script_id).eq('parent_place', from_norm).execute()
+        except Exception as sub_reparent_err:
+            print(f"Warning: failed to re-point sub aliases: {sub_reparent_err}")
+
+    return updated
+
+
+@supabase_bp.route('/api/scripts/<script_id>/locations/rename-parent', methods=['POST'])
+@require_auth
+def rename_parent_location(script_id):
+    if not supabase:
+        return jsonify({'error': 'Supabase not configured'}), 500
+    try:
+        data = request.get_json() or {}
+        from_canonical = (data.get('from_canonical') or '').strip()
+        to_name = (data.get('to_name') or '').strip()
+        user_id = get_user_id()
+        if not _user_can_access_script(script_id, user_id):
+            return jsonify({'error': 'Not authorized for this script'}), 403
+        if not from_canonical or not to_name:
+            return jsonify({'error': 'from_canonical and to_name are required'}), 400
+        updated = _rename_parent(script_id, from_canonical, to_name, user_id)
+        return jsonify({'success': True, 'scenes_updated': updated}), 200
+    except Exception as e:
+        print(f"Error renaming parent location: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+def _rename_sub(script_id, parent_canonical, from_sub, to_sub, user_id):
+    """Rename a sub-location under one parent across the scenes that use it.
+    location_canonical is unchanged. Stores a sticky sub_location_aliases row.
+    Returns the number of scenes updated."""
+    parent_norm = normalize_place(parent_canonical)
+    from_norm = normalize_place(from_sub)
+    to_norm = normalize_place(to_sub)
+
+    result = supabase.table('scenes').select(
+        'id, setting, int_ext, time_of_day, location_hierarchy'
+    ).eq('script_id', script_id).eq('location_canonical', parent_norm).execute()
+    scenes = result.data or []
+    updated = 0
+    for scene in scenes:
+        sub = derive_sub_place(
+            scene.get('setting'), scene.get('int_ext'),
+            scene.get('time_of_day'), scene.get('location_hierarchy'),
+        )
+        if sub != from_norm:
+            continue
+        new_setting = rewrite_place_token(scene.get('setting') or '', from_norm, to_sub)
+        hierarchy = scene.get('location_hierarchy') or []
+        if isinstance(hierarchy, list) and len(hierarchy) > 1:
+            hierarchy = hierarchy[:1] + [to_sub] + hierarchy[2:]
+        supabase.table('scenes').update({
+            'setting': canonicalize_setting(new_setting),
+            'location_hierarchy': hierarchy,
+        }).eq('id', scene['id']).execute()
+        updated += 1
+
+    if to_norm != from_norm:
+        try:
+            supabase.table('sub_location_aliases').upsert({
+                'script_id': script_id,
+                'parent_place': parent_norm,
+                'alias_sub': from_norm,
+                'canonical_sub': to_norm,
+                'renamed_by': user_id,
+            }, on_conflict='script_id,parent_place,alias_sub').execute()
+        except Exception as sub_err:
+            print(f"Warning: failed to store sub alias: {sub_err}")
+
+    return updated
+
+
+@supabase_bp.route('/api/scripts/<script_id>/locations/rename-sub', methods=['POST'])
+@require_auth
+def rename_sub_location(script_id):
+    if not supabase:
+        return jsonify({'error': 'Supabase not configured'}), 500
+    try:
+        data = request.get_json() or {}
+        parent_canonical = (data.get('parent_canonical') or '').strip()
+        from_sub = (data.get('from_sub') or '').strip()
+        to_sub = (data.get('to_sub') or '').strip()
+        user_id = get_user_id()
+        if not _user_can_access_script(script_id, user_id):
+            return jsonify({'error': 'Not authorized for this script'}), 403
+        if not parent_canonical or not from_sub or not to_sub:
+            return jsonify({'error': 'parent_canonical, from_sub and to_sub are required'}), 400
+        updated = _rename_sub(script_id, parent_canonical, from_sub, to_sub, user_id)
+        return jsonify({'success': True, 'scenes_updated': updated}), 200
+    except Exception as e:
+        print(f"Error renaming sub-location: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+def _reassign_scene(script_id, scene_id, to_parent_name):
+    """Move one scene to a different parent location, preserving its
+    sub-location. Returns 1 if updated, else 0."""
+    to_norm = normalize_place(to_parent_name)
+    result = supabase.table('scenes').select(
+        'id, setting, location_canonical, location_hierarchy'
+    ).eq('script_id', script_id).eq('id', scene_id).limit(1).execute()
+    if not result.data:
+        return 0
+    scene = result.data[0]
+    old_base = normalize_place(scene.get('location_canonical') or '')
+    new_setting = rewrite_place_token(scene.get('setting') or '', old_base, to_parent_name)
+    hierarchy = scene.get('location_hierarchy') or []
+    if isinstance(hierarchy, list) and hierarchy:
+        hierarchy = [to_parent_name] + hierarchy[1:]
+    supabase.table('scenes').update({
+        'setting': canonicalize_setting(new_setting),
+        'location_canonical': to_norm,
+        'location_hierarchy': hierarchy,
+    }).eq('id', scene['id']).execute()
+    return 1
+
+
+@supabase_bp.route('/api/scripts/<script_id>/locations/reassign-scene', methods=['POST'])
+@require_auth
+def reassign_scene_location(script_id):
+    if not supabase:
+        return jsonify({'error': 'Supabase not configured'}), 500
+    try:
+        data = request.get_json() or {}
+        scene_id = (data.get('scene_id') or '').strip()
+        to_parent_name = (data.get('to_parent_name') or '').strip()
+        user_id = get_user_id()
+        if not _user_can_access_script(script_id, user_id):
+            return jsonify({'error': 'Not authorized for this script'}), 403
+        if not scene_id or not to_parent_name:
+            return jsonify({'error': 'scene_id and to_parent_name are required'}), 400
+        updated = _reassign_scene(script_id, scene_id, to_parent_name)
+        return jsonify({'success': True, 'scenes_updated': updated}), 200
+    except Exception as e:
+        print(f"Error reassigning scene location: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@supabase_bp.route('/api/scripts/<script_id>/locations/merge-parents', methods=['POST'])
+@require_auth
+def merge_parent_locations(script_id):
+    if not supabase:
+        return jsonify({'error': 'Supabase not configured'}), 500
+    try:
+        data = request.get_json() or {}
+        canonical_name = (data.get('canonical_name') or '').strip()
+        sources = data.get('source_canonicals') or []
+        user_id = get_user_id()
+        if not _user_can_access_script(script_id, user_id):
+            return jsonify({'error': 'Not authorized for this script'}), 403
+        if not canonical_name or not isinstance(sources, list) or not sources:
+            return jsonify({'error': 'canonical_name and non-empty source_canonicals are required'}), 400
+        total = 0
+        for source in sources:
+            source = (source or '').strip()
+            if not source or source.upper() == canonical_name.upper():
+                continue
+            total += _rename_parent(script_id, source, canonical_name, user_id)
+        return jsonify({'success': True, 'scenes_updated': total}), 200
+    except Exception as e:
+        print(f"Error merging parent locations: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
 
 
 @supabase_bp.route('/api/scripts/<script_id>/locations/merge', methods=['POST'])

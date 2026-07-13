@@ -1,0 +1,40 @@
+.locmgr-overlay {
+    position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5);
+    display: flex; align-items: center; justify-content: center; z-index: 1000;
+}
+.locmgr-modal {
+    background: var(--gray-900, #111827); color: var(--gray-100, #f3f4f6);
+    width: min(560px, 92vw); max-height: 82vh; border-radius: 10px;
+    display: flex; flex-direction: column; overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+.locmgr-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.9rem 1rem; border-bottom: 1px solid var(--gray-700, #374151); font-weight: 600;
+}
+.locmgr-header > span { display: inline-flex; align-items: center; gap: 0.4rem; }
+.locmgr-close { background: none; border: none; color: inherit; cursor: pointer; }
+.locmgr-body { padding: 0.5rem 0.75rem; overflow-y: auto; }
+.locmgr-empty { opacity: 0.7; padding: 1rem; text-align: center; }
+.locmgr-parent { border-bottom: 1px solid var(--gray-800, #1f2937); padding: 0.35rem 0; }
+.locmgr-parent-row, .locmgr-sub-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
+}
+.locmgr-sub-row { padding: 0.2rem 0 0.2rem 1.6rem; font-size: 0.9em; opacity: 0.95; }
+.locmgr-toggle {
+    background: none; border: none; color: inherit; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0; text-align: left;
+}
+.locmgr-count {
+    background: var(--gray-700, #374151); border-radius: 999px;
+    padding: 0 0.5rem; margin-left: 0.4rem; font-size: 0.75em;
+}
+.locmgr-actions { display: inline-flex; gap: 0.35rem; }
+.locmgr-actions button {
+    background: var(--gray-800, #1f2937); color: inherit;
+    border: 1px solid var(--gray-700, #374151); border-radius: 6px;
+    padding: 0.2rem 0.5rem; font-size: 0.78em; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 0.25rem;
+}
+.locmgr-actions button:disabled { opacity: 0.5; cursor: default; }
+.locmgr-actions button:hover:not(:disabled) { border-color: var(--primary-500, #f59e0b); }
