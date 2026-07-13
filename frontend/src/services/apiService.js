@@ -2140,6 +2140,22 @@ export const mergeParentLocations = async (scriptId, canonicalName, sourceCanoni
     return response.data;
 };
 
+export const nestLocation = async (scriptId, sourceCanonical, parentName) => {
+    const response = await api.post(`/api/scripts/${scriptId}/locations/nest`, {
+        source_canonical: sourceCanonical,
+        parent_name: parentName,
+    });
+    return response.data;
+};
+
+export const unnestLocation = async (scriptId, parentCanonical, setName) => {
+    const response = await api.post(`/api/scripts/${scriptId}/locations/unnest`, {
+        parent_canonical: parentCanonical,
+        set_name: setName,
+    });
+    return response.data;
+};
+
 export const getLocationAliases = async (scriptId) => {
     const response = await api.get(`/api/scripts/${scriptId}/locations/aliases`);
     return response.data;
