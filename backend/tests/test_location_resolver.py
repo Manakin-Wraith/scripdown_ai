@@ -153,6 +153,14 @@ def test_period_slugline_base_and_sub():
     assert derive_sub_place("OPULENT SANDTON HOME. BEDROOM. DAY") == "BEDROOM"
 
 
+def test_period_slugline_trailing_period_time_dropped():
+    # Real settings end with a trailing period ("GARDEN. DAY."); the time token
+    # must still be recognized and dropped from the sub.
+    assert derive_sub_place("HOMELESS SHELTER. GARDEN. DAY.") == "GARDEN"
+    assert derive_sub_place("COURTROOM. DAY.") == ""
+    assert derive_base_place("COURTROOM. DAY.") == "COURTROOM"
+
+
 def test_period_split_protects_abbreviations():
     # A period after MR/MRS/ST/single-letter is part of the name, not a separator.
     assert derive_base_place("MRS. JONES' HOUSE, KITCHEN") == "MRS. JONES' HOUSE"

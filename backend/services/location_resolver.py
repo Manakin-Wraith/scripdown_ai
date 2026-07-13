@@ -126,7 +126,7 @@ def derive_base_place(
     parts = _split_segments(s)
     kept = [
         p for p in parts
-        if p.upper() not in TIME_WORDS and normalize_place(p) not in INT_EXT_TOKENS
+        if normalize_place(p) not in TIME_WORDS and normalize_place(p) not in INT_EXT_TOKENS
     ]
     base = kept[0] if kept else s
     return normalize_place(base)
@@ -159,7 +159,7 @@ def derive_sub_place(
             segs = _split_segments(h0)
             kept = [
                 p for p in segs
-                if p.upper() not in TIME_WORDS and normalize_place(p) not in INT_EXT_TOKENS
+                if normalize_place(p) not in TIME_WORDS and normalize_place(p) not in INT_EXT_TOKENS
             ]
             return normalize_place(" - ".join(kept[1:])) if len(kept) > 1 else ""
 
@@ -167,7 +167,7 @@ def derive_sub_place(
     parts = _split_segments(s)
     kept = [
         p for p in parts
-        if p.upper() not in TIME_WORDS and normalize_place(p) not in INT_EXT_TOKENS
+        if normalize_place(p) not in TIME_WORDS and normalize_place(p) not in INT_EXT_TOKENS
     ]
     if len(kept) > 1:
         return normalize_place(" - ".join(kept[1:]))
