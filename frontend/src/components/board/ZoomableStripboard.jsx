@@ -1,4 +1,4 @@
-import React, { useReducer, useEffect, useMemo, useRef, useCallback } from 'react';
+import React, { useReducer, useEffect, useMemo, useRef, useCallback, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
@@ -10,6 +10,7 @@ import { buildBoardViewModel, getUniqueStoryDays, getUniqueCharacters } from './
 import BoardToolbar from './BoardToolbar';
 import BoardCanvas from './BoardCanvas';
 import StripDetailDrawer from './StripDetailDrawer';
+import LocationManager from '../scenes/LocationManager';
 import SelectionSummary from '../schedule/SelectionSummary';
 import { Spinner } from '../ui';
 import './ZoomableStripboard.css';
@@ -23,6 +24,7 @@ const ZoomableStripboard = () => {
     const { setScript } = useScript();
     const [state, dispatch] = useReducer(boardReducer, initialBoardState);
     const zoomApiRef = useRef(null);
+    const [showLocationManager, setShowLocationManager] = useState(false);
 
     // Hydrate from localStorage on mount
     useEffect(() => {
@@ -192,6 +194,7 @@ const ZoomableStripboard = () => {
                 scriptId={scriptId}
                 selectedSceneIds={state.selectedStripIds}
                 onScheduled={handleScheduled}
+                onManageLocations={() => setShowLocationManager(true)}
             />
 
             <BoardCanvas
@@ -211,6 +214,15 @@ const ZoomableStripboard = () => {
                     userItemsByScene={state.userItemsByScene}
                     onClose={() => dispatch({ type: 'CLOSE_DRAWER' })}
                     scriptId={scriptId}
+                />
+            )}
+
+            {showLocationManager && (
+                <LocationManager
+                    scriptId={scriptId}
+                    scenes={state.scenes}
+                    onClose={() => setShowLocationManager(false)}
+                    onChanged={refreshBoard}
                 />
             )}
 
