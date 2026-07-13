@@ -207,3 +207,13 @@ def test_resolve_location_no_maps_is_noop_canonical():
     setting, canonical = resolve_location("INT. VILLA - BATHROOM - DAY", "INT", "DAY", None)
     assert setting == "INT. VILLA - BATHROOM - DAY"
     assert canonical == "VILLA"
+
+
+def test_resolve_location_parent_recurs_in_sub():
+    # Base name repeating inside the sub-location must not be double-replaced.
+    setting, canonical = resolve_location(
+        "INT. POOL - POOL DECK - DAY", "INT", "DAY", None,
+        parent_alias_map={"POOL": "SPA"},
+    )
+    assert setting == "INT. SPA - POOL DECK - DAY"
+    assert canonical == "SPA"

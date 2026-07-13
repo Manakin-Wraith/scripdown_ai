@@ -204,7 +204,7 @@ def resolve_location(
 
     new_setting = setting or ""
     if base and normalize_place(canonical) != base:
-        new_setting = re.sub(re.escape(base), canonical, new_setting, flags=re.IGNORECASE)
+        new_setting = rewrite_place_token(new_setting, base, canonical)
 
     parent_norm = normalize_place(canonical)
     sub = derive_sub_place(new_setting, int_ext, time_of_day, None)
