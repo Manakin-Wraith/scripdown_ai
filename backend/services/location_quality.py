@@ -54,6 +54,7 @@ def classify_location(base: str, sub: str, setting: str, sibling_bases: List[str
     issues: List[Dict] = []
     base = (base or "").strip()
     sub = (sub or "").strip()
+    sibling_bases = sibling_bases or []
 
     for seg in _segments(base, sub):
         n = normalize_place(seg)
@@ -95,10 +96,10 @@ def classify_location(base: str, sub: str, setting: str, sibling_bases: List[str
                                  f"Looks like a duplicate of '{canonical}'", False, suggestion=canonical))
             break
 
-    # De-dupe by (code, suggestion) preserving order.
+    # De-dupe by (code, message, suggestion) preserving order.
     seen, out = set(), []
     for i in issues:
-        k = (i["code"], i.get("suggestion"))
+        k = (i["code"], i["message"], i.get("suggestion"))
         if k not in seen:
             seen.add(k)
             out.append(i)

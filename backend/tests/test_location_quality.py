@@ -44,6 +44,18 @@ def test_clean_locations_have_no_flags():
         assert classify_location(b, "", f"INT. {b} - DAY", [b]) == [], b
 
 
+def test_none_sibling_bases_does_not_raise():
+    result = classify_location("OFFICE", "", "INT. OFFICE", None)
+    assert result == []
+
+
+def test_distinct_digit_noise_segments_both_reported():
+    issues = classify_location("2 7", "3 4", "HOME. 2 7. 3 4", ["2 7"])
+    digit = [i for i in issues if i["code"] == "DIGIT_NOISE"]
+    assert len(digit) == 2
+    assert digit[0]["message"] != digit[1]["message"]
+
+
 def test_lint_script_shape():
     scenes = [
         {"setting": "INT. OPULENT SANDTON HOME. BEDROOM. DAY.", "int_ext": "INT",
