@@ -11,7 +11,7 @@ import {
 import './LocationManager.css';
 
 // Build parent -> real subs tree. A parent whose scenes sit directly on it
-// (no sub-location) simply carries a higher count; no "(main)" row is rendered.
+// (no sub-location) simply carries a higher count; no standalone-main row is rendered.
 function buildTree(scenes) {
     const parents = {};
     (scenes || []).forEach((scene) => {
@@ -36,6 +36,8 @@ const LocationManager = ({ scriptId, scenes, onClose, onChanged }) => {
     const [editing, setEditing] = useState(null); // { kind:'parent'|'sub', parent, name }
     const [editValue, setEditValue] = useState('');
     const cancelRef = useRef(false);
+    const [addingUnder, setAddingUnder] = useState(null); // parent name whose Add picker is open
+    const [picked, setPicked] = useState([]);             // checked source names
     const tree = useMemo(() => buildTree(scenes), [scenes]);
 
     const run = useCallback(async (label, fn) => {
@@ -50,6 +52,8 @@ const LocationManager = ({ scriptId, scenes, onClose, onChanged }) => {
         } finally {
             setBusy(false);
             setEditing(null);
+            setAddingUnder(null);
+            setPicked([]);
         }
     }, [busy, toast, onChanged]);
 
@@ -75,18 +79,35 @@ const LocationManager = ({ scriptId, scenes, onClose, onChanged }) => {
         else if (e.key === 'Escape') { cancelRef.current = true; setEditing(null); }
     };
 
-    const doNest = (source, parentName) => {
-        if (!parentName) return;
-        run('Location nested', () => nestLocation(scriptId, source, parentName));
+    // Eligible to group under parent P: any OTHER top-level location that does
+    // not already hold its own group (keeps grouping two-level).
+    const eligibleFor = (parentName) =>
+        tree.filter((t) => t.name !== parentName && t.subs.length === 0).map((t) => t.name);
+
+    const openAdd = (parentName) => {
+        setAddingUnder((cur) => (cur === parentName ? null : parentName));
+        setPicked([]);
     };
 
-    const doUnnest = (parent, setName) => {
-        run('Location moved out', () => unnestLocation(scriptId, parent, setName));
+    const togglePick = (name) =>
+        setPicked((cur) => (cur.includes(name) ? cur.filter((n) => n !== name) : [...cur, name]));
+
+    const doAddSelected = (parentName) => {
+        const sources = picked;
+        if (!sources.length) return;
+        run('Locations grouped', async () => {
+            let total = 0;
+            for (const src of sources) {
+                const res = await nestLocation(scriptId, src, parentName);
+                total += res?.scenes_updated ?? 0;
+            }
+            return { scenes_updated: total };
+        });
     };
 
-    // A top-level location may be nested under another only if it has no real
-    // subs of its own (two-level constraint). Any other top-level is a valid target.
-    const parentNames = tree.map((p) => p.name);
+    const doRemove = (parent, setName) => {
+        run('Location removed', () => unnestLocation(scriptId, parent, setName));
+    };
 
     const renderName = (kind, parent, name) => {
         const isEditing = editing && editing.kind === kind && editing.name === name
@@ -119,13 +140,14 @@ const LocationManager = ({ scriptId, scenes, onClose, onChanged }) => {
                     <button className="locmgr-close" onClick={onClose} aria-label="Close"><X size={18} /></button>
                 </div>
                 <p className="locmgr-purpose">
-                    Group your locations the way you'll shoot them — nest rooms and areas under
-                    the building or place they belong to.
+                    Group the locations you'll shoot together — add them under one
+                    heading so they schedule as a unit.
                 </p>
                 <div className="locmgr-body">
                     {tree.length === 0 && <p className="locmgr-empty">No locations yet.</p>}
                     {tree.map((parent) => {
-                        const nestable = parent.subs.length === 0;
+                        const isAdding = addingUnder === parent.name;
+                        const candidates = isAdding ? eligibleFor(parent.name) : [];
                         return (
                             <div key={parent.name} className="locmgr-parent">
                                 <div className="locmgr-parent-row">
@@ -133,19 +155,13 @@ const LocationManager = ({ scriptId, scenes, onClose, onChanged }) => {
                                         {renderName('parent', null, parent.name)}
                                         <span className="locmgr-count">{parent.count}</span>
                                     </span>
-                                    {nestable && (
-                                        <select
-                                            className="locmgr-move"
-                                            disabled={busy}
-                                            value=""
-                                            onChange={(e) => doNest(parent.name, e.target.value)}
-                                        >
-                                            <option value="">Move under…</option>
-                                            {parentNames
-                                                .filter((n) => n !== parent.name)
-                                                .map((n) => <option key={n} value={n}>{n}</option>)}
-                                        </select>
-                                    )}
+                                    <button
+                                        className="locmgr-add"
+                                        disabled={busy}
+                                        onClick={() => openAdd(parent.name)}
+                                    >
+                                        {isAdding ? 'Cancel' : '+ Add'}
+                                    </button>
                                 </div>
                                 {parent.subs.map((sub) => (
                                     <div key={sub.name} className="locmgr-sub-row">
@@ -156,12 +172,41 @@ const LocationManager = ({ scriptId, scenes, onClose, onChanged }) => {
                                         <button
                                             className="locmgr-moveout"
                                             disabled={busy}
-                                            onClick={() => doUnnest(parent.name, sub.name)}
+                                            onClick={() => doRemove(parent.name, sub.name)}
                                         >
-                                            Move out
+                                            Remove
                                         </button>
                                     </div>
                                 ))}
+                                {isAdding && (
+                                    <div className="locmgr-picker">
+                                        {candidates.length === 0 && (
+                                            <p className="locmgr-picker-empty">No other locations to add.</p>
+                                        )}
+                                        {candidates.map((name) => (
+                                            <label key={name} className="locmgr-picker-row">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={picked.includes(name)}
+                                                    onChange={() => togglePick(name)}
+                                                    disabled={busy}
+                                                />
+                                                <span>{name}</span>
+                                            </label>
+                                        ))}
+                                        {candidates.length > 0 && (
+                                            <div className="locmgr-picker-actions">
+                                                <button
+                                                    className="locmgr-add"
+                                                    disabled={busy || picked.length === 0}
+                                                    onClick={() => doAddSelected(parent.name)}
+                                                >
+                                                    Add selected
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         );
                     })}
