@@ -9,11 +9,20 @@ const TIME_WORDS = new Set([
 ]);
 const INT_EXT_TOKENS = new Set(['INT', 'EXT', 'INT/EXT', 'I/E']);
 const INT_EXT_PREFIX = /^\s*(INT\.?\/EXT\.?|INT\.?|EXT\.?|I\/E\.?)(?=[\s.\-:]|$)\s*[-.:]?\s*/i;
+const LEADING_ARTICLE = /^(THE|A|AN)\s+/;
+
+// Mirror of backend normalize_place: uppercase, collapse whitespace,
+// strip a leading article, strip surrounding punctuation.
+const normalizePlace = (s) =>
+    (s || '')
+        .toUpperCase()
+        .replace(/\s+/g, ' ')
+        .trim()
+        .replace(LEADING_ARTICLE, '')
+        .replace(/^[ .,\-–—:;]+|[ .,\-–—:;]+$/g, '');
 
 // Sub-location label (everything under the base place), parsed from the setting
-// so it stays correct after renames. Mirrors backend derive_sub_place: drop the
-// INT/EXT prefix, split on dashes, drop time + INT/EXT tokens, drop the base
-// (first kept part), join the rest.
+// so it stays correct after renames. Mirrors backend derive_sub_place.
 export const subLocationLabel = (scene) => {
     if (!scene || !scene.setting) return '';
     const stripped = scene.setting.toUpperCase().replace(INT_EXT_PREFIX, '');
@@ -22,7 +31,7 @@ export const subLocationLabel = (scene) => {
         .map((p) => p.trim())
         .filter(Boolean);
     const kept = parts.filter(
-        (p) => !TIME_WORDS.has(p) && !INT_EXT_TOKENS.has(p)
+        (p) => !TIME_WORDS.has(p) && !INT_EXT_TOKENS.has(normalizePlace(p))
     );
-    return kept.slice(1).join(' - ');
+    return normalizePlace(kept.slice(1).join(' - '));
 };
