@@ -26,8 +26,11 @@ const normalizePlace = (s) =>
 export const subLocationLabel = (scene) => {
     if (!scene || !scene.setting) return '';
     const stripped = scene.setting.toUpperCase().replace(INT_EXT_PREFIX, '');
+    // Sub-location separators: a comma ("TK'S HOUSE, KITCHEN") or a whitespace-
+    // surrounded dash (slugline " - "). Spaces around the dash keep hyphenated
+    // names intact ("C-MAX PRISON"). Mirrors backend _SEP_SPLIT.
     const parts = stripped
-        .split(/\s*[-–—]\s*/)
+        .split(/\s*,\s*|\s+[-–—]\s+/)
         .map((p) => p.trim())
         .filter(Boolean);
     const kept = parts.filter(
