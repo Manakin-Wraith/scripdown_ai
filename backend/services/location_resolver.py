@@ -23,6 +23,22 @@ TIME_WORDS = {
 
 INT_EXT_TOKENS = {"INT", "EXT", "INT/EXT", "I/E"}
 
+_TIME_MODIFIERS = {"EARLY", "LATE"}
+
+
+def is_time_phrase(normalized: str) -> bool:
+    """A normalized segment that is a time-of-day phrase: the whole segment is
+    a TIME_WORDS member, or every word is a TIME_WORDS member or an EARLY/LATE
+    modifier with at least one real time word (covers 'LATE AFTERNOON')."""
+    if not normalized:
+        return False
+    if normalized in TIME_WORDS:
+        return True
+    words = normalized.split()
+    return (all(w in TIME_WORDS or w in _TIME_MODIFIERS for w in words)
+            and any(w in TIME_WORDS for w in words))
+
+
 FUZZY_THRESHOLD = 0.82
 MIN_FUZZY_LEN = 4
 
@@ -132,7 +148,7 @@ def derive_base_place(
     parts = _split_segments(s)
     kept = [
         p for p in parts
-        if normalize_place(p) not in TIME_WORDS and normalize_place(p) not in INT_EXT_TOKENS
+        if not is_time_phrase(normalize_place(p)) and normalize_place(p) not in INT_EXT_TOKENS
     ]
     base = kept[0] if kept else s
     return normalize_place(base)
@@ -165,7 +181,7 @@ def derive_sub_place(
             segs = _split_segments(h0)
             kept = [
                 p for p in segs
-                if normalize_place(p) not in TIME_WORDS and normalize_place(p) not in INT_EXT_TOKENS
+                if not is_time_phrase(normalize_place(p)) and normalize_place(p) not in INT_EXT_TOKENS
             ]
             return normalize_place(" - ".join(kept[1:])) if len(kept) > 1 else ""
 
@@ -173,7 +189,7 @@ def derive_sub_place(
     parts = _split_segments(s)
     kept = [
         p for p in parts
-        if normalize_place(p) not in TIME_WORDS and normalize_place(p) not in INT_EXT_TOKENS
+        if not is_time_phrase(normalize_place(p)) and normalize_place(p) not in INT_EXT_TOKENS
     ]
     if len(kept) > 1:
         return normalize_place(" - ".join(kept[1:]))

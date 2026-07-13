@@ -9,7 +9,7 @@ from typing import List, Dict
 
 from services.location_resolver import (
     normalize_place, derive_base_place, derive_sub_place,
-    TIME_WORDS, INT_EXT_TOKENS, suggest_merges,
+    TIME_WORDS, INT_EXT_TOKENS, suggest_merges, is_time_phrase,
 )
 
 # A segment that is only numbers, "<n> <n>" (split scene-time like "2 7"), or a
@@ -19,20 +19,6 @@ _DIGIT_NOISE = re.compile(r"^\d+(?:[ /]\d+| [A-Z])?$")
 # stage direction. Flag-only, so false positives are acceptable.
 _MAX_PLACE_WORDS = 6
 _MAX_PLACE_CHARS = 45
-# Modifiers that combine with a bare TIME_WORDS entry into a still-a-time-of-day
-# phrase ("EARLY MORNING", "LATE NIGHT") — TIME_WORDS itself only holds the
-# single-token forms, so a whole-segment membership check misses these.
-_TIME_MODIFIERS = {"EARLY", "LATE"}
-
-
-def _looks_like_time(n: str) -> bool:
-    if n in TIME_WORDS:
-        return True
-    words = n.split()
-    if not words:
-        return False
-    return any(w in TIME_WORDS for w in words) and \
-        all(w in TIME_WORDS or w in _TIME_MODIFIERS for w in words)
 
 
 def _issue(code, severity, message, auto_fixable, suggestion=None):
@@ -60,7 +46,7 @@ def classify_location(base: str, sub: str, setting: str, sibling_bases: List[str
         n = normalize_place(seg)
         if not n:
             continue
-        if _looks_like_time(n):
+        if is_time_phrase(n):
             issues.append(_issue("TIME_RESIDUE", "warn", f"'{seg}' looks like a time of day", True))
         if _DIGIT_NOISE.match(n):
             issues.append(_issue("DIGIT_NOISE", "warn", f"'{seg}' looks like stray numbers", True))

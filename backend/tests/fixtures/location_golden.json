@@ -7,5 +7,6 @@
   {"setting": "INT. GARAGE / BACKROOM - DAY", "int_ext": "INT", "time_of_day": "DAY", "location_hierarchy": [], "expect": {"base": "GARAGE / BACKROOM", "sub": "", "flags": []}},
   {"setting": "INTERSTATE 5 - NIGHT", "int_ext": "EXT", "time_of_day": "NIGHT", "location_hierarchy": [], "expect": {"base": "INTERSTATE 5", "sub": "", "flags": []}},
   {"setting": "/EXT. COCKPIT", "int_ext": "EXT", "time_of_day": "DAY", "location_hierarchy": ["/EXT. COCKPIT"], "expect": {"base": "COCKPIT", "sub": "", "flags": []}},
-  {"setting": "INT. COURTROOM. DAY.", "int_ext": "INT", "time_of_day": "DAY", "location_hierarchy": [], "expect": {"base": "COURTROOM", "sub": "", "flags": []}}
+  {"setting": "INT. COURTROOM. DAY.", "int_ext": "INT", "time_of_day": "DAY", "location_hierarchy": [], "expect": {"base": "COURTROOM", "sub": "", "flags": []}},
+  {"setting": "INT. OFFICE - LATE AFTERNOON", "int_ext": "INT", "time_of_day": "AFTERNOON", "location_hierarchy": [], "expect": {"base": "OFFICE", "sub": "", "flags": []}}
 ]
