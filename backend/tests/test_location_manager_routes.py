@@ -73,3 +73,46 @@ def test_rename_sub_validates_body(monkeypatch):
     resp = _client().post("/api/scripts/s1/locations/rename-sub",
                           json={"parent_canonical": "VILLA", "from_sub": "POOL"})
     assert resp.status_code == 400
+
+
+def test_reassign_scene_forbidden(monkeypatch):
+    monkeypatch.setattr("middleware.auth.DEV_MODE", True)
+    monkeypatch.setattr(sr, "get_user_id", lambda: "u2")
+    monkeypatch.setattr(sr, "_user_can_access_script", lambda sid, uid: False)
+    resp = _client().post("/api/scripts/s1/locations/reassign-scene",
+                          json={"scene_id": "sc1", "to_parent_name": "HOTEL"})
+    assert resp.status_code == 403
+
+
+def test_reassign_scene_ok(monkeypatch):
+    monkeypatch.setattr("middleware.auth.DEV_MODE", True)
+    monkeypatch.setattr(sr, "get_user_id", lambda: "u1")
+    monkeypatch.setattr(sr, "_user_can_access_script", lambda sid, uid: True)
+    monkeypatch.setattr(sr, "_reassign_scene", lambda script_id, scid, to: 1)
+    resp = _client().post("/api/scripts/s1/locations/reassign-scene",
+                          json={"scene_id": "sc1", "to_parent_name": "HOTEL"})
+    assert resp.status_code == 200
+    assert resp.get_json() == {"success": True, "scenes_updated": 1}
+
+
+def test_merge_parents_ok_sums_sources(monkeypatch):
+    monkeypatch.setattr("middleware.auth.DEV_MODE", True)
+    monkeypatch.setattr(sr, "get_user_id", lambda: "u1")
+    monkeypatch.setattr(sr, "_user_can_access_script", lambda sid, uid: True)
+    calls = []
+    monkeypatch.setattr(sr, "_rename_parent",
+                        lambda script_id, frm, to, uid: calls.append((frm, to)) or 3)
+    resp = _client().post("/api/scripts/s1/locations/merge-parents",
+                          json={"canonical_name": "VILLA", "source_canonicals": ["THE VILLA", "VILLA HOUSE"]})
+    assert resp.status_code == 200
+    assert resp.get_json() == {"success": True, "scenes_updated": 6}
+    assert calls == [("THE VILLA", "VILLA"), ("VILLA HOUSE", "VILLA")]
+
+
+def test_merge_parents_validates_body(monkeypatch):
+    monkeypatch.setattr("middleware.auth.DEV_MODE", True)
+    monkeypatch.setattr(sr, "get_user_id", lambda: "u1")
+    monkeypatch.setattr(sr, "_user_can_access_script", lambda sid, uid: True)
+    resp = _client().post("/api/scripts/s1/locations/merge-parents",
+                          json={"canonical_name": "VILLA", "source_canonicals": []})
+    assert resp.status_code == 400

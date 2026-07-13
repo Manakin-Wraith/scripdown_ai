@@ -4942,6 +4942,80 @@ def rename_sub_location(script_id):
         return jsonify({'error': str(e)}), 500
 
 
+def _reassign_scene(script_id, scene_id, to_parent_name):
+    """Move one scene to a different parent location, preserving its
+    sub-location. Returns 1 if updated, else 0."""
+    to_norm = normalize_place(to_parent_name)
+    result = supabase.table('scenes').select(
+        'id, setting, location_canonical, location_hierarchy'
+    ).eq('script_id', script_id).eq('id', scene_id).limit(1).execute()
+    if not result.data:
+        return 0
+    scene = result.data[0]
+    old_base = normalize_place(scene.get('location_canonical') or '')
+    new_setting = rewrite_place_token(scene.get('setting') or '', old_base, to_parent_name)
+    hierarchy = scene.get('location_hierarchy') or []
+    if isinstance(hierarchy, list) and hierarchy:
+        hierarchy = [to_parent_name] + hierarchy[1:]
+    supabase.table('scenes').update({
+        'setting': canonicalize_setting(new_setting),
+        'location_canonical': to_norm,
+        'location_hierarchy': hierarchy,
+    }).eq('id', scene['id']).execute()
+    return 1
+
+
+@supabase_bp.route('/api/scripts/<script_id>/locations/reassign-scene', methods=['POST'])
+@require_auth
+def reassign_scene_location(script_id):
+    if not supabase:
+        return jsonify({'error': 'Supabase not configured'}), 500
+    try:
+        data = request.get_json() or {}
+        scene_id = (data.get('scene_id') or '').strip()
+        to_parent_name = (data.get('to_parent_name') or '').strip()
+        user_id = get_user_id()
+        if not _user_can_access_script(script_id, user_id):
+            return jsonify({'error': 'Not authorized for this script'}), 403
+        if not scene_id or not to_parent_name:
+            return jsonify({'error': 'scene_id and to_parent_name are required'}), 400
+        updated = _reassign_scene(script_id, scene_id, to_parent_name)
+        return jsonify({'success': True, 'scenes_updated': updated}), 200
+    except Exception as e:
+        print(f"Error reassigning scene location: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@supabase_bp.route('/api/scripts/<script_id>/locations/merge-parents', methods=['POST'])
+@require_auth
+def merge_parent_locations(script_id):
+    if not supabase:
+        return jsonify({'error': 'Supabase not configured'}), 500
+    try:
+        data = request.get_json() or {}
+        canonical_name = (data.get('canonical_name') or '').strip()
+        sources = data.get('source_canonicals') or []
+        user_id = get_user_id()
+        if not _user_can_access_script(script_id, user_id):
+            return jsonify({'error': 'Not authorized for this script'}), 403
+        if not canonical_name or not isinstance(sources, list) or not sources:
+            return jsonify({'error': 'canonical_name and non-empty source_canonicals are required'}), 400
+        total = 0
+        for source in sources:
+            source = (source or '').strip()
+            if not source or source.upper() == canonical_name.upper():
+                continue
+            total += _rename_parent(script_id, source, canonical_name, user_id)
+        return jsonify({'success': True, 'scenes_updated': total}), 200
+    except Exception as e:
+        print(f"Error merging parent locations: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
 @supabase_bp.route('/api/scripts/<script_id>/locations/merge', methods=['POST'])
 @require_auth
 def merge_locations(script_id):
