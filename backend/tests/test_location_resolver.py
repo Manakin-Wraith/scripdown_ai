@@ -217,3 +217,24 @@ def test_resolve_location_parent_recurs_in_sub():
     )
     assert setting == "INT. SPA - POOL DECK - DAY"
     assert canonical == "SPA"
+
+
+def test_resolve_location_nest_sets_base_canonical_not_combined():
+    # Nesting GARAGE / BACKROOM under VILLA: setting gets the parent prefixed,
+    # but canonical is the parent BASE (VILLA), not "VILLA - GARAGE / BACKROOM".
+    setting, canonical = resolve_location(
+        "INT. GARAGE / BACKROOM - DAY", "INT", "DAY", None,
+        parent_set_map={"GARAGE / BACKROOM": ("VILLA", "GARAGE / BACKROOM")},
+    )
+    assert setting == "INT. VILLA - GARAGE / BACKROOM - DAY"
+    assert canonical == "VILLA"
+
+
+def test_resolve_location_null_set_name_path_unchanged():
+    # A plain parent alias (no set_name) still behaves exactly as before.
+    setting, canonical = resolve_location(
+        "INT. VILLA - BATHROOM - DAY", "INT", "DAY", None,
+        parent_alias_map={"VILLA": "SMITH RESIDENCE"},
+    )
+    assert setting == "INT. SMITH RESIDENCE - BATHROOM - DAY"
+    assert canonical == "SMITH RESIDENCE"
