@@ -1,34 +1,40 @@
 import React, { useMemo, useState, useCallback } from 'react';
-import { X, MapPin, Edit3 } from 'lucide-react';
+import { X, MapPin } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 import { locationKey, subLocationLabel } from '../../utils/locationKey';
 import {
     renameParentLocation,
     renameSubLocation,
-    reassignSceneLocation,
-    mergeParentLocations,
+    nestLocation,
+    unnestLocation,
 } from '../../services/apiService';
 import './LocationManager.css';
 
-// Build parent -> sub -> scenes tree from the loaded scenes list (client-side).
+// Build parent -> real subs tree. A parent whose scenes sit directly on it
+// (no sub-location) simply carries a higher count; no "(main)" row is rendered.
 function buildTree(scenes) {
     const parents = {};
     (scenes || []).forEach((scene) => {
         if (scene.is_omitted) return;
         const parent = locationKey(scene);
-        const sub = subLocationLabel(scene) || '(main)';
+        const sub = subLocationLabel(scene);
         if (!parents[parent]) parents[parent] = { name: parent, count: 0, subs: {} };
-        if (!parents[parent].subs[sub]) parents[parent].subs[sub] = { name: sub, scenes: [] };
-        parents[parent].subs[sub].scenes.push(scene);
         parents[parent].count += 1;
+        if (sub) {
+            if (!parents[parent].subs[sub]) parents[parent].subs[sub] = { name: sub, count: 0 };
+            parents[parent].subs[sub].count += 1;
+        }
     });
-    return Object.values(parents).sort((a, b) => a.name.localeCompare(b.name));
+    return Object.values(parents)
+        .map((p) => ({ ...p, subs: Object.values(p.subs).sort((a, b) => a.name.localeCompare(b.name)) }))
+        .sort((a, b) => a.name.localeCompare(b.name));
 }
 
 const LocationManager = ({ scriptId, scenes, onClose, onChanged }) => {
     const toast = useToast();
     const [busy, setBusy] = useState(false);
-    const [expanded, setExpanded] = useState({});
+    const [editing, setEditing] = useState(null); // { kind:'parent'|'sub', parent, name }
+    const [editValue, setEditValue] = useState('');
     const tree = useMemo(() => buildTree(scenes), [scenes]);
 
     const run = useCallback(async (label, fn) => {
@@ -42,32 +48,65 @@ const LocationManager = ({ scriptId, scenes, onClose, onChanged }) => {
             toast.error('Update failed', e?.response?.data?.error || e.message);
         } finally {
             setBusy(false);
+            setEditing(null);
         }
     }, [busy, toast, onChanged]);
 
-    const doRenameParent = (parent) => {
-        const to = window.prompt(`Rename location "${parent.name}" to:`, parent.name);
-        if (!to || to.trim() === parent.name) return;
-        run('Location renamed', () => renameParentLocation(scriptId, parent.name, to.trim()));
+    const startEdit = (kind, parent, name) => {
+        setEditing({ kind, parent, name });
+        setEditValue(name);
     };
 
-    const doRenameSub = (parent, sub) => {
-        if (sub.name === '(main)') return;
-        const to = window.prompt(`Rename sub-location "${sub.name}" under ${parent.name} to:`, sub.name);
-        if (!to || to.trim() === sub.name) return;
-        run('Sub-location renamed', () => renameSubLocation(scriptId, parent.name, sub.name, to.trim()));
+    const commitEdit = () => {
+        if (!editing) return;
+        const to = editValue.trim();
+        if (!to || to === editing.name) { setEditing(null); return; }
+        if (editing.kind === 'parent') {
+            run('Location renamed', () => renameParentLocation(scriptId, editing.name, to));
+        } else {
+            run('Sub-location renamed', () => renameSubLocation(scriptId, editing.parent, editing.name, to));
+        }
     };
 
-    const doReassign = (scene) => {
-        const to = window.prompt(`Move scene #${scene.scene_number} to which location?`, '');
-        if (!to || !to.trim()) return;
-        run('Scene reassigned', () => reassignSceneLocation(scriptId, scene.id || scene.scene_id, to.trim()));
+    const onEditKey = (e) => {
+        if (e.key === 'Enter') commitEdit();
+        else if (e.key === 'Escape') setEditing(null);
     };
 
-    const doMerge = (parent) => {
-        const src = window.prompt(`Merge which location INTO "${parent.name}"? (exact name)`, '');
-        if (!src || !src.trim()) return;
-        run('Locations merged', () => mergeParentLocations(scriptId, parent.name, [src.trim()]));
+    const doNest = (source, parentName) => {
+        if (!parentName) return;
+        run('Location nested', () => nestLocation(scriptId, source, parentName));
+    };
+
+    const doUnnest = (parent, setName) => {
+        run('Location moved out', () => unnestLocation(scriptId, parent, setName));
+    };
+
+    // A top-level location may be nested under another only if it has no real
+    // subs of its own (two-level constraint). Any other top-level is a valid target.
+    const parentNames = tree.map((p) => p.name);
+
+    const renderName = (kind, parent, name) => {
+        const isEditing = editing && editing.kind === kind && editing.name === name
+            && (kind === 'parent' || editing.parent === parent);
+        if (isEditing) {
+            return (
+                <input
+                    className="locmgr-edit"
+                    autoFocus
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    onKeyDown={onEditKey}
+                    onBlur={commitEdit}
+                    disabled={busy}
+                />
+            );
+        }
+        return (
+            <button className="locmgr-name" onClick={() => startEdit(kind, parent, name)} title="Click to rename">
+                {name}
+            </button>
+        );
     };
 
     return (
@@ -77,44 +116,48 @@ const LocationManager = ({ scriptId, scenes, onClose, onChanged }) => {
                     <span><MapPin size={16} /> Manage Locations</span>
                     <button className="locmgr-close" onClick={onClose} aria-label="Close"><X size={18} /></button>
                 </div>
+                <p className="locmgr-purpose">
+                    Group your locations the way you'll shoot them — nest rooms and areas under
+                    the building or place they belong to.
+                </p>
                 <div className="locmgr-body">
                     {tree.length === 0 && <p className="locmgr-empty">No locations yet.</p>}
                     {tree.map((parent) => {
-                        const open = expanded[parent.name] !== false;
+                        const nestable = parent.subs.length === 0;
                         return (
                             <div key={parent.name} className="locmgr-parent">
                                 <div className="locmgr-parent-row">
-                                    <button
-                                        className="locmgr-toggle"
-                                        onClick={() => setExpanded((s) => ({ ...s, [parent.name]: !open }))}
-                                    >
-                                        {open ? '▼' : '▶'} <strong>{parent.name}</strong>
+                                    <span className="locmgr-parent-name">
+                                        {renderName('parent', null, parent.name)}
                                         <span className="locmgr-count">{parent.count}</span>
-                                    </button>
-                                    <span className="locmgr-actions">
-                                        <button disabled={busy} onClick={() => doRenameParent(parent)}>Rename</button>
-                                        <button disabled={busy} onClick={() => doMerge(parent)}>Merge…</button>
                                     </span>
+                                    {nestable && (
+                                        <select
+                                            className="locmgr-move"
+                                            disabled={busy}
+                                            value=""
+                                            onChange={(e) => doNest(parent.name, e.target.value)}
+                                        >
+                                            <option value="">Move under…</option>
+                                            {parentNames
+                                                .filter((n) => n !== parent.name)
+                                                .map((n) => <option key={n} value={n}>{n}</option>)}
+                                        </select>
+                                    )}
                                 </div>
-                                {open && Object.values(parent.subs).map((sub) => (
+                                {parent.subs.map((sub) => (
                                     <div key={sub.name} className="locmgr-sub-row">
                                         <span className="locmgr-sub-name">
-                                            {sub.name} <span className="locmgr-count">{sub.scenes.length}</span>
+                                            {renderName('sub', parent.name, sub.name)}
+                                            <span className="locmgr-count">{sub.count}</span>
                                         </span>
-                                        <span className="locmgr-actions">
-                                            {sub.name !== '(main)' && (
-                                                <button disabled={busy} onClick={() => doRenameSub(parent, sub)}>
-                                                    <Edit3 size={12} /> Rename
-                                                </button>
-                                            )}
-                                            <button
-                                                disabled={busy}
-                                                onClick={() => doReassign(sub.scenes[0])}
-                                                title="Reassign the first scene here to another location"
-                                            >
-                                                Reassign scene
-                                            </button>
-                                        </span>
+                                        <button
+                                            className="locmgr-moveout"
+                                            disabled={busy}
+                                            onClick={() => doUnnest(parent.name, sub.name)}
+                                        >
+                                            Move out
+                                        </button>
                                     </div>
                                 ))}
                             </div>
