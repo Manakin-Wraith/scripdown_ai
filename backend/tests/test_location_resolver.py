@@ -12,6 +12,8 @@ from services.location_resolver import (
     derive_base_place,
     derive_sub_place,
     suggest_merges,
+    rewrite_place_token,
+    resolve_location,
 )
 
 
@@ -171,3 +173,37 @@ def test_derive_sub_place_none_when_no_sub():
 def test_derive_sub_place_prefers_hierarchy():
     assert derive_sub_place("INT. VILLA - DAY", location_hierarchy=["VILLA", "Bathroom"]) \
         == "BATHROOM"
+
+
+def test_rewrite_place_token_preserves_rest():
+    assert rewrite_place_token("INT. VILLA - BATHROOM - DAY", "VILLA", "SMITH RESIDENCE") \
+        == "INT. SMITH RESIDENCE - BATHROOM - DAY"
+
+
+def test_rewrite_place_token_first_occurrence_only():
+    assert rewrite_place_token("INT. POOL - POOL DECK - DAY", "POOL", "SPA") \
+        == "INT. SPA - POOL DECK - DAY"
+
+
+def test_resolve_location_parent_alias():
+    setting, canonical = resolve_location(
+        "INT. VILLA - BATHROOM - DAY", "INT", "DAY", ["VILLA", "BATHROOM"],
+        parent_alias_map={"VILLA": "SMITH RESIDENCE"},
+    )
+    assert setting == "INT. SMITH RESIDENCE - BATHROOM - DAY"
+    assert canonical == "SMITH RESIDENCE"
+
+
+def test_resolve_location_sub_alias_scoped_to_parent():
+    # POOL under VILLA renames; POOL under HOTEL must NOT.
+    sub_map = {("VILLA", "POOL"): "SWIMMING POOL"}
+    s1, _ = resolve_location("EXT. VILLA - POOL - DAY", "EXT", "DAY", None, sub_alias_map=sub_map)
+    s2, _ = resolve_location("EXT. HOTEL - POOL - DAY", "EXT", "DAY", None, sub_alias_map=sub_map)
+    assert s1 == "EXT. VILLA - SWIMMING POOL - DAY"
+    assert s2 == "EXT. HOTEL - POOL - DAY"
+
+
+def test_resolve_location_no_maps_is_noop_canonical():
+    setting, canonical = resolve_location("INT. VILLA - BATHROOM - DAY", "INT", "DAY", None)
+    assert setting == "INT. VILLA - BATHROOM - DAY"
+    assert canonical == "VILLA"
