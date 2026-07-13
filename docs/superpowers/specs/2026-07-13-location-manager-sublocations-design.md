@@ -35,10 +35,10 @@ sub-location as a label.
 
 ## Non-Goals
 
-- No new location entity table. Propagation works by rewriting the existing
-  scene fields (`setting`, `location_canonical`, `location_hierarchy`), which all
-  downstream consumers already read.
-- No sub-location *stickiness* across re-analysis in v1 (see Edge Cases).
+- No location *entity* table. Propagation works by rewriting the existing scene
+  fields (`setting`, `location_canonical`, `location_hierarchy`), which all
+  downstream consumers already read. (One small alias table is added for
+  sub-location stickiness — see below — mirroring `location_aliases`.)
 - No changes to AI extraction of locations.
 
 ## Existing Foundations (reuse, don't rebuild)
@@ -51,7 +51,11 @@ sub-location as a label.
   base-place remaps, applied by `_apply_location_alias()` on ingestion and edits.
 - `_apply_location_alias()` already rewrites **only the base token** within a
   setting, preserving the sub-location and time-of-day — the key mechanic reused
-  by every rename below.
+  by every rename below. It is extended (see below) to also apply sub-location
+  aliases, scoped to the parent.
+- **New:** `sub_location_aliases(script_id, parent_place, alias_sub,
+  canonical_sub, renamed_by)` — sticky sub-location remaps scoped to a parent,
+  the direct analogue of `location_aliases` (which is base-place scoped).
 - `POST /api/scripts/<id>/locations/merge` (`merge_locations`) exists but matches
   on exact full setting text and is not surfaced in the UI. It is the seed for
   the parent-merge operation, which instead keys on base place.
@@ -81,10 +85,24 @@ All new endpoints sit beside `merge_locations`, each `@require_auth` and guarded
 | `POST …/locations/rename-parent` | `{ from_canonical, to_name }` | For every scene where `location_canonical == normalize(from_canonical)`: `rewrite_base`; update matching `department_items` (item_type `locations`); upsert alias `from → to`. |
 | `POST …/locations/merge-parents` | `{ canonical_name, source_canonicals[] }` | Apply rename-parent for each source into `canonical_name`. |
 | `POST …/locations/reassign-scene` | `{ scene_id, to_parent_name }` | Single-scene `rewrite_base`. No alias (scene-specific). |
-| `POST …/locations/rename-sub` | `{ parent_canonical, from_sub, to_sub }` | For scenes under the parent whose sub-location == `from_sub`: rewrite only the sub token; `location_canonical` unchanged. |
+| `POST …/locations/rename-sub` | `{ parent_canonical, from_sub, to_sub }` | For scenes under the parent whose sub-location == `from_sub`: rewrite only the sub token; `location_canonical` unchanged; upsert `sub_location_aliases(parent, from_sub → to_sub)`. |
 
 Case-only renames preserve the user's chosen spelling verbatim (do not
 `normalize_place` the target), consistent with `merge_locations`.
+
+### Sticky sub-location renames (`_apply_location_alias` extension)
+
+`_apply_location_alias()` is extended so sub-location renames survive
+re-analysis, exactly as parent renames do:
+
+1. Resolve the parent as today (base place + `location_aliases`).
+2. Derive the scene's sub-location (`derive_sub_place`, below).
+3. Look up `sub_location_aliases` for `(resolved_parent, sub)`; if found, rewrite
+   the sub token in `setting` and the corresponding `location_hierarchy` element.
+
+Ordering: parent alias is applied first (so the sub lookup is keyed on the final
+parent). The lookup is best-effort and non-fatal on failure, matching the parent
+path.
 
 ### Sub-location parsing (shared)
 
@@ -136,10 +154,12 @@ User renames parent in LocationManager
 
 - **Rename collides with an existing parent** → effectively a merge (both group
   under the same canonical). The manager warns before applying.
-- **Sub-location renames are not sticky across re-analysis** (v1). Parent renames
-  persist via `location_aliases` (base-place keyed); sub-locations have no alias
-  key, so a re-analyzed scene may revert a sub-rename. Accepted for v1 and
-  documented; a `sub_location_aliases` table can be added later if needed.
+- **Both parent and sub renames are sticky across re-analysis.** Parents persist
+  via `location_aliases` (base-place keyed); sub-locations via
+  `sub_location_aliases` (parent+sub keyed). `_apply_location_alias` applies the
+  parent remap first, then the sub remap scoped to the resolved parent, so a
+  re-analyzed scene keeps both. A sub alias is scoped to its parent, so renaming
+  `POOL → SWIMMING POOL` under `VILLA` never touches a `POOL` under another parent.
 - **Case-only rename** preserves the chosen spelling verbatim.
 - **Concurrency** — last-write-wins per scene; acceptable for this workflow.
 - **Alias lookup failure** is non-fatal (degrades to derived base place), matching
@@ -149,8 +169,11 @@ User renames parent in LocationManager
 
 - Backend `pytest` per operation: base-token rewrite preserves sub + time;
   rename-parent updates all sub-location scenes and upserts the alias; rename-sub
-  leaves `location_canonical` unchanged; reassign-scene touches one scene; merge
-  folds sources into target; auth/access enforced (403 for non-members).
+  leaves `location_canonical` unchanged and upserts a parent-scoped sub alias;
+  `_apply_location_alias` re-applies both parent and sub aliases (and a sub alias
+  scoped to one parent does not affect the same sub name under another parent);
+  reassign-scene touches one scene; merge folds sources into target; auth/access
+  enforced (403 for non-members).
 - Frontend gated on `npm run build` (`npm run lint` is known broken).
 - Manual: rename a parent with multiple sub-locations, confirm the schedule board
   regroups those scenes into one lane and a production report shows the new name.
