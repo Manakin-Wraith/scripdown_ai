@@ -26,6 +26,7 @@ from services.location_resolver import (
     derive_base_place,
     normalize_place,
     suggest_merges,
+    resolve_location,
 )
 
 # Supabase client
@@ -4777,25 +4778,27 @@ def _user_can_access_script(script_id, user_id):
 
 
 def _apply_location_alias(script_id, setting, int_ext, time_of_day, location_hierarchy):
-    """Return (setting, location_canonical) with location_aliases applied.
+    """Return (setting, location_canonical) with parent + sub aliases applied.
     Non-fatal on lookup failure (degrades to derived base place)."""
-    # Normalize casing/whitespace/quotes up front so manually created or edited
-    # scenes store the same canonical form as ingested ones.
-    setting = canonicalize_setting(setting)
-    base = derive_base_place(setting, int_ext, time_of_day, location_hierarchy)
-    canonical = base
+    parent_map = {}
+    sub_map = {}
     try:
         rows = supabase.table('location_aliases').select(
             'alias_place, canonical_place'
         ).eq('script_id', script_id).execute().data or []
-        alias_map = {r['alias_place']: r['canonical_place'] for r in rows}
-        canonical = alias_map.get(base, base)
+        parent_map = {r['alias_place']: r['canonical_place'] for r in rows}
     except Exception as alias_err:
-        print(f"[LocMerge] Alias map lookup skipped (non-fatal): {alias_err}")
-    new_setting = setting or ''
-    if base and canonical != base:
-        new_setting = re.sub(re.escape(base), canonical, new_setting, flags=re.IGNORECASE)
-    return new_setting, normalize_place(canonical)
+        print(f"[LocMerge] parent alias lookup skipped (non-fatal): {alias_err}")
+    try:
+        srows = supabase.table('sub_location_aliases').select(
+            'parent_place, alias_sub, canonical_sub'
+        ).eq('script_id', script_id).execute().data or []
+        sub_map = {(r['parent_place'], r['alias_sub']): r['canonical_sub'] for r in srows}
+    except Exception as sub_err:
+        print(f"[LocMerge] sub alias lookup skipped (non-fatal): {sub_err}")
+    return resolve_location(
+        setting, int_ext, time_of_day, location_hierarchy, parent_map, sub_map
+    )
 
 
 @supabase_bp.route('/api/scripts/<script_id>/locations/merge', methods=['POST'])
