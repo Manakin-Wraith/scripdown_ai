@@ -188,25 +188,34 @@ def resolve_location(
     location_hierarchy=None,
     parent_alias_map: Optional[Dict[str, str]] = None,
     sub_alias_map: Optional[Dict] = None,
+    parent_set_map: Optional[Dict] = None,
 ) -> tuple:
-    """Apply parent then sub aliases to a scene setting (pure).
+    """Apply parent, nest, then sub aliases to a scene setting (pure).
 
-    Returns (new_setting, location_canonical_norm). Parent map is applied first
-    so the sub lookup is keyed on the final parent. Sub is re-derived from the
-    rewritten setting (not the possibly-stale hierarchy).
+    Returns (new_setting, location_canonical_norm). A parent_set_map entry
+    NESTS the base under a parent, keeping the base as a sub:
+    base -> "{parent} - {set}", canonical -> normalize(parent). A plain
+    parent_alias_map entry just remaps the base. The sub remap runs last.
     """
     parent_alias_map = parent_alias_map or {}
     sub_alias_map = sub_alias_map or {}
+    parent_set_map = parent_set_map or {}
 
     setting = canonicalize_setting(setting)
     base = derive_base_place(setting, int_ext, time_of_day, location_hierarchy)
-    canonical = parent_alias_map.get(base, base)
-
     new_setting = setting or ""
-    if base and normalize_place(canonical) != base:
-        new_setting = rewrite_place_token(new_setting, base, canonical)
 
-    parent_norm = normalize_place(canonical)
+    if base in parent_set_map:
+        parent_place, set_name = parent_set_map[base]
+        if base:
+            new_setting = rewrite_place_token(new_setting, base, f"{parent_place} - {set_name}")
+        parent_norm = normalize_place(parent_place)
+    else:
+        canonical = parent_alias_map.get(base, base)
+        if base and normalize_place(canonical) != base:
+            new_setting = rewrite_place_token(new_setting, base, canonical)
+        parent_norm = normalize_place(canonical)
+
     sub = derive_sub_place(new_setting, int_ext, time_of_day, None)
     if sub:
         new_sub = sub_alias_map.get((parent_norm, sub))

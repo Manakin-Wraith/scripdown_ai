@@ -4780,15 +4780,20 @@ def _user_can_access_script(script_id, user_id):
 
 
 def _apply_location_alias(script_id, setting, int_ext, time_of_day, location_hierarchy):
-    """Return (setting, location_canonical) with parent + sub aliases applied.
-    Non-fatal on lookup failure (degrades to derived base place)."""
+    """Return (setting, location_canonical) with parent, nest, and sub aliases
+    applied. Non-fatal on lookup failure (degrades to derived base place)."""
     parent_map = {}
+    parent_set_map = {}
     sub_map = {}
     try:
         rows = supabase.table('location_aliases').select(
-            'alias_place, canonical_place'
+            'alias_place, canonical_place, set_name'
         ).eq('script_id', script_id).execute().data or []
-        parent_map = {r['alias_place']: r['canonical_place'] for r in rows}
+        for r in rows:
+            if r.get('set_name'):
+                parent_set_map[r['alias_place']] = (r['canonical_place'], r['set_name'])
+            else:
+                parent_map[r['alias_place']] = r['canonical_place']
     except Exception as alias_err:
         print(f"[LocMerge] parent alias lookup skipped (non-fatal): {alias_err}")
     try:
@@ -4799,7 +4804,8 @@ def _apply_location_alias(script_id, setting, int_ext, time_of_day, location_hie
     except Exception as sub_err:
         print(f"[LocMerge] sub alias lookup skipped (non-fatal): {sub_err}")
     return resolve_location(
-        setting, int_ext, time_of_day, location_hierarchy, parent_map, sub_map
+        setting, int_ext, time_of_day, location_hierarchy,
+        parent_map, sub_map, parent_set_map,
     )
 
 
@@ -4853,6 +4859,13 @@ def _rename_parent(script_id, from_canonical, to_name, user_id):
             }).eq('script_id', script_id).eq('parent_place', from_norm).execute()
         except Exception as sub_reparent_err:
             print(f"Warning: failed to re-point sub aliases: {sub_reparent_err}")
+
+        try:
+            supabase.table('location_aliases').update({
+                'canonical_place': to_norm
+            }).eq('script_id', script_id).eq('canonical_place', from_norm).execute()
+        except Exception as nest_reparent_err:
+            print(f"Warning: failed to re-point nest aliases: {nest_reparent_err}")
 
     return updated
 
@@ -5018,6 +5031,144 @@ def merge_parent_locations(script_id):
         return jsonify({'success': True, 'scenes_updated': total}), 200
     except Exception as e:
         print(f"Error merging parent locations: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+def _nest(script_id, source_canonical, parent_name, user_id):
+    """Nest a location under a parent, keeping its name as the sub. Every scene
+    under source_canonical is rewritten to "{int_ext}. {parent} - {set} - {time}",
+    location_canonical set to the parent BASE, hierarchy [parent, set]; a sticky
+    location_aliases row (with set_name) is upserted. Returns scenes updated."""
+    source_norm = normalize_place(source_canonical)
+    parent_norm = normalize_place(parent_name)
+
+    set_name = source_norm
+    for sep in (' - ', ', ', ' '):
+        prefix = parent_norm + sep
+        if set_name.startswith(prefix):
+            set_name = set_name[len(prefix):].strip(' -,')
+            break
+    if not set_name:
+        set_name = source_norm
+
+    result = supabase.table('scenes').select(
+        'id, int_ext, time_of_day'
+    ).eq('script_id', script_id).eq('location_canonical', source_norm).execute()
+    scenes = result.data or []
+    updated = 0
+    for scene in scenes:
+        ie = (scene.get('int_ext') or 'INT').strip().rstrip('.')
+        tod = (scene.get('time_of_day') or '').strip()
+        new_setting = f"{ie}. {parent_norm} - {set_name}"
+        if tod:
+            new_setting += f" - {tod}"
+        supabase.table('scenes').update({
+            'setting': canonicalize_setting(new_setting),
+            'location_canonical': parent_norm,
+            'location_hierarchy': [parent_norm, set_name],
+        }).eq('id', scene['id']).execute()
+        updated += 1
+
+    try:
+        supabase.table('location_aliases').upsert({
+            'script_id': script_id,
+            'alias_place': source_norm,
+            'canonical_place': parent_norm,
+            'set_name': set_name,
+            'merged_by': user_id,
+        }, on_conflict='script_id,alias_place').execute()
+    except Exception as nest_err:
+        print(f"Warning: failed to store nest alias: {nest_err}")
+
+    return updated
+
+
+@supabase_bp.route('/api/scripts/<script_id>/locations/nest', methods=['POST'])
+@require_auth
+def nest_location(script_id):
+    if not supabase:
+        return jsonify({'error': 'Supabase not configured'}), 500
+    try:
+        data = request.get_json() or {}
+        source_canonical = (data.get('source_canonical') or '').strip()
+        parent_name = (data.get('parent_name') or '').strip()
+        user_id = get_user_id()
+        if not _user_can_access_script(script_id, user_id):
+            return jsonify({'error': 'Not authorized for this script'}), 403
+        if not source_canonical or not parent_name:
+            return jsonify({'error': 'source_canonical and parent_name are required'}), 400
+        updated = _nest(script_id, source_canonical, parent_name, user_id)
+        return jsonify({'success': True, 'scenes_updated': updated}), 200
+    except Exception as e:
+        print(f"Error nesting location: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+def _unnest(script_id, parent_canonical, set_name, user_id):
+    """Promote a nested set back to its own top-level location. Scenes under
+    parent_canonical whose sub == set_name are rewritten to
+    "{int_ext}. {set} - {time}", location_canonical set to the set, hierarchy
+    [set]; the sticky nest alias for this set under this parent is removed.
+    Returns scenes updated."""
+    parent_norm = normalize_place(parent_canonical)
+    set_norm = normalize_place(set_name)
+
+    result = supabase.table('scenes').select(
+        'id, setting, int_ext, time_of_day, location_hierarchy'
+    ).eq('script_id', script_id).eq('location_canonical', parent_norm).execute()
+    scenes = result.data or []
+    updated = 0
+    for scene in scenes:
+        sub = derive_sub_place(
+            scene.get('setting'), scene.get('int_ext'),
+            scene.get('time_of_day'), scene.get('location_hierarchy'),
+        )
+        if sub != set_norm:
+            continue
+        ie = (scene.get('int_ext') or 'INT').strip().rstrip('.')
+        tod = (scene.get('time_of_day') or '').strip()
+        new_setting = f"{ie}. {set_norm}"
+        if tod:
+            new_setting += f" - {tod}"
+        supabase.table('scenes').update({
+            'setting': canonicalize_setting(new_setting),
+            'location_canonical': set_norm,
+            'location_hierarchy': [set_norm],
+        }).eq('id', scene['id']).execute()
+        updated += 1
+
+    try:
+        supabase.table('location_aliases').delete().eq(
+            'script_id', script_id
+        ).eq('canonical_place', parent_norm).eq('set_name', set_norm).execute()
+    except Exception as unnest_err:
+        print(f"Warning: failed to remove nest alias: {unnest_err}")
+
+    return updated
+
+
+@supabase_bp.route('/api/scripts/<script_id>/locations/unnest', methods=['POST'])
+@require_auth
+def unnest_location(script_id):
+    if not supabase:
+        return jsonify({'error': 'Supabase not configured'}), 500
+    try:
+        data = request.get_json() or {}
+        parent_canonical = (data.get('parent_canonical') or '').strip()
+        set_name = (data.get('set_name') or '').strip()
+        user_id = get_user_id()
+        if not _user_can_access_script(script_id, user_id):
+            return jsonify({'error': 'Not authorized for this script'}), 403
+        if not parent_canonical or not set_name:
+            return jsonify({'error': 'parent_canonical and set_name are required'}), 400
+        updated = _unnest(script_id, parent_canonical, set_name, user_id)
+        return jsonify({'success': True, 'scenes_updated': updated}), 200
+    except Exception as e:
+        print(f"Error un-nesting location: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
