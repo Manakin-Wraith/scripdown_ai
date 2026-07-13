@@ -263,6 +263,31 @@ def test_nest_helper_sets_parent_base_canonical(monkeypatch):
         and upserts[0]["canonical_place"] == "VILLA" and upserts[0]["alias_place"] == "GARAGE / BACKROOM"
 
 
+def test_nest_helper_skips_alias_when_no_scenes_match(monkeypatch):
+    # A 0-scene nest (source resolved to no live scenes) must NOT upsert a sticky
+    # location_aliases row — that would be a dangling half-write.
+    calls = []
+    class _Q:
+        def __init__(self, table):
+            self.table = table; self._eq = {}; self._update = None; self._upsert = None
+        def select(self, *a, **k): return self
+        def update(self, payload): self._update = payload; return self
+        def upsert(self, payload, *a, **k): self._upsert = payload; return self
+        def eq(self, col, val): self._eq[col] = val; return self
+        def execute(self):
+            calls.append((self.table, self._update, self._upsert, dict(self._eq)))
+            class _R:
+                data = []  # no scenes match the source canonical
+            return _R()
+    class _FakeSupa:
+        def table(self, name): return _Q(name)
+    monkeypatch.setattr(sr, "supabase", _FakeSupa())
+    n = sr._nest("s1", "NONEXISTENT ROOM", "VILLA", "u1")
+    assert n == 0
+    alias_upserts = [up for (t, _u, up, _eq) in calls if t == "location_aliases" and up is not None]
+    assert alias_upserts == [], f"expected no alias upsert on 0-scene nest; got {alias_upserts}"
+
+
 def test_unnest_forbidden_for_non_member(monkeypatch):
     monkeypatch.setattr("middleware.auth.DEV_MODE", True)
     monkeypatch.setattr(sr, "get_user_id", lambda: "u2")
