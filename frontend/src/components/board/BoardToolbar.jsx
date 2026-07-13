@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { ZoomIn, ZoomOut, Maximize, RotateCcw, Filter, Layers, MousePointer2, Hand, Move, BoxSelect, CalendarPlus, X } from 'lucide-react';
+import { ZoomIn, ZoomOut, Maximize, RotateCcw, Filter, Layers, MousePointer2, Hand, Move, BoxSelect, CalendarPlus, X, MapPin } from 'lucide-react';
 import { countActiveFilters } from './boardModel';
 import SchedulePopover from './SchedulePopover';
 import './BoardToolbar.css';
 
-const BoardToolbar = ({ groupBy, filters, uniqueDays, uniqueCharacters, totalVisible, totalScenes, zoomApiRef, dispatch, toolMode, selectedCount, scriptId, selectedSceneIds, onScheduled }) => {
+const BoardToolbar = ({ groupBy, filters, uniqueDays, uniqueCharacters, totalVisible, totalScenes, zoomApiRef, dispatch, toolMode, selectedCount, scriptId, selectedSceneIds, onScheduled, onManageLocations }) => {
     const activeFilterCount = countActiveFilters(filters);
     const [showSchedule, setShowSchedule] = useState(false);
 
@@ -112,6 +112,13 @@ const BoardToolbar = ({ groupBy, filters, uniqueDays, uniqueCharacters, totalVis
                             </button>
                         ))}
                     </div>
+                    <button
+                        className="pill-btn"
+                        onClick={onManageLocations}
+                        title="Group and rename locations"
+                    >
+                        <MapPin size={14} /> Manage locations
+                    </button>
                 </div>
             </div>
 
