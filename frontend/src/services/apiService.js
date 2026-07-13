@@ -2166,4 +2166,9 @@ export const getLocationSuggestions = async (scriptId) => {
     return response.data;
 };
 
+export const getLocationHealth = async (scriptId) => {
+    const response = await api.get(`/api/scripts/${scriptId}/locations/health`);
+    return response.data; // { script_id, total, by_key }
+};
+
 export default api;
