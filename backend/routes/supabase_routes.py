@@ -5101,6 +5101,72 @@ def nest_location(script_id):
         return jsonify({'error': str(e)}), 500
 
 
+def _unnest(script_id, parent_canonical, set_name, user_id):
+    """Promote a nested set back to its own top-level location. Scenes under
+    parent_canonical whose sub == set_name are rewritten to
+    "{int_ext}. {set} - {time}", location_canonical set to the set, hierarchy
+    [set]; the sticky nest alias for this set under this parent is removed.
+    Returns scenes updated."""
+    parent_norm = normalize_place(parent_canonical)
+    set_norm = normalize_place(set_name)
+
+    result = supabase.table('scenes').select(
+        'id, setting, int_ext, time_of_day, location_hierarchy'
+    ).eq('script_id', script_id).eq('location_canonical', parent_norm).execute()
+    scenes = result.data or []
+    updated = 0
+    for scene in scenes:
+        sub = derive_sub_place(
+            scene.get('setting'), scene.get('int_ext'),
+            scene.get('time_of_day'), scene.get('location_hierarchy'),
+        )
+        if sub != set_norm:
+            continue
+        ie = (scene.get('int_ext') or 'INT').strip().rstrip('.')
+        tod = (scene.get('time_of_day') or '').strip()
+        new_setting = f"{ie}. {set_norm}"
+        if tod:
+            new_setting += f" - {tod}"
+        supabase.table('scenes').update({
+            'setting': canonicalize_setting(new_setting),
+            'location_canonical': set_norm,
+            'location_hierarchy': [set_norm],
+        }).eq('id', scene['id']).execute()
+        updated += 1
+
+    try:
+        supabase.table('location_aliases').delete().eq(
+            'script_id', script_id
+        ).eq('canonical_place', parent_norm).eq('set_name', set_norm).execute()
+    except Exception as unnest_err:
+        print(f"Warning: failed to remove nest alias: {unnest_err}")
+
+    return updated
+
+
+@supabase_bp.route('/api/scripts/<script_id>/locations/unnest', methods=['POST'])
+@require_auth
+def unnest_location(script_id):
+    if not supabase:
+        return jsonify({'error': 'Supabase not configured'}), 500
+    try:
+        data = request.get_json() or {}
+        parent_canonical = (data.get('parent_canonical') or '').strip()
+        set_name = (data.get('set_name') or '').strip()
+        user_id = get_user_id()
+        if not _user_can_access_script(script_id, user_id):
+            return jsonify({'error': 'Not authorized for this script'}), 403
+        if not parent_canonical or not set_name:
+            return jsonify({'error': 'parent_canonical and set_name are required'}), 400
+        updated = _unnest(script_id, parent_canonical, set_name, user_id)
+        return jsonify({'success': True, 'scenes_updated': updated}), 200
+    except Exception as e:
+        print(f"Error un-nesting location: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
 @supabase_bp.route('/api/scripts/<script_id>/locations/merge', methods=['POST'])
 @require_auth
 def merge_locations(script_id):

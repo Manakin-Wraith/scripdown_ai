@@ -215,3 +215,29 @@ def test_nest_helper_sets_parent_base_canonical(monkeypatch):
     upserts = [up for (t, _u, up, _eq) in calls if t == "location_aliases" and up is not None]
     assert upserts and upserts[0]["set_name"] == "GARAGE / BACKROOM" \
         and upserts[0]["canonical_place"] == "VILLA" and upserts[0]["alias_place"] == "GARAGE / BACKROOM"
+
+
+def test_unnest_forbidden_for_non_member(monkeypatch):
+    monkeypatch.setattr("middleware.auth.DEV_MODE", True)
+    monkeypatch.setattr(sr, "get_user_id", lambda: "u2")
+    monkeypatch.setattr(sr, "_user_can_access_script", lambda sid, uid: False)
+    resp = _client().post("/api/scripts/s1/locations/unnest",
+                          json={"parent_canonical": "VILLA", "set_name": "GARAGE"})
+    assert resp.status_code == 403
+
+def test_unnest_validates_body(monkeypatch):
+    monkeypatch.setattr("middleware.auth.DEV_MODE", True)
+    monkeypatch.setattr(sr, "get_user_id", lambda: "u1")
+    monkeypatch.setattr(sr, "_user_can_access_script", lambda sid, uid: True)
+    resp = _client().post("/api/scripts/s1/locations/unnest", json={"parent_canonical": "VILLA"})
+    assert resp.status_code == 400
+
+def test_unnest_ok_calls_helper(monkeypatch):
+    monkeypatch.setattr("middleware.auth.DEV_MODE", True)
+    monkeypatch.setattr(sr, "get_user_id", lambda: "u1")
+    monkeypatch.setattr(sr, "_user_can_access_script", lambda sid, uid: True)
+    monkeypatch.setattr(sr, "_unnest", lambda script_id, parent, setn, uid: 2)
+    resp = _client().post("/api/scripts/s1/locations/unnest",
+                          json={"parent_canonical": "VILLA", "set_name": "GARAGE"})
+    assert resp.status_code == 200
+    assert resp.get_json() == {"success": True, "scenes_updated": 2}
