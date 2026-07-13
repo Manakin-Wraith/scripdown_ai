@@ -4860,6 +4860,13 @@ def _rename_parent(script_id, from_canonical, to_name, user_id):
         except Exception as sub_reparent_err:
             print(f"Warning: failed to re-point sub aliases: {sub_reparent_err}")
 
+        try:
+            supabase.table('location_aliases').update({
+                'canonical_place': to_norm
+            }).eq('script_id', script_id).eq('canonical_place', from_norm).execute()
+        except Exception as nest_reparent_err:
+            print(f"Warning: failed to re-point nest aliases: {nest_reparent_err}")
+
     return updated
 
 
