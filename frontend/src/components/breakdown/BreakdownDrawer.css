@@ -872,14 +872,54 @@
         0 2px 8px rgba(0, 0, 0, 0.10),
         0 0 0 1px rgba(0, 0, 0, 0.05);
     transition: max-height 0.25s ease;
-    text-align: center;
 }
 
-/* Center the screenplay block as a single unit while preserving each
-   line's internal left-aligned indentation (widest line sets the width). */
+/* Full-width page so per-element screenplay alignment (centered character
+   cues, right-aligned transitions, indented dialogue) reads correctly. */
 .bd-script-lines {
-    display: inline-block;
-    text-align: left;
+    display: block;
+    width: 100%;
+}
+
+/* Screenplay block layout — indents in % so they scale in the narrow drawer. */
+.bd-sl-scene-heading {
+    font-weight: 700;
+    text-transform: uppercase;
+    margin: 0.5em 0 0.4em;
+}
+
+.bd-sl-scene-heading:first-child {
+    margin-top: 0;
+}
+
+.bd-sl-action {
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin: 0.2em 0;
+}
+
+.bd-sl-character {
+    text-transform: uppercase;
+    text-align: center;
+    margin: 0.5em 0 0;
+    padding: 0 18%;
+}
+
+.bd-sl-dialogue {
+    white-space: pre-wrap;
+    word-break: break-word;
+    padding: 0 15% 0 18%;
+    margin-bottom: 0.15em;
+}
+
+.bd-sl-transition {
+    text-align: right;
+    text-transform: uppercase;
+    margin: 0.4em 0;
+}
+
+.bd-sl-blank {
+    height: 0.6em;
 }
 
 .bd-script-text-body.expanded {
@@ -903,15 +943,6 @@
 
 .bd-script-text-body::-webkit-scrollbar-thumb:hover {
     background: #a3a3a3;
-}
-
-/* Preserve EXACT original screenplay formatting from PDF.
-   white-space: pre keeps all spaces, tabs, and line breaks intact
-   so character names stay centered, dialogue stays indented, etc. */
-.bd-script-line {
-    white-space: pre-wrap;
-    word-break: break-word;
-    min-height: 1em;
 }
 
 /* Extraction highlights — on white background */

@@ -42,6 +42,7 @@ import {
 } from '../../services/apiService';
 import { Spinner, EmptyState, Drawer } from '../ui';
 import { useConfirmDialog } from '../../context/ConfirmDialogContext';
+import { parseScreenplayBlocks } from '../../utils/screenplayFormat';
 import './BreakdownDrawer.css';
 
 // Category to department mapping
@@ -374,13 +375,6 @@ const BreakdownDrawer = ({
         ).filter(Boolean);
         const userNames = userItems.map(i => i.item_name).filter(Boolean);
 
-        if (aiNames.length === 0 && userNames.length === 0) {
-            const lines = sceneText.split('\n').map((line, i) => (
-                <div key={i} className="bd-script-line">{line || '\u00A0'}</div>
-            ));
-            return { highlightedLines: lines, notFoundItems: [] };
-        }
-
         // Sort by length descending so longer matches take priority
         const allNames = [
             ...aiNames.map(n => ({ name: n, type: 'ai' })),
@@ -392,47 +386,50 @@ const BreakdownDrawer = ({
         const foundNames = allNames.filter(n => textLower.includes(n.name.toLowerCase()));
         const notFound = allNames.filter(n => !textLower.includes(n.name.toLowerCase()));
 
-        if (foundNames.length === 0) {
-            const lines = sceneText.split('\n').map((line, i) => (
-                <div key={i} className="bd-script-line">{line || '\u00A0'}</div>
-            ));
-            return { highlightedLines: lines, notFoundItems: notFound };
+        // Build the highlight regex + type lookup from found item names only.
+        // With no found names, `regex` stays null and text renders unhighlighted.
+        let regex = null;
+        const typeLookup = {};
+        if (foundNames.length > 0) {
+            const escaped = foundNames.map(n => n.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+            regex = new RegExp(`(${escaped.join('|')})`, 'gi');
+            foundNames.forEach(n => {
+                typeLookup[n.name.toLowerCase()] = n.type;
+            });
         }
 
-        // Build a single regex with found item names only
-        const escaped = foundNames.map(n => n.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-        const regex = new RegExp(`(${escaped.join('|')})`, 'gi');
+        // Split one block's text into <mark>/<span> nodes for item highlights.
+        const renderHighlighted = (text, keyPrefix) => {
+            if (!regex || !text) return text;
+            return text.split(regex).map((part, partIdx) => {
+                const matchType = typeLookup[part.toLowerCase()];
+                if (matchType) {
+                    return (
+                        <mark
+                            key={`${keyPrefix}-${partIdx}`}
+                            className={`bd-extraction-highlight ${matchType === 'user' ? 'user-highlight' : 'ai-highlight'}`}
+                            title={`${matchType === 'ai' ? 'AI-detected' : 'User-added'}: ${part}`}
+                        >
+                            {part}
+                        </mark>
+                    );
+                }
+                return <span key={`${keyPrefix}-${partIdx}`}>{part}</span>;
+            });
+        };
 
-        // Build a lookup for type
-        const typeLookup = {};
-        foundNames.forEach(n => {
-            typeLookup[n.name.toLowerCase()] = n.type;
-        });
-
-        const lines = sceneText.split('\n').map((line, lineIdx) => {
-            if (!line.trim()) return <div key={lineIdx} className="bd-script-line">&nbsp;</div>;
-
-            const parts = line.split(regex);
+        // Classify the raw text into screenplay blocks, then style each by type.
+        const lines = parseScreenplayBlocks(sceneText).map((block, i) => {
+            if (block.type === 'blank') {
+                return <div key={i} className="bd-sl-blank" />;
+            }
             return (
-                <div key={lineIdx} className="bd-script-line">
-                    {parts.map((part, partIdx) => {
-                        const matchType = typeLookup[part.toLowerCase()];
-                        if (matchType) {
-                            return (
-                                <mark
-                                    key={partIdx}
-                                    className={`bd-extraction-highlight ${matchType === 'user' ? 'user-highlight' : 'ai-highlight'}`}
-                                    title={`${matchType === 'ai' ? 'AI-detected' : 'User-added'}: ${part}`}
-                                >
-                                    {part}
-                                </mark>
-                            );
-                        }
-                        return <span key={partIdx}>{part}</span>;
-                    })}
+                <div key={i} className={`bd-sl-${block.type}`}>
+                    {renderHighlighted(block.text, i)}
                 </div>
             );
         });
+
         return { highlightedLines: lines, notFoundItems: notFound };
     }, [sceneText, localAiItems, userItems]);
 
