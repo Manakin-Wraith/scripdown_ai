@@ -5,7 +5,6 @@ import SceneList from './SceneList';
 import SceneDetail from './SceneDetail';
 import ScriptHeader from '../metadata/ScriptHeader';
 import ScriptSummary from './ScriptSummary';
-import LocationManager from './LocationManager';
 import PdfViewerPanel from '../pdf/PdfViewerPanel';
 import { AlertCircle, ChevronDown, ChevronUp, Zap, FileText, List, XCircle, BookOpen, CalendarDays } from 'lucide-react';
 import { Spinner } from '../ui';
@@ -39,7 +38,6 @@ const SceneViewer = () => {
     const [recentlyCompletedScenes, setRecentlyCompletedScenes] = useState(new Set());
     const [storyDayFilter, setStoryDayFilter] = useState(null);
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-    const [showLocationManager, setShowLocationManager] = useState(false);
     const { status, daysRemaining } = useSubscription();
     const isPaidSubscriber = status === 'active';
     const selectedSceneRef = useRef(null);
@@ -602,22 +600,6 @@ const SceneViewer = () => {
                     </span>
                     {showSummary ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                 </button>
-
-                <button
-                    className="pill-btn"
-                    onClick={() => setShowLocationManager(true)}
-                >
-                    Manage locations
-                </button>
-
-                {showLocationManager && (
-                    <LocationManager
-                        scriptId={scriptId}
-                        scenes={scenes}
-                        onClose={() => setShowLocationManager(false)}
-                        onChanged={refreshScenes}
-                    />
-                )}
 
                 {showSummary && (
                     <ScriptSummary 
