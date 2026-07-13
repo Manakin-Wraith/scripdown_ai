@@ -160,3 +160,58 @@ def test_rename_parent_reparents_sub_aliases(monkeypatch):
         and eqs.get("parent_place") == "VILLA"
         for (t, u, eqs) in calls
     ), f"expected a sub_location_aliases re-point call; got {calls}"
+
+
+def test_nest_forbidden_for_non_member(monkeypatch):
+    monkeypatch.setattr("middleware.auth.DEV_MODE", True)
+    monkeypatch.setattr(sr, "get_user_id", lambda: "u2")
+    monkeypatch.setattr(sr, "_user_can_access_script", lambda sid, uid: False)
+    resp = _client().post("/api/scripts/s1/locations/nest",
+                          json={"source_canonical": "GARAGE", "parent_name": "VILLA"})
+    assert resp.status_code == 403
+
+def test_nest_validates_body(monkeypatch):
+    monkeypatch.setattr("middleware.auth.DEV_MODE", True)
+    monkeypatch.setattr(sr, "get_user_id", lambda: "u1")
+    monkeypatch.setattr(sr, "_user_can_access_script", lambda sid, uid: True)
+    resp = _client().post("/api/scripts/s1/locations/nest", json={"parent_name": "VILLA"})
+    assert resp.status_code == 400
+
+def test_nest_ok_calls_helper(monkeypatch):
+    monkeypatch.setattr("middleware.auth.DEV_MODE", True)
+    monkeypatch.setattr(sr, "get_user_id", lambda: "u1")
+    monkeypatch.setattr(sr, "_user_can_access_script", lambda sid, uid: True)
+    monkeypatch.setattr(sr, "_nest", lambda script_id, src, parent, uid: 5)
+    resp = _client().post("/api/scripts/s1/locations/nest",
+                          json={"source_canonical": "GARAGE", "parent_name": "VILLA"})
+    assert resp.status_code == 200
+    assert resp.get_json() == {"success": True, "scenes_updated": 5}
+
+def test_nest_helper_sets_parent_base_canonical(monkeypatch):
+    # _nest must set location_canonical to the parent BASE (VILLA), write
+    # hierarchy [VILLA, set], and upsert a location_aliases row with set_name.
+    calls = []
+    class _Q:
+        def __init__(self, table):
+            self.table = table; self._eq = {}; self._update = None; self._upsert = None
+        def select(self, *a, **k): return self
+        def update(self, payload): self._update = payload; return self
+        def upsert(self, payload, *a, **k): self._upsert = payload; return self
+        def eq(self, col, val): self._eq[col] = val; return self
+        def execute(self):
+            calls.append((self.table, self._update, self._upsert, dict(self._eq)))
+            class _R:
+                data = [{"id": "sc1", "int_ext": "INT", "time_of_day": "DAY"}] \
+                    if self.table == "scenes" and self._update is None else []
+            return _R()
+    class _FakeSupa:
+        def table(self, name): return _Q(name)
+    monkeypatch.setattr(sr, "supabase", _FakeSupa())
+    n = sr._nest("s1", "GARAGE / BACKROOM", "VILLA", "u1")
+    assert n == 1
+    scene_updates = [u for (t, u, _up, _eq) in calls if t == "scenes" and u is not None]
+    assert scene_updates and scene_updates[0]["location_canonical"] == "VILLA"
+    assert scene_updates[0]["location_hierarchy"] == ["VILLA", "GARAGE / BACKROOM"]
+    upserts = [up for (t, _u, up, _eq) in calls if t == "location_aliases" and up is not None]
+    assert upserts and upserts[0]["set_name"] == "GARAGE / BACKROOM" \
+        and upserts[0]["canonical_place"] == "VILLA" and upserts[0]["alias_place"] == "GARAGE / BACKROOM"
