@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useMemo, useState, useCallback, useRef } from 'react';
 import { X, MapPin } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 import { locationKey, subLocationLabel } from '../../utils/locationKey';
@@ -35,6 +35,7 @@ const LocationManager = ({ scriptId, scenes, onClose, onChanged }) => {
     const [busy, setBusy] = useState(false);
     const [editing, setEditing] = useState(null); // { kind:'parent'|'sub', parent, name }
     const [editValue, setEditValue] = useState('');
+    const cancelRef = useRef(false);
     const tree = useMemo(() => buildTree(scenes), [scenes]);
 
     const run = useCallback(async (label, fn) => {
@@ -58,6 +59,7 @@ const LocationManager = ({ scriptId, scenes, onClose, onChanged }) => {
     };
 
     const commitEdit = () => {
+        if (cancelRef.current) { cancelRef.current = false; return; }
         if (!editing) return;
         const to = editValue.trim();
         if (!to || to === editing.name) { setEditing(null); return; }
@@ -70,7 +72,7 @@ const LocationManager = ({ scriptId, scenes, onClose, onChanged }) => {
 
     const onEditKey = (e) => {
         if (e.key === 'Enter') commitEdit();
-        else if (e.key === 'Escape') setEditing(null);
+        else if (e.key === 'Escape') { cancelRef.current = true; setEditing(null); }
     };
 
     const doNest = (source, parentName) => {
