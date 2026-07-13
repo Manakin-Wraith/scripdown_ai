@@ -4780,15 +4780,20 @@ def _user_can_access_script(script_id, user_id):
 
 
 def _apply_location_alias(script_id, setting, int_ext, time_of_day, location_hierarchy):
-    """Return (setting, location_canonical) with parent + sub aliases applied.
-    Non-fatal on lookup failure (degrades to derived base place)."""
+    """Return (setting, location_canonical) with parent, nest, and sub aliases
+    applied. Non-fatal on lookup failure (degrades to derived base place)."""
     parent_map = {}
+    parent_set_map = {}
     sub_map = {}
     try:
         rows = supabase.table('location_aliases').select(
-            'alias_place, canonical_place'
+            'alias_place, canonical_place, set_name'
         ).eq('script_id', script_id).execute().data or []
-        parent_map = {r['alias_place']: r['canonical_place'] for r in rows}
+        for r in rows:
+            if r.get('set_name'):
+                parent_set_map[r['alias_place']] = (r['canonical_place'], r['set_name'])
+            else:
+                parent_map[r['alias_place']] = r['canonical_place']
     except Exception as alias_err:
         print(f"[LocMerge] parent alias lookup skipped (non-fatal): {alias_err}")
     try:
@@ -4799,7 +4804,8 @@ def _apply_location_alias(script_id, setting, int_ext, time_of_day, location_hie
     except Exception as sub_err:
         print(f"[LocMerge] sub alias lookup skipped (non-fatal): {sub_err}")
     return resolve_location(
-        setting, int_ext, time_of_day, location_hierarchy, parent_map, sub_map
+        setting, int_ext, time_of_day, location_hierarchy,
+        parent_map, sub_map, parent_set_map,
     )
 
 
