@@ -10,6 +10,7 @@ from services.location_resolver import (
     normalize_place,
     canonicalize_setting,
     derive_base_place,
+    derive_sub_place,
     suggest_merges,
 )
 
@@ -152,3 +153,21 @@ def test_suggest_excludes_known_aliases():
 def test_suggest_distinct_places_not_grouped():
     groups = suggest_merges(["COFFEE SHOP", "POLICE STATION", "HOSPITAL"])
     assert groups == []
+
+
+def test_derive_sub_place_from_setting():
+    assert derive_sub_place("INT. VILLA - BATHROOM - DAY") == "BATHROOM"
+
+
+def test_derive_sub_place_multi_segment():
+    assert derive_sub_place("INT. VILLA - POOL HOUSE - CHANGING ROOM - NIGHT") \
+        == "POOL HOUSE - CHANGING ROOM"
+
+
+def test_derive_sub_place_none_when_no_sub():
+    assert derive_sub_place("EXT. BEACH - DAY") == ""
+
+
+def test_derive_sub_place_prefers_hierarchy():
+    assert derive_sub_place("INT. VILLA - DAY", location_hierarchy=["VILLA", "Bathroom"]) \
+        == "BATHROOM"

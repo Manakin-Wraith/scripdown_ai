@@ -92,6 +92,40 @@ def derive_base_place(
     return normalize_place(base)
 
 
+def derive_sub_place(
+    setting: Optional[str],
+    int_ext: Optional[str] = None,
+    time_of_day: Optional[str] = None,
+    location_hierarchy=None,
+) -> str:
+    """Return the normalized sub-location (everything under the base place).
+
+    Mirrors derive_base_place but keeps parts[1:]. Prefers structured
+    location_hierarchy[1:] when present; otherwise parses the free-text setting.
+    Returns "" when the scene has no sub-location.
+    """
+    if location_hierarchy:
+        if isinstance(location_hierarchy, str):
+            try:
+                location_hierarchy = json.loads(location_hierarchy)
+            except (ValueError, TypeError):
+                location_hierarchy = []
+        if location_hierarchy:
+            if len(location_hierarchy) > 1:
+                return normalize_place(" - ".join(location_hierarchy[1:]))
+            return ""
+
+    s = _INT_EXT_PREFIX.sub("", setting or "")
+    parts = [p.strip() for p in _DASH_SPLIT.split(s) if p.strip()]
+    kept = [
+        p for p in parts
+        if p.upper() not in TIME_WORDS and normalize_place(p) not in INT_EXT_TOKENS
+    ]
+    if len(kept) > 1:
+        return normalize_place(" - ".join(kept[1:]))
+    return ""
+
+
 def suggest_merges(
     base_places: List[str],
     existing_aliases: Optional[Dict[str, str]] = None,
