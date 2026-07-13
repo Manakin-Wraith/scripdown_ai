@@ -54,8 +54,9 @@ export const subLocationLabel = (scene) => {
     if (!scene || !scene.setting) return '';
     const stripped = scene.setting.toUpperCase().replace(INT_EXT_PREFIX, '');
     const parts = splitSegments(stripped);
-    const kept = parts.filter(
-        (p) => !TIME_WORDS.has(p) && !INT_EXT_TOKENS.has(normalizePlace(p))
-    );
+    const kept = parts.filter((p) => {
+        const n = normalizePlace(p);
+        return !TIME_WORDS.has(n) && !INT_EXT_TOKENS.has(n);
+    });
     return normalizePlace(kept.slice(1).join(' - '));
 };
