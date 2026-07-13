@@ -116,3 +116,47 @@ def test_merge_parents_validates_body(monkeypatch):
     resp = _client().post("/api/scripts/s1/locations/merge-parents",
                           json={"canonical_name": "VILLA", "source_canonicals": []})
     assert resp.status_code == 400
+
+
+def test_rename_parent_reparents_sub_aliases(monkeypatch):
+    # _rename_parent must re-point existing sub_location_aliases from the old
+    # parent key to the new one, so sticky sub renames survive a parent rename.
+    calls = []
+
+    class _Q:
+        def __init__(self, table):
+            self.table = table
+            self._eq = {}
+            self._update = None
+        def select(self, *a, **k):
+            return self
+        def update(self, payload):
+            self._update = payload
+            return self
+        def upsert(self, *a, **k):
+            return self
+        def ilike(self, col, val):
+            self._eq[col] = ('ilike', val)
+            return self
+        def eq(self, col, val):
+            self._eq[col] = val
+            return self
+        def execute(self):
+            calls.append((self.table, self._update, dict(self._eq)))
+            class _R:
+                data = []
+            return _R()
+
+    class _FakeSupa:
+        def table(self, name):
+            return _Q(name)
+
+    monkeypatch.setattr(sr, "supabase", _FakeSupa())
+    sr._rename_parent("s1", "VILLA", "SMITH RESIDENCE", "u1")
+
+    assert any(
+        t == "sub_location_aliases"
+        and u == {"parent_place": "SMITH RESIDENCE"}
+        and eqs.get("parent_place") == "VILLA"
+        for (t, u, eqs) in calls
+    ), f"expected a sub_location_aliases re-point call; got {calls}"

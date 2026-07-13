@@ -4847,6 +4847,13 @@ def _rename_parent(script_id, from_canonical, to_name, user_id):
         except Exception as alias_err:
             print(f"Warning: failed to store location alias: {alias_err}")
 
+        try:
+            supabase.table('sub_location_aliases').update({
+                'parent_place': to_norm
+            }).eq('script_id', script_id).eq('parent_place', from_norm).execute()
+        except Exception as sub_reparent_err:
+            print(f"Warning: failed to re-point sub aliases: {sub_reparent_err}")
+
     return updated
 
 
