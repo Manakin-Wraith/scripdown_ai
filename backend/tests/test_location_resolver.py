@@ -168,6 +168,25 @@ def test_period_split_protects_abbreviations():
     assert derive_base_place("ST. JOHN'S CHURCH") == "ST. JOHN'S CHURCH"
 
 
+def test_compound_time_words_dropped():
+    assert derive_sub_place("INT. SHELTER. OFFICE. EARLY MORNING.") == "OFFICE"
+    assert derive_sub_place("INT. HOME. LOUNGE. PRESENT DAY.") == "LOUNGE"
+
+
+def test_digit_noise_dropped_from_sub():
+    assert derive_sub_place("INT. HOME. KITCHEN. 2 7") == "KITCHEN"
+    assert derive_sub_place("EXT. CITY STREETS. 3 A") == ""
+
+
+def test_compound_time_late_afternoon_dropped():
+    assert derive_sub_place("INT. OFFICE - LATE AFTERNOON") == ""
+    assert derive_sub_place("INT. LOFT. STUDY. EARLY EVENING.") == "STUDY"
+
+
+def test_time_phrase_does_not_strip_real_place_with_timeword():
+    assert derive_base_place("INT. MORNING STAR CAFE - DAY") == "MORNING STAR CAFE"
+
+
 def test_suggest_article_variant():
     groups = suggest_merges(["COFFEE SHOP", "THE COFFEE SHOP", "COFFEE SHOP"])
     assert len(groups) == 1

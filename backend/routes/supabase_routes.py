@@ -30,6 +30,7 @@ from services.location_resolver import (
     resolve_location,
     rewrite_place_token,
 )
+from services.location_quality import lint_script_locations
 
 # Supabase client
 from supabase import create_client
@@ -5355,3 +5356,62 @@ def get_location_suggestions(script_id):
     except Exception as e:
         print(f"Error building location suggestions: {e}")
         return jsonify({'error': str(e)}), 500
+
+
+@supabase_bp.route('/api/scripts/<script_id>/locations/health', methods=['GET'])
+@optional_auth
+def get_location_health(script_id):
+    """Quality flags for a script's locations (messy time/digit/prose/duplicates)."""
+    if not supabase:
+        return jsonify({'error': 'Supabase not configured'}), 500
+    try:
+        user_id = get_user_id()
+        if not _user_can_access_script(script_id, user_id):
+            return jsonify({'error': 'Not authorized for this script'}), 403
+        scenes = supabase.table('scenes').select(
+            'setting, int_ext, time_of_day, location_hierarchy, location_canonical, is_omitted'
+        ).eq('script_id', script_id).execute().data or []
+        report = lint_script_locations(scenes)
+        return jsonify({'script_id': script_id, **report}), 200
+    except Exception as e:
+        print(f"Error building location health: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@supabase_bp.route('/api/scripts/locations/health-counts', methods=['GET'])
+@optional_auth
+def get_location_health_counts():
+    """Per-script location-issue count for the caller's own scripts (owner + member).
+
+    Mirrors the owner/member resolution used by get_scripts() above, but only
+    needs the script ids (bounded to the caller's scripts, never the whole DB).
+    Degrades gracefully: no identity or no Supabase connection -> {counts: {}}.
+    """
+    if not supabase:
+        return jsonify({'counts': {}}), 200
+    try:
+        user_id = get_user_id()
+        if not user_id:
+            return jsonify({'counts': {}}), 200
+
+        script_ids = set()
+
+        owned_result = supabase.table('scripts').select('id').eq('user_id', user_id).execute()
+        for script in owned_result.data or []:
+            script_ids.add(script['id'])
+
+        member_result = supabase.table('script_members').select('script_id').eq('user_id', user_id).execute()
+        for m in member_result.data or []:
+            script_ids.add(m['script_id'])
+
+        counts = {}
+        for script_id in script_ids:
+            scenes = supabase.table('scenes').select(
+                'setting, int_ext, time_of_day, location_hierarchy, location_canonical, is_omitted'
+            ).eq('script_id', script_id).execute().data or []
+            counts[script_id] = lint_script_locations(scenes)['total']
+
+        return jsonify({'counts': counts}), 200
+    except Exception as e:
+        print(f"Error building location health counts: {e}")
+        return jsonify({'counts': {}}), 200

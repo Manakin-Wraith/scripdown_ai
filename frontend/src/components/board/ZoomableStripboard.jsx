@@ -4,7 +4,7 @@ import { ArrowLeft } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 import { useScript } from '../../context/ScriptContext';
 import { useStoryDayListener } from '../../context/StoryDayContext';
-import { getScenes, getScriptMetadata, getScriptItems, reorderScenes } from '../../services/apiService';
+import { getScenes, getScriptMetadata, getScriptItems, reorderScenes, getLocationHealth } from '../../services/apiService';
 import { boardReducer, initialBoardState } from './boardReducer';
 import { buildBoardViewModel, getUniqueStoryDays, getUniqueCharacters } from './boardModel';
 import BoardToolbar from './BoardToolbar';
@@ -25,6 +25,12 @@ const ZoomableStripboard = () => {
     const [state, dispatch] = useReducer(boardReducer, initialBoardState);
     const zoomApiRef = useRef(null);
     const [showLocationManager, setShowLocationManager] = useState(false);
+    const [locHealth, setLocHealth] = useState(0);
+
+    // Fetch location quality flag count for the "Manage locations" button badge
+    useEffect(() => {
+        getLocationHealth(scriptId).then((h) => setLocHealth(h.total)).catch(() => {});
+    }, [scriptId, state.scenes]);
 
     // Hydrate from localStorage on mount
     useEffect(() => {
@@ -195,6 +201,7 @@ const ZoomableStripboard = () => {
                 selectedSceneIds={state.selectedStripIds}
                 onScheduled={handleScheduled}
                 onManageLocations={() => setShowLocationManager(true)}
+                locationIssueCount={locHealth}
             />
 
             <BoardCanvas

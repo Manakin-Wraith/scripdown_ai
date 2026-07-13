@@ -11,7 +11,7 @@ import {
 import AnalysisStatusBadge from '../common/AnalysisStatusBadge';
 import './ScriptTable.css';
 
-const ScriptTable = ({ scripts, onView, onDelete, onRename, onUpdateWriter }) => {
+const ScriptTable = ({ scripts, onView, onDelete, onRename, onUpdateWriter, locationHealthCounts = {} }) => {
     const [sortConfig, setSortConfig] = useState({ key: 'upload_date', direction: 'desc' });
     const [editingId, setEditingId] = useState(null);
     const [editingField, setEditingField] = useState(null); // 'name' or 'writer'
@@ -142,6 +142,14 @@ const ScriptTable = ({ scripts, onView, onDelete, onRename, onUpdateWriter }) =>
                                 ) : (
                                     <div className="script-name-row">
                                         <div className="script-name">{script.script_name}</div>
+                                        {locationHealthCounts[script.script_id] > 0 && (
+                                            <span
+                                                className="location-health-badge"
+                                                title={`${locationHealthCounts[script.script_id]} location${locationHealthCounts[script.script_id] === 1 ? '' : 's'} need review`}
+                                            >
+                                                ⚠ {locationHealthCounts[script.script_id]}
+                                            </span>
+                                        )}
                                         <button
                                             className="rename-btn"
                                             onClick={(e) => startEditing(e, script, 'name')}

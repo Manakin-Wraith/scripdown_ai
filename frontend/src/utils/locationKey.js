@@ -6,11 +6,17 @@ export const locationKey = (scene) =>
 const TIME_WORDS = new Set([
     'DAY', 'NIGHT', 'DUSK', 'DAWN', 'MORNING', 'EVENING',
     'AFTERNOON', 'CONTINUOUS', 'LATER', 'SAME', 'MAGIC HOUR',
+    'EARLY', 'LATE', 'EARLY MORNING', 'LATE MORNING', 'LATE NIGHT',
+    'MOMENTS LATER', 'PRESENT DAY', 'PRESENT', 'NIGHT/EARLY MORNING',
 ]);
 const INT_EXT_TOKENS = new Set(['INT', 'EXT', 'INT/EXT', 'I/E']);
+const TIME_MODIFIERS = new Set(['EARLY', 'LATE']);
 const INT_EXT_PREFIX = /^\s*\/?\s*(INT\.?\/EXT\.?|INT\.?|EXT\.?|I\/E\.?)(?=[\s.\-:]|$)\s*[-.:]?\s*/i;
 const LEADING_ARTICLE = /^(THE|A|AN)\s+/;
 const ABBREV = new Set(['MR', 'MRS', 'MS', 'DR', 'ST', 'MT', 'PROF', 'SGT', 'DET', 'REV', 'LT', 'CAPT', 'GEN']);
+// A segment that is only numbers, "<n> <n>" (split scene-time "2 7"), or a
+// truncated "<n> A(.M.)" — noise, never a real place. Mirrors backend _DIGIT_NOISE.
+const DIGIT_NOISE = /^\d+(?:[ /]\d+| [A-Z])?$/;
 
 // Split a place string into ordered segments on comma / spaced-dash, and on a
 // period+space WITHIN each segment unless it follows an abbreviation or single-
@@ -33,20 +39,34 @@ const splitSegments = (s) => {
             }
             segs.push(part);
         });
-        segs.forEach((p) => { const t = p.trim(); if (t) out.push(t); });
+        const kept = segs.filter((p) => !DIGIT_NOISE.test(normalizePlace(p)));
+        kept.forEach((p) => { const t = p.trim(); if (t) out.push(t); });
     });
     return out;
 };
 
-// Mirror of backend normalize_place: uppercase, collapse whitespace,
-// strip a leading article, strip surrounding punctuation.
+// Mirror of backend normalize_place: fold curly quotes to straight, uppercase,
+// collapse whitespace, strip a leading article, strip surrounding punctuation.
 const normalizePlace = (s) =>
     (s || '')
+        .replace(/[’]/g, "'")
+        .replace(/[‘]/g, "'")
         .toUpperCase()
         .replace(/\s+/g, ' ')
         .trim()
         .replace(LEADING_ARTICLE, '')
         .replace(/^[ .,\-–—:;]+|[ .,\-–—:;]+$/g, '');
+
+// Mirror of backend is_time_phrase: the whole segment is a TIME_WORDS member,
+// or every word is a TIME_WORDS member or an EARLY/LATE modifier with at least
+// one real time word (covers "LATE AFTERNOON").
+const isTimePhrase = (normalized) => {
+    if (!normalized) return false;
+    if (TIME_WORDS.has(normalized)) return true;
+    const words = normalized.split(' ');
+    return words.every((w) => TIME_WORDS.has(w) || TIME_MODIFIERS.has(w)) &&
+        words.some((w) => TIME_WORDS.has(w));
+};
 
 // Sub-location label (everything under the base place), parsed from the setting
 // so it stays correct after renames. Mirrors backend derive_sub_place.
@@ -56,7 +76,7 @@ export const subLocationLabel = (scene) => {
     const parts = splitSegments(stripped);
     const kept = parts.filter((p) => {
         const n = normalizePlace(p);
-        return !TIME_WORDS.has(n) && !INT_EXT_TOKENS.has(n);
+        return !isTimePhrase(n) && !INT_EXT_TOKENS.has(n);
     });
     return normalizePlace(kept.slice(1).join(' - '));
 };

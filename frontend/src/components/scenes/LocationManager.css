@@ -69,3 +69,6 @@
 }
 .locmgr-picker-row input { cursor: pointer; }
 .locmgr-picker-actions { display: flex; justify-content: flex-end; padding-top: 0.35rem; }
+.locmgr-review { margin: 0; padding: 0.3rem 1rem 0.5rem; font-size: 0.8em; color: var(--primary-400, #fbbf24); display: inline-flex; align-items: center; gap: 0.35rem; }
+.locmgr-flag { color: var(--primary-400, #fbbf24); display: inline-flex; align-items: center; cursor: help; }
+.locmgr-suggest { background: none; border: 1px solid var(--primary-500, #f59e0b); color: var(--primary-400, #fbbf24); border-radius: 6px; padding: 0.15rem 0.5rem; font-size: 0.75em; cursor: pointer; }

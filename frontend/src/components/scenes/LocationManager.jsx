@@ -1,5 +1,5 @@
-import React, { useMemo, useState, useCallback, useRef } from 'react';
-import { X, MapPin } from 'lucide-react';
+import React, { useMemo, useState, useCallback, useRef, useEffect } from 'react';
+import { X, MapPin, AlertTriangle } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 import { locationKey, subLocationLabel } from '../../utils/locationKey';
 import {
@@ -7,6 +7,7 @@ import {
     renameSubLocation,
     nestLocation,
     unnestLocation,
+    getLocationHealth,
 } from '../../services/apiService';
 import './LocationManager.css';
 
@@ -38,7 +39,16 @@ const LocationManager = ({ scriptId, scenes, onClose, onChanged }) => {
     const cancelRef = useRef(false);
     const [addingUnder, setAddingUnder] = useState(null); // parent name whose Add picker is open
     const [picked, setPicked] = useState([]);             // checked source names
+    const [health, setHealth] = useState({ total: 0, by_key: {} });
     const tree = useMemo(() => buildTree(scenes), [scenes]);
+
+    const loadHealth = useCallback(async () => {
+        try { setHealth(await getLocationHealth(scriptId)); }
+        catch { setHealth({ total: 0, by_key: {} }); }
+    }, [scriptId]);
+    useEffect(() => { loadHealth(); }, [loadHealth, scenes]);
+
+    const flagsFor = (key) => health.by_key?.[key] || [];
 
     const run = useCallback(async (label, fn) => {
         if (busy) return;
@@ -143,17 +153,34 @@ const LocationManager = ({ scriptId, scenes, onClose, onChanged }) => {
                     Group the locations you'll shoot together — add them under one
                     heading so they schedule as a unit.
                 </p>
+                {health.total > 0 && (
+                    <p className="locmgr-review">
+                        <AlertTriangle size={13} /> {health.total} location{health.total === 1 ? '' : 's'} need review
+                    </p>
+                )}
                 <div className="locmgr-body">
                     {tree.length === 0 && <p className="locmgr-empty">No locations yet.</p>}
                     {tree.map((parent) => {
                         const isAdding = addingUnder === parent.name;
                         const candidates = isAdding ? eligibleFor(parent.name) : [];
+                        const parentFlags = flagsFor(parent.name);
+                        const parentSuggestion = parentFlags.find(
+                            (f) => f.code === 'POSSIBLE_PARENT' && f.suggestion
+                        );
                         return (
                             <div key={parent.name} className="locmgr-parent">
                                 <div className="locmgr-parent-row">
                                     <span className="locmgr-parent-name">
                                         {renderName('parent', null, parent.name)}
                                         <span className="locmgr-count">{parent.count}</span>
+                                        {parentFlags.length > 0 && (
+                                            <span
+                                                className="locmgr-flag"
+                                                title={parentFlags.map((f) => f.message).join('\n')}
+                                            >
+                                                <AlertTriangle size={13} />
+                                            </span>
+                                        )}
                                     </span>
                                     <button
                                         className="locmgr-add"
@@ -163,21 +190,42 @@ const LocationManager = ({ scriptId, scenes, onClose, onChanged }) => {
                                         {isAdding ? 'Cancel' : '+ Add'}
                                     </button>
                                 </div>
-                                {parent.subs.map((sub) => (
-                                    <div key={sub.name} className="locmgr-sub-row">
-                                        <span className="locmgr-sub-name">
-                                            {renderName('sub', parent.name, sub.name)}
-                                            <span className="locmgr-count">{sub.count}</span>
-                                        </span>
-                                        <button
-                                            className="locmgr-moveout"
-                                            disabled={busy}
-                                            onClick={() => doRemove(parent.name, sub.name)}
-                                        >
-                                            Remove
-                                        </button>
-                                    </div>
-                                ))}
+                                {parentSuggestion && (
+                                    <button
+                                        className="locmgr-suggest"
+                                        disabled={busy}
+                                        onClick={() => run('Location grouped', () =>
+                                            nestLocation(scriptId, parent.name, parentSuggestion.suggestion))}
+                                    >
+                                        Add under {parentSuggestion.suggestion}
+                                    </button>
+                                )}
+                                {parent.subs.map((sub) => {
+                                    const subFlags = flagsFor(`${parent.name}|${sub.name}`);
+                                    return (
+                                        <div key={sub.name} className="locmgr-sub-row">
+                                            <span className="locmgr-sub-name">
+                                                {renderName('sub', parent.name, sub.name)}
+                                                <span className="locmgr-count">{sub.count}</span>
+                                                {subFlags.length > 0 && (
+                                                    <span
+                                                        className="locmgr-flag"
+                                                        title={subFlags.map((f) => f.message).join('\n')}
+                                                    >
+                                                        <AlertTriangle size={13} />
+                                                    </span>
+                                                )}
+                                            </span>
+                                            <button
+                                                className="locmgr-moveout"
+                                                disabled={busy}
+                                                onClick={() => doRemove(parent.name, sub.name)}
+                                            >
+                                                Remove
+                                            </button>
+                                        </div>
+                                    );
+                                })}
                                 {isAdding && (
                                     <div className="locmgr-picker">
                                         {candidates.length === 0 && (
