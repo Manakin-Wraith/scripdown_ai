@@ -6,6 +6,7 @@
  * All pure functions, testable in isolation.
  */
 import { getSceneEighths } from '../../utils/sceneUtils';
+import { locationKey, subLocationLabel } from '../../utils/locationKey';
 
 /**
  * Apply filter predicates to scenes array.
@@ -79,7 +80,7 @@ export function groupScenes(scenes, groupBy) {
 
     switch (groupBy) {
         case 'location':
-            return groupByKey(scenes, s => s.setting || 'UNKNOWN');
+            return groupByKey(scenes, s => locationKey(s));
         case 'story_day':
             return groupByKey(scenes, s =>
                 s.story_day ? `Day ${s.story_day}` : 'Unassigned'
@@ -134,6 +135,7 @@ export function buildBoardViewModel(scenes, filters, groupBy) {
             sceneOrder: scene.scene_order,
             intExt: scene.int_ext,
             setting: scene.setting,
+            subLocation: subLocationLabel(scene),
             timeOfDay: scene.time_of_day,
             characters: scene.characters || [],
             props: scene.props || [],
