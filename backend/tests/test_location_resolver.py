@@ -147,6 +147,19 @@ def test_derive_sub_from_comma():
     assert derive_sub_place("whatever", location_hierarchy=["ABI'S HOUSE, BATHROOM"]) == "BATHROOM"
 
 
+def test_period_slugline_base_and_sub():
+    # "HOME. BEDROOM. DAY" -> base HOME, sub BEDROOM (period+space separates).
+    assert derive_base_place("OPULENT SANDTON HOME. BEDROOM. DAY") == "OPULENT SANDTON HOME"
+    assert derive_sub_place("OPULENT SANDTON HOME. BEDROOM. DAY") == "BEDROOM"
+
+
+def test_period_split_protects_abbreviations():
+    # A period after MR/MRS/ST/single-letter is part of the name, not a separator.
+    assert derive_base_place("MRS. JONES' HOUSE, KITCHEN") == "MRS. JONES' HOUSE"
+    assert derive_sub_place("MRS. JONES' HOUSE, KITCHEN") == "KITCHEN"
+    assert derive_base_place("ST. JOHN'S CHURCH") == "ST. JOHN'S CHURCH"
+
+
 def test_suggest_article_variant():
     groups = suggest_merges(["COFFEE SHOP", "THE COFFEE SHOP", "COFFEE SHOP"])
     assert len(groups) == 1

@@ -29,10 +29,38 @@ _INT_EXT_PREFIX = re.compile(
     re.IGNORECASE,
 )
 _LEADING_ARTICLE = re.compile(r"^(THE|A|AN)\s+", re.IGNORECASE)
-# Sub-location separators: a comma (rooms of a place — "TK'S HOUSE, KITCHEN"),
-# or a dash that is surrounded by whitespace (slugline " - "). Requiring spaces
-# around the dash keeps hyphenated names intact ("C-MAX PRISON", "INTERSTATE 5").
+# Coarse sub-location separators: a comma ("TK'S HOUSE, KITCHEN") or a
+# whitespace-surrounded dash (slugline " - "). Whitespace around the dash keeps
+# hyphenated names intact ("C-MAX PRISON"); a slash is NOT a separator so that
+# combined names like "GARAGE / BACKROOM" stay one place.
 _SEP_SPLIT = re.compile(r"\s*,\s*|\s+[-–—]\s+")
+# A period+space also delimits slugline segments ("HOME. BEDROOM. DAY"), EXCEPT
+# after an abbreviation or a single-letter initial (protect "MRS. JONES", "ST.").
+_PERIOD_SPLIT = re.compile(r"\.\s+")
+_ABBREV = {"MR", "MRS", "MS", "DR", "ST", "MT", "PROF", "SGT",
+           "DET", "REV", "LT", "CAPT", "GEN"}
+
+
+def _split_segments(s):
+    """Split a place string into ordered segments on comma / spaced-dash, and on
+    a period+space WITHIN each segment unless it follows an abbreviation or a
+    single-letter initial. Returns the non-empty segments in order."""
+    out = []
+    for chunk in _SEP_SPLIT.split(s or ""):
+        segs = []
+        for part in _PERIOD_SPLIT.split(chunk):
+            part = part.strip()
+            if not part:
+                continue
+            if segs:
+                words = segs[-1].split()
+                last = words[-1].rstrip(".").upper() if words else ""
+                if last in _ABBREV or len(last) == 1:
+                    segs[-1] = segs[-1] + ". " + part
+                    continue
+            segs.append(part)
+        out.extend(p.strip() for p in segs if p.strip())
+    return out
 
 
 def normalize_place(name: Optional[str]) -> str:
@@ -86,14 +114,16 @@ def derive_base_place(
             except (ValueError, TypeError):
                 location_hierarchy = []
         if location_hierarchy:
-            # hierarchy[0] may itself be a dirty "PLACE, SUB", "PLACE - SUB", or
-            # "INT. PLACE ..." string; strip any INT/EXT prefix and keep the base.
+            # hierarchy[0] may itself be a dirty "PLACE, SUB", "PLACE - SUB",
+            # "HOME. BEDROOM", or "INT. PLACE ..." string; strip the INT/EXT
+            # prefix and keep the base segment.
             h0 = _INT_EXT_PREFIX.sub("", str(location_hierarchy[0]))
-            return normalize_place(_SEP_SPLIT.split(h0)[0])
+            segs = _split_segments(h0)
+            return normalize_place(segs[0] if segs else h0)
 
     # 2. Parse from the free-text setting
     s = _INT_EXT_PREFIX.sub("", setting or "")
-    parts = [p.strip() for p in _SEP_SPLIT.split(s) if p.strip()]
+    parts = _split_segments(s)
     kept = [
         p for p in parts
         if p.upper() not in TIME_WORDS and normalize_place(p) not in INT_EXT_TOKENS
@@ -123,9 +153,10 @@ def derive_sub_place(
         if location_hierarchy:
             if len(location_hierarchy) > 1:
                 return normalize_place(" - ".join(location_hierarchy[1:]))
-            # A single dirty entry ("TK'S HOUSE, KITCHEN") still carries a sub
-            # after its first separator — recover it.
-            segs = [p.strip() for p in _SEP_SPLIT.split(str(location_hierarchy[0])) if p.strip()]
+            # A single dirty entry ("TK'S HOUSE, KITCHEN" / "HOME. BEDROOM")
+            # still carries a sub after its first separator — recover it.
+            h0 = _INT_EXT_PREFIX.sub("", str(location_hierarchy[0]))
+            segs = _split_segments(h0)
             kept = [
                 p for p in segs
                 if p.upper() not in TIME_WORDS and normalize_place(p) not in INT_EXT_TOKENS
@@ -133,7 +164,7 @@ def derive_sub_place(
             return normalize_place(" - ".join(kept[1:])) if len(kept) > 1 else ""
 
     s = _INT_EXT_PREFIX.sub("", setting or "")
-    parts = [p.strip() for p in _SEP_SPLIT.split(s) if p.strip()]
+    parts = _split_segments(s)
     kept = [
         p for p in parts
         if p.upper() not in TIME_WORDS and normalize_place(p) not in INT_EXT_TOKENS
