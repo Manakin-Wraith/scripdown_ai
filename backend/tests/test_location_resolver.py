@@ -72,6 +72,15 @@ def test_normalize_strips_surrounding_punctuation():
     assert normalize_place("  BAR, ") == "BAR"
 
 
+def test_normalize_folds_curly_apostrophe_to_straight():
+    # A curly apostrophe must normalize to the same key as a straight one, so a
+    # location can't split into two lanes over a typographic quote. Mirrors
+    # canonicalize_setting's curly-quote folding.
+    assert normalize_place("TAM’S ROOM") == "TAM'S ROOM"
+    assert normalize_place("TAM’S ROOM") == normalize_place("TAM'S ROOM")
+    assert normalize_place("KABS‘ PAD") == "KABS' PAD"
+
+
 def test_derive_from_screenpy_prefix_and_tod():
     # regex/grammar form: "INT. COFFEE SHOP - DAY"
     assert derive_base_place("INT. COFFEE SHOP - DAY") == "COFFEE SHOP"

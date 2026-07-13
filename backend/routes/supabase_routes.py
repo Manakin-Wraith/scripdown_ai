@@ -1097,6 +1097,7 @@ def get_scenes(script_id):
                 'location_parent': scene.get('location_parent'),
                 'location_specific': scene.get('location_specific'),
                 'location_hierarchy': scene.get('location_hierarchy', []),
+                'location_canonical': scene.get('location_canonical'),
                 'shot_type': scene.get('shot_type'),
                 'speakers': scene.get('speakers', []),
                 'transitions': scene.get('transitions', []),
@@ -5071,16 +5072,20 @@ def _nest(script_id, source_canonical, parent_name, user_id):
         }).eq('id', scene['id']).execute()
         updated += 1
 
-    try:
-        supabase.table('location_aliases').upsert({
-            'script_id': script_id,
-            'alias_place': source_norm,
-            'canonical_place': parent_norm,
-            'set_name': set_name,
-            'merged_by': user_id,
-        }, on_conflict='script_id,alias_place').execute()
-    except Exception as nest_err:
-        print(f"Warning: failed to store nest alias: {nest_err}")
+    # Only persist the sticky alias when the nest actually matched scenes.
+    # A 0-scene nest means the source didn't resolve to any live location, so a
+    # sticky alias would be a dangling half-write that mis-nests on re-analysis.
+    if updated > 0:
+        try:
+            supabase.table('location_aliases').upsert({
+                'script_id': script_id,
+                'alias_place': source_norm,
+                'canonical_place': parent_norm,
+                'set_name': set_name,
+                'merged_by': user_id,
+            }, on_conflict='script_id,alias_place').execute()
+        except Exception as nest_err:
+            print(f"Warning: failed to store nest alias: {nest_err}")
 
     return updated
 

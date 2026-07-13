@@ -37,7 +37,11 @@ def normalize_place(name: Optional[str]) -> str:
     leading article stripped, surrounding punctuation stripped."""
     if not name:
         return ""
-    s = re.sub(r"\s+", " ", str(name).strip().upper())
+    # Fold curly quotes to straight FIRST so the grouping key can never diverge
+    # from canonicalize_setting (which does the same) — e.g. "TAM'S ROOM" with a
+    # curly apostrophe must match one with a straight apostrophe.
+    s = str(name).replace("’", "'").replace("‘", "'")
+    s = re.sub(r"\s+", " ", s.strip().upper())
     s = _LEADING_ARTICLE.sub("", s)
     s = s.strip(" .,-–—:;")
     return s
