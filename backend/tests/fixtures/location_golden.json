@@ -1,0 +1,11 @@
+[
+  {"setting": "INT. OPULENT SANDTON HOME. BEDROOM. DAY.", "int_ext": "INT", "time_of_day": "DAY", "location_hierarchy": [], "expect": {"base": "OPULENT SANDTON HOME", "sub": "BEDROOM", "flags": []}},
+  {"setting": "INT. HOMELESS SHELTER. GARDEN. DAY.", "int_ext": "INT", "time_of_day": "DAY", "location_hierarchy": [], "expect": {"base": "HOMELESS SHELTER", "sub": "GARDEN", "flags": []}},
+  {"setting": "INT. TK'S HOUSE, KITCHEN", "int_ext": "INT", "time_of_day": "MORNING", "location_hierarchy": ["TK'S HOUSE, KITCHEN"], "expect": {"base": "TK'S HOUSE", "sub": "KITCHEN", "flags": []}},
+  {"setting": "INT. MRS. JONES' HOUSE, KITCHEN", "int_ext": "INT", "time_of_day": "DAY", "location_hierarchy": [], "expect": {"base": "MRS. JONES' HOUSE", "sub": "KITCHEN", "flags": []}},
+  {"setting": "EXT. C-MAX PRISON, DAVEYTON", "int_ext": "EXT", "time_of_day": "NIGHT", "location_hierarchy": ["C-MAX PRISON, DAVEYTON"], "expect": {"base": "C-MAX PRISON", "sub": "DAVEYTON", "flags": []}},
+  {"setting": "INT. GARAGE / BACKROOM - DAY", "int_ext": "INT", "time_of_day": "DAY", "location_hierarchy": [], "expect": {"base": "GARAGE / BACKROOM", "sub": "", "flags": []}},
+  {"setting": "INTERSTATE 5 - NIGHT", "int_ext": "EXT", "time_of_day": "NIGHT", "location_hierarchy": [], "expect": {"base": "INTERSTATE 5", "sub": "", "flags": []}},
+  {"setting": "/EXT. COCKPIT", "int_ext": "EXT", "time_of_day": "DAY", "location_hierarchy": ["/EXT. COCKPIT"], "expect": {"base": "COCKPIT", "sub": "", "flags": []}},
+  {"setting": "INT. COURTROOM. DAY.", "int_ext": "INT", "time_of_day": "DAY", "location_hierarchy": [], "expect": {"base": "COURTROOM", "sub": "", "flags": []}}
+]
