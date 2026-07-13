@@ -102,7 +102,8 @@ const BreakdownDrawer = ({
     pageEnd,
     aiItems: aiItemsProp = [],  // AI-extracted items from scenes JSONB (strings)
     onAiItemRemoved,           // callback to refresh parent scene data
-    sceneText = ''             // raw scene text for highlighted display
+    sceneText = '',            // raw scene text for highlighted display
+    characterNames = []        // scene cast, used to detect screenplay dialogue cues
 }) => {
     const { confirm } = useConfirmDialog();
 
@@ -419,7 +420,7 @@ const BreakdownDrawer = ({
         };
 
         // Classify the raw text into screenplay blocks, then style each by type.
-        const lines = parseScreenplayBlocks(sceneText).map((block, i) => {
+        const lines = parseScreenplayBlocks(sceneText, characterNames).map((block, i) => {
             if (block.type === 'blank') {
                 return <div key={i} className="bd-sl-blank" />;
             }
@@ -431,7 +432,9 @@ const BreakdownDrawer = ({
         });
 
         return { highlightedLines: lines, notFoundItems: notFound };
-    }, [sceneText, localAiItems, userItems]);
+        // characterNames joined so a new-but-equal array prop doesn't rerun this.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [sceneText, localAiItems, userItems, characterNames.join('|')]);
 
     const totalItems = localAiItems.length + userItems.length;
     const totalNotes = notes.length;

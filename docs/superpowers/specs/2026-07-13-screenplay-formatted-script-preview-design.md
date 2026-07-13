@@ -39,6 +39,28 @@ item-name highlighting and never dropping or altering the source text content.
   provides them).
 - No configuration/toggle for format style — one layout.
 
+## Revision (2026-07-13, post-verification)
+
+Verifying against all 120 scenes of a real script showed the first version
+handled only the inline `NAME: dialogue` format and mis-rendered the dominant
+**standard** format (character name on its own line, dialogue on the next),
+because: (a) cues are frequently mixed-case in the extracted text ("JessIE",
+"SpHE"), defeating an all-caps guard, and (b) standalone cues were never
+detected — 525 cue lines fell through to `action`.
+
+**Resolution:** `parseScreenplayBlocks(sceneText, characterNames)` now takes the
+scene's cast (`scenes.speakers` ∪ `scenes.characters`, already returned by
+`GET /api/scripts/:id/scenes` via `select('*')`) as a **cue dictionary**. A line
+is a standalone cue when its bare upper-cased form (trailing `(O.S.)`/`(V.O.)`
+stripped) matches a cast name — which catches mixed-case cues while excluding
+mini-slugs (`THE DANCE OFF`) and shouts (`HUDDLE!`, not in the cast). After a
+cue, the parser absorbs parenthetical wrylies plus one dialogue line, then
+returns to action flow. New block type `parenthetical`; sluglines, cues, and
+transitions are upper-cased for display (source casing is unreliable);
+transitions are matched case-insensitively (`Cut to:`, `Hard cut to:`). With no
+dictionary, it falls back to the all-caps heuristic. `SceneDetail` passes
+`characterNames`; the `useMemo` keys on `characterNames.join('|')`.
+
 ## Architecture
 
 Two-step pipeline replacing the current flat `sceneText.split('\n')` rendering

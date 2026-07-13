@@ -912,6 +912,14 @@
     margin-bottom: 0.15em;
 }
 
+.bd-sl-parenthetical {
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-style: italic;
+    color: #555;
+    padding: 0 20% 0 28%;
+}
+
 .bd-sl-transition {
     text-align: right;
     text-transform: uppercase;

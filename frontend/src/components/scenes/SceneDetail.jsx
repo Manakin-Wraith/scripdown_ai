@@ -973,6 +973,10 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
                 aiItems={getAiItems(activeCategory?.key)}
                 onAiItemRemoved={onRefreshScene}
                 sceneText={scene.scene_text || ''}
+                characterNames={[
+                    ...(Array.isArray(scene.speakers) ? scene.speakers : []),
+                    ...(Array.isArray(scene.characters) ? scene.characters : [])
+                ]}
             />
         </div>
     );
