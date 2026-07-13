@@ -872,6 +872,14 @@
         0 2px 8px rgba(0, 0, 0, 0.10),
         0 0 0 1px rgba(0, 0, 0, 0.05);
     transition: max-height 0.25s ease;
+    text-align: center;
+}
+
+/* Center the screenplay block as a single unit while preserving each
+   line's internal left-aligned indentation (widest line sets the width). */
+.bd-script-lines {
+    display: inline-block;
+    text-align: left;
 }
 
 .bd-script-text-body.expanded {

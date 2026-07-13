@@ -517,7 +517,9 @@ const BreakdownDrawer = ({
                                         {showScriptText && (
                                             <div className="bd-script-text-content">
                                                 <div className={`bd-script-text-body ${expandedScriptText ? 'expanded' : ''}`}>
-                                                    {highlightedLines}
+                                                    <div className="bd-script-lines">
+                                                        {highlightedLines}
+                                                    </div>
                                                 </div>
                                                 {/* Not-found items: AI-inferred, not literally in text */}
                                                 {notFoundItems && notFoundItems.length > 0 && (
