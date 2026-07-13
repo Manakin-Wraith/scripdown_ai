@@ -6,11 +6,16 @@ export const locationKey = (scene) =>
 const TIME_WORDS = new Set([
     'DAY', 'NIGHT', 'DUSK', 'DAWN', 'MORNING', 'EVENING',
     'AFTERNOON', 'CONTINUOUS', 'LATER', 'SAME', 'MAGIC HOUR',
+    'EARLY', 'LATE', 'EARLY MORNING', 'LATE MORNING', 'LATE NIGHT',
+    'MOMENTS LATER', 'PRESENT DAY', 'PRESENT', 'NIGHT/EARLY MORNING',
 ]);
 const INT_EXT_TOKENS = new Set(['INT', 'EXT', 'INT/EXT', 'I/E']);
 const INT_EXT_PREFIX = /^\s*\/?\s*(INT\.?\/EXT\.?|INT\.?|EXT\.?|I\/E\.?)(?=[\s.\-:]|$)\s*[-.:]?\s*/i;
 const LEADING_ARTICLE = /^(THE|A|AN)\s+/;
 const ABBREV = new Set(['MR', 'MRS', 'MS', 'DR', 'ST', 'MT', 'PROF', 'SGT', 'DET', 'REV', 'LT', 'CAPT', 'GEN']);
+// A segment that is only numbers, "<n> <n>" (split scene-time "2 7"), or a
+// truncated "<n> A(.M.)" — noise, never a real place. Mirrors backend _DIGIT_NOISE.
+const DIGIT_NOISE = /^\d+(?:[ /]\d+| [A-Z])?$/;
 
 // Split a place string into ordered segments on comma / spaced-dash, and on a
 // period+space WITHIN each segment unless it follows an abbreviation or single-
@@ -33,7 +38,8 @@ const splitSegments = (s) => {
             }
             segs.push(part);
         });
-        segs.forEach((p) => { const t = p.trim(); if (t) out.push(t); });
+        const kept = segs.filter((p) => !DIGIT_NOISE.test(normalizePlace(p)));
+        kept.forEach((p) => { const t = p.trim(); if (t) out.push(t); });
     });
     return out;
 };

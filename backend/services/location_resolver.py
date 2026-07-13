@@ -17,6 +17,8 @@ from typing import Dict, List, Optional
 TIME_WORDS = {
     "DAY", "NIGHT", "DUSK", "DAWN", "MORNING", "EVENING",
     "AFTERNOON", "CONTINUOUS", "LATER", "SAME", "MAGIC HOUR",
+    "EARLY", "LATE", "EARLY MORNING", "LATE MORNING", "LATE NIGHT",
+    "MOMENTS LATER", "PRESENT DAY", "PRESENT", "NIGHT/EARLY MORNING",
 }
 
 INT_EXT_TOKENS = {"INT", "EXT", "INT/EXT", "I/E"}
@@ -39,6 +41,9 @@ _SEP_SPLIT = re.compile(r"\s*,\s*|\s+[-–—]\s+")
 _PERIOD_SPLIT = re.compile(r"\.\s+")
 _ABBREV = {"MR", "MRS", "MS", "DR", "ST", "MT", "PROF", "SGT",
            "DET", "REV", "LT", "CAPT", "GEN"}
+# A segment that is only numbers, "<n> <n>" (split scene-time "2 7"), or a
+# truncated "<n> A(.M.)" — noise, never a real place.
+_DIGIT_NOISE = re.compile(r"^\d+(?:[ /]\d+| [A-Z])?$")
 
 
 def _split_segments(s):
@@ -59,6 +64,7 @@ def _split_segments(s):
                     segs[-1] = segs[-1] + ". " + part
                     continue
             segs.append(part)
+        segs = [p for p in segs if not _DIGIT_NOISE.match(normalize_place(p))]
         out.extend(p.strip() for p in segs if p.strip())
     return out
 
