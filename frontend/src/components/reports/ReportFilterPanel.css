@@ -293,11 +293,8 @@
 /* Pill Buttons (INT/EXT, Time of Day, Timeline) */
 .pill-group {
     display: flex;
-    gap: 0.35rem;
-}
-
-.pill-group.wrap {
     flex-wrap: wrap;
+    gap: 0.35rem;
 }
 
 .pill-btn {
