@@ -436,6 +436,25 @@
     color: #cbd5e1;
 }
 
+/* Off-timeline segment (flashback / montage) chip — matches the day pill family */
+.scene-segment-chip {
+    display: inline-flex;
+    align-items: center;
+    max-width: 120px;
+    padding: 0.1rem 0.35rem;
+    border-radius: 3px;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    flex-shrink: 0;
+    background: rgba(245, 158, 11, 0.18);
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    color: #fcd34d;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .entity-header-right {
     display: flex;
     align-items: center;

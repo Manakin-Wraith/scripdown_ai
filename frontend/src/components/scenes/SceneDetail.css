@@ -737,6 +737,183 @@ button.scene-title.editable-title:hover .edit-hint-icon {
     color: var(--gray-400);
 }
 
+/* Timeline segment (flashback / montage) assignment */
+.segment-assign {
+    position: relative;
+    display: inline-flex;
+}
+
+/* Empty-slot trigger — dashed, muted, warms to amber on hover */
+.story-day-badge.segment-add-btn {
+    cursor: pointer;
+    background: rgba(148, 163, 184, 0.06);
+    border: 1px dashed rgba(148, 163, 184, 0.35);
+    color: var(--gray-400);
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.story-day-badge.segment-add-btn:hover {
+    border-color: rgba(245, 158, 11, 0.5);
+    color: #fbbf24;
+    background: rgba(245, 158, 11, 0.08);
+}
+
+/* Assigned chip — a real pill, colored by segment type via .timeline-* */
+.story-day-badge.segment-pill {
+    gap: 0.3rem;
+}
+
+.segment-pill-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    margin-left: 0.05rem;
+    border: none;
+    background: none;
+    color: inherit;
+    opacity: 0.55;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: opacity 0.15s, background 0.15s;
+}
+
+.segment-pill-remove:hover {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.14);
+}
+
+.segment-pill-remove:disabled {
+    opacity: 0.3;
+    cursor: default;
+}
+
+/* Segment picker popover */
+.segment-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: 40;
+    min-width: 210px;
+    padding: 0.4rem;
+    background: var(--gray-800, #1e293b);
+    border: 1px solid var(--border-color, rgba(148, 163, 184, 0.2));
+    border-radius: 10px;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+}
+
+.segment-menu-header {
+    padding: 0.25rem 0.5rem 0.4rem;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--gray-500, #64748b);
+}
+
+.segment-menu-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    max-height: 180px;
+    overflow-y: auto;
+    margin-bottom: 0.35rem;
+    padding-bottom: 0.35rem;
+    border-bottom: 1px solid var(--border-color, rgba(148, 163, 184, 0.15));
+}
+
+.segment-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.4rem 0.5rem;
+    border: none;
+    background: none;
+    border-radius: 6px;
+    color: var(--gray-200, #e2e8f0);
+    font-size: 0.8rem;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.12s;
+}
+
+.segment-menu-item:hover:not(:disabled) {
+    background: rgba(148, 163, 184, 0.12);
+}
+
+.segment-menu-item:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.segment-menu-item-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.segment-dot {
+    flex: none;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    border: none;
+    background: currentColor;
+}
+
+.segment-menu-create {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.15rem;
+}
+
+.segment-menu-input {
+    flex: 1;
+    min-width: 0;
+    padding: 0.4rem 0.55rem;
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid var(--border-color, rgba(148, 163, 184, 0.25));
+    border-radius: 6px;
+    color: var(--gray-100, #f1f5f9);
+    font-size: 0.8rem;
+}
+
+.segment-menu-input::placeholder {
+    color: var(--gray-500, #64748b);
+}
+
+.segment-menu-input:focus {
+    outline: none;
+    border-color: rgba(245, 158, 11, 0.5);
+    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.15);
+}
+
+.segment-menu-add {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 30px;
+    height: 30px;
+    border: none;
+    border-radius: 6px;
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.segment-menu-add:hover:not(:disabled) {
+    background: rgba(245, 158, 11, 0.28);
+}
+
+.segment-menu-add:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
 .story-day-edit-inline {
     display: inline-flex;
     align-items: center;

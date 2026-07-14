@@ -102,26 +102,74 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
     // Timeline segment (flashback/montage) assignment state
     const [segments, setSegments] = useState([]);
     const [segmentMenuOpen, setSegmentMenuOpen] = useState(false);
+    const [newSegmentName, setNewSegmentName] = useState('');
+    const [segmentSaving, setSegmentSaving] = useState(false);
+    const segmentAssignRef = useRef(null);
 
     useEffect(() => {
         if (!scriptId) return;
         getSegments(scriptId).then(setSegments).catch(() => setSegments([]));
     }, [scriptId]);
 
+    // Close the segment picker when clicking outside it.
+    useEffect(() => {
+        if (!segmentMenuOpen) return;
+        const onDocClick = (e) => {
+            if (segmentAssignRef.current && !segmentAssignRef.current.contains(e.target)) {
+                setSegmentMenuOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', onDocClick);
+        return () => document.removeEventListener('mousedown', onDocClick);
+    }, [segmentMenuOpen]);
+
+    const sceneKey = () => scene.id || scene.scene_id;
+
     const handleAssignSegment = async (segmentId) => {
-        await attachScenesToSegment(segmentId, scriptId, [scene.id || scene.scene_id]);
-        setSegmentMenuOpen(false);
-        notifyStoryDayChange(scriptId);
+        setSegmentSaving(true);
+        try {
+            await attachScenesToSegment(segmentId, scriptId, [sceneKey()]);
+            setSegmentMenuOpen(false);
+            setNewSegmentName('');
+            notifyStoryDayChange(scriptId);
+        } catch (err) {
+            console.error('[Segment] Failed to move scene to segment:', err);
+            setSaveError('Could not move the scene to that segment. Try again.');
+        } finally {
+            setSegmentSaving(false);
+        }
     };
 
-    const handleCreateAndAssign = async (name) => {
-        const seg = await createSegment(scriptId, { name });
-        await handleAssignSegment(seg.id);
+    const handleCreateAndAssign = async () => {
+        const name = newSegmentName.trim();
+        if (!name) return;
+        setSegmentSaving(true);
+        try {
+            const seg = await createSegment(scriptId, { name });
+            await attachScenesToSegment(seg.id, scriptId, [sceneKey()]);
+            setSegments(prev => [...prev, seg]);  // reflect immediately in the picker
+            setNewSegmentName('');
+            setSegmentMenuOpen(false);
+            notifyStoryDayChange(scriptId);
+        } catch (err) {
+            console.error('[Segment] Failed to create segment:', err);
+            setSaveError('Could not create that segment. Try again.');
+        } finally {
+            setSegmentSaving(false);
+        }
     };
 
     const handleRemoveFromSegment = async () => {
-        await detachSceneFromSegment(scene.segment_id, scene.id || scene.scene_id, scriptId);
-        notifyStoryDayChange(scriptId);
+        setSegmentSaving(true);
+        try {
+            await detachSceneFromSegment(scene.segment_id, sceneKey(), scriptId);
+            notifyStoryDayChange(scriptId);
+        } catch (err) {
+            console.error('[Segment] Failed to remove scene from segment:', err);
+            setSaveError('Could not remove the scene from the segment. Try again.');
+        } finally {
+            setSegmentSaving(false);
+        }
     };
 
     // Fetch notes, items (for badges + card tags)
@@ -481,40 +529,79 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
                                 <Pencil size={10} className="edit-hint-icon" />
                             </button>
                         )}
-                        {scene.segment_id && (
-                            <button
-                                className="story-day-badge timeline-segment editable-badge"
-                                onClick={handleRemoveFromSegment}
-                                title="Click to remove from segment (returns to story-day timeline)"
-                            >
-                                <CalendarDays size={12} />
-                                {scene.story_day_label || 'Segment'}
-                            </button>
-                        )}
+                        {scene.segment_id && (() => {
+                            const seg = segments.find(s => s.id === scene.segment_id);
+                            const typeClass = `timeline-${(seg?.segment_type || 'montage').toLowerCase()}`;
+                            return (
+                                <span className={`story-day-badge segment-pill ${typeClass}`}>
+                                    <Clapperboard size={12} />
+                                    {scene.story_day_label || seg?.name || 'Segment'}
+                                    <button
+                                        type="button"
+                                        className="segment-pill-remove"
+                                        onClick={handleRemoveFromSegment}
+                                        disabled={segmentSaving}
+                                        title="Remove from segment — returns to the story-day timeline"
+                                    >
+                                        <X size={11} />
+                                    </button>
+                                </span>
+                            );
+                        })()}
                         {!scene.segment_id && (
-                            <div className="segment-assign">
+                            <div className="segment-assign" ref={segmentAssignRef}>
                                 <button
-                                    className="story-day-badge editable-badge"
+                                    type="button"
+                                    className="story-day-badge segment-add-btn"
                                     onClick={() => setSegmentMenuOpen(o => !o)}
-                                    title="Move to a flashback/montage segment (off the story-day count)"
+                                    title="Move to a flashback or montage — off the story-day count"
                                 >
-                                    + Segment
+                                    <Clapperboard size={12} />
+                                    Segment
                                 </button>
                                 {segmentMenuOpen && (
-                                    <div className="segment-assign-menu">
-                                        {segments.map(seg => (
-                                            <button key={seg.id} onClick={() => handleAssignSegment(seg.id)}>
-                                                {seg.name}
+                                    <div className="segment-menu" role="menu">
+                                        <div className="segment-menu-header">Move to segment</div>
+                                        {segments.length > 0 && (
+                                            <div className="segment-menu-list">
+                                                {segments.map(seg => (
+                                                    <button
+                                                        type="button"
+                                                        key={seg.id}
+                                                        className="segment-menu-item"
+                                                        onClick={() => handleAssignSegment(seg.id)}
+                                                        disabled={segmentSaving}
+                                                        role="menuitem"
+                                                    >
+                                                        <span className={`segment-dot timeline-${(seg.segment_type || 'montage').toLowerCase()}`} />
+                                                        <span className="segment-menu-item-name">{seg.name}</span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                        <div className="segment-menu-create">
+                                            <input
+                                                className="segment-menu-input"
+                                                type="text"
+                                                placeholder="Name a new segment"
+                                                value={newSegmentName}
+                                                onChange={e => setNewSegmentName(e.target.value)}
+                                                onKeyDown={e => {
+                                                    if (e.key === 'Enter') { e.preventDefault(); handleCreateAndAssign(); }
+                                                    if (e.key === 'Escape') setSegmentMenuOpen(false);
+                                                }}
+                                                autoFocus
+                                            />
+                                            <button
+                                                type="button"
+                                                className="segment-menu-add"
+                                                onClick={handleCreateAndAssign}
+                                                disabled={!newSegmentName.trim() || segmentSaving}
+                                                title="Create segment and move this scene into it"
+                                            >
+                                                <Check size={14} />
                                             </button>
-                                        ))}
-                                        <button
-                                            onClick={() => {
-                                                const name = window.prompt('New segment name (e.g. "Training Montage")');
-                                                if (name && name.trim()) handleCreateAndAssign(name.trim());
-                                            }}
-                                        >
-                                            + New segment…
-                                        </button>
+                                        </div>
                                     </div>
                                 )}
                             </div>

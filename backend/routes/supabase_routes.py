@@ -1112,6 +1112,8 @@ def get_scenes(script_id):
                 'story_day_is_manual': scene.get('story_day_is_manual', False),
                 'story_day_is_locked': scene.get('story_day_is_locked', False),
                 'timeline_code': scene.get('timeline_code', 'PRESENT'),
+                # Timeline segment (off-timeline flashback/montage grouping)
+                'segment_id': scene.get('segment_id'),
                 # Omit status
                 'is_omitted': scene.get('is_omitted', False),
                 'omitted_at': scene.get('omitted_at'),
