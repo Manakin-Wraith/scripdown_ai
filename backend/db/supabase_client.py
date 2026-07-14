@@ -417,6 +417,12 @@ class SupabaseDB:
             .eq('script_id', script_id).order('display_order').execute()
         return result.data or []
 
+    def get_timeline_segment(self, segment_id: str) -> dict:
+        """Get a single timeline segment by id (includes script_id)."""
+        result = self.client.table('timeline_segments').select('*') \
+            .eq('id', segment_id).limit(1).execute()
+        return result.data[0] if result.data else None
+
     def update_timeline_segment(self, segment_id: str, **kwargs) -> dict:
         """Update a timeline segment (name/segment_type/color/display_order)."""
         result = self.client.table('timeline_segments').update(kwargs) \

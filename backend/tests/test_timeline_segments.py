@@ -89,6 +89,15 @@ import routes.segment_routes as seg_routes
 class RouteFakeDB:
     def __init__(self):
         self.updates = []
+        # script_access is monkeypatched per-test to ignore this, but
+        # _check_script evaluates db.client as an argument regardless.
+        self.client = None
+
+    def get_timeline_segment(self, segment_id):
+        return {'id': segment_id, 'script_id': 'scr-1'}
+
+    def get_scene(self, scene_id):
+        return {'id': scene_id, 'script_id': 'scr-1'}
 
     def update_scene(self, scene_id, **kwargs):
         self.updates.append((scene_id, kwargs))
@@ -99,6 +108,7 @@ def test_attach_scenes_clears_flags_and_recalcs(monkeypatch):
     fake = RouteFakeDB()
     recalced = {}
     monkeypatch.setattr(seg_routes, 'db', fake)
+    monkeypatch.setattr(seg_routes, 'script_access', lambda *a, **k: 'ok')
     monkeypatch.setattr(seg_routes, 'recalculate_story_days',
                         lambda script_id, start_from_order=0: recalced.update(
                             {'script_id': script_id, 'start': start_from_order}))
@@ -126,3 +136,22 @@ def test_attach_scenes_clears_flags_and_recalcs(monkeypatch):
     assert kwargs['is_new_story_day'] is False
     assert kwargs['story_day_is_locked'] is False
     assert recalced == {'script_id': 'scr-1', 'start': 0}
+
+
+def test_attach_scenes_forbidden_for_non_owner(monkeypatch):
+    fake = RouteFakeDB()
+    monkeypatch.setattr(seg_routes, 'db', fake)
+    monkeypatch.setattr(seg_routes, 'script_access', lambda *a, **k: 'forbidden')
+    monkeypatch.setenv('FLASK_ENV', 'development')
+
+    from flask import Flask
+    flask_app = Flask(__name__)
+    flask_app.register_blueprint(seg_routes.segment_bp)
+    with flask_app.test_client() as client:
+        resp = client.post(
+            '/api/segments/seg-A/scenes',
+            json={'scene_ids': ['sc-2'], 'script_id': 'scr-1'},
+        )
+
+    assert resp.status_code == 403
+    assert fake.updates == []  # no scene mutated when authorization fails
