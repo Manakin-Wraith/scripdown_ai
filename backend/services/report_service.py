@@ -1208,6 +1208,8 @@ class ReportService:
             body = self._render_props_report(data)
         elif report_type == 'one_liner':
             body = self._render_one_liner(data)
+        elif report_type == 'shooting_schedule':
+            body = self._render_shooting_schedule(data)
         # Department-specific reports
         elif report_type == 'wardrobe':
             body = self._render_wardrobe_department(data)
@@ -1331,47 +1333,25 @@ class ReportService:
         """
     
     def _render_day_out_of_days(self, data: Dict) -> str:
-        """Render day-out-of-days HTML."""
-        characters = data.get('characters', {})
-        rows = []
-        
-        # Sort by scene count descending
-        sorted_chars = sorted(characters.items(), key=lambda x: x[1]['count'], reverse=True)
-        
-        for name, info in sorted_chars:
-            scenes_str = ', '.join(info['scenes'])
-            
-            story_days = info.get('story_days', [])
-            days_str = ', '.join([f'D{d}' for d in sorted(story_days)]) if story_days else '—'
-            
-            rows.append(f"""
-            <tr>
-                <td><strong>{name}</strong></td>
-                <td>{info['count']}</td>
-                <td>{info.get('pages', info['count'])}</td>
-                <td>{days_str}</td>
-                <td class="scenes-cell">{scenes_str}</td>
-            </tr>
-            """)
-        
-        return f"""
-        <h2>Day Out of Days - Character Schedule</h2>
-        <table class="dood-table">
-            <thead>
-                <tr>
-                    <th>Character</th>
-                    <th>Scenes</th>
-                    <th>Pages</th>
-                    <th>Story Days</th>
-                    <th>Scene Numbers</th>
-                </tr>
-            </thead>
-            <tbody>
-                {''.join(rows)}
-            </tbody>
-        </table>
-        """
-    
+        """Render day-out-of-days HTML from day-grouped schedule data."""
+        days = data.get('days')
+        if not days:
+            return self._render_schedule_empty_state('day_out_of_days')
+        dood = compute_dood(days)
+        head = ''.join(f'<th>{dn}</th>' for dn in dood['day_numbers'])
+        body = []
+        for c in dood['cast']:
+            cells = ''.join(f'<td>{c["cells"].get(dn,"")}</td>' for dn in dood['day_numbers'])
+            body.append(
+                f'<tr><td class="dood-name">{c["name"]}</td>{cells}'
+                f'<td>{c["work_days"]}</td><td>{c["hold_days"]}</td><td>{c["span"]}</td></tr>'
+            )
+        return (
+            '<table class="report-table dood"><thead><tr><th>Cast</th>' + head +
+            '<th>Work</th><th>Hold</th><th>Span</th></tr></thead><tbody>' +
+            ''.join(body) + '</tbody></table>'
+        )
+
     def _render_location_report(self, data: Dict) -> str:
         """Render location report HTML."""
         locations = data.get('locations', {})
@@ -1456,71 +1436,73 @@ class ReportService:
         </table>
         """
     
+    def _render_schedule_empty_state(self, report_type: str) -> str:
+        name = self.REPORT_TYPES.get(report_type, {}).get('name', 'This report')
+        return (
+            '<div class="report-empty" style="padding:48px;text-align:center;color:#555">'
+            f'<h2>{name} needs a shooting schedule</h2>'
+            '<p>Select a schedule as the source, or build one on the Schedule tab, '
+            'then generate this report.</p></div>'
+        )
+
     def _render_one_liner(self, data: Dict) -> str:
-        """Render one-liner/stripboard HTML."""
-        scenes = data.get('scenes', [])
-        user_items_map = data.get('user_items_by_scene', {})
+        """Render one-liner/stripboard HTML from day-grouped schedule data."""
+        days = data.get('days')
+        if not days:
+            return self._render_schedule_empty_state('one_liner')
         rows = []
-        prev_story_day = None
-        
-        for scene in scenes:
-            scene_id = scene.get('id') or scene.get('scene_id')
-            scene_user = user_items_map.get(scene_id, {})
-            all_chars = list(scene.get('characters') or []) + list(scene_user.get('characters') or [])
-            chars = ', '.join(all_chars[:3])
-            if len(all_chars) > 3:
-                chars += f" +{len(all_chars) - 3}"
-            
-            # Scene length in eighths
-            eighths = scene.get('page_length_eighths', 8)
-            length_display = format_eighths(eighths)
-            
-            # Story day separator
-            scene_story_day = scene.get('story_day')
-            story_day_display = f"D{scene_story_day}" if scene_story_day else '—'
-            if scene_story_day and scene_story_day != prev_story_day:
-                day_label = scene.get('story_day_label') or f'Day {scene_story_day}'
-                rows.append(f"""
-                <tr class="day-separator-row">
-                    <td colspan="7" class="day-separator-cell">
-                        <strong>{day_label}</strong>
-                    </td>
-                </tr>
-                """)
-            prev_story_day = scene_story_day
-            
-            rows.append(f"""
-            <tr class="one-liner-row">
-                <td class="scene-num">{scene.get('scene_number', '')}</td>
-                <td class="int-ext">{scene.get('int_ext', '')}</td>
-                <td class="setting">{scene.get('setting', '')}</td>
-                <td class="time">{scene.get('time_of_day', '')}</td>
-                <td class="day-cell">{story_day_display}</td>
-                <td class="chars">{chars}</td>
-                <td class="length">{length_display}</td>
-            </tr>
-            """)
-        
-        return f"""
-        <h2>One-Liner / Stripboard</h2>
-        <table class="one-liner-table">
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>I/E</th>
-                    <th>Setting</th>
-                    <th>D/N</th>
-                    <th>Day</th>
-                    <th>Cast</th>
-                    <th>Len</th>
-                </tr>
-            </thead>
-            <tbody>
-                {''.join(rows)}
-            </tbody>
-        </table>
-        """
-    
+        for d in days:
+            date = d.get('shoot_date') or ''
+            rows.append(
+                f'<tr class="ol-daybreak"><td colspan="5"><strong>Day {d.get("day_number")}</strong>'
+                f' &middot; {date} &middot; {format_eighths(d.get("total_eighths", 0))} pgs'
+                f' &middot; {len(d.get("scenes", []))} sc &middot; {len(d.get("cast", []))} cast</td></tr>'
+            )
+            for s in d.get('scenes', []):
+                rows.append(
+                    '<tr>'
+                    f'<td>{s.get("scene_number","")}</td>'
+                    f'<td>{s.get("int_ext","")}</td>'
+                    f'<td>{s.get("location_canonical") or s.get("setting","")}</td>'
+                    f'<td>{s.get("time_of_day","")}</td>'
+                    f'<td>{format_eighths(s.get("page_length_eighths",8))}</td>'
+                    '</tr>'
+                )
+        return (
+            '<table class="report-table one-liner"><thead><tr>'
+            '<th>Sc</th><th>I/E</th><th>Set</th><th>D/N</th><th>Pgs</th>'
+            '</tr></thead><tbody>' + ''.join(rows) + '</tbody></table>'
+        )
+
+    def _render_shooting_schedule(self, data: Dict) -> str:
+        """Render the full day-by-day shooting schedule HTML."""
+        days = data.get('days')
+        if not days:
+            return self._render_schedule_empty_state('shooting_schedule')
+        sections = []
+        for d in days:
+            date = d.get('shoot_date') or 'No date'
+            rows = ''.join(
+                '<tr>'
+                f'<td>{s.get("scene_number","")}</td>'
+                f'<td>{s.get("int_ext","")}</td>'
+                f'<td>{s.get("location_canonical") or s.get("setting","")}</td>'
+                f'<td>{s.get("time_of_day","")}</td>'
+                f'<td>{format_eighths(s.get("page_length_eighths",8))}</td>'
+                f'<td>{", ".join(c if isinstance(c,str) else c.get("name","") for c in (s.get("characters") or []))}</td>'
+                '</tr>'
+                for s in d.get('scenes', [])
+            )
+            sections.append(
+                f'<div class="sched-day"><h3>Day {d.get("day_number")} &middot; {date}</h3>'
+                f'<div class="sched-day-meta">{format_eighths(d.get("total_eighths",0))} pgs'
+                f' &middot; {len(d.get("cast",[]))} cast &middot; {len(d.get("locations",[]))} locations</div>'
+                '<table class="report-table"><thead><tr>'
+                '<th>Sc</th><th>I/E</th><th>Set</th><th>D/N</th><th>Pgs</th><th>Cast</th>'
+                f'</tr></thead><tbody>{rows}</tbody></table></div>'
+            )
+        return ''.join(sections)
+
     def _render_full_breakdown(self, data: Dict) -> str:
         """Render full breakdown HTML with comprehensive statistics."""
         summary = data.get('summary', {})

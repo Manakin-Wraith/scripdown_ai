@@ -129,3 +129,46 @@ def test_report_types_flag_schedule_backed():
 def test_shooting_schedule_is_valid_type():
     svc = ReportService()
     assert 'shooting_schedule' in svc.VALID_REPORT_TYPES
+
+
+def _data_with_days():
+    return {
+        'script': {'title': 'Test', 'writer': 'W', 'draft': '', 'total_pages': 10},
+        'schedule': {'id': 'sch1', 'name': 'Schedule 1'},
+        'days': [
+            {'id': 'd1', 'day_number': 1, 'shoot_date': '2026-08-01', 'status': 'draft',
+             'total_eighths': 8, 'cast': ['ALICE'], 'locations': ['KITCHEN'],
+             'scenes': [{'scene_number': '1', 'int_ext': 'INT', 'setting': 'KITCHEN',
+                         'time_of_day': 'DAY', 'characters': ['ALICE'],
+                         'page_length_eighths': 8, 'is_omitted': False}]},
+        ],
+        'unscheduled': [],
+    }
+
+
+def test_render_one_liner_has_day_banner_and_totals():
+    svc = ReportService()
+    html = svc._render_one_liner(_data_with_days())
+    assert 'Day 1' in html
+    assert 'KITCHEN' in html
+    assert 'Scene' in html or '1' in html
+
+
+def test_render_shooting_schedule_renders_days():
+    svc = ReportService()
+    html = svc._render_shooting_schedule(_data_with_days())
+    assert 'Day 1' in html
+    assert '2026-08-01' in html
+
+
+def test_render_dood_lists_cast():
+    svc = ReportService()
+    html = svc._render_day_out_of_days(_data_with_days())
+    assert 'ALICE' in html
+    assert 'S' in html
+
+
+def test_schedule_backed_empty_state_when_no_days():
+    svc = ReportService()
+    html = svc._render_one_liner({'script': {'title': 'T'}, 'days': None})
+    assert 'schedule' in html.lower()
