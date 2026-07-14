@@ -730,9 +730,17 @@ class ReportService:
         days_block = None
         unscheduled_block = None
         if schedule_id:
-            sched = self.db.client.table('shooting_schedules').select(
-                'id, name').eq('id', schedule_id).single().execute().data
-            schedule_block = {'id': schedule_id, 'name': (sched or {}).get('name', 'Schedule')}
+            sched = None
+            try:
+                rows = self.db.client.table('shooting_schedules').select(
+                    'id, name').eq('id', schedule_id).limit(1).execute().data or []
+                sched = rows[0] if rows else None
+            except Exception as e:
+                print(f"Warning: Could not fetch shooting_schedules for report: {e}")
+                sched = None
+
+        if schedule_id and sched:
+            schedule_block = {'id': schedule_id, 'name': sched.get('name', 'Schedule')}
 
             scene_by_id = {s.get('id'): s for s in scenes}
             included_ids = set(scene_by_id.keys())
@@ -776,7 +784,7 @@ class ReportService:
                 })
 
             if include_unscheduled:
-                unscheduled_block = [scene_by_id[i] for i in included_ids if i not in scheduled_ids]
+                unscheduled_block = [s for s in scenes if s.get('id') not in scheduled_ids]
 
         return {
             'script': {

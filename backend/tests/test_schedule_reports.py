@@ -7,12 +7,15 @@ from unittest.mock import MagicMock
 from services.report_service import ReportService
 
 
-def _svc_with_days(days_rows, day_scene_rows_by_day, scenes):
+def _svc_with_days(days_rows, day_scene_rows_by_day, scenes, schedule_rows=None):
     """Build a ReportService whose db returns the given fixtures."""
     svc = ReportService()
     svc.db = MagicMock()
     svc.db.get_script.return_value = {'title': 'Test', 'total_pages': 10}
     svc.db.get_scenes.return_value = scenes
+
+    if schedule_rows is None:
+        schedule_rows = [{'id': 'sch1', 'name': 'Schedule 1'}]
 
     # supabase-py fluent chain: table(...).select(...).eq(...).order(...).execute()
     def table(name):
@@ -23,7 +26,8 @@ def _svc_with_days(days_rows, day_scene_rows_by_day, scenes):
         chain.neq.return_value = chain
         chain.order.return_value = chain
         if name == 'shooting_schedules':
-            chain.single.return_value.execute.return_value.data = {'id': 'sch1', 'name': 'Schedule 1'}
+            chain.limit.return_value.execute.return_value.data = schedule_rows
+            chain.single.return_value.execute.side_effect = Exception('no rows')
         elif name == 'shooting_days':
             chain.execute.return_value.data = days_rows
         elif name == 'shooting_day_scenes':
@@ -65,3 +69,16 @@ def test_aggregate_groups_scenes_by_shooting_day():
     assert data['days'][0]['cast'] == ['ALICE']
     # s3 is on no day → unscheduled
     assert [s['scene_number'] for s in data['unscheduled']] == ['3']
+
+
+def test_aggregate_missing_schedule_degrades_gracefully():
+    scenes = [
+        {'id': 's1', 'scene_number': '1', 'characters': ['ALICE'], 'page_length_eighths': 8, 'setting': 'KITCHEN'},
+    ]
+    svc = _svc_with_days(days_rows=[], day_scene_rows_by_day={}, scenes=scenes, schedule_rows=[])
+
+    data = svc.aggregate_scene_data('scr1', schedule_id='gone')
+
+    assert data['days'] is None
+    assert data['schedule'] is None
+    assert data['unscheduled'] is None
