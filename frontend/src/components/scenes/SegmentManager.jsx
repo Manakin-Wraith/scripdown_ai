@@ -64,13 +64,17 @@ const SegmentManager = ({ scriptId, scenes, onClose, onChanged }) => {
     const move = (index, dir) => {
         const target = index + dir;
         if (target < 0 || target >= segments.length) return;
-        const a = segments[index];
-        const b = segments[target];
-        const aOrder = a.display_order ?? index;
-        const bOrder = b.display_order ?? target;
+        const reordered = [...segments];
+        const [moved] = reordered.splice(index, 1);
+        reordered.splice(target, 0, moved);
         run(async () => {
-            await updateSegment(a.id, { display_order: bOrder });
-            await updateSegment(b.id, { display_order: aOrder });
+            // Normalize display_order to list position. Existing values may all
+            // be 0, so a pairwise swap can't express order — assign each its index.
+            await Promise.all(
+                reordered
+                    .map((seg, i) => (seg.display_order === i ? null : updateSegment(seg.id, { display_order: i })))
+                    .filter(Boolean)
+            );
         }, 'Couldn’t reorder the segments. Try again.');
     };
 
