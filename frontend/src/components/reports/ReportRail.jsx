@@ -10,6 +10,9 @@ const ReportRail = ({
     customTitle,
     onTitleChange,
     filterPanelProps,
+    schedules = [],
+    scheduleId = null,
+    onScheduleChange,
 }) => {
     return (
         <div className="report-rail">
@@ -32,6 +35,22 @@ const ReportRail = ({
                     })}
                 </div>
             </div>
+
+            {reportTypes?.[selectedType]?.requires_schedule && (
+                <div className="rail-section">
+                    <span className="rail-label">Source schedule</span>
+                    <select
+                        className="rail-title-input"
+                        value={scheduleId || ''}
+                        onChange={(e) => onScheduleChange?.(e.target.value || null)}
+                    >
+                        <option value="">— Select a schedule —</option>
+                        {schedules.map((s) => (
+                            <option key={s.id} value={s.id}>{s.name}</option>
+                        ))}
+                    </select>
+                </div>
+            )}
 
             <div className="rail-section rail-filters">
                 <ReportFilterPanel {...filterPanelProps} isCollapsed={false} />
