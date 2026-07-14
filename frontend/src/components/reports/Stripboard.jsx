@@ -12,7 +12,8 @@ import { Spinner, EmptyState } from '../ui';
 import { useToast } from '../../context/ToastContext';
 import { useScript } from '../../context/ScriptContext';
 import { useStoryDayListener } from '../../context/StoryDayContext';
-import { getScenes, getScriptMetadata, getScriptItems } from '../../services/apiService';
+import { getScenes, getScriptMetadata, getScriptItems, getSchedules, getShootingDays } from '../../services/apiService';
+import { buildScheduledMap } from '../../utils/scheduleMap';
 import { getSceneEighthsDisplay, getSceneEighths, formatEighths } from '../../utils/sceneUtils';
 import PageHeader from '../layout/PageHeader';
 import './Stripboard.css';
@@ -34,6 +35,10 @@ const Stripboard = () => {
     const [filterAnalysisStatus, setFilterAnalysisStatus] = useState('all');
     const [filterStoryDay, setFilterStoryDay] = useState('all');
     const [expandedRows, setExpandedRows] = useState(new Set());
+    const [schedules, setSchedules] = useState([]);
+    const [activeScheduleId, setActiveScheduleId] = useState(null);
+    const [scheduledMap, setScheduledMap] = useState(() => new Map());
+    const [filterScheduled, setFilterScheduled] = useState('all');
 
     // Helper function to determine scene analysis status
     const getSceneAnalysisStatus = (scene) => {
@@ -106,6 +111,20 @@ const Stripboard = () => {
                 } catch (e) {
                     console.warn('Could not fetch metadata:', e);
                 }
+
+                // Load schedules for the scheduling picker + restore persisted choice
+                try {
+                    const schedRes = await getSchedules(scriptId);
+                    const list = schedRes.schedules || [];
+                    setSchedules(list);
+                    const saved = localStorage.getItem(`stripboard-schedule-${scriptId}`);
+                    const initial = (saved && list.some((s) => s.id === saved))
+                        ? saved
+                        : (list[0]?.id || null);
+                    setActiveScheduleId(initial);
+                } catch (e) {
+                    console.warn('Could not fetch schedules:', e);
+                }
             } catch (error) {
                 toast.error('Error', 'Failed to load scenes');
             } finally {
@@ -115,6 +134,19 @@ const Stripboard = () => {
         
         fetchData();
     }, [scriptId]);
+
+    // Build sceneId → { dayNumber } map for the active schedule
+    useEffect(() => {
+        if (!activeScheduleId) { setScheduledMap(new Map()); return; }
+        let cancelled = false;
+        getShootingDays(activeScheduleId)
+            .then((data) => { if (!cancelled) setScheduledMap(buildScheduledMap(data.days || [])); })
+            .catch((err) => {
+                console.warn('Could not fetch shooting days:', err);
+                if (!cancelled) setScheduledMap(new Map());
+            });
+        return () => { cancelled = true; };
+    }, [activeScheduleId]);
 
     // Reusable refresh for story day sync
     const refreshStripboard = useCallback(async () => {
@@ -178,7 +210,14 @@ const Stripboard = () => {
         if (filterStoryDay !== 'all') {
             result = result.filter(s => s.story_day === parseInt(filterStoryDay));
         }
-        
+        if (filterScheduled !== 'all') {
+            result = result.filter((s) => {
+                const sid = s.id || s.scene_id;
+                const isSched = scheduledMap.has(sid);
+                return filterScheduled === 'scheduled' ? isSched : !isSched;
+            });
+        }
+
         // Apply sorting
         result.sort((a, b) => {
             let aVal, bVal;
@@ -210,7 +249,7 @@ const Stripboard = () => {
         });
         
         return result;
-    }, [scenes, filterIntExt, filterTimeOfDay, filterAnalysisStatus, filterStoryDay, sortBy, sortDir]);
+    }, [scenes, filterIntExt, filterTimeOfDay, filterAnalysisStatus, filterStoryDay, sortBy, sortDir, filterScheduled, scheduledMap]);
 
     // Active scenes (exclude omitted) for stats
     const activeScenes = useMemo(() => scenes.filter(s => !s.is_omitted), [scenes]);
@@ -252,8 +291,11 @@ const Stripboard = () => {
         });
         const totalStoryDays = storyDays.size;
 
-        return { intCount, extCount, dayCount, nightCount, totalEighths, totalEighthsDisplay, totalCharacters, totalLocations, totalStoryDays };
-    }, [activeScenes, userItemsByScene]);
+        const scheduledCount = activeScenes.filter((s) => scheduledMap.has(s.id || s.scene_id)).length;
+        const unscheduledCount = activeScenes.length - scheduledCount;
+
+        return { intCount, extCount, dayCount, nightCount, totalEighths, totalEighthsDisplay, totalCharacters, totalLocations, totalStoryDays, scheduledCount, unscheduledCount };
+    }, [activeScenes, userItemsByScene, scheduledMap]);
 
 
     const toggleSort = (field) => {
@@ -277,6 +319,12 @@ const Stripboard = () => {
         });
     };
 
+    const handleScheduleChange = (id) => {
+        const next = id || null;
+        setActiveScheduleId(next);
+        if (next) localStorage.setItem(`stripboard-schedule-${scriptId}`, next);
+    };
+
     if (loading) {
         return (
             <div className="stripboard-loading">
@@ -292,6 +340,10 @@ const Stripboard = () => {
         day: 'numeric', 
         year: 'numeric' 
     });
+
+    const hasSchedules = schedules.length > 0;
+    // The table gains one column (Shoot) when scheduling is active.
+    const fullColSpan = hasSchedules ? 8 : 7;
 
     return (
         <div className="stripboard page-container">
@@ -388,6 +440,14 @@ const Stripboard = () => {
                         <span className="stat-value">{stats.totalStoryDays} Story Days</span>
                     </div>
                 )}
+                {hasSchedules && activeScheduleId && (
+                    <div className="stat-group">
+                        <CalendarDays size={14} />
+                        <span className="stat-value">
+                            {stats.scheduledCount} scheduled · {stats.unscheduledCount} unscheduled
+                        </span>
+                    </div>
+                )}
                 <div className="stat-group stat-eighths">
                     <span className="stat-label">Length:</span>
                     <span className="stat-value eighths-total">{stats.totalEighthsDisplay} pages</span>
@@ -396,8 +456,21 @@ const Stripboard = () => {
 
             {/* Filters */}
             <div className="stripboard-filters">
+                {schedules.length > 0 && (
+                    <div className="filter-group">
+                        <select
+                            value={activeScheduleId || ''}
+                            onChange={(e) => handleScheduleChange(e.target.value)}
+                            title="Active shooting schedule"
+                        >
+                            {schedules.map((s) => (
+                                <option key={s.id} value={s.id}>{s.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                )}
                 <div className="filter-group">
-                    <select 
+                    <select
                         value={filterIntExt}
                         onChange={(e) => setFilterIntExt(e.target.value)}
                     >
@@ -429,6 +502,19 @@ const Stripboard = () => {
                         <option value="pending">Pending</option>
                     </select>
                 </div>
+                {hasSchedules && (
+                    <div className="filter-group">
+                        <select
+                            value={filterScheduled}
+                            onChange={(e) => setFilterScheduled(e.target.value)}
+                            title="Scheduling status"
+                        >
+                            <option value="all">All Scheduling</option>
+                            <option value="scheduled">Scheduled</option>
+                            <option value="unscheduled">Unscheduled</option>
+                        </select>
+                    </div>
+                )}
                 {uniqueStoryDays.length > 0 && (
                     <div className="filter-group">
                         <select
@@ -445,7 +531,7 @@ const Stripboard = () => {
                     </div>
                 )}
                 <div className="filter-group">
-                    <select 
+                    <select
                         value={sortBy}
                         onChange={(e) => setSortBy(e.target.value)}
                     >
@@ -454,13 +540,18 @@ const Stripboard = () => {
                         <option value="setting">Location</option>
                         <option value="characters">Cast Size</option>
                     </select>
-                    <button 
+                    <button
                         className="sort-dir-btn"
                         onClick={() => setSortDir(sortDir === 'asc' ? 'desc' : 'asc')}
                     >
                         {sortDir === 'asc' ? <SortAsc size={14} /> : <SortDesc size={14} />}
                     </button>
                 </div>
+                {schedules.length === 0 && (
+                    <div className="filter-group sb-no-schedule-hint">
+                        <span>No schedule yet — build one on the Schedule tab.</span>
+                    </div>
+                )}
             </div>
 
             {/* Stripboard Table */}
@@ -483,6 +574,7 @@ const Stripboard = () => {
                             </th>
                             <th className="col-time">D/N</th>
                             <th className="col-day">Day</th>
+                            {hasSchedules && <th className="col-shoot">Shoot</th>}
                             <th className="col-cast" onClick={() => toggleSort('characters')}>
                                 Cast
                                 {sortBy === 'characters' && (
@@ -536,7 +628,7 @@ const Stripboard = () => {
                                     {/* Story Day Separator */}
                                     {showDaySeparator && (
                                         <tr className="sb-day-separator-row">
-                                            <td colSpan="7">
+                                            <td colSpan={fullColSpan}>
                                                 <div className={`sb-day-separator timeline-${timelineClass}`}>
                                                     <div className="sb-day-separator-line"></div>
                                                     <span className={`sb-day-separator-label timeline-${timelineClass}`}>
@@ -549,7 +641,7 @@ const Stripboard = () => {
                                         </tr>
                                     )}
                                     <tr 
-                                        className={`stripboard-row ${isInt ? 'int' : 'ext'} ${isDay ? 'day' : 'night'} ${isExpanded ? 'expanded' : ''} status-${analysisStatus} ${scene.is_omitted ? 'omitted' : ''}`}
+                                        className={`stripboard-row ${isInt ? 'int' : 'ext'} ${isDay ? 'day' : 'night'} ${isExpanded ? 'expanded' : ''} status-${analysisStatus} ${scene.is_omitted ? 'omitted' : ''} ${hasSchedules && activeScheduleId && !scene.is_omitted && !scheduledMap.has(sceneId) ? 'sb-unscheduled' : ''}`}
                                         onClick={() => toggleRowExpand(sceneId)}
                                         style={{ cursor: 'pointer' }}
                                     >
@@ -585,6 +677,17 @@ const Stripboard = () => {
                                                 </span>
                                             )}
                                         </td>
+                                        {hasSchedules && (
+                                            <td className="col-shoot">
+                                                {activeScheduleId && scheduledMap.has(sceneId) ? (
+                                                    <span className="sb-shoot-pill scheduled">
+                                                        D{scheduledMap.get(sceneId).dayNumber}
+                                                    </span>
+                                                ) : (
+                                                    <span className="sb-shoot-pill unscheduled">Unscheduled</span>
+                                                )}
+                                            </td>
+                                        )}
                                         <td className="col-cast">
                                             <span className="cast-text">
                                                 {charDisplay}{moreChars}
@@ -600,7 +703,7 @@ const Stripboard = () => {
                                     {/* Expanded Breakdown Row */}
                                     {isExpanded && (
                                         <tr className="breakdown-row">
-                                            <td colSpan="7">
+                                            <td colSpan={fullColSpan}>
                                                 <div className="breakdown-content">
                                                     <div className="breakdown-grid">
                                                         {/* Cast */}
@@ -769,7 +872,7 @@ const Stripboard = () => {
                                     {/* Print-only row for full cast list */}
                                     {chars.length > 0 && (
                                         <tr className="print-cast-row">
-                                            <td colSpan="7">
+                                            <td colSpan={fullColSpan}>
                                                 <span className="print-cast-label">Cast: </span>
                                                 <span className="print-cast-list">{fullCast}</span>
                                             </td>
