@@ -189,3 +189,22 @@ def test_full_breakdown_dood_scene_fallback_without_schedule():
     assert 'ALICE' in html
     assert 'Character Schedule' in html
     assert 'needs a shooting schedule' not in html
+
+
+def test_scene_based_type_ignores_schedule_id():
+    """Regression: calling aggregate_scene_data with no schedule_id must never
+    group by shooting day — 'days' stays None and scene counts are unaffected."""
+    scenes = [
+        {'id': 's1', 'scene_number': '1', 'characters': ['ALICE'],
+         'page_length_eighths': 8, 'setting': 'KITCHEN'},
+    ]
+    svc = ReportService()
+    svc.db = MagicMock()
+    svc.db.get_script.return_value = {'title': 'T', 'total_pages': 1}
+    svc.db.get_scenes.return_value = scenes
+    svc.db.client.table.return_value.select.return_value.eq.return_value.neq.return_value.execute.return_value.data = []
+
+    data = svc.aggregate_scene_data('scr1')  # no schedule_id
+
+    assert data.get('days') is None
+    assert data['summary']['total_scenes'] == len(scenes)
