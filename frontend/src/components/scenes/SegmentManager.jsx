@@ -1,0 +1,188 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { X, Trash2, ChevronUp, ChevronDown, Plus, Clapperboard } from 'lucide-react';
+import { useToast } from '../../context/ToastContext';
+import { useConfirmDialog } from '../../context/ConfirmDialogContext';
+import { getSegments, createSegment, updateSegment, deleteSegment } from '../../services/apiService';
+import { segmentDotColor, SEGMENT_TYPES } from '../../utils/segmentTint';
+import './SegmentManager.css';
+
+/**
+ * SegmentManager — manage timeline segments (flashbacks / montages) for a script.
+ * Colour is derived from a segment's type. Renames refresh scene labels server-side.
+ */
+const SegmentManager = ({ scriptId, scenes, onClose, onChanged }) => {
+    const toast = useToast();
+    const { confirm } = useConfirmDialog();
+    const [segments, setSegments] = useState([]);
+    const [busy, setBusy] = useState(false);
+    const [editingId, setEditingId] = useState(null);
+    const [editName, setEditName] = useState('');
+    const [typePickerId, setTypePickerId] = useState(null);
+    const [newName, setNewName] = useState('');
+    const [newType, setNewType] = useState('MONTAGE');
+
+    const load = useCallback(async () => {
+        try { setSegments(await getSegments(scriptId)); }
+        catch { setSegments([]); }
+    }, [scriptId]);
+    useEffect(() => { load(); }, [load]);
+
+    const countFor = useCallback(
+        (segId) => (scenes || []).filter(s => s.segment_id === segId).length,
+        [scenes]
+    );
+
+    const run = async (fn, errMsg) => {
+        if (busy) return;
+        setBusy(true);
+        try {
+            await fn();
+            await load();
+            if (onChanged) await onChanged();
+        } catch (e) {
+            console.error('[SegmentManager]', e);
+            toast.error('Something went wrong', errMsg);
+        } finally {
+            setBusy(false);
+        }
+    };
+
+    const startRename = (seg) => { setEditingId(seg.id); setEditName(seg.name); };
+    const saveRename = (seg) => {
+        const name = editName.trim();
+        setEditingId(null);
+        if (!name || name === seg.name) return;
+        run(() => updateSegment(seg.id, { name }), 'Couldn’t rename the segment. Try again.');
+    };
+
+    const setType = (seg, code) => {
+        setTypePickerId(null);
+        if (code === seg.segment_type) return;
+        run(() => updateSegment(seg.id, { segment_type: code }), 'Couldn’t recolour the segment. Try again.');
+    };
+
+    const move = (index, dir) => {
+        const target = index + dir;
+        if (target < 0 || target >= segments.length) return;
+        const a = segments[index];
+        const b = segments[target];
+        const aOrder = a.display_order ?? index;
+        const bOrder = b.display_order ?? target;
+        run(async () => {
+            await updateSegment(a.id, { display_order: bOrder });
+            await updateSegment(b.id, { display_order: aOrder });
+        }, 'Couldn’t reorder the segments. Try again.');
+    };
+
+    const remove = async (seg) => {
+        const ok = await confirm({
+            title: 'Delete segment',
+            message: `Delete “${seg.name}”? Its scenes return to the story-day timeline.`,
+            confirmText: 'Delete',
+        });
+        if (!ok) return;
+        run(() => deleteSegment(seg.id, scriptId), 'Couldn’t delete the segment. Try again.');
+    };
+
+    const create = () => {
+        const name = newName.trim();
+        if (!name) return;
+        run(async () => {
+            await createSegment(scriptId, { name, segment_type: newType });
+            setNewName('');
+            setNewType('MONTAGE');
+        }, 'Couldn’t create the segment. Try again.');
+    };
+
+    return (
+        <div className="segmgr-overlay" onClick={onClose}>
+            <div className="segmgr" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true">
+                <div className="segmgr-header">
+                    <div className="segmgr-title"><Clapperboard size={16} /> Segments</div>
+                    <button className="segmgr-close" onClick={onClose} aria-label="Close"><X size={18} /></button>
+                </div>
+
+                <div className="segmgr-body">
+                    {segments.length === 0 && (
+                        <p className="segmgr-empty">
+                            No segments yet. Group flashback or montage scenes from a scene’s detail panel,
+                            or create one below.
+                        </p>
+                    )}
+                    {segments.map((seg, i) => {
+                        const n = countFor(seg.id);
+                        return (
+                            <div className="segmgr-row" key={seg.id}>
+                                <div className="segmgr-swatch-wrap">
+                                    <button
+                                        className="segmgr-swatch"
+                                        style={{ background: segmentDotColor(seg.segment_type) }}
+                                        onClick={() => setTypePickerId(typePickerId === seg.id ? null : seg.id)}
+                                        disabled={busy}
+                                        title="Change type / colour"
+                                    />
+                                    {typePickerId === seg.id && (
+                                        <div className="segmgr-type-picker">
+                                            {SEGMENT_TYPES.map(t => (
+                                                <button
+                                                    key={t.code}
+                                                    className="segmgr-type-option"
+                                                    onClick={() => setType(seg, t.code)}
+                                                >
+                                                    <span className="segmgr-dot" style={{ background: segmentDotColor(t.code) }} />
+                                                    {t.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {editingId === seg.id ? (
+                                    <input
+                                        className="segmgr-name-input"
+                                        value={editName}
+                                        autoFocus
+                                        onChange={e => setEditName(e.target.value)}
+                                        onBlur={() => saveRename(seg)}
+                                        onKeyDown={e => {
+                                            if (e.key === 'Enter') saveRename(seg);
+                                            if (e.key === 'Escape') setEditingId(null);
+                                        }}
+                                    />
+                                ) : (
+                                    <button className="segmgr-name" onClick={() => startRename(seg)} title="Click to rename">
+                                        {seg.name}
+                                    </button>
+                                )}
+
+                                <span className="segmgr-count">{n} {n === 1 ? 'scene' : 'scenes'}</span>
+
+                                <div className="segmgr-actions">
+                                    <button className="segmgr-icon-btn" disabled={busy || i === 0} onClick={() => move(i, -1)} title="Move up"><ChevronUp size={15} /></button>
+                                    <button className="segmgr-icon-btn" disabled={busy || i === segments.length - 1} onClick={() => move(i, 1)} title="Move down"><ChevronDown size={15} /></button>
+                                    <button className="segmgr-icon-btn segmgr-delete" disabled={busy} onClick={() => remove(seg)} title="Delete"><Trash2 size={15} /></button>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+
+                <div className="segmgr-create">
+                    <select className="segmgr-type-select" value={newType} onChange={e => setNewType(e.target.value)}>
+                        {SEGMENT_TYPES.map(t => <option key={t.code} value={t.code}>{t.label}</option>)}
+                    </select>
+                    <input
+                        className="segmgr-create-input"
+                        placeholder="New segment name"
+                        value={newName}
+                        onChange={e => setNewName(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') create(); }}
+                    />
+                    <button className="segmgr-add" onClick={create} disabled={!newName.trim() || busy} title="Create segment"><Plus size={16} /></button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default SegmentManager;
