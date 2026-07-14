@@ -12,7 +12,8 @@ import { Spinner, EmptyState } from '../ui';
 import { useToast } from '../../context/ToastContext';
 import { useScript } from '../../context/ScriptContext';
 import { useStoryDayListener } from '../../context/StoryDayContext';
-import { getScenes, getScriptMetadata, getScriptItems } from '../../services/apiService';
+import { getScenes, getScriptMetadata, getScriptItems, getSchedules, getShootingDays } from '../../services/apiService';
+import { buildScheduledMap } from '../../utils/scheduleMap';
 import { getSceneEighthsDisplay, getSceneEighths, formatEighths } from '../../utils/sceneUtils';
 import PageHeader from '../layout/PageHeader';
 import './Stripboard.css';
@@ -34,6 +35,10 @@ const Stripboard = () => {
     const [filterAnalysisStatus, setFilterAnalysisStatus] = useState('all');
     const [filterStoryDay, setFilterStoryDay] = useState('all');
     const [expandedRows, setExpandedRows] = useState(new Set());
+    const [schedules, setSchedules] = useState([]);
+    const [activeScheduleId, setActiveScheduleId] = useState(null);
+    const [scheduledMap, setScheduledMap] = useState(() => new Map());
+    const [filterScheduled, setFilterScheduled] = useState('all');
 
     // Helper function to determine scene analysis status
     const getSceneAnalysisStatus = (scene) => {
@@ -106,6 +111,20 @@ const Stripboard = () => {
                 } catch (e) {
                     console.warn('Could not fetch metadata:', e);
                 }
+
+                // Load schedules for the scheduling picker + restore persisted choice
+                try {
+                    const schedRes = await getSchedules(scriptId);
+                    const list = schedRes.schedules || [];
+                    setSchedules(list);
+                    const saved = localStorage.getItem(`stripboard-schedule-${scriptId}`);
+                    const initial = (saved && list.some((s) => s.id === saved))
+                        ? saved
+                        : (list[0]?.id || null);
+                    setActiveScheduleId(initial);
+                } catch (e) {
+                    console.warn('Could not fetch schedules:', e);
+                }
             } catch (error) {
                 toast.error('Error', 'Failed to load scenes');
             } finally {
@@ -115,6 +134,19 @@ const Stripboard = () => {
         
         fetchData();
     }, [scriptId]);
+
+    // Build sceneId → { dayNumber } map for the active schedule
+    useEffect(() => {
+        if (!activeScheduleId) { setScheduledMap(new Map()); return; }
+        let cancelled = false;
+        getShootingDays(activeScheduleId)
+            .then((data) => { if (!cancelled) setScheduledMap(buildScheduledMap(data.days || [])); })
+            .catch((err) => {
+                console.warn('Could not fetch shooting days:', err);
+                if (!cancelled) setScheduledMap(new Map());
+            });
+        return () => { cancelled = true; };
+    }, [activeScheduleId]);
 
     // Reusable refresh for story day sync
     const refreshStripboard = useCallback(async () => {
@@ -277,6 +309,12 @@ const Stripboard = () => {
         });
     };
 
+    const handleScheduleChange = (id) => {
+        const next = id || null;
+        setActiveScheduleId(next);
+        if (next) localStorage.setItem(`stripboard-schedule-${scriptId}`, next);
+    };
+
     if (loading) {
         return (
             <div className="stripboard-loading">
@@ -396,8 +434,21 @@ const Stripboard = () => {
 
             {/* Filters */}
             <div className="stripboard-filters">
+                {schedules.length > 0 && (
+                    <div className="filter-group">
+                        <select
+                            value={activeScheduleId || ''}
+                            onChange={(e) => handleScheduleChange(e.target.value)}
+                            title="Active shooting schedule"
+                        >
+                            {schedules.map((s) => (
+                                <option key={s.id} value={s.id}>{s.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                )}
                 <div className="filter-group">
-                    <select 
+                    <select
                         value={filterIntExt}
                         onChange={(e) => setFilterIntExt(e.target.value)}
                     >
