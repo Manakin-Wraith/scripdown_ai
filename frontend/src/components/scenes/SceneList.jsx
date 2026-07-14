@@ -189,6 +189,11 @@ const SceneList = ({ scenes, selectedId, onSelect, analyzingScenes = new Set(), 
                                                 D{scene.story_day}
                                             </span>
                                         )}
+                                        {!scene.story_day && scene.segment_id && (
+                                            <span className="scene-segment-chip" title={scene.story_day_label}>
+                                                {scene.story_day_label || 'Segment'}
+                                            </span>
+                                        )}
                                         <span className="entity-count">{scene.time_of_day || 'DAY'}</span>
                                     </div>
                                 </div>

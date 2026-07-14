@@ -237,6 +237,40 @@ export const deleteSceneById = async (sceneId) => {
     }
 };
 
+// ============================================
+// Timeline Segments (flashbacks / montages)
+// ============================================
+
+export const getSegments = async (scriptId) => {
+    const response = await api.get(`/api/scripts/${scriptId}/segments`);
+    return response.data.segments || [];
+};
+
+export const createSegment = async (scriptId, { name, segment_type = 'FLASHBACK', color = null }) => {
+    const response = await api.post(`/api/scripts/${scriptId}/segments`, { name, segment_type, color });
+    return response.data.segment;
+};
+
+export const updateSegment = async (segmentId, updates) => {
+    const response = await api.patch(`/api/segments/${segmentId}`, updates);
+    return response.data.segment;
+};
+
+export const deleteSegment = async (segmentId, scriptId) => {
+    const response = await api.delete(`/api/segments/${segmentId}`, { params: { script_id: scriptId } });
+    return response.data;
+};
+
+export const attachScenesToSegment = async (segmentId, scriptId, sceneIds) => {
+    const response = await api.post(`/api/segments/${segmentId}/scenes`, { script_id: scriptId, scene_ids: sceneIds });
+    return response.data;
+};
+
+export const detachSceneFromSegment = async (segmentId, sceneId, scriptId) => {
+    const response = await api.delete(`/api/segments/${segmentId}/scenes/${sceneId}`, { params: { script_id: scriptId } });
+    return response.data;
+};
+
 /**
  * Analyze characters using Gemini AI
  * @param {number} scriptId - The script ID

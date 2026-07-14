@@ -410,6 +410,11 @@ const Stripboard = () => {
                         {scene.story_day && (
                             <span className={`sb-day-badge timeline-${timelineClass}`}>D{scene.story_day}</span>
                         )}
+                        {!scene.story_day && scene.segment_id && (
+                            <span className="sb-day-badge sb-segment-badge" title={scene.story_day_label}>
+                                {scene.story_day_label || 'Segment'}
+                            </span>
+                        )}
                     </td>
                     <td className="col-cast">
                         <span className="cast-text">{charDisplay}{moreChars}</span>

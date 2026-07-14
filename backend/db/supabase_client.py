@@ -160,7 +160,13 @@ class SupabaseDB:
         """Get a scene by ID."""
         result = self.client.table('scenes').select('*').eq('id', scene_id).single().execute()
         return result.data
-    
+
+    def get_scene_script_id(self, scene_id: str):
+        """Return the scene's script_id, or None if it does not exist (non-raising)."""
+        result = self.client.table('scenes').select('script_id') \
+            .eq('id', scene_id).limit(1).execute()
+        return result.data[0]['script_id'] if result.data else None
+
     def update_scene(self, scene_id: str, **kwargs) -> dict:
         """Update a scene."""
         result = self.client.table('scenes').update(kwargs).eq('id', scene_id).execute()
@@ -365,7 +371,7 @@ class SupabaseDB:
             'int_ext, setting, time_of_day, description, '
             'story_day, story_day_label, time_transition, '
             'is_new_story_day, story_day_confidence, '
-            'story_day_is_manual, story_day_is_locked, timeline_code'
+            'story_day_is_manual, story_day_is_locked, timeline_code, segment_id'
         ).eq('script_id', script_id).order('scene_order').execute()
         
         return result.data or []
@@ -392,6 +398,47 @@ class SupabaseDB:
             'total_story_days': total_days
         }).eq('id', script_id).execute()
         return result.data[0] if result.data else None
+
+    # ============================================
+    # Timeline Segments (flashbacks / montages)
+    # ============================================
+
+    def create_timeline_segment(self, script_id: str, name: str,
+                                segment_type: str = 'FLASHBACK',
+                                color: str = None, display_order: int = 0) -> dict:
+        """Create a timeline segment for a script."""
+        data = {
+            'script_id': script_id,
+            'name': name,
+            'segment_type': segment_type,
+            'color': color,
+            'display_order': display_order,
+        }
+        result = self.client.table('timeline_segments').insert(data).execute()
+        return result.data[0] if result.data else None
+
+    def get_timeline_segments(self, script_id: str) -> list:
+        """List timeline segments for a script, ordered by display_order."""
+        result = self.client.table('timeline_segments').select('*') \
+            .eq('script_id', script_id).order('display_order').execute()
+        return result.data or []
+
+    def get_timeline_segment(self, segment_id: str) -> dict:
+        """Get a single timeline segment by id (includes script_id)."""
+        result = self.client.table('timeline_segments').select('*') \
+            .eq('id', segment_id).limit(1).execute()
+        return result.data[0] if result.data else None
+
+    def update_timeline_segment(self, segment_id: str, **kwargs) -> dict:
+        """Update a timeline segment (name/segment_type/color/display_order)."""
+        result = self.client.table('timeline_segments').update(kwargs) \
+            .eq('id', segment_id).execute()
+        return result.data[0] if result.data else None
+
+    def delete_timeline_segment(self, segment_id: str) -> bool:
+        """Delete a timeline segment. Member scenes' segment_id is SET NULL by FK."""
+        self.client.table('timeline_segments').delete().eq('id', segment_id).execute()
+        return True
 
 
 # Singleton instance for easy import
