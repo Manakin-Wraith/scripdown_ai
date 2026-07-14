@@ -9,6 +9,17 @@
   overflow-x: auto;
 }
 
+/* Board + Schedule are one planning workflow — box them together. */
+.section-nav-group {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 2px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  background: var(--gray-850, rgba(0, 0, 0, 0.12));
+}
+
 .section-nav-tab {
   display: inline-flex;
   align-items: center;
