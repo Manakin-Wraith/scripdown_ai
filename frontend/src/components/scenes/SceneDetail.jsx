@@ -31,7 +31,7 @@ import {
 } from 'lucide-react';
 import { Spinner, EmptyState } from '../ui';
 import BreakdownDrawer from '../breakdown/BreakdownDrawer';
-import { getScriptNotes, getSceneItems, updateSceneHeader, toggleNewDay, setTimelineCode, setStoryDay } from '../../services/apiService';
+import { getScriptNotes, getSceneItems, updateSceneHeader, toggleNewDay, setTimelineCode, setStoryDay, getSegments, createSegment, attachScenesToSegment, detachSceneFromSegment } from '../../services/apiService';
 import { useStoryDayNotify } from '../../context/StoryDayContext';
 import { getSceneEighthsDisplay } from '../../utils/sceneUtils';
 import './SceneDetail.css';
@@ -98,6 +98,31 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
     const [storyDayDraft, setStoryDayDraft] = useState('');
     const [storyDaySaving, setStoryDaySaving] = useState(false);
     const notifyStoryDayChange = useStoryDayNotify();
+
+    // Timeline segment (flashback/montage) assignment state
+    const [segments, setSegments] = useState([]);
+    const [segmentMenuOpen, setSegmentMenuOpen] = useState(false);
+
+    useEffect(() => {
+        if (!scriptId) return;
+        getSegments(scriptId).then(setSegments).catch(() => setSegments([]));
+    }, [scriptId]);
+
+    const handleAssignSegment = async (segmentId) => {
+        await attachScenesToSegment(segmentId, scriptId, [scene.id || scene.scene_id]);
+        setSegmentMenuOpen(false);
+        notifyStoryDayChange(scriptId);
+    };
+
+    const handleCreateAndAssign = async (name) => {
+        const seg = await createSegment(scriptId, { name });
+        await handleAssignSegment(seg.id);
+    };
+
+    const handleRemoveFromSegment = async () => {
+        await detachSceneFromSegment(scene.segment_id, scene.id || scene.scene_id, scriptId);
+        notifyStoryDayChange(scriptId);
+    };
 
     // Fetch notes, items (for badges + card tags)
     const refreshData = async () => {
@@ -455,6 +480,44 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
                                 No Day
                                 <Pencil size={10} className="edit-hint-icon" />
                             </button>
+                        )}
+                        {scene.segment_id && (
+                            <button
+                                className="story-day-badge timeline-segment editable-badge"
+                                onClick={handleRemoveFromSegment}
+                                title="Click to remove from segment (returns to story-day timeline)"
+                            >
+                                <CalendarDays size={12} />
+                                {scene.story_day_label || 'Segment'}
+                            </button>
+                        )}
+                        {!scene.segment_id && (
+                            <div className="segment-assign">
+                                <button
+                                    className="story-day-badge editable-badge"
+                                    onClick={() => setSegmentMenuOpen(o => !o)}
+                                    title="Move to a flashback/montage segment (off the story-day count)"
+                                >
+                                    + Segment
+                                </button>
+                                {segmentMenuOpen && (
+                                    <div className="segment-assign-menu">
+                                        {segments.map(seg => (
+                                            <button key={seg.id} onClick={() => handleAssignSegment(seg.id)}>
+                                                {seg.name}
+                                            </button>
+                                        ))}
+                                        <button
+                                            onClick={() => {
+                                                const name = window.prompt('New segment name (e.g. "Training Montage")');
+                                                if (name && name.trim()) handleCreateAndAssign(name.trim());
+                                            }}
+                                        >
+                                            + New segment…
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                         )}
                         {storyDayEditing && (
                             <div className="story-day-edit-inline">
