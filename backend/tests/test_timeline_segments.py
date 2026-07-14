@@ -208,3 +208,63 @@ def test_recolour_does_not_trigger_recalc(monkeypatch):
         resp = client.patch('/api/segments/seg-A', json={'segment_type': 'DREAM'})
     assert resp.status_code == 200
     assert recalced == []  # colour/order changes don't touch scene labels
+
+
+import routes.supabase_routes as sup_routes
+
+
+class _ScenesFakeSupabase:
+    """Dispatches table() by name for get_scenes: scenes, shooting_day_scenes, timeline_segments."""
+
+    def __init__(self, scenes, segments):
+        self._scenes = scenes
+        self._segments = segments
+
+    def table(self, name):
+        data = {
+            'scenes': self._scenes,
+            'shooting_day_scenes': [],
+            'timeline_segments': self._segments,
+        }.get(name, [])
+        return _ScenesQuery(data)
+
+
+class _ScenesQuery:
+    def __init__(self, data):
+        self._data = data
+
+    def select(self, *a, **k):
+        return self
+
+    def eq(self, *a, **k):
+        return self
+
+    def order(self, *a, **k):
+        return self
+
+    def execute(self):
+        class _R:
+            pass
+        r = _R()
+        r.data = self._data
+        return r
+
+
+def test_get_scenes_includes_segment_type(monkeypatch):
+    scenes = [
+        {'id': 'sc-1', 'scene_number': '1', 'segment_id': 'seg-A'},
+        {'id': 'sc-2', 'scene_number': '2', 'segment_id': None},
+    ]
+    segments = [{'id': 'seg-A', 'segment_type': 'FLASHBACK'}]
+    monkeypatch.setattr(sup_routes, 'supabase', _ScenesFakeSupabase(scenes, segments))
+
+    from flask import Flask
+    app = Flask(__name__)
+    app.register_blueprint(sup_routes.supabase_bp)
+    with app.test_client() as client:
+        resp = client.get('/api/scripts/scr-1/scenes')
+
+    body = resp.get_json()
+    by_id = {s['id']: s for s in body['scenes']}
+    assert by_id['sc-1']['segment_type'] == 'FLASHBACK'
+    assert by_id['sc-2']['segment_type'] is None
