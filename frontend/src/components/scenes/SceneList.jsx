@@ -2,6 +2,7 @@ import React, { useState, useRef, useCallback } from 'react';
 import { Users, ChevronRight, CheckCircle, Clock, FileText, ArrowDownUp, CalendarDays, GripVertical, EyeOff, Eye } from 'lucide-react';
 import { EmptyState, Badge, Spinner } from '../ui';
 import { getSceneEighthsDisplay } from '../../utils/sceneUtils';
+import { segmentTint } from '../../utils/segmentTint';
 import './SceneList.css';
 
 /**
@@ -190,7 +191,11 @@ const SceneList = ({ scenes, selectedId, onSelect, analyzingScenes = new Set(), 
                                             </span>
                                         )}
                                         {!scene.story_day && scene.segment_id && (
-                                            <span className="scene-segment-chip" title={scene.story_day_label}>
+                                            <span
+                                                className="scene-segment-chip"
+                                                style={segmentTint(scene.segment_type)}
+                                                title={scene.story_day_label}
+                                            >
                                                 {scene.story_day_label || 'Segment'}
                                             </span>
                                         )}

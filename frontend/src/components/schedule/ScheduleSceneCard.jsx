@@ -4,6 +4,7 @@ import { X, Sun, Moon, Sunrise, Sunset, GripVertical, MapPin, Users, FileText, C
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { formatEighths, getSceneEighths } from '../../utils/sceneUtils';
+import { segmentTint } from '../../utils/segmentTint';
 
 const TIME_ICONS = {
     DAY: Sun,
@@ -107,7 +108,7 @@ const ScheduleSceneCard = ({ dayScene, onRemove, isDragOverlay = false, isSelect
                 {timeOfDay && <span className="ssc-time">{timeOfDay}</span>}
                 {storyDay && <span className="ssc-story-day">D{storyDay}</span>}
                 {!storyDay && scene.segment_id && (
-                    <span className="ssc-story-day ssc-segment" title={scene.story_day_label}>
+                    <span className="ssc-story-day ssc-segment" style={segmentTint(scene.segment_type)} title={scene.story_day_label}>
                         {scene.story_day_label || 'Segment'}
                     </span>
                 )}
@@ -147,7 +148,7 @@ const ScheduleSceneCard = ({ dayScene, onRemove, isDragOverlay = false, isSelect
                         <span>Pages {pageStart}{pageEnd && pageEnd !== pageStart ? `–${pageEnd}` : ''}</span>
                         {storyDay && <span className="ssc-tt-badge">Day {storyDay}</span>}
                         {!storyDay && scene.segment_id && (
-                            <span className="ssc-tt-badge ssc-tt-segment">{scene.story_day_label || 'Segment'}</span>
+                            <span className="ssc-tt-badge ssc-tt-segment" style={segmentTint(scene.segment_type)}>{scene.story_day_label || 'Segment'}</span>
                         )}
                     </div>
                 )}

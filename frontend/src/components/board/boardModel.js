@@ -147,6 +147,7 @@ export function buildBoardViewModel(scenes, filters, groupBy) {
             storyDay: scene.story_day,
             storyDayLabel: scene.story_day_label,
             segmentId: scene.segment_id,
+            segmentType: scene.segment_type,
             timelineCode: scene.timeline_code || 'PRESENT',
             pageLengthEighths: getSceneEighths(scene),
             isOmitted: scene.is_omitted,
