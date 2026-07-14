@@ -12,7 +12,7 @@ import { useToast } from '../../context/ToastContext';
 import { useScript } from '../../context/ScriptContext';
 import { useStoryDayListener, useStoryDayNotify } from '../../context/StoryDayContext';
 import SegmentManager from './SegmentManager';
-import { analyzeBulkScenes, analyzeScene, getPageMapping, reorderScenes, omitScene } from '../../services/apiService';
+import { analyzeBulkScenes, analyzeScene, getPageMapping, reorderScenes, omitScene, getSegments } from '../../services/apiService';
 import { useSubscription } from '../../hooks/useSubscription';
 import { UpgradeModal } from '../subscription';
 import './SceneViewer.css';
@@ -40,7 +40,15 @@ const SceneViewer = () => {
     const [storyDayFilter, setStoryDayFilter] = useState(null);
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
     const [showSegmentManager, setShowSegmentManager] = useState(false);
+    const [segmentCount, setSegmentCount] = useState(0);
     const notifyStoryDayChange = useStoryDayNotify();
+
+    const loadSegmentCount = useCallback(() => {
+        if (!scriptId) return;
+        getSegments(scriptId).then(s => setSegmentCount(s.length)).catch(() => {});
+    }, [scriptId]);
+
+    useEffect(() => { loadSegmentCount(); }, [loadSegmentCount]);
     const { status, daysRemaining } = useSubscription();
     const isPaidSubscriber = status === 'active';
     const selectedSceneRef = useRef(null);
@@ -732,6 +740,7 @@ const SceneViewer = () => {
                                 title="Manage flashback / montage segments"
                             >
                                 <Clapperboard size={16} />
+                                {segmentCount > 0 && <span className="segmgr-count-badge">{segmentCount}</span>}
                             </button>
                             <button
                                 className={`pdf-toggle-btn ${showPdfPanel ? 'active' : ''}`}
@@ -789,9 +798,11 @@ const SceneViewer = () => {
                     scriptId={scriptId}
                     scenes={scenes}
                     onClose={() => setShowSegmentManager(false)}
-                    onChanged={async () => {
-                        await refreshScenes();
+                    onChanged={() => {
+                        // notify → useStoryDayListener refetches scenes (no direct
+                        // refreshScenes call, which would double-fetch).
                         notifyStoryDayChange(scriptId);
+                        loadSegmentCount();
                     }}
                 />
             )}

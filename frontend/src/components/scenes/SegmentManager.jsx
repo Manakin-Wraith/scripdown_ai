@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { X, Trash2, ChevronUp, ChevronDown, Plus, Clapperboard } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 import { useConfirmDialog } from '../../context/ConfirmDialogContext';
@@ -47,6 +47,7 @@ const SegmentManager = ({ scriptId, scenes, onClose, onChanged }) => {
         }
     };
 
+    const cancelRenameRef = useRef(false);
     const startRename = (seg) => { setEditingId(seg.id); setEditName(seg.name); };
     const saveRename = (seg) => {
         const name = editName.trim();
@@ -147,10 +148,14 @@ const SegmentManager = ({ scriptId, scenes, onClose, onChanged }) => {
                                         value={editName}
                                         autoFocus
                                         onChange={e => setEditName(e.target.value)}
-                                        onBlur={() => saveRename(seg)}
+                                        onBlur={() => {
+                                            if (cancelRenameRef.current) { cancelRenameRef.current = false; setEditingId(null); return; }
+                                            saveRename(seg);
+                                        }}
                                         onKeyDown={e => {
-                                            if (e.key === 'Enter') saveRename(seg);
-                                            if (e.key === 'Escape') setEditingId(null);
+                                            // Enter commits via blur (single save path); Escape cancels.
+                                            if (e.key === 'Enter') e.currentTarget.blur();
+                                            if (e.key === 'Escape') { cancelRenameRef.current = true; e.currentTarget.blur(); }
                                         }}
                                     />
                                 ) : (

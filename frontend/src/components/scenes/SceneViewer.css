@@ -285,6 +285,7 @@
 /* PDF Toggle Button */
 .pdf-toggle-btn,
 .segmgr-open-btn {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -296,6 +297,24 @@
     color: var(--text-secondary);
     cursor: pointer;
     transition: all 0.2s;
+}
+
+.segmgr-count-badge {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(245, 158, 11, 0.9);
+    color: #1e293b;
+    font-size: 0.62rem;
+    font-weight: 700;
+    line-height: 1;
+    border-radius: 8px;
 }
 
 .pdf-toggle-btn:hover,
