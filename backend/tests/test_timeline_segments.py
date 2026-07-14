@@ -96,8 +96,8 @@ class RouteFakeDB:
     def get_timeline_segment(self, segment_id):
         return {'id': segment_id, 'script_id': 'scr-1'}
 
-    def get_scene(self, scene_id):
-        return {'id': scene_id, 'script_id': 'scr-1'}
+    def get_scene_script_id(self, scene_id):
+        return 'scr-1'
 
     def update_scene(self, scene_id, **kwargs):
         self.updates.append((scene_id, kwargs))
@@ -155,3 +155,23 @@ def test_attach_scenes_forbidden_for_non_owner(monkeypatch):
 
     assert resp.status_code == 403
     assert fake.updates == []  # no scene mutated when authorization fails
+
+
+def test_attach_rejects_cross_script_scene_without_mutation(monkeypatch):
+    fake = RouteFakeDB()
+    monkeypatch.setattr(seg_routes, 'db', fake)
+    monkeypatch.setattr(seg_routes, 'script_access', lambda *a, **k: 'ok')
+    # Scene belongs to a different script than the segment.
+    monkeypatch.setattr(fake, 'get_scene_script_id', lambda scene_id: 'other-script')
+    monkeypatch.setenv('FLASK_ENV', 'development')
+
+    from flask import Flask
+    flask_app = Flask(__name__)
+    flask_app.register_blueprint(seg_routes.segment_bp)
+    with flask_app.test_client() as client:
+        resp = client.post(
+            '/api/segments/seg-A/scenes',
+            json={'scene_ids': ['sc-2'], 'script_id': 'scr-1'},
+        )
+    assert resp.status_code == 400
+    assert fake.updates == []  # nothing mutated when validation fails

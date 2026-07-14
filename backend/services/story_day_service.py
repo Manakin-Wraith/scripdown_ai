@@ -189,6 +189,7 @@ def get_story_day_summary(script_id: str) -> Dict:
             'scenes_per_day': {day_number: count},
             'timeline_breakdown': {timeline_code: count},
             'unassigned_count': int,
+            'segment_scene_count': int,
         }
     """
     scenes = db.get_scenes_ordered(script_id)

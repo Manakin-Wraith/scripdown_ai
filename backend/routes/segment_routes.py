@@ -120,11 +120,11 @@ def attach_scenes(segment_id):
     scene_ids = body.get('scene_ids') or []
     if not scene_ids:
         return jsonify({'error': 'scene_ids is required'}), 400
+    # Validate every scene belongs to this segment's script BEFORE mutating any.
     for scene_id in scene_ids:
-        scene = db.get_scene(scene_id)
-        # Only attach scenes that belong to this segment's script.
-        if not scene or scene.get('script_id') != script_id:
+        if db.get_scene_script_id(scene_id) != script_id:
             return jsonify({'error': f'scene {scene_id} does not belong to this script'}), 400
+    for scene_id in scene_ids:
         # Joining a segment clears manual day flags and the numeric day.
         db.update_scene(
             scene_id,
@@ -144,8 +144,7 @@ def detach_scene(segment_id, scene_id):
     if denied:
         return denied
     script_id = segment['script_id']
-    scene = db.get_scene(scene_id)
-    if not scene or scene.get('script_id') != script_id:
+    if db.get_scene_script_id(scene_id) != script_id:
         return jsonify({'error': 'scene does not belong to this script'}), 400
     db.update_scene(scene_id, segment_id=None)
     recalculate_story_days(script_id, start_from_order=0)

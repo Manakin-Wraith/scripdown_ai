@@ -160,7 +160,13 @@ class SupabaseDB:
         """Get a scene by ID."""
         result = self.client.table('scenes').select('*').eq('id', scene_id).single().execute()
         return result.data
-    
+
+    def get_scene_script_id(self, scene_id: str):
+        """Return the scene's script_id, or None if it does not exist (non-raising)."""
+        result = self.client.table('scenes').select('script_id') \
+            .eq('id', scene_id).limit(1).execute()
+        return result.data[0]['script_id'] if result.data else None
+
     def update_scene(self, scene_id: str, **kwargs) -> dict:
         """Update a scene."""
         result = self.client.table('scenes').update(kwargs).eq('id', scene_id).execute()
