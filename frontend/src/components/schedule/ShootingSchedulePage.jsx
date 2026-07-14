@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Plus, CalendarDays, Trash2, Pencil, Check, X, ZoomIn, ZoomOut, Maximize, RotateCcw, Printer } from 'lucide-react';
+import { Plus, CalendarDays, Trash2, Pencil, Check, X, ZoomIn, ZoomOut, Maximize, RotateCcw, FileText } from 'lucide-react';
 import { Spinner, EmptyState } from '../ui';
-import SchedulePrintView from './SchedulePrintView';
 import { useToast } from '../../context/ToastContext';
 import { useConfirmDialog } from '../../context/ConfirmDialogContext';
 import { useScript } from '../../context/ScriptContext';
@@ -27,15 +26,9 @@ const ShootingSchedulePage = () => {
     const [metadata, setMetadata] = useState(null);
     const [editingScheduleId, setEditingScheduleId] = useState(null);
     const [editingScheduleName, setEditingScheduleName] = useState('');
-    const [showPrintPreview, setShowPrintPreview] = useState(false);
+    const [genMenuOpen, setGenMenuOpen] = useState(false);
     const scheduleNameInputRef = useRef(null);
     const zoomApiRef = useRef(null);
-
-    // Lock body scroll when print preview is open
-    useEffect(() => {
-        document.body.style.overflow = showPrintPreview ? 'hidden' : '';
-        return () => { document.body.style.overflow = ''; };
-    }, [showPrintPreview]);
 
     // Load schedules + script metadata
     useEffect(() => {
@@ -158,8 +151,6 @@ const ShootingSchedulePage = () => {
         setEditingScheduleName('');
     };
 
-    const activeSchedule = schedules.find(s => s.id === activeScheduleId);
-
     if (loading) {
         return (
             <div className="schedule-page">
@@ -182,16 +173,36 @@ const ShootingSchedulePage = () => {
                 </div>
 
                 <div className="schedule-header-right">
-                    {/* Print / Export button */}
                     {activeScheduleId && days.length > 0 && (
-                        <button
-                            className="schedule-print-btn"
-                            onClick={() => setShowPrintPreview(true)}
-                            title="Print / Export PDF"
-                        >
-                            <Printer size={14} />
-                            Print / Export
-                        </button>
+                        <div className="schedule-gen-wrapper">
+                            <button
+                                className="schedule-print-btn"
+                                onClick={() => setGenMenuOpen((o) => !o)}
+                                title="Generate a report from this schedule"
+                            >
+                                <FileText size={14} /> Generate ▾
+                            </button>
+                            {genMenuOpen && (
+                                <div className="schedule-gen-menu" onMouseLeave={() => setGenMenuOpen(false)}>
+                                    {[
+                                        ['one_liner', 'One-Liner / Stripboard'],
+                                        ['day_out_of_days', 'Day Out of Days'],
+                                        ['shooting_schedule', 'Shooting Schedule'],
+                                    ].map(([type, label]) => (
+                                        <button
+                                            key={type}
+                                            className="schedule-gen-item"
+                                            onClick={() => {
+                                                setGenMenuOpen(false);
+                                                navigate(`/scripts/${scriptId}/reports?type=${type}&schedule=${activeScheduleId}`);
+                                            }}
+                                        >
+                                            {label}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     )}
 
                     {/* Zoom controls */}
@@ -271,48 +282,6 @@ const ShootingSchedulePage = () => {
                     </div>
                 </div>
             </div>
-
-            {/* Print Preview Modal */}
-            {showPrintPreview && (
-                <div className="print-preview-overlay" onClick={(e) => { if (e.target === e.currentTarget) setShowPrintPreview(false); }}>
-                    <div className="print-preview-toolbar">
-                        <span className="print-preview-toolbar-title">
-                            {metadata?.title || 'Untitled'} — {activeSchedule?.name || 'Schedule'}
-                        </span>
-                        <button
-                            className="print-action-btn primary"
-                            onClick={() => {
-                                const printContent = document.getElementById('schedule-print-view');
-                                if (!printContent) return;
-                                const clone = printContent.cloneNode(true);
-                                clone.id = 'schedule-print-clone';
-                                clone.style.display = 'block';
-                                document.body.appendChild(clone);
-                                document.body.classList.add('printing-schedule');
-                                window.print();
-                                document.body.removeChild(clone);
-                                document.body.classList.remove('printing-schedule');
-                            }}
-                        >
-                            <Printer size={13} /> Print / Save PDF
-                        </button>
-                        <button
-                            className="print-action-btn secondary"
-                            onClick={() => setShowPrintPreview(false)}
-                        >
-                            <X size={13} /> Close
-                        </button>
-                    </div>
-
-                    <div className="print-preview-paper">
-                        <SchedulePrintView
-                            days={days}
-                            scheduleName={activeSchedule?.name}
-                            metadata={metadata}
-                        />
-                    </div>
-                </div>
-            )}
 
             {/* Kanban body */}
             {activeScheduleId ? (

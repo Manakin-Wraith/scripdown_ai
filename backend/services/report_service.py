@@ -214,9 +214,9 @@ class ReportConfig:
     
     VALID_REPORT_TYPES = [
         "full_breakdown", "scene_breakdown", "wardrobe", "props",
-        "makeup", "sfx", "special_effects", "stunts", "vehicles", 
-        "animals", "extras", "custom", "day_out_of_days", 
-        "location", "one_liner"
+        "makeup", "sfx", "special_effects", "stunts", "vehicles",
+        "animals", "extras", "custom", "day_out_of_days",
+        "location", "one_liner", "shooting_schedule"
     ]
     
     VALID_CATEGORIES = [
@@ -339,6 +339,51 @@ class ReportConfig:
         ]
 
 
+def compute_dood(days: list) -> dict:
+    """Compute a Day Out of Days grid from ordered shooting days.
+
+    Returns day_numbers plus per-cast cells of 'S'/'W'/'H'/'F'/'' and totals.
+    """
+    day_numbers = [d.get('day_number') for d in days]
+
+    # cast name -> set of day indices they appear on
+    appearances = {}
+    for idx, d in enumerate(days):
+        for scene in (d.get('scenes') or []):
+            for c in (scene.get('characters') or []):
+                name = c if isinstance(c, str) else c.get('name', str(c))
+                appearances.setdefault(name, set()).add(idx)
+
+    cast = []
+    for name, idxs in appearances.items():
+        if not idxs:
+            continue
+        start, finish = min(idxs), max(idxs)
+        cells, work, hold = {}, 0, 0
+        for idx, dn in enumerate(day_numbers):
+            if idx < start or idx > finish:
+                cells[dn] = ''
+            elif idx == start:
+                cells[dn] = 'S'; work += 1
+            elif idx == finish:
+                cells[dn] = 'F'; work += 1
+            elif idx in idxs:
+                cells[dn] = 'W'; work += 1
+            else:
+                cells[dn] = 'H'; hold += 1
+        cast.append({
+            'name': name, 'cells': cells,
+            'work_days': work, 'hold_days': hold,
+            'span': finish - start + 1,
+            '_start': start,
+        })
+
+    cast.sort(key=lambda c: (c['_start'], c['name']))
+    for c in cast:
+        del c['_start']
+    return {'day_numbers': day_numbers, 'cast': cast}
+
+
 class ReportService:
     """Service for generating and managing script reports."""
     
@@ -350,7 +395,8 @@ class ReportService:
         },
         'day_out_of_days': {
             'name': 'Day Out of Days',
-            'description': 'Character appearance schedule'
+            'description': 'Cast working/hold days across the shooting schedule',
+            'requires_schedule': True
         },
         'location': {
             'name': 'Location Report',
@@ -366,14 +412,24 @@ class ReportService:
         },
         'one_liner': {
             'name': 'One-Liner / Stripboard',
-            'description': 'Compact scene list for scheduling'
+            'description': 'Compact scene list in shooting order',
+            'requires_schedule': True
+        },
+        'shooting_schedule': {
+            'name': 'Shooting Schedule',
+            'description': 'Full day-by-day shooting schedule',
+            'requires_schedule': True
         },
         'full_breakdown': {
             'name': 'Full Script Breakdown',
             'description': 'Complete breakdown document'
         }
     }
-    
+
+    # Mirrors ReportConfig.VALID_REPORT_TYPES so callers can validate against
+    # a single ReportService instance without reaching into ReportConfig.
+    VALID_REPORT_TYPES = ReportConfig.VALID_REPORT_TYPES
+
     def __init__(self):
         self.db = db
     
@@ -551,7 +607,9 @@ class ReportService:
     # Data Aggregation
     # ============================================
     
-    def aggregate_scene_data(self, script_id: str, filters: Optional[Dict] = None) -> Dict[str, Any]:
+    def aggregate_scene_data(self, script_id: str, filters: Optional[Dict] = None,
+                             schedule_id: Optional[str] = None,
+                             include_unscheduled: bool = True) -> Dict[str, Any]:
         """
         Aggregate all scene data for a script.
         Returns structured data for report generation.
@@ -722,7 +780,68 @@ class ReportService:
         
         # Calculate total pages from eighths
         total_pages = total_eighths / 8
-        
+
+        # ── Schedule-aware grouping ────────────────────────────────────────────
+        schedule_block = None
+        days_block = None
+        unscheduled_block = None
+        if schedule_id:
+            sched = None
+            try:
+                rows = self.db.client.table('shooting_schedules').select(
+                    'id, name').eq('id', schedule_id).eq('script_id', script_id).limit(1).execute().data or []
+                sched = rows[0] if rows else None
+            except Exception as e:
+                print(f"Warning: Could not fetch shooting_schedules for report: {e}")
+                sched = None
+
+        if schedule_id and sched:
+            schedule_block = {'id': schedule_id, 'name': sched.get('name', 'Schedule')}
+
+            scene_by_id = {s.get('id'): s for s in scenes}
+            included_ids = set(scene_by_id.keys())
+
+            day_rows = self.db.client.table('shooting_days').select('*').eq(
+                'schedule_id', schedule_id).order('day_number', desc=False).execute().data or []
+
+            days_block = []
+            scheduled_ids = set()
+            for d in day_rows:
+                ds_rows = self.db.client.table('shooting_day_scenes').select(
+                    '*, scenes(id, scene_number, setting, location_canonical, int_ext, '
+                    'time_of_day, story_day, characters, page_length_eighths, page_start, '
+                    'page_end, is_omitted)'
+                ).eq('shooting_day_id', d['id']).order('sort_order', desc=False).execute().data or []
+
+                day_scenes = []
+                for row in ds_rows:
+                    sid = row.get('scene_id')
+                    scene = row.get('scenes') or scene_by_id.get(sid)
+                    if not scene or sid not in included_ids:
+                        continue  # filtered out or missing
+                    scheduled_ids.add(sid)
+                    day_scenes.append(scene)
+
+                active = [s for s in day_scenes if not s.get('is_omitted')]
+                cast, locs = set(), set()
+                for s in active:
+                    for c in (s.get('characters') or []):
+                        cast.add(c if isinstance(c, str) else c.get('name', str(c)))
+                    locs.add(s.get('location_canonical') or s.get('setting') or 'UNKNOWN')
+                days_block.append({
+                    'id': d['id'],
+                    'day_number': d.get('day_number'),
+                    'shoot_date': d.get('shoot_date'),
+                    'status': d.get('status', 'draft'),
+                    'scenes': day_scenes,
+                    'total_eighths': sum(s.get('page_length_eighths', 8) for s in active),
+                    'cast': sorted(cast),
+                    'locations': sorted(locs),
+                })
+
+            if include_unscheduled:
+                unscheduled_block = [s for s in scenes if s.get('id') not in scheduled_ids]
+
         return {
             'script': {
                 'id': script_id,
@@ -754,6 +873,9 @@ class ReportService:
                 'total_story_days': len(all_story_days)
             },
             'scenes': scenes,
+            'schedule': schedule_block,
+            'days': days_block,
+            'unscheduled': unscheduled_block,
             'user_items_by_scene': user_items_by_scene,
             'characters': {k: {**v, 'story_days': sorted(v['story_days'])} for k, v in characters.items()},
             'locations': {k: {**v, 'int_ext': list(v['int_ext']), 'time_of_day': list(v['time_of_day']), 'story_days': sorted(v['story_days'])} 
@@ -786,7 +908,8 @@ class ReportService:
         config: Optional[Dict] = None,
         title: Optional[str] = None,
         user_id: Optional[str] = None,
-        filters: Optional[Dict] = None
+        filters: Optional[Dict] = None,
+        schedule_id: Optional[str] = None
     ) -> Dict:
         """
         Generate a report and store it in the database.
@@ -795,19 +918,23 @@ class ReportService:
         """
         if report_type not in self.REPORT_TYPES:
             raise ValueError(f"Invalid report type: {report_type}")
-        
+
+        schedule_id = schedule_id or (config or {}).get('schedule_id')
+
         # Aggregate data with optional filters
-        data = self.aggregate_scene_data(script_id, filters=filters)
-        
+        data = self.aggregate_scene_data(script_id, filters=filters, schedule_id=schedule_id)
+
         # Generate title if not provided
         if not title:
             title = f"{data['script']['title']} - {self.REPORT_TYPES[report_type]['name']}"
-        
+
         # Merge filters into config for persistence
         merged_config = config or {}
         if filters:
             merged_config['filters'] = filters
-        
+        if schedule_id:
+            merged_config['schedule_id'] = schedule_id
+
         # Create report record
         report_data = {
             'script_id': script_id,
@@ -829,6 +956,7 @@ class ReportService:
         config: Optional[Dict] = None,
         title: Optional[str] = None,
         filters: Optional[Dict] = None,
+        schedule_id: Optional[str] = None,
     ) -> Dict:
         """
         Render report HTML from unsaved config for live preview.
@@ -838,7 +966,9 @@ class ReportService:
         if report_type not in self.REPORT_TYPES:
             raise ValueError(f"Invalid report type: {report_type}")
 
-        data = self.aggregate_scene_data(script_id, filters=filters)
+        schedule_id = schedule_id or (config or {}).get('schedule_id')
+
+        data = self.aggregate_scene_data(script_id, filters=filters, schedule_id=schedule_id)
 
         merged_config = dict(config or {})
         if filters:
@@ -1078,6 +1208,8 @@ class ReportService:
             body = self._render_props_report(data)
         elif report_type == 'one_liner':
             body = self._render_one_liner(data)
+        elif report_type == 'shooting_schedule':
+            body = self._render_shooting_schedule(data)
         # Department-specific reports
         elif report_type == 'wardrobe':
             body = self._render_wardrobe_department(data)
@@ -1201,19 +1333,45 @@ class ReportService:
         """
     
     def _render_day_out_of_days(self, data: Dict) -> str:
-        """Render day-out-of-days HTML."""
+        """Render day-out-of-days HTML from day-grouped schedule data."""
+        days = data.get('days')
+        if not days:
+            if 'days' not in data:
+                return self._render_day_out_of_days_from_scenes(data)
+            return self._render_schedule_empty_state('day_out_of_days')
+        dood = compute_dood(days)
+        head = ''.join(f'<th>{dn}</th>' for dn in dood['day_numbers'])
+        body = []
+        for c in dood['cast']:
+            cells = ''.join(f'<td>{c["cells"].get(dn,"")}</td>' for dn in dood['day_numbers'])
+            body.append(
+                f'<tr><td class="dood-name">{c["name"]}</td>{cells}'
+                f'<td>{c["work_days"]}</td><td>{c["hold_days"]}</td><td>{c["span"]}</td></tr>'
+            )
+        return (
+            '<table class="report-table dood"><thead><tr><th>Cast</th>' + head +
+            '<th>Work</th><th>Hold</th><th>Span</th></tr></thead><tbody>' +
+            ''.join(body) + '</tbody></table>'
+        )
+
+    def _render_day_out_of_days_from_scenes(self, data: Dict) -> str:
+        """Render scene-based day-out-of-days (character appearances by story day).
+
+        Used inside full_breakdown when no shooting schedule is available. The
+        standalone day_out_of_days report type uses the schedule-based renderer.
+        """
         characters = data.get('characters', {})
         rows = []
-        
+
         # Sort by scene count descending
         sorted_chars = sorted(characters.items(), key=lambda x: x[1]['count'], reverse=True)
-        
+
         for name, info in sorted_chars:
             scenes_str = ', '.join(info['scenes'])
-            
+
             story_days = info.get('story_days', [])
             days_str = ', '.join([f'D{d}' for d in sorted(story_days)]) if story_days else '—'
-            
+
             rows.append(f"""
             <tr>
                 <td><strong>{name}</strong></td>
@@ -1223,7 +1381,7 @@ class ReportService:
                 <td class="scenes-cell">{scenes_str}</td>
             </tr>
             """)
-        
+
         return f"""
         <h2>Day Out of Days - Character Schedule</h2>
         <table class="dood-table">
@@ -1241,7 +1399,7 @@ class ReportService:
             </tbody>
         </table>
         """
-    
+
     def _render_location_report(self, data: Dict) -> str:
         """Render location report HTML."""
         locations = data.get('locations', {})
@@ -1326,13 +1484,26 @@ class ReportService:
         </table>
         """
     
-    def _render_one_liner(self, data: Dict) -> str:
-        """Render one-liner/stripboard HTML."""
+    def _render_schedule_empty_state(self, report_type: str) -> str:
+        name = self.REPORT_TYPES.get(report_type, {}).get('name', 'This report')
+        return (
+            '<div class="report-empty" style="padding:48px;text-align:center;color:#555">'
+            f'<h2>{name} needs a shooting schedule</h2>'
+            '<p>Select a schedule as the source, or build one on the Schedule tab, '
+            'then generate this report.</p></div>'
+        )
+
+    def _render_one_liner_from_scenes(self, data: Dict) -> str:
+        """Render scene-based one-liner/stripboard (script order, story-day separators).
+
+        Used for legacy saved reports whose snapshot predates schedule-aware
+        aggregation (no 'days' key). New reports render via _render_one_liner.
+        """
         scenes = data.get('scenes', [])
         user_items_map = data.get('user_items_by_scene', {})
         rows = []
         prev_story_day = None
-        
+
         for scene in scenes:
             scene_id = scene.get('id') or scene.get('scene_id')
             scene_user = user_items_map.get(scene_id, {})
@@ -1340,12 +1511,10 @@ class ReportService:
             chars = ', '.join(all_chars[:3])
             if len(all_chars) > 3:
                 chars += f" +{len(all_chars) - 3}"
-            
-            # Scene length in eighths
+
             eighths = scene.get('page_length_eighths', 8)
             length_display = format_eighths(eighths)
-            
-            # Story day separator
+
             scene_story_day = scene.get('story_day')
             story_day_display = f"D{scene_story_day}" if scene_story_day else '—'
             if scene_story_day and scene_story_day != prev_story_day:
@@ -1358,7 +1527,7 @@ class ReportService:
                 </tr>
                 """)
             prev_story_day = scene_story_day
-            
+
             rows.append(f"""
             <tr class="one-liner-row">
                 <td class="scene-num">{scene.get('scene_number', '')}</td>
@@ -1370,7 +1539,7 @@ class ReportService:
                 <td class="length">{length_display}</td>
             </tr>
             """)
-        
+
         return f"""
         <h2>One-Liner / Stripboard</h2>
         <table class="one-liner-table">
@@ -1390,7 +1559,67 @@ class ReportService:
             </tbody>
         </table>
         """
-    
+
+    def _render_one_liner(self, data: Dict) -> str:
+        """Render one-liner/stripboard HTML from day-grouped schedule data."""
+        days = data.get('days')
+        if not days:
+            if 'days' not in data:
+                return self._render_one_liner_from_scenes(data)
+            return self._render_schedule_empty_state('one_liner')
+        rows = []
+        for d in days:
+            date = d.get('shoot_date') or ''
+            rows.append(
+                f'<tr class="ol-daybreak"><td colspan="5"><strong>Day {d.get("day_number")}</strong>'
+                f' &middot; {date} &middot; {format_eighths(d.get("total_eighths", 0))} pgs'
+                f' &middot; {len(d.get("scenes", []))} sc &middot; {len(d.get("cast", []))} cast</td></tr>'
+            )
+            for s in d.get('scenes', []):
+                rows.append(
+                    '<tr>'
+                    f'<td>{s.get("scene_number","")}</td>'
+                    f'<td>{s.get("int_ext","")}</td>'
+                    f'<td>{s.get("location_canonical") or s.get("setting","")}</td>'
+                    f'<td>{s.get("time_of_day","")}</td>'
+                    f'<td>{format_eighths(s.get("page_length_eighths",8))}</td>'
+                    '</tr>'
+                )
+        return (
+            '<table class="report-table one-liner"><thead><tr>'
+            '<th>Sc</th><th>I/E</th><th>Set</th><th>D/N</th><th>Pgs</th>'
+            '</tr></thead><tbody>' + ''.join(rows) + '</tbody></table>'
+        )
+
+    def _render_shooting_schedule(self, data: Dict) -> str:
+        """Render the full day-by-day shooting schedule HTML."""
+        days = data.get('days')
+        if not days:
+            return self._render_schedule_empty_state('shooting_schedule')
+        sections = []
+        for d in days:
+            date = d.get('shoot_date') or 'No date'
+            rows = ''.join(
+                '<tr>'
+                f'<td>{s.get("scene_number","")}</td>'
+                f'<td>{s.get("int_ext","")}</td>'
+                f'<td>{s.get("location_canonical") or s.get("setting","")}</td>'
+                f'<td>{s.get("time_of_day","")}</td>'
+                f'<td>{format_eighths(s.get("page_length_eighths",8))}</td>'
+                f'<td>{", ".join(c if isinstance(c,str) else c.get("name","") for c in (s.get("characters") or []))}</td>'
+                '</tr>'
+                for s in d.get('scenes', [])
+            )
+            sections.append(
+                f'<div class="sched-day"><h3>Day {d.get("day_number")} &middot; {date}</h3>'
+                f'<div class="sched-day-meta">{format_eighths(d.get("total_eighths",0))} pgs'
+                f' &middot; {len(d.get("cast",[]))} cast &middot; {len(d.get("locations",[]))} locations</div>'
+                '<table class="report-table"><thead><tr>'
+                '<th>Sc</th><th>I/E</th><th>Set</th><th>D/N</th><th>Pgs</th><th>Cast</th>'
+                f'</tr></thead><tbody>{rows}</tbody></table></div>'
+            )
+        return ''.join(sections)
+
     def _render_full_breakdown(self, data: Dict) -> str:
         """Render full breakdown HTML with comprehensive statistics."""
         summary = data.get('summary', {})
@@ -1481,7 +1710,7 @@ class ReportService:
         <div class="page-break"></div>
         {self._render_scene_breakdown(data)}
         <div class="page-break"></div>
-        {self._render_day_out_of_days(data)}
+        {self._render_day_out_of_days(data) if data.get('days') else self._render_day_out_of_days_from_scenes(data)}
         <div class="page-break"></div>
         {self._render_location_report(data)}
         """
