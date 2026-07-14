@@ -210,7 +210,14 @@ const Stripboard = () => {
         if (filterStoryDay !== 'all') {
             result = result.filter(s => s.story_day === parseInt(filterStoryDay));
         }
-        
+        if (filterScheduled !== 'all') {
+            result = result.filter((s) => {
+                const sid = s.id || s.scene_id;
+                const isSched = scheduledMap.has(sid);
+                return filterScheduled === 'scheduled' ? isSched : !isSched;
+            });
+        }
+
         // Apply sorting
         result.sort((a, b) => {
             let aVal, bVal;
@@ -242,7 +249,7 @@ const Stripboard = () => {
         });
         
         return result;
-    }, [scenes, filterIntExt, filterTimeOfDay, filterAnalysisStatus, filterStoryDay, sortBy, sortDir]);
+    }, [scenes, filterIntExt, filterTimeOfDay, filterAnalysisStatus, filterStoryDay, sortBy, sortDir, filterScheduled, scheduledMap]);
 
     // Active scenes (exclude omitted) for stats
     const activeScenes = useMemo(() => scenes.filter(s => !s.is_omitted), [scenes]);
@@ -284,8 +291,11 @@ const Stripboard = () => {
         });
         const totalStoryDays = storyDays.size;
 
-        return { intCount, extCount, dayCount, nightCount, totalEighths, totalEighthsDisplay, totalCharacters, totalLocations, totalStoryDays };
-    }, [activeScenes, userItemsByScene]);
+        const scheduledCount = activeScenes.filter((s) => scheduledMap.has(s.id || s.scene_id)).length;
+        const unscheduledCount = activeScenes.length - scheduledCount;
+
+        return { intCount, extCount, dayCount, nightCount, totalEighths, totalEighthsDisplay, totalCharacters, totalLocations, totalStoryDays, scheduledCount, unscheduledCount };
+    }, [activeScenes, userItemsByScene, scheduledMap]);
 
 
     const toggleSort = (field) => {
@@ -430,6 +440,14 @@ const Stripboard = () => {
                         <span className="stat-value">{stats.totalStoryDays} Story Days</span>
                     </div>
                 )}
+                {hasSchedules && activeScheduleId && (
+                    <div className="stat-group">
+                        <CalendarDays size={14} />
+                        <span className="stat-value">
+                            {stats.scheduledCount} scheduled · {stats.unscheduledCount} unscheduled
+                        </span>
+                    </div>
+                )}
                 <div className="stat-group stat-eighths">
                     <span className="stat-label">Length:</span>
                     <span className="stat-value eighths-total">{stats.totalEighthsDisplay} pages</span>
@@ -484,6 +502,19 @@ const Stripboard = () => {
                         <option value="pending">Pending</option>
                     </select>
                 </div>
+                {hasSchedules && (
+                    <div className="filter-group">
+                        <select
+                            value={filterScheduled}
+                            onChange={(e) => setFilterScheduled(e.target.value)}
+                            title="Scheduling status"
+                        >
+                            <option value="all">All Scheduling</option>
+                            <option value="scheduled">Scheduled</option>
+                            <option value="unscheduled">Unscheduled</option>
+                        </select>
+                    </div>
+                )}
                 {uniqueStoryDays.length > 0 && (
                     <div className="filter-group">
                         <select
