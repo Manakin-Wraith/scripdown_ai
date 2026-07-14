@@ -331,6 +331,10 @@ const Stripboard = () => {
         year: 'numeric' 
     });
 
+    const hasSchedules = schedules.length > 0;
+    // The table gains one column (Shoot) when scheduling is active.
+    const fullColSpan = hasSchedules ? 8 : 7;
+
     return (
         <div className="stripboard page-container">
             {/* Print-only Professional Header */}
@@ -534,6 +538,7 @@ const Stripboard = () => {
                             </th>
                             <th className="col-time">D/N</th>
                             <th className="col-day">Day</th>
+                            {hasSchedules && <th className="col-shoot">Shoot</th>}
                             <th className="col-cast" onClick={() => toggleSort('characters')}>
                                 Cast
                                 {sortBy === 'characters' && (
@@ -587,7 +592,7 @@ const Stripboard = () => {
                                     {/* Story Day Separator */}
                                     {showDaySeparator && (
                                         <tr className="sb-day-separator-row">
-                                            <td colSpan="7">
+                                            <td colSpan={fullColSpan}>
                                                 <div className={`sb-day-separator timeline-${timelineClass}`}>
                                                     <div className="sb-day-separator-line"></div>
                                                     <span className={`sb-day-separator-label timeline-${timelineClass}`}>
@@ -600,7 +605,7 @@ const Stripboard = () => {
                                         </tr>
                                     )}
                                     <tr 
-                                        className={`stripboard-row ${isInt ? 'int' : 'ext'} ${isDay ? 'day' : 'night'} ${isExpanded ? 'expanded' : ''} status-${analysisStatus} ${scene.is_omitted ? 'omitted' : ''}`}
+                                        className={`stripboard-row ${isInt ? 'int' : 'ext'} ${isDay ? 'day' : 'night'} ${isExpanded ? 'expanded' : ''} status-${analysisStatus} ${scene.is_omitted ? 'omitted' : ''} ${hasSchedules && activeScheduleId && !scene.is_omitted && !scheduledMap.has(sceneId) ? 'sb-unscheduled' : ''}`}
                                         onClick={() => toggleRowExpand(sceneId)}
                                         style={{ cursor: 'pointer' }}
                                     >
@@ -636,6 +641,17 @@ const Stripboard = () => {
                                                 </span>
                                             )}
                                         </td>
+                                        {hasSchedules && (
+                                            <td className="col-shoot">
+                                                {activeScheduleId && scheduledMap.has(sceneId) ? (
+                                                    <span className="sb-shoot-pill scheduled">
+                                                        D{scheduledMap.get(sceneId).dayNumber}
+                                                    </span>
+                                                ) : (
+                                                    <span className="sb-shoot-pill unscheduled">Unscheduled</span>
+                                                )}
+                                            </td>
+                                        )}
                                         <td className="col-cast">
                                             <span className="cast-text">
                                                 {charDisplay}{moreChars}
@@ -651,7 +667,7 @@ const Stripboard = () => {
                                     {/* Expanded Breakdown Row */}
                                     {isExpanded && (
                                         <tr className="breakdown-row">
-                                            <td colSpan="7">
+                                            <td colSpan={fullColSpan}>
                                                 <div className="breakdown-content">
                                                     <div className="breakdown-grid">
                                                         {/* Cast */}
@@ -820,7 +836,7 @@ const Stripboard = () => {
                                     {/* Print-only row for full cast list */}
                                     {chars.length > 0 && (
                                         <tr className="print-cast-row">
-                                            <td colSpan="7">
+                                            <td colSpan={fullColSpan}>
                                                 <span className="print-cast-label">Cast: </span>
                                                 <span className="print-cast-list">{fullCast}</span>
                                             </td>
