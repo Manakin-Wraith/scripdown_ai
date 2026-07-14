@@ -6,11 +6,12 @@ import SceneDetail from './SceneDetail';
 import ScriptHeader from '../metadata/ScriptHeader';
 import ScriptSummary from './ScriptSummary';
 import PdfViewerPanel from '../pdf/PdfViewerPanel';
-import { AlertCircle, ChevronDown, ChevronUp, Zap, FileText, List, XCircle, BookOpen, CalendarDays } from 'lucide-react';
+import { AlertCircle, ChevronDown, ChevronUp, Zap, FileText, List, XCircle, BookOpen, CalendarDays, Clapperboard } from 'lucide-react';
 import { Spinner } from '../ui';
 import { useToast } from '../../context/ToastContext';
 import { useScript } from '../../context/ScriptContext';
-import { useStoryDayListener } from '../../context/StoryDayContext';
+import { useStoryDayListener, useStoryDayNotify } from '../../context/StoryDayContext';
+import SegmentManager from './SegmentManager';
 import { analyzeBulkScenes, analyzeScene, getPageMapping, reorderScenes, omitScene } from '../../services/apiService';
 import { useSubscription } from '../../hooks/useSubscription';
 import { UpgradeModal } from '../subscription';
@@ -38,6 +39,8 @@ const SceneViewer = () => {
     const [recentlyCompletedScenes, setRecentlyCompletedScenes] = useState(new Set());
     const [storyDayFilter, setStoryDayFilter] = useState(null);
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+    const [showSegmentManager, setShowSegmentManager] = useState(false);
+    const notifyStoryDayChange = useStoryDayNotify();
     const { status, daysRemaining } = useSubscription();
     const isPaidSubscriber = status === 'active';
     const selectedSceneRef = useRef(null);
@@ -723,7 +726,14 @@ const SceneViewer = () => {
                                     ))}
                                 </select>
                             )}
-                            <button 
+                            <button
+                                className="segmgr-open-btn"
+                                onClick={() => setShowSegmentManager(true)}
+                                title="Manage flashback / montage segments"
+                            >
+                                <Clapperboard size={16} />
+                            </button>
+                            <button
                                 className={`pdf-toggle-btn ${showPdfPanel ? 'active' : ''}`}
                                 onClick={() => setShowPdfPanel(!showPdfPanel)}
                                 title={showPdfPanel ? 'Hide PDF' : 'View Original PDF'}
@@ -774,6 +784,17 @@ const SceneViewer = () => {
                 daysRemaining={daysRemaining}
                 isExpired={status === 'expired'}
             />
+            {showSegmentManager && (
+                <SegmentManager
+                    scriptId={scriptId}
+                    scenes={scenes}
+                    onClose={() => setShowSegmentManager(false)}
+                    onChanged={async () => {
+                        await refreshScenes();
+                        notifyStoryDayChange(scriptId);
+                    }}
+                />
+            )}
         </div>
     );
 };

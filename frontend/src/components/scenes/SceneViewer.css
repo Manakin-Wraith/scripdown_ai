@@ -283,7 +283,8 @@
 }
 
 /* PDF Toggle Button */
-.pdf-toggle-btn {
+.pdf-toggle-btn,
+.segmgr-open-btn {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -297,7 +298,8 @@
     transition: all 0.2s;
 }
 
-.pdf-toggle-btn:hover {
+.pdf-toggle-btn:hover,
+.segmgr-open-btn:hover {
     background: var(--gray-700);
     color: var(--text-primary);
     border-color: var(--primary-500);
