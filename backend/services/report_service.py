@@ -551,7 +551,9 @@ class ReportService:
     # Data Aggregation
     # ============================================
     
-    def aggregate_scene_data(self, script_id: str, filters: Optional[Dict] = None) -> Dict[str, Any]:
+    def aggregate_scene_data(self, script_id: str, filters: Optional[Dict] = None,
+                             schedule_id: Optional[str] = None,
+                             include_unscheduled: bool = True) -> Dict[str, Any]:
         """
         Aggregate all scene data for a script.
         Returns structured data for report generation.
@@ -722,7 +724,60 @@ class ReportService:
         
         # Calculate total pages from eighths
         total_pages = total_eighths / 8
-        
+
+        # ── Schedule-aware grouping ────────────────────────────────────────────
+        schedule_block = None
+        days_block = None
+        unscheduled_block = None
+        if schedule_id:
+            sched = self.db.client.table('shooting_schedules').select(
+                'id, name').eq('id', schedule_id).single().execute().data
+            schedule_block = {'id': schedule_id, 'name': (sched or {}).get('name', 'Schedule')}
+
+            scene_by_id = {s.get('id'): s for s in scenes}
+            included_ids = set(scene_by_id.keys())
+
+            day_rows = self.db.client.table('shooting_days').select('*').eq(
+                'schedule_id', schedule_id).order('day_number', desc=False).execute().data or []
+
+            days_block = []
+            scheduled_ids = set()
+            for d in day_rows:
+                ds_rows = self.db.client.table('shooting_day_scenes').select(
+                    '*, scenes(id, scene_number, setting, location_canonical, int_ext, '
+                    'time_of_day, story_day, characters, page_length_eighths, page_start, '
+                    'page_end, is_omitted)'
+                ).eq('shooting_day_id', d['id']).order('sort_order', desc=False).execute().data or []
+
+                day_scenes = []
+                for row in ds_rows:
+                    sid = row.get('scene_id')
+                    scene = row.get('scenes') or scene_by_id.get(sid)
+                    if not scene or sid not in included_ids:
+                        continue  # filtered out or missing
+                    scheduled_ids.add(sid)
+                    day_scenes.append(scene)
+
+                active = [s for s in day_scenes if not s.get('is_omitted')]
+                cast, locs = set(), set()
+                for s in active:
+                    for c in (s.get('characters') or []):
+                        cast.add(c if isinstance(c, str) else c.get('name', str(c)))
+                    locs.add(s.get('location_canonical') or s.get('setting') or 'UNKNOWN')
+                days_block.append({
+                    'id': d['id'],
+                    'day_number': d.get('day_number'),
+                    'shoot_date': d.get('shoot_date'),
+                    'status': d.get('status', 'draft'),
+                    'scenes': day_scenes,
+                    'total_eighths': sum(s.get('page_length_eighths', 8) for s in active),
+                    'cast': sorted(cast),
+                    'locations': sorted(locs),
+                })
+
+            if include_unscheduled:
+                unscheduled_block = [scene_by_id[i] for i in included_ids if i not in scheduled_ids]
+
         return {
             'script': {
                 'id': script_id,
@@ -754,6 +809,9 @@ class ReportService:
                 'total_story_days': len(all_story_days)
             },
             'scenes': scenes,
+            'schedule': schedule_block,
+            'days': days_block,
+            'unscheduled': unscheduled_block,
             'user_items_by_scene': user_items_by_scene,
             'characters': {k: {**v, 'story_days': sorted(v['story_days'])} for k, v in characters.items()},
             'locations': {k: {**v, 'int_ext': list(v['int_ext']), 'time_of_day': list(v['time_of_day']), 'story_days': sorted(v['story_days'])} 
