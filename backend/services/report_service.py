@@ -1352,6 +1352,52 @@ class ReportService:
             ''.join(body) + '</tbody></table>'
         )
 
+    def _render_day_out_of_days_from_scenes(self, data: Dict) -> str:
+        """Render scene-based day-out-of-days (character appearances by story day).
+
+        Used inside full_breakdown when no shooting schedule is available. The
+        standalone day_out_of_days report type uses the schedule-based renderer.
+        """
+        characters = data.get('characters', {})
+        rows = []
+
+        # Sort by scene count descending
+        sorted_chars = sorted(characters.items(), key=lambda x: x[1]['count'], reverse=True)
+
+        for name, info in sorted_chars:
+            scenes_str = ', '.join(info['scenes'])
+
+            story_days = info.get('story_days', [])
+            days_str = ', '.join([f'D{d}' for d in sorted(story_days)]) if story_days else '—'
+
+            rows.append(f"""
+            <tr>
+                <td><strong>{name}</strong></td>
+                <td>{info['count']}</td>
+                <td>{info.get('pages', info['count'])}</td>
+                <td>{days_str}</td>
+                <td class="scenes-cell">{scenes_str}</td>
+            </tr>
+            """)
+
+        return f"""
+        <h2>Day Out of Days - Character Schedule</h2>
+        <table class="dood-table">
+            <thead>
+                <tr>
+                    <th>Character</th>
+                    <th>Scenes</th>
+                    <th>Pages</th>
+                    <th>Story Days</th>
+                    <th>Scene Numbers</th>
+                </tr>
+            </thead>
+            <tbody>
+                {''.join(rows)}
+            </tbody>
+        </table>
+        """
+
     def _render_location_report(self, data: Dict) -> str:
         """Render location report HTML."""
         locations = data.get('locations', {})
@@ -1593,7 +1639,7 @@ class ReportService:
         <div class="page-break"></div>
         {self._render_scene_breakdown(data)}
         <div class="page-break"></div>
-        {self._render_day_out_of_days(data)}
+        {self._render_day_out_of_days(data) if data.get('days') else self._render_day_out_of_days_from_scenes(data)}
         <div class="page-break"></div>
         {self._render_location_report(data)}
         """

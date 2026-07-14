@@ -172,3 +172,20 @@ def test_schedule_backed_empty_state_when_no_days():
     svc = ReportService()
     html = svc._render_one_liner({'script': {'title': 'T'}, 'days': None})
     assert 'schedule' in html.lower()
+
+
+def test_full_breakdown_dood_scene_fallback_without_schedule():
+    """full_breakdown must fall back to scene-based DOOD when there is no shooting schedule."""
+    svc = ReportService()
+    data = {
+        'summary': {},
+        'scenes': [],
+        'characters': {
+            'ALICE': {'count': 2, 'scenes': ['1', '3'], 'story_days': ['1']},
+        },
+        'locations': {},
+    }
+    html = svc._render_full_breakdown(data)
+    assert 'ALICE' in html
+    assert 'Character Schedule' in html
+    assert 'needs a shooting schedule' not in html
