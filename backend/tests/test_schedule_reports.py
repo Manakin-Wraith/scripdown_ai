@@ -208,3 +208,64 @@ def test_scene_based_type_ignores_schedule_id():
 
     assert data.get('days') is None
     assert data['summary']['total_scenes'] == len(scenes)
+
+
+def test_legacy_one_liner_snapshot_renders_scene_content():
+    """Legacy saved reports (no 'days' key) must render their captured scene content,
+    not the schedule empty state."""
+    svc = ReportService()
+    data = {
+        'script': {'title': 'T'},
+        'scenes': [
+            {'id': 's1', 'scene_number': '1', 'int_ext': 'INT', 'setting': 'KITCHEN',
+             'time_of_day': 'DAY', 'characters': ['ALICE'], 'page_length_eighths': 8},
+        ],
+        'user_items_by_scene': {},
+    }
+    html = svc._render_one_liner(data)
+    assert 'One-Liner' in html
+    assert 'KITCHEN' in html
+    assert 'needs a shooting schedule' not in html
+
+
+def test_legacy_dood_snapshot_renders_scene_content():
+    """Legacy saved reports (no 'days' key) must render scene-based DOOD content,
+    not the schedule empty state."""
+    svc = ReportService()
+    data = {
+        'script': {'title': 'T'},
+        'characters': {
+            'ALICE': {'count': 1, 'scenes': ['1'], 'story_days': ['1']},
+        },
+    }
+    html = svc._render_day_out_of_days(data)
+    assert 'Character Schedule' in html
+    assert 'ALICE' in html
+    assert 'needs a shooting schedule' not in html
+
+
+def test_new_schedule_backed_no_schedule_shows_empty_state():
+    """When the 'days' key is present but falsy (new pipeline, no schedule attached),
+    both schedule-backed renderers must still show the empty state."""
+    svc = ReportService()
+    one_liner_html = svc._render_one_liner({'days': None})
+    dood_html = svc._render_day_out_of_days({'days': None})
+    assert 'needs a shooting schedule' in one_liner_html
+    assert 'needs a shooting schedule' in dood_html
+
+
+def test_foreign_schedule_id_degrades_to_empty():
+    """A schedule_id that doesn't belong to this script must not leak the foreign
+    schedule's data — aggregate_scene_data should degrade gracefully to no schedule."""
+    scenes = [
+        {'id': 's1', 'scene_number': '1', 'characters': ['ALICE'],
+         'page_length_eighths': 8, 'setting': 'KITCHEN'},
+    ]
+    # schedule_rows=[] simulates the scoped query (id + script_id) finding no match
+    # because the schedule belongs to a different script.
+    svc = _svc_with_days(days_rows=[], day_scene_rows_by_day={}, scenes=scenes, schedule_rows=[])
+
+    data = svc.aggregate_scene_data('scr1', schedule_id='foreign')
+
+    assert data.get('days') is None
+    assert data.get('schedule') is None

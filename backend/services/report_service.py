@@ -789,7 +789,7 @@ class ReportService:
             sched = None
             try:
                 rows = self.db.client.table('shooting_schedules').select(
-                    'id, name').eq('id', schedule_id).limit(1).execute().data or []
+                    'id, name').eq('id', schedule_id).eq('script_id', script_id).limit(1).execute().data or []
                 sched = rows[0] if rows else None
             except Exception as e:
                 print(f"Warning: Could not fetch shooting_schedules for report: {e}")
@@ -1336,6 +1336,8 @@ class ReportService:
         """Render day-out-of-days HTML from day-grouped schedule data."""
         days = data.get('days')
         if not days:
+            if 'days' not in data:
+                return self._render_day_out_of_days_from_scenes(data)
             return self._render_schedule_empty_state('day_out_of_days')
         dood = compute_dood(days)
         head = ''.join(f'<th>{dn}</th>' for dn in dood['day_numbers'])
@@ -1491,10 +1493,79 @@ class ReportService:
             'then generate this report.</p></div>'
         )
 
+    def _render_one_liner_from_scenes(self, data: Dict) -> str:
+        """Render scene-based one-liner/stripboard (script order, story-day separators).
+
+        Used for legacy saved reports whose snapshot predates schedule-aware
+        aggregation (no 'days' key). New reports render via _render_one_liner.
+        """
+        scenes = data.get('scenes', [])
+        user_items_map = data.get('user_items_by_scene', {})
+        rows = []
+        prev_story_day = None
+
+        for scene in scenes:
+            scene_id = scene.get('id') or scene.get('scene_id')
+            scene_user = user_items_map.get(scene_id, {})
+            all_chars = list(scene.get('characters') or []) + list(scene_user.get('characters') or [])
+            chars = ', '.join(all_chars[:3])
+            if len(all_chars) > 3:
+                chars += f" +{len(all_chars) - 3}"
+
+            eighths = scene.get('page_length_eighths', 8)
+            length_display = format_eighths(eighths)
+
+            scene_story_day = scene.get('story_day')
+            story_day_display = f"D{scene_story_day}" if scene_story_day else '—'
+            if scene_story_day and scene_story_day != prev_story_day:
+                day_label = scene.get('story_day_label') or f'Day {scene_story_day}'
+                rows.append(f"""
+                <tr class="day-separator-row">
+                    <td colspan="7" class="day-separator-cell">
+                        <strong>{day_label}</strong>
+                    </td>
+                </tr>
+                """)
+            prev_story_day = scene_story_day
+
+            rows.append(f"""
+            <tr class="one-liner-row">
+                <td class="scene-num">{scene.get('scene_number', '')}</td>
+                <td class="int-ext">{scene.get('int_ext', '')}</td>
+                <td class="setting">{scene.get('setting', '')}</td>
+                <td class="time">{scene.get('time_of_day', '')}</td>
+                <td class="day-cell">{story_day_display}</td>
+                <td class="chars">{chars}</td>
+                <td class="length">{length_display}</td>
+            </tr>
+            """)
+
+        return f"""
+        <h2>One-Liner / Stripboard</h2>
+        <table class="one-liner-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>I/E</th>
+                    <th>Setting</th>
+                    <th>D/N</th>
+                    <th>Day</th>
+                    <th>Cast</th>
+                    <th>Len</th>
+                </tr>
+            </thead>
+            <tbody>
+                {''.join(rows)}
+            </tbody>
+        </table>
+        """
+
     def _render_one_liner(self, data: Dict) -> str:
         """Render one-liner/stripboard HTML from day-grouped schedule data."""
         days = data.get('days')
         if not days:
+            if 'days' not in data:
+                return self._render_one_liner_from_scenes(data)
             return self._render_schedule_empty_state('one_liner')
         rows = []
         for d in days:
