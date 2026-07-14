@@ -42,7 +42,10 @@ def recalculate_story_days(script_id: str, start_from_order: int = 0) -> Dict:
     if not scenes:
         print(f"[StoryDays] No scenes found for script {script_id}")
         return {'total_days': 0, 'scenes_updated': 0}
-    
+
+    # Map segment_id -> name for labeling off-timeline scenes.
+    segment_names = {s['id']: s.get('name') for s in db.get_timeline_segments(script_id)}
+
     # Determine starting day counter
     if start_from_order > 0:
         # Find the scene just before start_from_order to get its story_day
@@ -63,7 +66,22 @@ def recalculate_story_days(script_id: str, start_from_order: int = 0) -> Dict:
         # Skip scenes before start_from_order (they keep their existing values)
         if start_from_order > 0 and scene_order < start_from_order:
             continue
-        
+
+        # Off-timeline scenes (flashback/montage segments): no numeric day,
+        # do not advance the counter, label with the segment name.
+        seg_id = scene.get('segment_id')
+        if seg_id:
+            label = segment_names.get(seg_id) or 'Segment'
+            if scene.get('story_day') is not None or scene.get('story_day_label') != label:
+                scenes_to_update.append({
+                    'id': scene['id'],
+                    'story_day': None,
+                    'story_day_label': label,
+                })
+            scene['story_day'] = None
+            scene['story_day_label'] = label
+            continue
+
         # Respect locked days — if user locked this scene's story_day, reset counter
         if scene.get('story_day_is_locked') and scene.get('story_day') is not None:
             current_day = scene['story_day']
@@ -181,26 +199,31 @@ def get_story_day_summary(script_id: str) -> Dict:
             'scenes_per_day': {},
             'timeline_breakdown': {},
             'unassigned_count': 0,
+            'segment_scene_count': 0,
         }
-    
+
     scenes_per_day = {}
     timeline_breakdown = {}
     unassigned = 0
-    
+    segment_scenes = 0
+
     for scene in scenes:
         sd = scene.get('story_day')
         tc = scene.get('timeline_code', 'PRESENT')
-        
-        if sd is not None:
+
+        if scene.get('segment_id'):
+            segment_scenes += 1
+        elif sd is not None:
             scenes_per_day[sd] = scenes_per_day.get(sd, 0) + 1
         else:
             unassigned += 1
-        
+
         timeline_breakdown[tc] = timeline_breakdown.get(tc, 0) + 1
-    
+
     return {
         'total_days': len(scenes_per_day),
         'scenes_per_day': scenes_per_day,
         'timeline_breakdown': timeline_breakdown,
         'unassigned_count': unassigned,
+        'segment_scene_count': segment_scenes,
     }
