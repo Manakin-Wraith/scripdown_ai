@@ -140,6 +140,11 @@ const StripCard = ({ strip, index, laneId, dispatch, dragState, handlePointerDow
                         D{strip.storyDay}
                     </span>
                 )}
+                {!strip.storyDay && strip.segmentId && (
+                    <span className="strip-segment-chip" title={strip.storyDayLabel}>
+                        {strip.storyDayLabel || 'Segment'}
+                    </span>
+                )}
             </div>
 
             {/* Breakdown summary — only visible at detailed zoom */}

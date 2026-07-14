@@ -106,6 +106,11 @@ const ScheduleSceneCard = ({ dayScene, onRemove, isDragOverlay = false, isSelect
                 {TimeIcon && <TimeIcon size={11} />}
                 {timeOfDay && <span className="ssc-time">{timeOfDay}</span>}
                 {storyDay && <span className="ssc-story-day">D{storyDay}</span>}
+                {!storyDay && scene.segment_id && (
+                    <span className="ssc-story-day ssc-segment" title={scene.story_day_label}>
+                        {scene.story_day_label || 'Segment'}
+                    </span>
+                )}
                 {castCount > 0 && <span className="ssc-cast">{castCount} cast</span>}
             </div>
 
@@ -141,6 +146,9 @@ const ScheduleSceneCard = ({ dayScene, onRemove, isDragOverlay = false, isSelect
                         <FileText size={11} />
                         <span>Pages {pageStart}{pageEnd && pageEnd !== pageStart ? `–${pageEnd}` : ''}</span>
                         {storyDay && <span className="ssc-tt-badge">Day {storyDay}</span>}
+                        {!storyDay && scene.segment_id && (
+                            <span className="ssc-tt-badge ssc-tt-segment">{scene.story_day_label || 'Segment'}</span>
+                        )}
                     </div>
                 )}
 
