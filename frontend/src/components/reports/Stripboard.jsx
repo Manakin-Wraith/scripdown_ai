@@ -15,6 +15,7 @@ import { useStoryDayListener } from '../../context/StoryDayContext';
 import { getScenes, getScriptMetadata, getScriptItems, getSchedules, getShootingDays } from '../../services/apiService';
 import { buildScheduledMap, buildShootDayBlocks } from '../../utils/scheduleMap';
 import { getSceneEighthsDisplay, getSceneEighths, formatEighths } from '../../utils/sceneUtils';
+import { segmentTint } from '../../utils/segmentTint';
 import PageHeader from '../layout/PageHeader';
 import './Stripboard.css';
 
@@ -411,7 +412,7 @@ const Stripboard = () => {
                             <span className={`sb-day-badge timeline-${timelineClass}`}>D{scene.story_day}</span>
                         )}
                         {!scene.story_day && scene.segment_id && (
-                            <span className="sb-day-badge sb-segment-badge" title={scene.story_day_label}>
+                            <span className="sb-day-badge sb-segment-badge" style={segmentTint(scene.segment_type)} title={scene.story_day_label}>
                                 {scene.story_day_label || 'Segment'}
                             </span>
                         )}

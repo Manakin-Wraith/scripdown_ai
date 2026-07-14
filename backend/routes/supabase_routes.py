@@ -1064,6 +1064,18 @@ def get_scenes(script_id):
         except Exception as sched_err:
             print(f"Warning: Could not fetch schedule data for scenes: {sched_err}")
 
+        # Map scene segment_id -> segment_type so display chips can colour by type.
+        seg_type_map = {}
+        try:
+            seg_result = supabase.table('timeline_segments') \
+                .select('id, segment_type') \
+                .eq('script_id', script_id) \
+                .execute()
+            for row in (seg_result.data or []):
+                seg_type_map[row['id']] = row.get('segment_type')
+        except Exception as seg_err:
+            print(f"Warning: Could not fetch segment types for scenes: {seg_err}")
+
         scenes = []
         for scene in result.data:
             scene_id = scene['id']
@@ -1114,6 +1126,7 @@ def get_scenes(script_id):
                 'timeline_code': scene.get('timeline_code', 'PRESENT'),
                 # Timeline segment (off-timeline flashback/montage grouping)
                 'segment_id': scene.get('segment_id'),
+                'segment_type': seg_type_map.get(scene.get('segment_id')),
                 # Omit status
                 'is_omitted': scene.get('is_omitted', False),
                 'omitted_at': scene.get('omitted_at'),

@@ -447,9 +447,6 @@
     font-weight: 700;
     letter-spacing: 0.02em;
     flex-shrink: 0;
-    background: rgba(245, 158, 11, 0.18);
-    border: 1px solid rgba(245, 158, 11, 0.4);
-    color: #fcd34d;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;

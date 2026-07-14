@@ -2,6 +2,7 @@ import React from 'react';
 import { GripVertical, Users, Package, Shirt, Car, Sparkles, Volume2, CalendarCheck } from 'lucide-react';
 import { Badge } from '../ui';
 import { formatEighths } from '../../utils/sceneUtils';
+import { segmentTint } from '../../utils/segmentTint';
 import './StripCard.css';
 
 /**
@@ -141,7 +142,7 @@ const StripCard = ({ strip, index, laneId, dispatch, dragState, handlePointerDow
                     </span>
                 )}
                 {!strip.storyDay && strip.segmentId && (
-                    <span className="strip-segment-chip" title={strip.storyDayLabel}>
+                    <span className="strip-segment-chip" style={segmentTint(strip.segmentType)} title={strip.storyDayLabel}>
                         {strip.storyDayLabel || 'Segment'}
                     </span>
                 )}

@@ -1,0 +1,221 @@
+.segmgr-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(2, 6, 23, 0.6);
+    padding: 1rem;
+}
+
+.segmgr {
+    width: 100%;
+    max-width: 520px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--gray-800, #1e293b);
+    border: 1px solid var(--border-color, rgba(148, 163, 184, 0.2));
+    border-radius: 12px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+}
+
+.segmgr-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid var(--border-color, rgba(148, 163, 184, 0.15));
+}
+
+.segmgr-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 700;
+    color: var(--gray-100, #f1f5f9);
+}
+
+.segmgr-close {
+    display: inline-flex;
+    border: none;
+    background: none;
+    color: var(--gray-400, #94a3b8);
+    cursor: pointer;
+    border-radius: 6px;
+    padding: 0.2rem;
+}
+
+.segmgr-close:hover { background: rgba(148, 163, 184, 0.12); color: var(--gray-100, #f1f5f9); }
+
+.segmgr-body {
+    padding: 0.5rem;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.segmgr-empty {
+    color: var(--gray-400, #94a3b8);
+    font-size: 0.85rem;
+    text-align: center;
+    padding: 1.5rem 1rem;
+    line-height: 1.5;
+}
+
+.segmgr-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.45rem 0.5rem;
+    border-radius: 8px;
+}
+
+.segmgr-row:hover { background: rgba(148, 163, 184, 0.06); }
+
+.segmgr-swatch-wrap { position: relative; display: inline-flex; }
+
+.segmgr-swatch {
+    width: 16px;
+    height: 16px;
+    border-radius: 5px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    cursor: pointer;
+    flex: none;
+}
+
+.segmgr-type-picker {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: 10;
+    min-width: 150px;
+    padding: 0.3rem;
+    background: var(--gray-750, #263449);
+    border: 1px solid var(--border-color, rgba(148, 163, 184, 0.25));
+    border-radius: 8px;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+}
+
+.segmgr-type-option {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.35rem 0.45rem;
+    border: none;
+    background: none;
+    border-radius: 6px;
+    color: var(--gray-200, #e2e8f0);
+    font-size: 0.8rem;
+    text-align: left;
+    cursor: pointer;
+}
+
+.segmgr-type-option:hover { background: rgba(148, 163, 184, 0.12); }
+
+.segmgr-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+
+.segmgr-name {
+    flex: 1;
+    min-width: 0;
+    text-align: left;
+    border: none;
+    background: none;
+    color: var(--gray-100, #f1f5f9);
+    font-size: 0.9rem;
+    cursor: pointer;
+    padding: 0.2rem 0.25rem;
+    border-radius: 5px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.segmgr-name:hover { background: rgba(148, 163, 184, 0.1); }
+
+.segmgr-name-input {
+    flex: 1;
+    min-width: 0;
+    padding: 0.25rem 0.4rem;
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(245, 158, 11, 0.5);
+    border-radius: 5px;
+    color: var(--gray-100, #f1f5f9);
+    font-size: 0.9rem;
+}
+
+.segmgr-name-input:focus { outline: none; box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.15); }
+
+.segmgr-count {
+    flex: none;
+    font-size: 0.72rem;
+    color: var(--gray-500, #64748b);
+    min-width: 62px;
+    text-align: right;
+}
+
+.segmgr-actions { display: inline-flex; gap: 0.15rem; flex: none; }
+
+.segmgr-icon-btn {
+    display: inline-flex;
+    padding: 0.3rem;
+    border: none;
+    background: none;
+    color: var(--gray-400, #94a3b8);
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.segmgr-icon-btn:hover:not(:disabled) { background: rgba(148, 163, 184, 0.14); color: var(--gray-100, #f1f5f9); }
+.segmgr-icon-btn:disabled { opacity: 0.35; cursor: default; }
+.segmgr-delete:hover:not(:disabled) { background: rgba(239, 68, 68, 0.15); color: #fca5a5; }
+
+.segmgr-create {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.6rem;
+    border-top: 1px solid var(--border-color, rgba(148, 163, 184, 0.15));
+}
+
+.segmgr-type-select {
+    flex: none;
+    padding: 0.4rem 0.5rem;
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid var(--border-color, rgba(148, 163, 184, 0.25));
+    border-radius: 6px;
+    color: var(--gray-100, #f1f5f9);
+    font-size: 0.8rem;
+}
+
+.segmgr-create-input {
+    flex: 1;
+    min-width: 0;
+    padding: 0.45rem 0.55rem;
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid var(--border-color, rgba(148, 163, 184, 0.25));
+    border-radius: 6px;
+    color: var(--gray-100, #f1f5f9);
+    font-size: 0.85rem;
+}
+
+.segmgr-create-input:focus { outline: none; border-color: rgba(245, 158, 11, 0.5); box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.15); }
+
+.segmgr-add {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 34px;
+    height: 34px;
+    border: none;
+    border-radius: 6px;
+    background: rgba(245, 158, 11, 0.18);
+    color: #fbbf24;
+    cursor: pointer;
+}
+
+.segmgr-add:hover:not(:disabled) { background: rgba(245, 158, 11, 0.3); }
+.segmgr-add:disabled { opacity: 0.4; cursor: default; }

@@ -82,7 +82,7 @@ def create_segment(script_id):
 @segment_bp.route('/api/segments/<segment_id>', methods=['PATCH'])
 @require_auth
 def update_segment(segment_id):
-    _segment, denied = _load_segment_or_error(segment_id)
+    segment, denied = _load_segment_or_error(segment_id)
     if denied:
         return denied
     body = request.get_json() or {}
@@ -92,8 +92,12 @@ def update_segment(segment_id):
         return jsonify({'error': 'invalid segment_type'}), 400
     if not allowed:
         return jsonify({'error': 'no updatable fields provided'}), 400
-    segment = db.update_timeline_segment(segment_id, **allowed)
-    return jsonify({'segment': segment}), 200
+    updated = db.update_timeline_segment(segment_id, **allowed)
+    # A rename changes the label shown on member scenes (story_day_label),
+    # so refresh their labels. Colour/order changes don't affect labels.
+    if 'name' in allowed and allowed['name'] != segment.get('name'):
+        recalculate_story_days(segment['script_id'], start_from_order=0)
+    return jsonify({'segment': updated}), 200
 
 
 @segment_bp.route('/api/segments/<segment_id>', methods=['DELETE'])
