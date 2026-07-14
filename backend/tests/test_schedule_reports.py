@@ -82,3 +82,37 @@ def test_aggregate_missing_schedule_degrades_gracefully():
     assert data['days'] is None
     assert data['schedule'] is None
     assert data['unscheduled'] is None
+
+
+from services.report_service import compute_dood
+
+
+def _day(n, *char_lists):
+    return {'day_number': n, 'scenes': [{'characters': cl} for cl in char_lists]}
+
+
+def test_compute_dood_start_work_hold_finish():
+    days = [
+        _day(1, ['ALICE']),            # ALICE start
+        _day(2, ['BOB']),              # ALICE hold, BOB start
+        _day(3, ['ALICE', 'BOB']),     # ALICE work, BOB work
+        _day(4, ['BOB']),              # ALICE finished before this; BOB finish
+    ]
+    dood = compute_dood(days)
+    assert dood['day_numbers'] == [1, 2, 3, 4]
+
+    alice = next(c for c in dood['cast'] if c['name'] == 'ALICE')
+    assert alice['cells'] == {1: 'S', 2: 'H', 3: 'F', 4: ''}
+    assert alice['work_days'] == 2 and alice['hold_days'] == 1 and alice['span'] == 3
+
+    bob = next(c for c in dood['cast'] if c['name'] == 'BOB')
+    assert bob['cells'] == {1: '', 2: 'S', 3: 'W', 4: 'F'}
+    assert bob['work_days'] == 3 and bob['hold_days'] == 0 and bob['span'] == 3
+
+
+def test_compute_dood_single_day_actor():
+    days = [_day(1, ['CARL']), _day(2, [])]
+    dood = compute_dood(days)
+    carl = next(c for c in dood['cast'] if c['name'] == 'CARL')
+    assert carl['cells'] == {1: 'S', 2: ''}
+    assert carl['work_days'] == 1 and carl['hold_days'] == 0 and carl['span'] == 1

@@ -339,6 +339,51 @@ class ReportConfig:
         ]
 
 
+def compute_dood(days: list) -> dict:
+    """Compute a Day Out of Days grid from ordered shooting days.
+
+    Returns day_numbers plus per-cast cells of 'S'/'W'/'H'/'F'/'' and totals.
+    """
+    day_numbers = [d.get('day_number') for d in days]
+
+    # cast name -> set of day indices they appear on
+    appearances = {}
+    for idx, d in enumerate(days):
+        for scene in (d.get('scenes') or []):
+            for c in (scene.get('characters') or []):
+                name = c if isinstance(c, str) else c.get('name', str(c))
+                appearances.setdefault(name, set()).add(idx)
+
+    cast = []
+    for name, idxs in appearances.items():
+        if not idxs:
+            continue
+        start, finish = min(idxs), max(idxs)
+        cells, work, hold = {}, 0, 0
+        for idx, dn in enumerate(day_numbers):
+            if idx < start or idx > finish:
+                cells[dn] = ''
+            elif idx == start:
+                cells[dn] = 'S'; work += 1
+            elif idx == finish:
+                cells[dn] = 'F'; work += 1
+            elif idx in idxs:
+                cells[dn] = 'W'; work += 1
+            else:
+                cells[dn] = 'H'; hold += 1
+        cast.append({
+            'name': name, 'cells': cells,
+            'work_days': work, 'hold_days': hold,
+            'span': finish - start + 1,
+            '_start': start,
+        })
+
+    cast.sort(key=lambda c: (c['_start'], c['name']))
+    for c in cast:
+        del c['_start']
+    return {'day_numbers': day_numbers, 'cast': cast}
+
+
 class ReportService:
     """Service for generating and managing script reports."""
     
