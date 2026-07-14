@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { FileText, LibraryBig, Plus, Download, Printer, Share2 } from 'lucide-react';
 import { Spinner, Button } from '../ui';
 import { useToast } from '../../context/ToastContext';
@@ -11,7 +11,7 @@ import PageHeader from '../layout/PageHeader';
 import {
     getReportTypes, generateReport, getScriptReports, deleteReport,
     fetchReportPrintUrl, getScriptMetadata, getFilterOptions, getFilterPresets,
-    saveFilterPreset, deleteFilterPreset, previewReportHtml,
+    saveFilterPreset, deleteFilterPreset, previewReportHtml, getSchedules,
 } from '../../services/apiService';
 import ReportRail from './ReportRail';
 import ReportPreviewPane from './ReportPreviewPane';
@@ -43,6 +43,7 @@ const computeActiveFilters = (f) => {
 
 const ReportStudio = () => {
     const { scriptId } = useParams();
+    const [searchParams] = useSearchParams();
     const toast = useToast();
     const { confirm } = useConfirmDialog();
     const { setScript } = useScript();
@@ -59,6 +60,9 @@ const ReportStudio = () => {
     const [filterPresets, setFilterPresets] = useState([]);
     const [filters, setFilters] = useState(EMPTY_FILTERS);
 
+    const [scheduleId, setScheduleId] = useState(null);
+    const [schedules, setSchedules] = useState([]);
+
     const [previewHtml, setPreviewHtml] = useState('');
     const [previewCounts, setPreviewCounts] = useState({ match: null, total: null });
     const [previewLoading, setPreviewLoading] = useState(false);
@@ -74,9 +78,11 @@ const ReportStudio = () => {
     const filtersRef = useRef(filters);
     const typeRef = useRef(selectedType);
     const titleRef = useRef(customTitle);
+    const scheduleIdRef = useRef(scheduleId);
     filtersRef.current = filters;
     typeRef.current = selectedType;
     titleRef.current = customTitle;
+    scheduleIdRef.current = scheduleId;
 
     // Single refresh trigger: bump the nonce; the effect below runs the render.
     const triggerPreview = useCallback(() => setPreviewNonce((n) => n + 1), []);
@@ -101,6 +107,10 @@ const ReportStudio = () => {
                     const presetsRes = await getFilterPresets(scriptId);
                     if (presetsRes.success) setFilterPresets(presetsRes.presets);
                 } catch (e) { console.warn('presets', e); }
+                try {
+                    const schedRes = await getSchedules(scriptId);
+                    setSchedules(schedRes.schedules || []);
+                } catch (e) { console.warn('schedules', e); }
             } catch (error) {
                 toast.error('Error', 'Failed to load report data');
             } finally {
@@ -110,19 +120,36 @@ const ReportStudio = () => {
         fetchData();
     }, [scriptId]);
 
+    // Deep-link: read ?type= and ?schedule= on mount once schedules/report types are loaded.
+    useEffect(() => {
+        const t = searchParams.get('type');
+        const s = searchParams.get('schedule');
+        if (t && reportTypes[t]) setSelectedType(t);
+        if (s) setScheduleId(s);
+        if (t || s) triggerPreview();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [schedules, reportTypes]);
+
     const buildActiveFilters = useCallback(() => computeActiveFilters(filters), [filters]);
 
     // Stable ([] deps): always reads the latest config via refs, so it is safe to
     // fire from the button, from onSelectType, or synchronously after a reopen.
     const handleUpdatePreview = useCallback(async () => {
         const f = filtersRef.current;
+        const requiresSchedule = reportTypes[typeRef.current]?.requires_schedule;
+        if (requiresSchedule && !scheduleIdRef.current) {
+            setPreviewHtml('');
+            setPreviewError('Select a schedule source to generate this report.');
+            setPreviewLoading(false);
+            return;
+        }
         setPreviewLoading(true);
         setPreviewError(null);
         try {
             const activeFilters = computeActiveFilters(f);
             const groupBy = f.group_by !== 'scene_number' ? f.group_by : null;
             const categories = f.categories?.length > 0 ? f.categories : null;
-            const res = await previewReportHtml(scriptId, typeRef.current, activeFilters, groupBy, categories, titleRef.current || null);
+            const res = await previewReportHtml(scriptId, typeRef.current, activeFilters, groupBy, categories, titleRef.current || null, scheduleIdRef.current);
             if (res.success) {
                 setPreviewHtml(res.html);
                 setPreviewCounts({ match: res.match_count, total: res.total_count });
@@ -150,7 +177,7 @@ const ReportStudio = () => {
             const activeFilters = buildActiveFilters();
             const groupBy = filters.group_by !== 'scene_number' ? filters.group_by : null;
             const categories = filters.categories?.length > 0 ? filters.categories : null;
-            const res = await generateReport(scriptId, selectedType, customTitle || null, null, activeFilters, groupBy, categories);
+            const res = await generateReport(scriptId, selectedType, customTitle || null, null, activeFilters, groupBy, categories, scheduleId);
             if (res.success) {
                 toast.success('Report Generated', 'Your report is ready!');
                 setExistingReports((prev) => [res.report, ...prev]);
@@ -296,6 +323,9 @@ const ReportStudio = () => {
                         customTitle={customTitle}
                         onTitleChange={setCustomTitle}
                         filterPanelProps={filterPanelProps}
+                        schedules={schedules}
+                        scheduleId={scheduleId}
+                        onScheduleChange={(id) => { setScheduleId(id); triggerPreview(); }}
                     />
                 </div>
                 <div className="studio-preview">
