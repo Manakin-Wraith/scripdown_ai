@@ -531,7 +531,7 @@ const Stripboard = () => {
                     </div>
                 )}
                 <div className="filter-group">
-                    <select 
+                    <select
                         value={sortBy}
                         onChange={(e) => setSortBy(e.target.value)}
                     >
@@ -540,13 +540,18 @@ const Stripboard = () => {
                         <option value="setting">Location</option>
                         <option value="characters">Cast Size</option>
                     </select>
-                    <button 
+                    <button
                         className="sort-dir-btn"
                         onClick={() => setSortDir(sortDir === 'asc' ? 'desc' : 'asc')}
                     >
                         {sortDir === 'asc' ? <SortAsc size={14} /> : <SortDesc size={14} />}
                     </button>
                 </div>
+                {schedules.length === 0 && (
+                    <div className="filter-group sb-no-schedule-hint">
+                        <span>No schedule yet — build one on the Schedule tab.</span>
+                    </div>
+                )}
             </div>
 
             {/* Stripboard Table */}
