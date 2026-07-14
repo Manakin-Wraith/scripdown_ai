@@ -219,26 +219,28 @@ def generate_report(script_id):
         filters = data.get('filters')
         group_by = data.get('group_by')
         categories = data.get('categories')
-        
+        schedule_id = data.get('schedule_id')
+
         # Merge group_by and categories into config for rendering
         if group_by:
             config['group_by'] = group_by
         if categories:
             config['categories'] = categories
-        
+
         # Validate report type
         if report_type not in report_service.REPORT_TYPES:
             return jsonify({
                 'success': False,
                 'error': f'Invalid report type. Valid types: {list(report_service.REPORT_TYPES.keys())}'
             }), 400
-        
+
         report = report_service.generate_report(
             script_id=script_id,
             report_type=report_type,
             config=config,
             title=title,
-            filters=filters
+            filters=filters,
+            schedule_id=schedule_id,
         )
         
         if not report:
@@ -300,6 +302,7 @@ def preview_report_html(script_id):
         group_by = data.get('group_by')
         categories = data.get('categories')
         title = data.get('title')
+        schedule_id = data.get('schedule_id')
 
         config = {}
         if group_by:
@@ -319,6 +322,7 @@ def preview_report_html(script_id):
             config=config,
             title=title,
             filters=filters,
+            schedule_id=schedule_id,
         )
         return jsonify({
             'success': True,

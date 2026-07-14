@@ -214,9 +214,9 @@ class ReportConfig:
     
     VALID_REPORT_TYPES = [
         "full_breakdown", "scene_breakdown", "wardrobe", "props",
-        "makeup", "sfx", "special_effects", "stunts", "vehicles", 
-        "animals", "extras", "custom", "day_out_of_days", 
-        "location", "one_liner"
+        "makeup", "sfx", "special_effects", "stunts", "vehicles",
+        "animals", "extras", "custom", "day_out_of_days",
+        "location", "one_liner", "shooting_schedule"
     ]
     
     VALID_CATEGORIES = [
@@ -395,7 +395,8 @@ class ReportService:
         },
         'day_out_of_days': {
             'name': 'Day Out of Days',
-            'description': 'Character appearance schedule'
+            'description': 'Cast working/hold days across the shooting schedule',
+            'requires_schedule': True
         },
         'location': {
             'name': 'Location Report',
@@ -411,14 +412,24 @@ class ReportService:
         },
         'one_liner': {
             'name': 'One-Liner / Stripboard',
-            'description': 'Compact scene list for scheduling'
+            'description': 'Compact scene list in shooting order',
+            'requires_schedule': True
+        },
+        'shooting_schedule': {
+            'name': 'Shooting Schedule',
+            'description': 'Full day-by-day shooting schedule',
+            'requires_schedule': True
         },
         'full_breakdown': {
             'name': 'Full Script Breakdown',
             'description': 'Complete breakdown document'
         }
     }
-    
+
+    # Mirrors ReportConfig.VALID_REPORT_TYPES so callers can validate against
+    # a single ReportService instance without reaching into ReportConfig.
+    VALID_REPORT_TYPES = ReportConfig.VALID_REPORT_TYPES
+
     def __init__(self):
         self.db = db
     
@@ -897,7 +908,8 @@ class ReportService:
         config: Optional[Dict] = None,
         title: Optional[str] = None,
         user_id: Optional[str] = None,
-        filters: Optional[Dict] = None
+        filters: Optional[Dict] = None,
+        schedule_id: Optional[str] = None
     ) -> Dict:
         """
         Generate a report and store it in the database.
@@ -906,19 +918,23 @@ class ReportService:
         """
         if report_type not in self.REPORT_TYPES:
             raise ValueError(f"Invalid report type: {report_type}")
-        
+
+        schedule_id = schedule_id or (config or {}).get('schedule_id')
+
         # Aggregate data with optional filters
-        data = self.aggregate_scene_data(script_id, filters=filters)
-        
+        data = self.aggregate_scene_data(script_id, filters=filters, schedule_id=schedule_id)
+
         # Generate title if not provided
         if not title:
             title = f"{data['script']['title']} - {self.REPORT_TYPES[report_type]['name']}"
-        
+
         # Merge filters into config for persistence
         merged_config = config or {}
         if filters:
             merged_config['filters'] = filters
-        
+        if schedule_id:
+            merged_config['schedule_id'] = schedule_id
+
         # Create report record
         report_data = {
             'script_id': script_id,
@@ -940,6 +956,7 @@ class ReportService:
         config: Optional[Dict] = None,
         title: Optional[str] = None,
         filters: Optional[Dict] = None,
+        schedule_id: Optional[str] = None,
     ) -> Dict:
         """
         Render report HTML from unsaved config for live preview.
@@ -949,7 +966,9 @@ class ReportService:
         if report_type not in self.REPORT_TYPES:
             raise ValueError(f"Invalid report type: {report_type}")
 
-        data = self.aggregate_scene_data(script_id, filters=filters)
+        schedule_id = schedule_id or (config or {}).get('schedule_id')
+
+        data = self.aggregate_scene_data(script_id, filters=filters, schedule_id=schedule_id)
 
         merged_config = dict(config or {})
         if filters:

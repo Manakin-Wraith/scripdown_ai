@@ -52,7 +52,7 @@ def test_preview_html_returns_html_and_counts(monkeypatch):
     calls = {"insert": 0}
 
     monkeypatch.setattr(rr.report_service, "aggregate_scene_data",
-                        lambda script_id, filters=None: FAKE_DATA)
+                        lambda script_id, filters=None, schedule_id=None: FAKE_DATA)
     monkeypatch.setattr(rr.report_service, "_render_report_html",
                         lambda report: "<html><body><h1>Preview</h1></body></html>")
     # total_count comes from db.get_scenes (deliberately a longer list than the

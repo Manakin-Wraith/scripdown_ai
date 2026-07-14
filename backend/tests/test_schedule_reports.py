@@ -116,3 +116,16 @@ def test_compute_dood_single_day_actor():
     carl = next(c for c in dood['cast'] if c['name'] == 'CARL')
     assert carl['cells'] == {1: 'S', 2: ''}
     assert carl['work_days'] == 1 and carl['hold_days'] == 0 and carl['span'] == 1
+
+
+def test_report_types_flag_schedule_backed():
+    svc = ReportService()
+    assert svc.REPORT_TYPES['day_out_of_days'].get('requires_schedule') is True
+    assert svc.REPORT_TYPES['one_liner'].get('requires_schedule') is True
+    assert svc.REPORT_TYPES['shooting_schedule'].get('requires_schedule') is True
+    assert svc.REPORT_TYPES['scene_breakdown'].get('requires_schedule', False) is False
+
+
+def test_shooting_schedule_is_valid_type():
+    svc = ReportService()
+    assert 'shooting_schedule' in svc.VALID_REPORT_TYPES
