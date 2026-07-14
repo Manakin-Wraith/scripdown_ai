@@ -538,52 +538,43 @@ const Stripboard = () => {
             <PageHeader icon={<List size={24} />} title="One-Liner / Stripboard" />
 
             {/* Stats Bar */}
-            <div className="stripboard-stats">
-                <div className="stat-group">
-                    <span className="stat-label">Total:</span>
-                    <span className="stat-value">{activeScenes.length} scenes</span>
+            {/* Summary header card — segmented */}
+            <div className="stripboard-stats sb-stats-card">
+                <div className="sb-stats-segment sb-stats-identity">
+                    <span className="sb-stats-primary">{activeScenes.length}</span>
+                    <span className="sb-stats-caption">Scenes</span>
                 </div>
-                <div className="stat-group">
-                    <Home size={14} />
-                    <span className="stat-value">{stats.intCount} INT</span>
-                </div>
-                <div className="stat-group">
-                    <Building2 size={14} />
-                    <span className="stat-value">{stats.extCount} EXT</span>
-                </div>
-                <div className="stat-group">
-                    <Sun size={14} />
-                    <span className="stat-value">{stats.dayCount} DAY</span>
-                </div>
-                <div className="stat-group">
-                    <Moon size={14} />
-                    <span className="stat-value">{stats.nightCount} NIGHT</span>
-                </div>
-                <div className="stat-group">
-                    <Users size={14} />
-                    <span className="stat-value">{stats.totalCharacters} Cast</span>
-                </div>
-                <div className="stat-group">
-                    <MapPin size={14} />
-                    <span className="stat-value">{stats.totalLocations} Locations</span>
-                </div>
-                {stats.totalStoryDays > 0 && (
-                    <div className="stat-group">
-                        <CalendarDays size={14} />
-                        <span className="stat-value">{stats.totalStoryDays} Story Days</span>
+                <div className="sb-stats-segment">
+                    <span className="sb-stats-caption">Composition</span>
+                    <div className="sb-stats-row">
+                        <span className="stat-value"><Home size={13} /> {stats.intCount} INT</span>
+                        <span className="stat-value"><Building2 size={13} /> {stats.extCount} EXT</span>
+                        <span className="stat-value"><Sun size={13} /> {stats.dayCount} DAY</span>
+                        <span className="stat-value"><Moon size={13} /> {stats.nightCount} NIGHT</span>
                     </div>
-                )}
+                </div>
+                <div className="sb-stats-segment">
+                    <span className="sb-stats-caption">Coverage</span>
+                    <div className="sb-stats-row">
+                        <span className="stat-value"><Users size={13} /> {stats.totalCharacters} Cast</span>
+                        <span className="stat-value"><MapPin size={13} /> {stats.totalLocations} Locations</span>
+                        {stats.totalStoryDays > 0 && (
+                            <span className="stat-value"><CalendarDays size={13} /> {stats.totalStoryDays} Story Days</span>
+                        )}
+                    </div>
+                </div>
                 {hasSchedules && activeScheduleId && (
-                    <div className="stat-group">
-                        <CalendarDays size={14} />
-                        <span className="stat-value">
-                            {stats.scheduledCount} scheduled · {stats.unscheduledCount} unscheduled
-                        </span>
+                    <div className="sb-stats-segment">
+                        <span className="sb-stats-caption">Scheduling</span>
+                        <div className="sb-stats-row">
+                            <span className="stat-value">{stats.scheduledCount} scheduled</span>
+                            <span className="stat-value sb-stats-muted">{stats.unscheduledCount} unscheduled</span>
+                        </div>
                     </div>
                 )}
-                <div className="stat-group stat-eighths">
-                    <span className="stat-label">Length:</span>
-                    <span className="stat-value eighths-total">{stats.totalEighthsDisplay} pages</span>
+                <div className="sb-stats-segment sb-stats-length">
+                    <span className="sb-stats-primary sb-stats-accent">{stats.totalEighthsDisplay}</span>
+                    <span className="sb-stats-caption">Pages</span>
                 </div>
             </div>
 
