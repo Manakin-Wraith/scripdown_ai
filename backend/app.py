@@ -18,6 +18,7 @@ from routes.admin_routes import admin_bp
 from routes.email_campaign_routes import campaign_bp
 from routes.campaign_webhook_routes import webhook_bp
 from routes.schedule_routes import schedule_bp
+from routes.segment_routes import segment_bp
 
 load_dotenv()
 
@@ -52,6 +53,7 @@ app.register_blueprint(admin_bp)  # Admin routes at /api/admin/* (superuser only
 app.register_blueprint(webhook_bp)  # Campaign webhook routes at /api/campaigns/webhooks/* — must be before campaign_bp
 app.register_blueprint(campaign_bp)  # Email campaign routes at /api/campaigns/* (superuser only)
 app.register_blueprint(schedule_bp)  # Shooting schedule routes at /api/scripts/:id/schedules/*
+app.register_blueprint(segment_bp)  # Timeline segment routes at /api/segments/* and /api/scripts/:id/segments
 
 @app.route('/health')
 def health_check():

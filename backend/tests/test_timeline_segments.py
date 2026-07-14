@@ -81,3 +81,48 @@ def test_summary_counts_segment_scenes_separately(monkeypatch):
     assert summary['segment_scene_count'] == 1
     assert summary['unassigned_count'] == 1  # only the non-segment null-day scene
     assert summary['scenes_per_day'] == {1: 1}
+
+
+import routes.segment_routes as seg_routes
+
+
+class RouteFakeDB:
+    def __init__(self):
+        self.updates = []
+
+    def update_scene(self, scene_id, **kwargs):
+        self.updates.append((scene_id, kwargs))
+        return {'id': scene_id, **kwargs}
+
+
+def test_attach_scenes_clears_flags_and_recalcs(monkeypatch):
+    fake = RouteFakeDB()
+    recalced = {}
+    monkeypatch.setattr(seg_routes, 'db', fake)
+    monkeypatch.setattr(seg_routes, 'recalculate_story_days',
+                        lambda script_id, start_from_order=0: recalced.update(
+                            {'script_id': script_id, 'start': start_from_order}))
+
+    app = seg_routes.segment_bp
+    # Invoke the view function directly with a pushed request context.
+    from flask import Flask
+    flask_app = Flask(__name__)
+    flask_app.register_blueprint(app)
+    # Bypass @require_auth by disabling it is not needed: use test client with
+    # auth disabled via FLASK_ENV dev bypass.
+    monkeypatch.setenv('FLASK_ENV', 'development')
+
+    with flask_app.test_client() as client:
+        resp = client.post(
+            '/api/segments/seg-A/scenes',
+            json={'scene_ids': ['sc-2'], 'script_id': 'scr-1'},
+        )
+
+    assert resp.status_code == 200
+    scene_id, kwargs = fake.updates[0]
+    assert scene_id == 'sc-2'
+    assert kwargs['segment_id'] == 'seg-A'
+    assert kwargs['story_day'] is None
+    assert kwargs['is_new_story_day'] is False
+    assert kwargs['story_day_is_locked'] is False
+    assert recalced == {'script_id': 'scr-1', 'start': 0}
