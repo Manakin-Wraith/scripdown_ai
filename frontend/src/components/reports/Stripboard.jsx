@@ -13,7 +13,7 @@ import { useToast } from '../../context/ToastContext';
 import { useScript } from '../../context/ScriptContext';
 import { useStoryDayListener } from '../../context/StoryDayContext';
 import { getScenes, getScriptMetadata, getScriptItems, getSchedules, getShootingDays } from '../../services/apiService';
-import { buildScheduledMap } from '../../utils/scheduleMap';
+import { buildScheduledMap, buildShootDayBlocks } from '../../utils/scheduleMap';
 import { getSceneEighthsDisplay, getSceneEighths, formatEighths } from '../../utils/sceneUtils';
 import PageHeader from '../layout/PageHeader';
 import './Stripboard.css';
@@ -39,6 +39,7 @@ const Stripboard = () => {
     const [activeScheduleId, setActiveScheduleId] = useState(null);
     const [scheduledMap, setScheduledMap] = useState(() => new Map());
     const [filterScheduled, setFilterScheduled] = useState('all');
+    const [shootingDays, setShootingDays] = useState([]);
 
     // Helper function to determine scene analysis status
     const getSceneAnalysisStatus = (scene) => {
@@ -135,15 +136,20 @@ const Stripboard = () => {
         fetchData();
     }, [scriptId]);
 
-    // Build sceneId → { dayNumber } map for the active schedule
+    // Build sceneId → { dayNumber } map + retain raw days for shoot-day grouping
     useEffect(() => {
-        if (!activeScheduleId) { setScheduledMap(new Map()); return; }
+        if (!activeScheduleId) { setScheduledMap(new Map()); setShootingDays([]); return; }
         let cancelled = false;
         getShootingDays(activeScheduleId)
-            .then((data) => { if (!cancelled) setScheduledMap(buildScheduledMap(data.days || [])); })
+            .then((data) => {
+                if (cancelled) return;
+                const days = data.days || [];
+                setScheduledMap(buildScheduledMap(days));
+                setShootingDays(days);
+            })
             .catch((err) => {
                 console.warn('Could not fetch shooting days:', err);
-                if (!cancelled) setScheduledMap(new Map());
+                if (!cancelled) { setScheduledMap(new Map()); setShootingDays([]); }
             });
         return () => { cancelled = true; };
     }, [activeScheduleId]);
@@ -193,35 +199,24 @@ const Stripboard = () => {
         return Array.from(days.values()).sort((a, b) => a.day - b.day);
     }, [scenes]);
 
+    // Shared per-scene filter predicate (used by flat list and grouped blocks)
+    const passesFilters = useCallback((s) => {
+        if (filterIntExt !== 'all' && s.int_ext !== filterIntExt) return false;
+        if (filterTimeOfDay !== 'all' && s.time_of_day !== filterTimeOfDay) return false;
+        if (filterAnalysisStatus !== 'all' && getSceneAnalysisStatus(s) !== filterAnalysisStatus) return false;
+        if (filterStoryDay !== 'all' && s.story_day !== parseInt(filterStoryDay)) return false;
+        if (filterScheduled !== 'all') {
+            const isSched = scheduledMap.has(s.id || s.scene_id);
+            if (filterScheduled === 'scheduled' ? !isSched : isSched) return false;
+        }
+        return true;
+    }, [filterIntExt, filterTimeOfDay, filterAnalysisStatus, filterStoryDay, filterScheduled, scheduledMap]);
+
     // Filter and sort scenes
     const filteredScenes = useMemo(() => {
-        let result = [...scenes];
-        
-        // Apply filters
-        if (filterIntExt !== 'all') {
-            result = result.filter(s => s.int_ext === filterIntExt);
-        }
-        if (filterTimeOfDay !== 'all') {
-            result = result.filter(s => s.time_of_day === filterTimeOfDay);
-        }
-        if (filterAnalysisStatus !== 'all') {
-            result = result.filter(s => getSceneAnalysisStatus(s) === filterAnalysisStatus);
-        }
-        if (filterStoryDay !== 'all') {
-            result = result.filter(s => s.story_day === parseInt(filterStoryDay));
-        }
-        if (filterScheduled !== 'all') {
-            result = result.filter((s) => {
-                const sid = s.id || s.scene_id;
-                const isSched = scheduledMap.has(sid);
-                return filterScheduled === 'scheduled' ? isSched : !isSched;
-            });
-        }
-
-        // Apply sorting
+        let result = scenes.filter(passesFilters);
         result.sort((a, b) => {
             let aVal, bVal;
-            
             switch (sortBy) {
                 case 'scene_number':
                     aVal = parseInt(a.scene_number) || 0;
@@ -239,20 +234,35 @@ const Stripboard = () => {
                     aVal = a.scene_order || 0;
                     bVal = b.scene_order || 0;
             }
-            
             if (typeof aVal === 'string') {
-                return sortDir === 'asc' 
-                    ? aVal.localeCompare(bVal)
-                    : bVal.localeCompare(aVal);
+                return sortDir === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
             }
             return sortDir === 'asc' ? aVal - bVal : bVal - aVal;
         });
-        
         return result;
-    }, [scenes, filterIntExt, filterTimeOfDay, filterAnalysisStatus, filterStoryDay, sortBy, sortDir, filterScheduled, scheduledMap]);
+    }, [scenes, passesFilters, sortBy, sortDir]);
 
     // Active scenes (exclude omitted) for stats
     const activeScenes = useMemo(() => scenes.filter(s => !s.is_omitted), [scenes]);
+
+    // sceneId → full scene (insertion order = board natural order)
+    const scenesById = useMemo(() => {
+        const m = new Map();
+        scenes.forEach((s) => m.set(s.id || s.scene_id, s));
+        return m;
+    }, [scenes]);
+
+    // Shoot-day blocks (only meaningful when a schedule is active)
+    const shootDayBlocks = useMemo(() => {
+        return buildShootDayBlocks(shootingDays, scenesById)
+            .map((b) => {
+                const visible = b.scenes.filter(passesFilters);
+                const active = visible.filter((s) => !s.is_omitted);
+                const eighths = active.reduce((sum, s) => sum + getSceneEighths(s), 0);
+                return { ...b, scenes: visible, sceneCount: active.length, eighths };
+            })
+            .filter((b) => b.scenes.length > 0);
+    }, [shootingDays, scenesById, passesFilters]);
 
     // Calculate stats (based on active scenes only)
     const stats = useMemo(() => {
@@ -342,8 +352,131 @@ const Stripboard = () => {
     });
 
     const hasSchedules = schedules.length > 0;
-    // The table gains one column (Shoot) when scheduling is active.
-    const fullColSpan = hasSchedules ? 8 : 7;
+    const grouped = hasSchedules && !!activeScheduleId;
+    // Shoot column retired — block headers carry the shooting day. Constant 7.
+    const fullColSpan = 7;
+
+    const renderSceneRow = (scene) => {
+        const sceneId = scene.id || scene.scene_id;
+        const sceneUserItems = userItemsByScene[sceneId] || {};
+        const chars = [...(scene.characters || []), ...(sceneUserItems.characters || [])];
+        const charDisplay = chars.slice(0, 3).join(', ');
+        const moreChars = chars.length > 3 ? ` +${chars.length - 3}` : '';
+        const eighthsDisplay = getSceneEighthsDisplay(scene);
+        const isInt = scene.int_ext === 'INT';
+        const isDay = scene.time_of_day === 'DAY';
+        const isExpanded = expandedRows.has(sceneId);
+        const fullCast = chars.join(', ');
+        const props = [...(scene.props || []), ...(sceneUserItems.props || [])];
+        const wardrobe = [...(scene.wardrobe || []), ...(sceneUserItems.wardrobe || [])];
+        const vehicles = [...(scene.vehicles || []), ...(sceneUserItems.vehicles || [])];
+        const specialFx = [...(scene.special_fx || []), ...(sceneUserItems.special_fx || [])];
+        const sound = [...(scene.sound || []), ...(sceneUserItems.sound || [])];
+        const atmosphere = scene.atmosphere || '';
+        const analysisStatus = getSceneAnalysisStatus(scene);
+        const notes = getSceneNotes(scene);
+        const notesByDept = getNotesByDepartment(notes);
+        const timelineClass = (scene.timeline_code || 'PRESENT').toLowerCase();
+
+        return (
+            <React.Fragment key={sceneId}>
+                <tr
+                    className={`stripboard-row ${isInt ? 'int' : 'ext'} ${isDay ? 'day' : 'night'} ${isExpanded ? 'expanded' : ''} status-${analysisStatus} ${scene.is_omitted ? 'omitted' : ''}`}
+                    onClick={() => toggleRowExpand(sceneId)}
+                    style={{ cursor: 'pointer' }}
+                >
+                    <td className="col-scene" style={{ display: 'table-cell' }}>
+                        <span className="scene-num">{scene.scene_number}</span>
+                        <span className={`status-icon status-${analysisStatus}`} title={
+                            analysisStatus === 'analyzed' ? 'Analyzed' :
+                            analysisStatus === 'incomplete' ? 'Incomplete - needs more breakdown' :
+                            'Pending analysis'
+                        }>
+                            {analysisStatus === 'analyzed' && <CheckCircle size={12} />}
+                            {analysisStatus === 'incomplete' && <AlertCircle size={12} />}
+                            {analysisStatus === 'pending' && <Clock size={12} />}
+                        </span>
+                    </td>
+                    <td className="col-ie">
+                        <span className={`ie-badge ${isInt ? 'int' : 'ext'}`}>{scene.int_ext}</span>
+                    </td>
+                    <td className="col-setting">
+                        <span className="setting-text">{scene.setting}</span>
+                    </td>
+                    <td className="col-time">
+                        <span className={`time-badge ${isDay ? 'day' : 'night'}`}>{scene.time_of_day}</span>
+                    </td>
+                    <td className="col-day">
+                        {scene.story_day && (
+                            <span className={`sb-day-badge timeline-${timelineClass}`}>D{scene.story_day}</span>
+                        )}
+                    </td>
+                    <td className="col-cast">
+                        <span className="cast-text">{charDisplay}{moreChars}</span>
+                        {chars.length > 0 && <span className="cast-count">({chars.length})</span>}
+                    </td>
+                    <td className="col-pages">
+                        <span className="eighths-num">{eighthsDisplay}</span>
+                    </td>
+                </tr>
+                {isExpanded && (
+                    <tr className="breakdown-row">
+                        <td colSpan={fullColSpan}>
+                            <div className="breakdown-content">
+                                <div className="breakdown-grid">
+                                    {[
+                                        { icon: <Users size={14} />, label: 'Cast', items: chars, dept: 'cast' },
+                                        { icon: <Package size={14} />, label: 'Props', items: props, dept: 'props' },
+                                        { icon: <Shirt size={14} />, label: 'Wardrobe', items: wardrobe, dept: 'wardrobe' },
+                                        { icon: <Car size={14} />, label: 'Vehicles', items: vehicles, dept: 'vehicles' },
+                                        { icon: <Sparkles size={14} />, label: 'Special FX', items: specialFx, dept: 'special_fx' },
+                                        { icon: <Volume2 size={14} />, label: 'Sound', items: sound, dept: 'sound' },
+                                    ].map((card) => (
+                                        <div className="breakdown-card" key={card.label}>
+                                            <div className="breakdown-card-header">
+                                                {card.icon}
+                                                <span>{card.label} ({card.items.length})</span>
+                                                {notesByDept[card.dept] > 0 && (
+                                                    <span className="note-indicator">
+                                                        <MessageSquare size={10} />
+                                                        {notesByDept[card.dept]}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="breakdown-card-body">
+                                                {card.items.length > 0 ? (
+                                                    <ul className="breakdown-list">
+                                                        {card.items.map((it, i) => <li key={i}>{it}</li>)}
+                                                    </ul>
+                                                ) : (
+                                                    <span className="breakdown-empty">None</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                {atmosphere && (
+                                    <div className="breakdown-atmosphere">
+                                        <Cloud size={14} />
+                                        <span className="atmosphere-label">Atmosphere:</span>
+                                        <span className="atmosphere-text">{atmosphere}</span>
+                                    </div>
+                                )}
+                            </div>
+                        </td>
+                    </tr>
+                )}
+                {chars.length > 0 && (
+                    <tr className="print-cast-row">
+                        <td colSpan={fullColSpan}>
+                            <span className="print-cast-label">Cast: </span>
+                            <span className="print-cast-list">{fullCast}</span>
+                        </td>
+                    </tr>
+                )}
+            </React.Fragment>
+        );
+    };
 
     return (
         <div className="stripboard page-container">
@@ -530,10 +663,11 @@ const Stripboard = () => {
                         </select>
                     </div>
                 )}
-                <div className="filter-group">
+                <div className="filter-group" title={grouped ? 'Sorted by shooting schedule' : undefined}>
                     <select
                         value={sortBy}
                         onChange={(e) => setSortBy(e.target.value)}
+                        disabled={grouped}
                     >
                         <option value="scene_order">Scene Order</option>
                         <option value="scene_number">Scene Number</option>
@@ -543,6 +677,7 @@ const Stripboard = () => {
                     <button
                         className="sort-dir-btn"
                         onClick={() => setSortDir(sortDir === 'asc' ? 'desc' : 'asc')}
+                        disabled={grouped}
                     >
                         {sortDir === 'asc' ? <SortAsc size={14} /> : <SortDesc size={14} />}
                     </button>
@@ -559,25 +694,24 @@ const Stripboard = () => {
                 <table className="stripboard-table">
                     <thead>
                         <tr>
-                            <th className="col-scene" onClick={() => toggleSort('scene_number')}>
+                            <th className={`col-scene${grouped ? ' sort-disabled' : ''}`} onClick={() => !grouped && toggleSort('scene_number')}>
                                 #
-                                {sortBy === 'scene_number' && (
+                                {!grouped && sortBy === 'scene_number' && (
                                     sortDir === 'asc' ? <SortAsc size={12} /> : <SortDesc size={12} />
                                 )}
                             </th>
                             <th className="col-ie">I/E</th>
-                            <th className="col-setting" onClick={() => toggleSort('setting')}>
+                            <th className={`col-setting${grouped ? ' sort-disabled' : ''}`} onClick={() => !grouped && toggleSort('setting')}>
                                 Setting
-                                {sortBy === 'setting' && (
+                                {!grouped && sortBy === 'setting' && (
                                     sortDir === 'asc' ? <SortAsc size={12} /> : <SortDesc size={12} />
                                 )}
                             </th>
                             <th className="col-time">D/N</th>
                             <th className="col-day">Day</th>
-                            {hasSchedules && <th className="col-shoot">Shoot</th>}
-                            <th className="col-cast" onClick={() => toggleSort('characters')}>
+                            <th className={`col-cast${grouped ? ' sort-disabled' : ''}`} onClick={() => !grouped && toggleSort('characters')}>
                                 Cast
-                                {sortBy === 'characters' && (
+                                {!grouped && sortBy === 'characters' && (
                                     sortDir === 'asc' ? <SortAsc size={12} /> : <SortDesc size={12} />
                                 )}
                             </th>
@@ -585,302 +719,61 @@ const Stripboard = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {filteredScenes.map((scene, index) => {
-                            const sceneId = scene.id || scene.scene_id;
-                            const sceneUserItems = userItemsByScene[sceneId] || {};
-                            const chars = [...(scene.characters || []), ...(sceneUserItems.characters || [])];
-                            const charDisplay = chars.slice(0, 3).join(', ');
-                            const moreChars = chars.length > 3 ? ` +${chars.length - 3}` : '';
-                            
-                            // Calculate scene length in eighths
-                            const eighthsDisplay = getSceneEighthsDisplay(scene);
-                            
-                            const isInt = scene.int_ext === 'INT';
-                            const isDay = scene.time_of_day === 'DAY';
-                            const isExpanded = expandedRows.has(sceneId);
-                            
-                            // Full cast list for print (second row)
-                            const fullCast = chars.join(', ');
-                            
-                            // Breakdown data — merge AI items + user-added items
-                            const props = [...(scene.props || []), ...(sceneUserItems.props || [])];
-                            const wardrobe = [...(scene.wardrobe || []), ...(sceneUserItems.wardrobe || [])];
-                            const vehicles = [...(scene.vehicles || []), ...(sceneUserItems.vehicles || [])];
-                            const specialFx = [...(scene.special_fx || []), ...(sceneUserItems.special_fx || [])];
-                            const sound = [...(scene.sound || []), ...(sceneUserItems.sound || [])];
-                            const atmosphere = scene.atmosphere || '';
-                            
-                            // Analysis status
-                            const analysisStatus = getSceneAnalysisStatus(scene);
-                            const notes = getSceneNotes(scene);
-                            const notesByDept = getNotesByDepartment(notes);
-                            const totalNotes = notes.length;
-                            
-                            // Story day separator: show when day changes from previous scene
-                            const prevScene = index > 0 ? filteredScenes[index - 1] : null;
-                            const showDaySeparator = scene.story_day && (
-                                !prevScene || prevScene.story_day !== scene.story_day
-                            );
-                            const timelineClass = (scene.timeline_code || 'PRESENT').toLowerCase();
-                            
-                            return (
-                                <React.Fragment key={sceneId}>
-                                    {/* Story Day Separator */}
-                                    {showDaySeparator && (
-                                        <tr className="sb-day-separator-row">
+                        {grouped
+                            ? shootDayBlocks.map((block) => {
+                                const key = block.unscheduled ? 'unscheduled' : `day-${block.dayNumber}`;
+                                const title = block.unscheduled ? 'Unscheduled' : `Shoot Day ${block.dayNumber}`;
+                                const totalLabel = block.eighths > 0 ? formatEighths(block.eighths) : '0';
+                                const footLabel = block.unscheduled ? 'Unscheduled' : `End of Day ${block.dayNumber}`;
+                                return (
+                                    <React.Fragment key={key}>
+                                        <tr className={`sb-block-header-row${block.unscheduled ? ' unscheduled' : ''}`}>
                                             <td colSpan={fullColSpan}>
-                                                <div className={`sb-day-separator timeline-${timelineClass}`}>
-                                                    <div className="sb-day-separator-line"></div>
-                                                    <span className={`sb-day-separator-label timeline-${timelineClass}`}>
-                                                        <CalendarDays size={11} />
-                                                        {scene.story_day_label || `Day ${scene.story_day}`}
-                                                    </span>
-                                                    <div className="sb-day-separator-line"></div>
+                                                <div className="sb-block-header">
+                                                    <CalendarDays size={13} />
+                                                    <span className="sb-block-title">{title}</span>
+                                                    <span className="sb-block-count">· {block.sceneCount} scene{block.sceneCount === 1 ? '' : 's'}</span>
                                                 </div>
                                             </td>
                                         </tr>
-                                    )}
-                                    <tr 
-                                        className={`stripboard-row ${isInt ? 'int' : 'ext'} ${isDay ? 'day' : 'night'} ${isExpanded ? 'expanded' : ''} status-${analysisStatus} ${scene.is_omitted ? 'omitted' : ''} ${hasSchedules && activeScheduleId && !scene.is_omitted && !scheduledMap.has(sceneId) ? 'sb-unscheduled' : ''}`}
-                                        onClick={() => toggleRowExpand(sceneId)}
-                                        style={{ cursor: 'pointer' }}
-                                    >
-                                        <td className="col-scene" style={{ display: 'table-cell' }}>
-                                            <span className="scene-num">{scene.scene_number}</span>
-                                            <span className={`status-icon status-${analysisStatus}`} title={
-                                                analysisStatus === 'analyzed' ? 'Analyzed' :
-                                                analysisStatus === 'incomplete' ? 'Incomplete - needs more breakdown' :
-                                                'Pending analysis'
-                                            }>
-                                                {analysisStatus === 'analyzed' && <CheckCircle size={12} />}
-                                                {analysisStatus === 'incomplete' && <AlertCircle size={12} />}
-                                                {analysisStatus === 'pending' && <Clock size={12} />}
-                                            </span>
-                                        </td>
-                                        <td className="col-ie">
-                                            <span className={`ie-badge ${isInt ? 'int' : 'ext'}`}>
-                                                {scene.int_ext}
-                                            </span>
-                                        </td>
-                                        <td className="col-setting">
-                                            <span className="setting-text">{scene.setting}</span>
-                                        </td>
-                                        <td className="col-time">
-                                            <span className={`time-badge ${isDay ? 'day' : 'night'}`}>
-                                                {scene.time_of_day}
-                                            </span>
-                                        </td>
-                                        <td className="col-day">
-                                            {scene.story_day && (
-                                                <span className={`sb-day-badge timeline-${timelineClass}`}>
-                                                    D{scene.story_day}
-                                                </span>
-                                            )}
-                                        </td>
-                                        {hasSchedules && (
-                                            <td className="col-shoot">
-                                                {activeScheduleId && scheduledMap.has(sceneId) ? (
-                                                    <span className="sb-shoot-pill scheduled">
-                                                        D{scheduledMap.get(sceneId).dayNumber}
-                                                    </span>
-                                                ) : (
-                                                    <span className="sb-shoot-pill unscheduled">Unscheduled</span>
-                                                )}
-                                            </td>
-                                        )}
-                                        <td className="col-cast">
-                                            <span className="cast-text">
-                                                {charDisplay}{moreChars}
-                                            </span>
-                                            {chars.length > 0 && (
-                                                <span className="cast-count">({chars.length})</span>
-                                            )}
-                                        </td>
-                                        <td className="col-pages">
-                                            <span className="eighths-num">{eighthsDisplay}</span>
-                                        </td>
-                                    </tr>
-                                    {/* Expanded Breakdown Row */}
-                                    {isExpanded && (
-                                        <tr className="breakdown-row">
+                                        {block.scenes.map((scene) => renderSceneRow(scene))}
+                                        <tr className={`sb-block-footer-row${block.unscheduled ? ' unscheduled' : ''}`}>
                                             <td colSpan={fullColSpan}>
-                                                <div className="breakdown-content">
-                                                    <div className="breakdown-grid">
-                                                        {/* Cast */}
-                                                        <div className="breakdown-card">
-                                                            <div className="breakdown-card-header">
-                                                                <Users size={14} />
-                                                                <span>Cast ({chars.length})</span>
-                                                                {notesByDept.cast > 0 && (
-                                                                    <span className="note-indicator">
-                                                                        <MessageSquare size={10} />
-                                                                        {notesByDept.cast}
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                            <div className="breakdown-card-body">
-                                                                {chars.length > 0 ? (
-                                                                    <ul className="breakdown-list">
-                                                                        {chars.map((char, i) => (
-                                                                            <li key={i}>{char}</li>
-                                                                        ))}
-                                                                    </ul>
-                                                                ) : (
-                                                                    <span className="breakdown-empty">None</span>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                        
-                                                        {/* Props */}
-                                                        <div className="breakdown-card">
-                                                            <div className="breakdown-card-header">
-                                                                <Package size={14} />
-                                                                <span>Props ({props.length})</span>
-                                                                {notesByDept.props > 0 && (
-                                                                    <span className="note-indicator">
-                                                                        <MessageSquare size={10} />
-                                                                        {notesByDept.props}
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                            <div className="breakdown-card-body">
-                                                                {props.length > 0 ? (
-                                                                    <ul className="breakdown-list">
-                                                                        {props.map((prop, i) => (
-                                                                            <li key={i}>{prop}</li>
-                                                                        ))}
-                                                                    </ul>
-                                                                ) : (
-                                                                    <span className="breakdown-empty">None</span>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                        
-                                                        {/* Wardrobe */}
-                                                        <div className="breakdown-card">
-                                                            <div className="breakdown-card-header">
-                                                                <Shirt size={14} />
-                                                                <span>Wardrobe ({wardrobe.length})</span>
-                                                                {notesByDept.wardrobe > 0 && (
-                                                                    <span className="note-indicator">
-                                                                        <MessageSquare size={10} />
-                                                                        {notesByDept.wardrobe}
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                            <div className="breakdown-card-body">
-                                                                {wardrobe.length > 0 ? (
-                                                                    <ul className="breakdown-list">
-                                                                        {wardrobe.map((item, i) => (
-                                                                            <li key={i}>{item}</li>
-                                                                        ))}
-                                                                    </ul>
-                                                                ) : (
-                                                                    <span className="breakdown-empty">None</span>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                        
-                                                        {/* Vehicles */}
-                                                        <div className="breakdown-card">
-                                                            <div className="breakdown-card-header">
-                                                                <Car size={14} />
-                                                                <span>Vehicles ({vehicles.length})</span>
-                                                                {notesByDept.vehicles > 0 && (
-                                                                    <span className="note-indicator">
-                                                                        <MessageSquare size={10} />
-                                                                        {notesByDept.vehicles}
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                            <div className="breakdown-card-body">
-                                                                {vehicles.length > 0 ? (
-                                                                    <ul className="breakdown-list">
-                                                                        {vehicles.map((v, i) => (
-                                                                            <li key={i}>{v}</li>
-                                                                        ))}
-                                                                    </ul>
-                                                                ) : (
-                                                                    <span className="breakdown-empty">None</span>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                        
-                                                        {/* Special FX */}
-                                                        <div className="breakdown-card">
-                                                            <div className="breakdown-card-header">
-                                                                <Sparkles size={14} />
-                                                                <span>Special FX ({specialFx.length})</span>
-                                                                {notesByDept.special_fx > 0 && (
-                                                                    <span className="note-indicator">
-                                                                        <MessageSquare size={10} />
-                                                                        {notesByDept.special_fx}
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                            <div className="breakdown-card-body">
-                                                                {specialFx.length > 0 ? (
-                                                                    <ul className="breakdown-list">
-                                                                        {specialFx.map((fx, i) => (
-                                                                            <li key={i}>{fx}</li>
-                                                                        ))}
-                                                                    </ul>
-                                                                ) : (
-                                                                    <span className="breakdown-empty">None</span>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                        
-                                                        {/* Sound */}
-                                                        <div className="breakdown-card">
-                                                            <div className="breakdown-card-header">
-                                                                <Volume2 size={14} />
-                                                                <span>Sound ({sound.length})</span>
-                                                                {notesByDept.sound > 0 && (
-                                                                    <span className="note-indicator">
-                                                                        <MessageSquare size={10} />
-                                                                        {notesByDept.sound}
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                            <div className="breakdown-card-body">
-                                                                {sound.length > 0 ? (
-                                                                    <ul className="breakdown-list">
-                                                                        {sound.map((s, i) => (
-                                                                            <li key={i}>{s}</li>
-                                                                        ))}
-                                                                    </ul>
-                                                                ) : (
-                                                                    <span className="breakdown-empty">None</span>
-                                                                )}
-                                                            </div>
-                                                        </div>
+                                                <div className="sb-block-footer">
+                                                    <span className="sb-block-foot-label">{footLabel}</span>
+                                                    <span className="sb-block-foot-pages">· {totalLabel} pgs</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </React.Fragment>
+                                );
+                            })
+                            : filteredScenes.map((scene, index) => {
+                                const prevScene = index > 0 ? filteredScenes[index - 1] : null;
+                                const showDaySeparator = scene.story_day && (
+                                    !prevScene || prevScene.story_day !== scene.story_day
+                                );
+                                const timelineClass = (scene.timeline_code || 'PRESENT').toLowerCase();
+                                return (
+                                    <React.Fragment key={scene.id || scene.scene_id}>
+                                        {showDaySeparator && (
+                                            <tr className="sb-day-separator-row">
+                                                <td colSpan={fullColSpan}>
+                                                    <div className={`sb-day-separator timeline-${timelineClass}`}>
+                                                        <div className="sb-day-separator-line"></div>
+                                                        <span className={`sb-day-separator-label timeline-${timelineClass}`}>
+                                                            <CalendarDays size={11} />
+                                                            {scene.story_day_label || `Day ${scene.story_day}`}
+                                                        </span>
+                                                        <div className="sb-day-separator-line"></div>
                                                     </div>
-                                                    
-                                                    {/* Atmosphere */}
-                                                    {atmosphere && (
-                                                        <div className="breakdown-atmosphere">
-                                                            <Cloud size={14} />
-                                                            <span className="atmosphere-label">Atmosphere:</span>
-                                                            <span className="atmosphere-text">{atmosphere}</span>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    )}
-                                    {/* Print-only row for full cast list */}
-                                    {chars.length > 0 && (
-                                        <tr className="print-cast-row">
-                                            <td colSpan={fullColSpan}>
-                                                <span className="print-cast-label">Cast: </span>
-                                                <span className="print-cast-list">{fullCast}</span>
-                                            </td>
-                                        </tr>
-                                    )}
-                                </React.Fragment>
-                            );
-                        })}
+                                                </td>
+                                            </tr>
+                                        )}
+                                        {renderSceneRow(scene)}
+                                    </React.Fragment>
+                                );
+                            })}
                     </tbody>
                 </table>
             </div>
