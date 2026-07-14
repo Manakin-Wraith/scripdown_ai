@@ -94,7 +94,7 @@ class RouteFakeDB:
         self.client = None
 
     def get_timeline_segment(self, segment_id):
-        return {'id': segment_id, 'script_id': 'scr-1'}
+        return {'id': segment_id, 'script_id': 'scr-1', 'name': 'Old Name'}
 
     def get_scene_script_id(self, scene_id):
         return 'scr-1'
@@ -102,6 +102,9 @@ class RouteFakeDB:
     def update_scene(self, scene_id, **kwargs):
         self.updates.append((scene_id, kwargs))
         return {'id': scene_id, **kwargs}
+
+    def update_timeline_segment(self, segment_id, **kwargs):
+        return {'id': segment_id, 'script_id': 'scr-1', **kwargs}
 
 
 def test_attach_scenes_clears_flags_and_recalcs(monkeypatch):
@@ -175,3 +178,33 @@ def test_attach_rejects_cross_script_scene_without_mutation(monkeypatch):
         )
     assert resp.status_code == 400
     assert fake.updates == []  # nothing mutated when validation fails
+
+
+def _patch_client(monkeypatch, fake, recalced):
+    monkeypatch.setattr(seg_routes, 'db', fake)
+    monkeypatch.setattr(seg_routes, 'script_access', lambda *a, **k: 'ok')
+    monkeypatch.setattr(seg_routes, 'recalculate_story_days',
+                        lambda script_id, start_from_order=0: recalced.append((script_id, start_from_order)))
+    monkeypatch.setenv('FLASK_ENV', 'development')
+    from flask import Flask
+    flask_app = Flask(__name__)
+    flask_app.register_blueprint(seg_routes.segment_bp)
+    return flask_app
+
+
+def test_rename_triggers_recalc(monkeypatch):
+    recalced = []
+    app = _patch_client(monkeypatch, RouteFakeDB(), recalced)
+    with app.test_client() as client:
+        resp = client.patch('/api/segments/seg-A', json={'name': 'New Name'})
+    assert resp.status_code == 200
+    assert recalced == [('scr-1', 0)]
+
+
+def test_recolour_does_not_trigger_recalc(monkeypatch):
+    recalced = []
+    app = _patch_client(monkeypatch, RouteFakeDB(), recalced)
+    with app.test_client() as client:
+        resp = client.patch('/api/segments/seg-A', json={'segment_type': 'DREAM'})
+    assert resp.status_code == 200
+    assert recalced == []  # colour/order changes don't touch scene labels
