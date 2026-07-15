@@ -5,9 +5,8 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { 
-    Check, 
-    Loader,
+import {
+    Check,
     Clapperboard,
     Briefcase,
     Camera,
@@ -24,6 +23,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { getDepartments } from '../../lib/supabase';
+import { Spinner } from '../ui';
 import './DepartmentSelector.css';
 
 // Icon mapping
@@ -136,7 +136,7 @@ const DepartmentSelector = ({ isOpen, onComplete }) => {
                 <div className="dept-selector-content">
                     {loading ? (
                         <div className="dept-loading">
-                            <Loader size={32} className="spin" />
+                            <Spinner size={32} />
                             <span>Loading departments...</span>
                         </div>
                     ) : (
@@ -214,7 +214,7 @@ const DepartmentSelector = ({ isOpen, onComplete }) => {
                     >
                         {saving ? (
                             <>
-                                <Loader size={18} className="spin" />
+                                <Spinner size={18} />
                                 Saving...
                             </>
                         ) : (

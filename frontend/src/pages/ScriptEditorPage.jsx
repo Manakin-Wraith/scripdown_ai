@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Loader, AlertCircle, Check, Clapperboard } from 'lucide-react';
+import { ArrowLeft, AlertCircle, Check, Clapperboard } from 'lucide-react';
 import SceneEditor from '../components/scenes/SceneEditor';
 import { getScriptMetadata, getScriptFullText } from '../services/apiService';
 import { useToast } from '../context/ToastContext';
+import { Spinner } from '../components/ui';
 import './ScriptEditorPage.css';
 
 /**
@@ -66,7 +67,7 @@ const ScriptEditorPage = () => {
     if (loading) {
         return (
             <div className="editor-page loading">
-                <Loader size={32} className="spin" />
+                <Spinner size={32} />
                 <p>Loading script...</p>
             </div>
         );

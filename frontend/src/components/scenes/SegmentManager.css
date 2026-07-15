@@ -76,6 +76,26 @@
 
 .segmgr-swatch-wrap { position: relative; display: inline-flex; }
 
+.segmgr-swatch-spin {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    color: var(--gray-300, #cbd5e1);
+    flex: none;
+}
+
+.segmgr-name-spin { display: inline-flex; margin-left: 0.4rem; vertical-align: middle; color: var(--gray-400, #94a3b8); }
+
+.segmgr-actions-spin {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 66px;
+    color: var(--gray-300, #cbd5e1);
+}
+
 .segmgr-swatch {
     width: 16px;
     height: 16px;

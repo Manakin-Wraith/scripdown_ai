@@ -5,19 +5,19 @@
  */
 
 import React, { useState } from 'react';
-import { 
-    X, 
-    Mail, 
-    Lock, 
-    User, 
-    Eye, 
-    EyeOff, 
-    Loader,
+import {
+    X,
+    Mail,
+    Lock,
+    User,
+    Eye,
+    EyeOff,
     Clapperboard,
     AlertCircle
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import ForgotPasswordModal from './ForgotPasswordModal';
+import { Spinner } from '../ui';
 import './AuthModal.css';
 
 const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
@@ -197,7 +197,7 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
                     >
                         {loading ? (
                             <>
-                                <Loader size={18} className="spin" />
+                                <Spinner size={18} />
                                 {mode === 'login' ? 'Signing in...' : 'Creating account...'}
                             </>
                         ) : (

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, Mail, Send, Loader } from 'lucide-react';
+import { X, Mail, Send } from 'lucide-react';
 import { getEmailTemplates, createCampaign } from '../../services/apiService';
+import { Spinner } from '../ui';
 import './PersonalEmailModal.css';
 
 const PersonalEmailModal = ({ isOpen, onClose, onSuccess }) => {
@@ -216,7 +217,7 @@ const PersonalEmailModal = ({ isOpen, onClose, onSuccess }) => {
                     <button className="btn-primary" onClick={handleSubmit} disabled={loading}>
                         {loading ? (
                             <>
-                                <Loader size={16} className="spin" />
+                                <Spinner size={16} />
                                 Creating...
                             </>
                         ) : (

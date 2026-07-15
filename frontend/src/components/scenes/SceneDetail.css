@@ -709,6 +709,8 @@ button.scene-title.editable-title:hover .edit-hint-icon {
     flex-wrap: wrap;
 }
 
+.sd-inline-spin { display: inline-flex; align-items: center; color: var(--gray-400, #94a3b8); }
+
 .story-day-badge.editable-badge {
     cursor: pointer;
     transition: filter 0.15s, box-shadow 0.15s;
@@ -803,6 +805,9 @@ button.scene-title.editable-title:hover .edit-hint-icon {
 }
 
 .segment-menu-header {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
     padding: 0.25rem 0.5rem 0.4rem;
     font-size: 0.65rem;
     font-weight: 700;
@@ -810,6 +815,8 @@ button.scene-title.editable-title:hover .edit-hint-icon {
     text-transform: uppercase;
     color: var(--gray-500, #64748b);
 }
+
+.segment-menu-spin { color: var(--gray-400, #94a3b8); }
 
 .segment-menu-list {
     display: flex;

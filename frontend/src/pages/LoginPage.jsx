@@ -11,9 +11,8 @@ import {
     Mail, 
     Lock, 
     User, 
-    Eye, 
-    EyeOff, 
-    Loader,
+    Eye,
+    EyeOff,
     Film,
     AlertCircle,
     CheckCircle,
@@ -25,6 +24,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { resetPassword, resendVerificationEmail } from '../lib/supabase';
 import SignupSuccess from '../components/auth/SignupSuccess';
+import { Spinner } from '../components/ui';
 import './LoginPage.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -189,7 +189,7 @@ const LoginPage = () => {
         return (
             <div className="login-page">
                 <div className="login-loading">
-                    <Loader size={32} className="spin" />
+                    <Spinner size={32} />
                     <p>Loading...</p>
                 </div>
             </div>
@@ -441,7 +441,7 @@ const LoginPage = () => {
                         >
                             {loading ? (
                                 <>
-                                    <Loader size={18} className="spin" />
+                                    <Spinner size={18} />
                                     {mode === 'login' && 'Signing in...'}
                                     {mode === 'signup' && 'Creating account...'}
                                     {mode === 'forgot' && 'Sending...'}

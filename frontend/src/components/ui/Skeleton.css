@@ -1,0 +1,30 @@
+@keyframes ui-skeleton-shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
+.ui-skeleton {
+  display: block;
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    var(--surface-2, rgba(148, 163, 184, 0.14)) 25%,
+    var(--surface-3, rgba(148, 163, 184, 0.28)) 37%,
+    var(--surface-2, rgba(148, 163, 184, 0.14)) 63%
+  );
+  background-size: 200% 100%;
+  animation: ui-skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+.ui-skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-skeleton {
+    animation: none;
+    background: var(--surface-2, rgba(148, 163, 184, 0.18));
+  }
+}

@@ -7,8 +7,8 @@
 
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { Loader } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { Spinner } from '../ui';
 import './ProtectedRoute.css';
 
 const ProtectedRoute = ({ children }) => {
@@ -19,7 +19,7 @@ const ProtectedRoute = ({ children }) => {
     if (loading) {
         return (
             <div className="protected-loading">
-                <Loader size={32} className="spin" />
+                <Spinner size={32} />
                 <p>Loading...</p>
             </div>
         );

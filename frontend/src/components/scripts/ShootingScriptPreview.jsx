@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { 
-    ChevronLeft, 
-    Download, 
-    Printer, 
-    Lock, 
+import {
+    ChevronLeft,
+    Download,
+    Printer,
+    Lock,
     FileText,
-    Loader,
     AlertCircle
 } from 'lucide-react';
 import { getShootingScriptData, getScriptItems } from '../../services/apiService';
 import { useToast } from '../../context/ToastContext';
+import { Spinner } from '../ui';
 import './ShootingScriptPreview.css';
 
 /**
@@ -88,7 +88,7 @@ const ShootingScriptPreview = () => {
         return (
             <div className="shooting-script-preview">
                 <div className="loading-state">
-                    <Loader size={32} className="spin" />
+                    <Spinner size={32} />
                     <p>Loading shooting script...</p>
                 </div>
             </div>

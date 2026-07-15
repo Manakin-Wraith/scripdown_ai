@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Search, TrendingUp, DollarSign, CreditCard, Calendar } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { Spinner } from '../ui';
 import './RevenueBreakdownModal.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -117,7 +118,7 @@ const RevenueBreakdownModal = ({ isOpen, onClose }) => {
 
         {loading ? (
           <div className="revenue-modal__loading">
-            <div className="spinner"></div>
+            <Spinner size={32} />
             <p>Loading revenue data...</p>
           </div>
         ) : data?.success ? (

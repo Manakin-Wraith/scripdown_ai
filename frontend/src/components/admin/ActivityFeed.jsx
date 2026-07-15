@@ -8,6 +8,7 @@ import {
   CreditCard
 } from 'lucide-react';
 import PropTypes from 'prop-types';
+import { Spinner } from '../ui';
 import './ActivityFeed.css';
 
 /**
@@ -81,7 +82,7 @@ export default function ActivityFeed({ activities = [], loading = false, onRefre
           <h3>Recent Activity</h3>
         </div>
         <div className="activity-feed__loading">
-          <div className="spinner-sm"></div>
+          <Spinner size={16} />
           <p>Loading activity...</p>
         </div>
       </div>

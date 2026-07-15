@@ -7,7 +7,7 @@ import ScriptHeader from '../metadata/ScriptHeader';
 import ScriptSummary from './ScriptSummary';
 import PdfViewerPanel from '../pdf/PdfViewerPanel';
 import { AlertCircle, ChevronDown, ChevronUp, Zap, FileText, List, XCircle, BookOpen, CalendarDays, Clapperboard } from 'lucide-react';
-import { Spinner } from '../ui';
+import { Spinner, LoaderOverlay } from '../ui';
 import { useToast } from '../../context/ToastContext';
 import { useScript } from '../../context/ScriptContext';
 import { useStoryDayListener, useStoryDayNotify } from '../../context/StoryDayContext';
@@ -38,6 +38,7 @@ const SceneViewer = () => {
     const [currentPdfPage, setCurrentPdfPage] = useState(1);
     const [recentlyCompletedScenes, setRecentlyCompletedScenes] = useState(new Set());
     const [storyDayFilter, setStoryDayFilter] = useState(null);
+    const [refetching, setRefetching] = useState(false);
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
     const [showSegmentManager, setShowSegmentManager] = useState(false);
     const [segmentCount, setSegmentCount] = useState(0);
@@ -120,6 +121,7 @@ const SceneViewer = () => {
 
     // Reusable scene refresh (called after story day edits and other changes)
     const refreshScenes = useCallback(async () => {
+        setRefetching(true);
         try {
             const [sceneData, itemsData] = await Promise.all([
                 getScenes(scriptId),
@@ -142,6 +144,8 @@ const SceneViewer = () => {
             }
         } catch (err) {
             console.error('Error refreshing scenes:', err);
+        } finally {
+            setRefetching(false);
         }
     }, [scriptId]);
 
@@ -572,7 +576,7 @@ const SceneViewer = () => {
     if (loading) {
         return (
             <div className="scene-viewer-loading">
-                <div className="spinner"></div>
+                <Spinner size={32} label="Loading script" />
                 <p>Loading script...</p>
             </div>
         );
@@ -593,6 +597,7 @@ const SceneViewer = () => {
 
     return (
         <div className="scene-viewer-container">
+            <LoaderOverlay active={refetching} label="Updating scenes…" />
             {/* Script Header */}
             <ScriptHeader metadata={metadata} sceneCount={scenes.length} />
             

@@ -1,5 +1,6 @@
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import PropTypes from 'prop-types';
+import { Spinner } from '../ui';
 import './Charts.css';
 
 /**
@@ -13,7 +14,7 @@ export default function ScriptsChart({ data = [], loading = false }) {
           <h3>Scripts Over Time</h3>
         </div>
         <div className="chart-loading">
-          <div className="spinner-sm"></div>
+          <Spinner size={16} />
         </div>
       </div>
     );

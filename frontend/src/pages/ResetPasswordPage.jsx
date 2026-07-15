@@ -7,17 +7,17 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-    Lock, 
-    Eye, 
-    EyeOff, 
-    Loader,
+import {
+    Lock,
+    Eye,
+    EyeOff,
     CheckCircle,
     AlertCircle,
     KeyRound,
     Film
 } from 'lucide-react';
 import { supabase, updatePassword } from '../lib/supabase';
+import { Spinner } from '../components/ui';
 import './ResetPasswordPage.css';
 
 const ResetPasswordPage = () => {
@@ -123,7 +123,7 @@ const ResetPasswordPage = () => {
             <div className="reset-password-page">
                 <div className="reset-password-card">
                     <div className="reset-loading">
-                        <Loader size={32} className="spin" />
+                        <Spinner size={32} />
                         <p>Verifying reset link...</p>
                     </div>
                 </div>
@@ -167,7 +167,7 @@ const ResetPasswordPage = () => {
                         <p>Your password has been successfully changed. Redirecting you to your scripts...</p>
                     </div>
                     <div className="reset-loading">
-                        <Loader size={24} className="spin" />
+                        <Spinner size={24} />
                     </div>
                 </div>
             </div>
@@ -267,7 +267,7 @@ const ResetPasswordPage = () => {
                     >
                         {loading ? (
                             <>
-                                <Loader size={18} className="spin" />
+                                <Spinner size={18} />
                                 Updating...
                             </>
                         ) : (

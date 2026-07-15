@@ -8,7 +8,7 @@ import {
     CheckCircle, AlertCircle, Clock, FileText, MessageSquare,
     CalendarDays
 } from 'lucide-react';
-import { Spinner, EmptyState } from '../ui';
+import { Spinner, EmptyState, LoaderOverlay } from '../ui';
 import { useToast } from '../../context/ToastContext';
 import { useScript } from '../../context/ScriptContext';
 import { useStoryDayListener } from '../../context/StoryDayContext';
@@ -28,6 +28,7 @@ const Stripboard = () => {
     const [scenes, setScenes] = useState([]);
     const [metadata, setMetadata] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [refetching, setRefetching] = useState(false);
     const [userItemsByScene, setUserItemsByScene] = useState({}); // { sceneId: { category: [items] } }
     const [sortBy, setSortBy] = useState('scene_order');
     const [sortDir, setSortDir] = useState('asc');
@@ -157,6 +158,7 @@ const Stripboard = () => {
 
     // Reusable refresh for story day sync
     const refreshStripboard = useCallback(async () => {
+        setRefetching(true);
         try {
             const [sceneData, itemsData] = await Promise.all([
                 getScenes(scriptId),
@@ -173,6 +175,8 @@ const Stripboard = () => {
             setUserItemsByScene(itemMap);
         } catch (err) {
             console.error('Error refreshing stripboard:', err);
+        } finally {
+            setRefetching(false);
         }
     }, [scriptId]);
 
@@ -486,6 +490,7 @@ const Stripboard = () => {
 
     return (
         <div className="stripboard page-container">
+            <LoaderOverlay active={refetching} label="Updating stripboard…" />
             {/* Print-only Professional Header */}
             <div className="print-header">
                 <div className="print-header-top">

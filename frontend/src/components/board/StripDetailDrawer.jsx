@@ -4,7 +4,7 @@ import { formatEighths } from '../../utils/sceneUtils';
 import { toggleNewDay, setTimelineCode, setStoryDay } from '../../services/apiService';
 import { useStoryDayNotify } from '../../context/StoryDayContext';
 import { useToast } from '../../context/ToastContext';
-import { Drawer } from '../ui';
+import { Drawer, Spinner } from '../ui';
 import './StripDetailDrawer.css';
 
 const TIMELINE_CODE_OPTIONS = ['PRESENT', 'FLASHBACK', 'DREAM', 'FANTASY', 'MONTAGE', 'TITLE_CARD'];
@@ -122,7 +122,7 @@ const StripDetailDrawer = ({ stripId, scenes, userItemsByScene, onClose, scriptI
                                     <button className="drawer-sd-btn confirm" disabled={sdSaving} onClick={() => {
                                         const val = parseInt(sdDraft, 10);
                                         if (val >= 1) handleStoryDayAction(() => setStoryDay(scriptId, sceneId, val)).then(() => setSdEditing(false));
-                                    }}><Check size={14} /></button>
+                                    }}>{sdSaving ? <Spinner size={14} label="Saving" /> : <Check size={14} />}</button>
                                     <button className="drawer-sd-btn cancel" disabled={sdSaving} onClick={() => setSdEditing(false)}><X size={14} /></button>
                                 </div>
                             )}
@@ -148,6 +148,9 @@ const StripDetailDrawer = ({ stripId, scenes, userItemsByScene, onClose, scriptI
                                         ))}
                                     </select>
                                 </>
+                            )}
+                            {sdSaving && !sdEditing && (
+                                <span className="drawer-sd-spin"><Spinner size={13} label="Saving" /></span>
                             )}
                         </div>
                         {scene.page_length_eighths > 0 && (

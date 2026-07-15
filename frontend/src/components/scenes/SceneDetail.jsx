@@ -543,7 +543,7 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
                                         disabled={segmentSaving}
                                         title="Remove from segment — returns to the story-day timeline"
                                     >
-                                        <X size={11} />
+                                        {segmentSaving ? <Spinner size={11} label="Removing" /> : <X size={11} />}
                                     </button>
                                 </span>
                             );
@@ -561,7 +561,10 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
                                 </button>
                                 {segmentMenuOpen && (
                                     <div className="segment-menu" role="menu">
-                                        <div className="segment-menu-header">Move to segment</div>
+                                        <div className="segment-menu-header">
+                                            Move to segment
+                                            {segmentSaving && <Spinner size={13} label="Saving" className="segment-menu-spin" />}
+                                        </div>
                                         {segments.length > 0 && (
                                             <div className="segment-menu-list">
                                                 {segments.map(seg => (
@@ -650,7 +653,7 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
                                     }}
                                     title="Save"
                                 >
-                                    <Check size={14} />
+                                    {storyDaySaving ? <Spinner size={14} label="Saving" /> : <Check size={14} />}
                                 </button>
                                 <button
                                     className="edit-action-btn cancel"
@@ -698,6 +701,9 @@ const SceneDetail = ({ scene, scriptId, onAnalyze, isAnalyzing = false, pageMapp
                                     ))}
                                 </select>
                             </>
+                        )}
+                        {storyDaySaving && !storyDayEditing && (
+                            <span className="sd-inline-spin"><Spinner size={13} label="Saving" /></span>
                         )}
                     </div>
                 </div>
