@@ -5,6 +5,7 @@ import { useAnalysis } from '../../context/AnalysisContext';
 import ScriptTable from './ScriptTable';
 import EmptyLibrary from './EmptyLibrary';
 import { Plus } from 'lucide-react';
+import { Spinner } from '../ui';
 import { useConfirmDialog } from '../../context/ConfirmDialogContext';
 import { useToast } from '../../context/ToastContext';
 import PageHeader from '../layout/PageHeader';
@@ -171,7 +172,7 @@ const ScriptLibrary = () => {
     if (loading) {
         return (
             <div className="library-container loading-state page-container">
-                <div className="spinner"></div>
+                <Spinner size={32} />
                 <p>Loading library...</p>
             </div>
         );

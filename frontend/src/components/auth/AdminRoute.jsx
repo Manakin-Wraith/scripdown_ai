@@ -2,6 +2,7 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
+import { Spinner } from '../ui';
 
 /**
  * AdminRoute - Protected route component for superuser-only pages
@@ -53,15 +54,7 @@ export default function AdminRoute({ children }) {
         background: 'var(--gray-50)'
       }}>
         <div style={{ textAlign: 'center' }}>
-          <div className="spinner" style={{
-            width: '40px',
-            height: '40px',
-            border: '4px solid var(--gray-200)',
-            borderTop: '4px solid var(--primary-600)',
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite',
-            margin: '0 auto 1rem'
-          }}></div>
+          <Spinner size={32} />
           <p style={{ color: 'var(--gray-600)' }}>Verifying access...</p>
         </div>
       </div>

@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { getUserAnalytics } from '../../services/apiService';
 import AdminLayout from '../../components/admin/AdminLayout';
+import { Spinner } from '../../components/ui';
 import './UserActivityPage.css';
 
 /**
@@ -121,7 +122,7 @@ export default function UserActivityPage() {
       <AdminLayout>
         <div className="user-activity-page">
           <div className="loading-state">
-            <div className="spinner"></div>
+            <Spinner size={32} />
             <p>Loading users...</p>
           </div>
         </div>

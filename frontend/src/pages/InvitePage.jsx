@@ -7,18 +7,18 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { 
-    Film, 
-    Users, 
-    Check, 
-    X, 
-    Loader, 
+import {
+    Film,
+    Users,
+    Check,
+    X,
     AlertCircle,
     LogIn,
     ArrowRight
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { Spinner } from '../components/ui';
 import './InvitePage.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -110,7 +110,7 @@ const InvitePage = () => {
         return (
             <div className="invite-page">
                 <div className="invite-card loading">
-                    <Loader size={32} className="spin" />
+                    <Spinner size={32} />
                     <p>Loading invite...</p>
                 </div>
             </div>
@@ -202,7 +202,7 @@ const InvitePage = () => {
                             >
                                 {accepting ? (
                                     <>
-                                        <Loader size={18} className="spin" />
+                                        <Spinner size={18} />
                                         Joining...
                                     </>
                                 ) : (

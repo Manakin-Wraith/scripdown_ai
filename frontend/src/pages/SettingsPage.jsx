@@ -22,12 +22,12 @@ import {
     AlertCircle,
     Moon,
     Sun,
-    Monitor,
-    Loader
+    Monitor
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { useToast } from '../context/ToastContext';
+import { Spinner } from '../components/ui';
 import './SettingsPage.css';
 
 const SettingsPage = () => {
@@ -238,7 +238,7 @@ const SettingsPage = () => {
                                     >
                                         {passwordLoading ? (
                                             <>
-                                                <Loader size={16} className="spin" />
+                                                <Spinner size={16} />
                                                 Updating...
                                             </>
                                         ) : (

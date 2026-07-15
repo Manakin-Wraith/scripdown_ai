@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { CheckCircle, Loader2, AlertCircle, Mail } from 'lucide-react';
+import { CheckCircle, AlertCircle, Mail } from 'lucide-react';
+import { Spinner } from '../components/ui';
 import './PaymentSuccessPage.css';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
@@ -78,7 +79,7 @@ const PaymentSuccessPage = () => {
 
         {status === 'loading' && (
           <div className="status-section">
-            <Loader2 className="spinner" size={48} />
+            <Spinner size={48} />
             <h2>Processing your payment...</h2>
             <p>Please wait while we confirm your beta access.</p>
           </div>

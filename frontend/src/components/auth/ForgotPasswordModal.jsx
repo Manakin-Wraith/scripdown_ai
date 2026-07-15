@@ -6,16 +6,16 @@
  */
 
 import React, { useState } from 'react';
-import { 
-    X, 
-    Mail, 
-    Loader,
+import {
+    X,
+    Mail,
     ArrowLeft,
     CheckCircle,
     AlertCircle,
     KeyRound
 } from 'lucide-react';
 import { resetPassword } from '../../lib/supabase';
+import { Spinner } from '../ui';
 import './AuthModal.css';
 
 const ForgotPasswordModal = ({ isOpen, onClose, onBackToLogin }) => {
@@ -142,7 +142,7 @@ const ForgotPasswordModal = ({ isOpen, onClose, onBackToLogin }) => {
                         >
                             {loading ? (
                                 <>
-                                    <Loader size={18} className="spin" />
+                                    <Spinner size={18} />
                                     Sending...
                                 </>
                             ) : (

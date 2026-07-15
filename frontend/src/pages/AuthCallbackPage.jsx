@@ -13,7 +13,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { Loader, CheckCircle, XCircle, Film } from 'lucide-react';
+import { CheckCircle, XCircle, Film } from 'lucide-react';
+import { Spinner } from '../components/ui';
 import './AuthCallbackPage.css';
 
 const AuthCallbackPage = () => {
@@ -121,7 +122,7 @@ const AuthCallbackPage = () => {
                 {status === 'verifying' && (
                     <>
                         <div className="status-icon verifying">
-                            <Loader size={48} className="spin" />
+                            <Spinner size={48} />
                         </div>
                         <h2>Verifying your email...</h2>
                         <p>Please wait while we confirm your account.</p>

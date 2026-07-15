@@ -1,5 +1,6 @@
 /* Container for Hero + Layout - Full Width */
 .scene-viewer-container {
+    position: relative;
     display: flex;
     flex-direction: column;
     gap: 0;

@@ -1,0 +1,25 @@
+.ui-loader-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 20vh;
+  background: rgba(2, 6, 23, 0.35);
+  backdrop-filter: blur(1px);
+  pointer-events: all;
+}
+
+.ui-loader-overlay-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: 999px;
+  background: var(--gray-800, #1e293b);
+  border: 1px solid var(--border-color, rgba(148, 163, 184, 0.25));
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  color: var(--gray-200, #e2e8f0);
+  font-size: 0.82rem;
+}

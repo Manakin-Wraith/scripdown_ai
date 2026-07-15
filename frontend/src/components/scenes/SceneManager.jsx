@@ -43,6 +43,7 @@ import SceneMergeModal from './SceneMergeModal';
 import AddSceneModal from './AddSceneModal';
 import MultiMergeModal from './MultiMergeModal';
 import RevisionImportWizard from '../revisions/RevisionImportWizard';
+import { Spinner } from '../ui';
 import './SceneManager.css';
 
 /**
@@ -483,7 +484,7 @@ const SceneManager = () => {
         return (
             <div className="scene-manager">
                 <div className="scene-manager-loading">
-                    <Loader size={32} className="spin" />
+                    <Spinner size={32} />
                     <p>Loading scenes...</p>
                 </div>
             </div>
@@ -559,7 +560,7 @@ const SceneManager = () => {
                     
                     {saving && (
                         <div className="saving-indicator">
-                            <Loader size={16} className="spin" />
+                            <Spinner size={16} />
                             <span>Saving...</span>
                         </div>
                     )}
@@ -764,7 +765,7 @@ const SceneManager = () => {
                             {!scene.is_omitted && (
                                 <div className="story-day-column">
                                     {storyDaySaving === scene.id ? (
-                                        <Loader size={14} className="spin" style={{ color: '#94a3b8' }} />
+                                        <span style={{ color: '#94a3b8', display: 'inline-flex' }}><Spinner size={14} /></span>
                                     ) : (
                                         <>
                                             <span className={`story-day-badge-sm timeline-${(scene.timeline_code || 'PRESENT').toLowerCase()}`}>

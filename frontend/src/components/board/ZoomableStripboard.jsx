@@ -12,7 +12,7 @@ import BoardCanvas from './BoardCanvas';
 import StripDetailDrawer from './StripDetailDrawer';
 import LocationManager from '../scenes/LocationManager';
 import SelectionSummary from '../schedule/SelectionSummary';
-import { Spinner } from '../ui';
+import { Spinner, LoaderOverlay } from '../ui';
 import './ZoomableStripboard.css';
 
 const STORAGE_VERSION = 1;
@@ -26,6 +26,7 @@ const ZoomableStripboard = () => {
     const zoomApiRef = useRef(null);
     const [showLocationManager, setShowLocationManager] = useState(false);
     const [locHealth, setLocHealth] = useState(0);
+    const [refetching, setRefetching] = useState(false);
 
     // Fetch location quality flag count for the "Manage locations" button badge
     useEffect(() => {
@@ -116,6 +117,7 @@ const ZoomableStripboard = () => {
 
     // Refresh board data (reusable for story day sync)
     const refreshBoard = useCallback(async () => {
+        setRefetching(true);
         try {
             const [sceneData, itemsData] = await Promise.all([
                 getScenes(scriptId),
@@ -134,6 +136,8 @@ const ZoomableStripboard = () => {
             });
         } catch (err) {
             console.error('Error refreshing board:', err);
+        } finally {
+            setRefetching(false);
         }
     }, [scriptId]);
 
@@ -186,6 +190,7 @@ const ZoomableStripboard = () => {
 
     return (
         <div className="zoomable-stripboard">
+            <LoaderOverlay active={refetching} label="Updating board…" />
             <BoardToolbar
                 groupBy={state.groupBy}
                 filters={state.filters}

@@ -1,20 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { 
-    X, 
-    Mail, 
-    Users, 
-    Calendar, 
+import {
+    X,
+    Mail,
+    Users,
+    Calendar,
     Send,
     Eye,
     AlertCircle,
-    CheckCircle,
-    Loader
+    CheckCircle
 } from 'lucide-react';
-import { 
+import {
     getEmailTemplates,
     createCampaign,
     previewCampaignAudience
 } from '../../services/apiService';
+import { Spinner } from '../ui';
 import './CampaignBuilderModal.css';
 
 const CampaignBuilderModal = ({ isOpen, onClose, onSuccess }) => {
@@ -458,7 +458,7 @@ const CampaignBuilderModal = ({ isOpen, onClose, onSuccess }) => {
                             >
                                 {loadingPreview ? (
                                     <>
-                                        <Loader size={16} className="spin" />
+                                        <Spinner size={16} />
                                         Loading...
                                     </>
                                 ) : (
@@ -583,7 +583,7 @@ const CampaignBuilderModal = ({ isOpen, onClose, onSuccess }) => {
                         >
                             {loading ? (
                                 <>
-                                    <Loader size={16} className="spin" />
+                                    <Spinner size={16} />
                                     Creating...
                                 </>
                             ) : (

@@ -10,8 +10,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { 
-    Loader,
+import {
     LayoutDashboard,
     ClipboardList,
     MessageSquare,
@@ -46,6 +45,7 @@ import { getScriptMetadata } from '../../services/apiService';
 import AuthModal from '../auth/AuthModal';
 import DepartmentSelector from '../auth/DepartmentSelector';
 import CameraDeptView from './CameraDeptView';
+import { Spinner } from '../ui';
 import './DepartmentWorkspace.css';
 
 // Icon mapping
@@ -201,7 +201,7 @@ const DepartmentWorkspace = () => {
     if (loading || authLoading) {
         return (
             <div className="workspace-loading">
-                <Loader size={32} className="spin" />
+                <Spinner size={32} />
                 <span>Loading workspace...</span>
             </div>
         );
