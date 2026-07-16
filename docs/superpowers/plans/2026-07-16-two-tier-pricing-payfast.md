@@ -18,7 +18,7 @@
 - **Never grant entitlement from a browser return URL.** Only a validated ITN grants.
 - **Never trust `amount`, `plan`, or `custom_str2` from a request.** They come from the intent row.
 - Migrations live in `backend/db/migrations/NNN_name.sql` and are **applied by hand** — there is no runner. The plan does not automate application.
-- Backend gate: `cd backend && pytest tests/`. Frontend gate: `cd frontend && npm run build`. **`npm run lint` is broken repo-wide — do not gate on it.**
+- Backend gate: `cd backend && ./venv/bin/python -m pytest tests/`. **You must use the venv interpreter** — bare `pytest` / system `python3` has no pytest installed and will make it look like the suite is broken when it is not. Baseline on a clean branch: **334 passed** in ~50s. Frontend gate: `cd frontend && npm run build`. **`npm run lint` is broken repo-wide — do not gate on it.**
 - Tests use `monkeypatch` + `app.test_client()`. There is no `conftest.py`; each test file does `sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))`.
 - Supabase access is via `from db.supabase_client import get_supabase_admin` (service role, bypasses RLS).
 - Never commit PayFast credentials. They are already set in Railway as `PAYFAST_MERCHANT_ID`, `PAYFAST_MERCHANT_KEY`, `PAYFAST_PASSPHRASE`.
