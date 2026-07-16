@@ -15,6 +15,9 @@ REQUIRED_VARS = {
     'SUPABASE_ANON_KEY': 'Supabase anonymous/public key for client operations',
     'SUPABASE_SERVICE_KEY': 'Supabase service role key for admin operations (bypasses RLS)',
     'RESEND_API_KEY': 'Resend email service API key for sending emails',
+    'PAYFAST_MERCHANT_ID': 'PayFast merchant ID for checkout signing',
+    'PAYFAST_MERCHANT_KEY': 'PayFast merchant key for checkout signing',
+    'PAYFAST_PASSPHRASE': 'PayFast security passphrase — required, signatures are enforced',
 }
 
 # Optional but recommended environment variables

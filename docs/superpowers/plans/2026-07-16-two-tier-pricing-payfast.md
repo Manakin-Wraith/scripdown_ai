@@ -1558,6 +1558,12 @@ git commit -m "feat(billing): server-signed checkout + entitlement endpoints"
 
 **These are independent of the billing build and close live holes. Land them early.**
 
+> **AMENDED (2026-07-16, during execution):** two gaps found against the real code.
+> 1. **`_upsert_profile` must keep writing `email` and `full_name`.** The Step 3 block below drops them, but `set-plan` is the *only* thing that creates a profile row — there is no `handle_new_user` trigger (migration 006's `on_auth_user_created` only syncs `early_access_users` and never touches `profiles`). Dropping them would create profiles with no email, which admin views and Resend depend on. `email` is taken from `get_current_user()` (the verified token), not the body — same reasoning as `user_id`.
+> 2. **Adding `@require_auth` breaks signup until Task 12 Step 3b lands.** The only caller sends no JWT. Accepted knowingly: the takeover hole closes now, the caller is fixed in Task 12.
+>
+> Also: `auth_bp` already sets `url_prefix='/api/auth'`, so the decorator is `@auth_bp.route('/set-plan')` — the block below would register `/api/auth/api/auth/set-plan`. And the old `free_trial` / `early_access` branches were **deleted, not preserved**: they key off plan values that no longer validate, and they write `script_upload_limit` (dropped in Task 1) and `subscription_status='trial'` (now a CHECK violation), so the route was already 500ing against the new schema.
+
 - [ ] **Step 1: Write the failing test**
 
 Create `backend/tests/test_set_plan_auth.py`:
@@ -2093,6 +2099,33 @@ if (plan) {
 ```
 
 The backend also accepts the short aliases (Task 8), so this is belt-and-braces — but it keeps `localStorage` holding the same vocabulary as the database.
+
+- [ ] **Step 3b: Send the JWT with set-plan — REQUIRED, signup is broken until this lands**
+
+**Added 2026-07-16 during execution of Task 8.** Task 8 put `@require_auth` on `set-plan`, but its only caller — the raw `fetch` at `frontend/src/context/AuthContext.jsx:113` — sends no `Authorization` header (it bypasses `apiService.js`, which is what normally attaches the token). **Every signup currently 401s and creates no profile.** This was a knowing trade: the account-takeover hole was closed first.
+
+The backend now derives `user_id` and `email` from the token, so stop sending them:
+
+```javascript
+const { data: { session } } = await supabase.auth.getSession();
+
+fetch(`${API_BASE_URL}/api/auth/set-plan`, {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session?.access_token}`,
+    },
+    body: JSON.stringify({
+        full_name: pendingName,
+        plan: pendingPlan || null,
+        source: pendingSource || 'direct',
+    }),
+})
+```
+
+Also update the `.then` handler: the response is now `{success, signup_plan}` — `trial_message`, `plan`, and `source` are gone.
+
+Verify against a real signup, not just the build: a 401 here is invisible in `npm run build`.
 
 - [ ] **Step 4: Remove the frontend kill switch**
 
