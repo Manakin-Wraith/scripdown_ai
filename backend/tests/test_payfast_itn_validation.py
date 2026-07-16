@@ -74,3 +74,26 @@ def test_confirm_fails_closed_on_exception(monkeypatch):
         raise RuntimeError("network down")
     monkeypatch.setattr(pf.requests, "post", boom)
     assert pf.confirm_with_payfast({"a": "1"}) is False
+
+
+def test_confirm_rejects_validxyz_prefix_match(monkeypatch):
+    """Exact match only — 'VALIDXYZ' must return False, not True."""
+    class Resp:
+        status_code = 200
+        text = "VALIDXYZ"
+    monkeypatch.setattr(pf.requests, "post", lambda *a, **k: Resp())
+    assert pf.confirm_with_payfast({"a": "1"}) is False
+
+
+def test_confirm_accepts_valid_with_trailing_newline(monkeypatch):
+    """Trailing whitespace is stripped; 'VALID\\n' must return True."""
+    class Resp:
+        status_code = 200
+        text = "VALID\n"
+    monkeypatch.setattr(pf.requests, "post", lambda *a, **k: Resp())
+    assert pf.confirm_with_payfast({"a": "1"}) is True
+
+
+def test_empty_signature_rejected():
+    """An empty signature string must be rejected (fail_closed)."""
+    assert pf.verify_itn_signature({"pf_payment_id": "1", "signature": ""}, "pass") is False

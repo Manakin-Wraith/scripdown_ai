@@ -107,6 +107,6 @@ def confirm_with_payfast(form: dict) -> bool:
     payload = {k: v for k, v in form.items() if k != 'signature'}
     try:
         resp = requests.post(VALIDATE_URL, data=payload, timeout=10)
-        return resp.status_code == 200 and resp.text.strip().startswith('VALID')
+        return resp.status_code == 200 and resp.text.strip() == 'VALID'
     except Exception:
         return False
