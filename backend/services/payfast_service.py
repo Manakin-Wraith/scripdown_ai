@@ -110,3 +110,67 @@ def confirm_with_payfast(form: dict) -> bool:
         return resp.status_code == 200 and resp.text.strip() == 'VALID'
     except Exception:
         return False
+
+
+MERCHANT_ID = os.getenv('PAYFAST_MERCHANT_ID', '')
+MERCHANT_KEY = os.getenv('PAYFAST_MERCHANT_KEY', '')
+PASSPHRASE = os.getenv('PAYFAST_PASSPHRASE', '')
+
+PROCESS_URL = 'https://payment.payfast.io/eng/process'
+
+APP_URL = os.getenv('PAYFAST_APP_URL', 'https://app.slateone.studio')
+API_URL = os.getenv('PAYFAST_API_URL', 'https://api.slateone.studio')
+
+# Customer-facing copy. Product-owner directive: no "AI" wording.
+CHARGE_COPY = {
+    'tier_1_credits': ('Script Breakdown', 'Pay-per-breakdown'),
+    'tier_2_license': ('Annual Team License', 'Annual team licence'),
+    'tier_2_seats': ('Team Member Seat', 'Additional team seat'),
+}
+
+
+def compute_amount(charge_type: str, quantity: int) -> Decimal:
+    """The only authority on what a purchase costs."""
+    if charge_type not in PRICES:
+        raise ValueError(f"Unknown charge_type: {charge_type}")
+    if quantity < 1:
+        raise ValueError(f"quantity must be >= 1, got {quantity}")
+    # A licence is one licence — quantity applies to credits and seats only.
+    if charge_type == 'tier_2_license':
+        return PRICES[charge_type]
+    return PRICES[charge_type] * quantity
+
+
+def build_checkout_fields(charge_type: str, quantity: int, user_id: str,
+                          m_payment_id: str, amount: Decimal) -> dict:
+    """
+    Build the signed form fields for PayFast's process endpoint.
+
+    `amount` is passed in (already persisted on the intent) rather than
+    recomputed, so the signed form and the stored intent cannot drift.
+    """
+    item_name, item_description = CHARGE_COPY[charge_type]
+
+    fields = {
+        'merchant_id': MERCHANT_ID,
+        'merchant_key': MERCHANT_KEY,
+        'return_url': f"{APP_URL}/payment/success?type={charge_type}",
+        'cancel_url': f"{APP_URL}/payment/cancel?type={charge_type}",
+        'notify_url': f"{API_URL}/api/payfast/notify",
+        'm_payment_id': m_payment_id,
+        'amount': f"{amount:.2f}",
+        'item_name': item_name,
+        'item_description': item_description,
+        'custom_str1': user_id,      # attribution — the whole point
+        'custom_str2': charge_type,  # convenience only; the intent is authoritative
+        'custom_int1': str(quantity),
+    }
+
+    if charge_type == 'tier_2_license':
+        fields['subscription_type'] = '1'
+        fields['recurring_amount'] = f"{amount:.2f}"
+        fields['cycles'] = '0'      # until cancelled
+        fields['frequency'] = '6'   # annual
+
+    fields['signature'] = generate_signature(fields, PASSPHRASE)
+    return fields
