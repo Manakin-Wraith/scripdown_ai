@@ -141,13 +141,17 @@ def compute_amount(charge_type: str, quantity: int) -> Decimal:
     return PRICES[charge_type] * quantity
 
 
-def build_checkout_fields(charge_type: str, quantity: int, user_id: str,
-                          m_payment_id: str, amount: Decimal) -> dict:
+def build_checkout_fields(charge_type: str, user_id: str, m_payment_id: str,
+                          amount: Decimal) -> dict:
     """
     Build the signed form fields for PayFast's process endpoint.
 
     `amount` is passed in (already persisted on the intent) rather than
     recomputed, so the signed form and the stored intent cannot drift.
+
+    Quantity lives in our UI, not PayFast's form (see design spec §6.1) —
+    it is never sent to PayFast; the ITN handler reads it from our own
+    intent row and must never trust request fields.
     """
     item_name, item_description = CHARGE_COPY[charge_type]
 
@@ -163,7 +167,6 @@ def build_checkout_fields(charge_type: str, quantity: int, user_id: str,
         'item_description': item_description,
         'custom_str1': user_id,      # attribution — the whole point
         'custom_str2': charge_type,  # convenience only; the intent is authoritative
-        'custom_int1': str(quantity),
     }
 
     if charge_type == 'tier_2_license':
