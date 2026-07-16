@@ -192,6 +192,8 @@ git commit -m "feat(billing): migration 041 — two-tier pricing schema"
 
 **Why this is its own task:** the signature is pure, deterministic, and the single point where a subtle bug silently breaks every payment. It gets tested in isolation before anything depends on it.
 
+> **SUPERSEDED (2026-07-16, during execution):** the code blocks in Task 4 below still show `custom_int1: str(quantity)` and a `quantity` parameter on `build_checkout_fields`. Both were **removed** after review: spec §6.1 does not list `custom_int1` and states "Quantity lives in our UI, not PayFast's form", and `amount` already encodes quantity so the param was dead. The shipped signature is `build_checkout_fields(charge_type, user_id, m_payment_id, amount)`. Do not reintroduce either. `compute_amount` still takes quantity — that is correct and unchanged.
+
 - [ ] **Step 1: Write the failing test**
 
 Create `backend/tests/test_payfast_signature.py`:
@@ -511,7 +513,7 @@ git commit -m "feat(billing): PayFast ITN validation (signature, source IP, conf
 **Interfaces:**
 - Consumes: `generate_signature`, `PRICES`.
 - Produces: `compute_amount(charge_type: str, quantity: int) -> Decimal`
-- Produces: `build_checkout_fields(charge_type, quantity, user_id, m_payment_id, amount) -> dict` — includes `signature`.
+- Produces: `build_checkout_fields(charge_type, user_id, m_payment_id, amount) -> dict` — includes `signature`. No `quantity` param: `amount` already encodes it, and per spec §6.1 quantity never goes in PayFast's form.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1517,7 +1519,7 @@ def create_checkout():
     m_payment_id = str(uuid.uuid4())
     _create_intent(user_id, charge_type, quantity, amount, m_payment_id)
 
-    fields = build_checkout_fields(charge_type, quantity, user_id, m_payment_id, amount)
+    fields = build_checkout_fields(charge_type, user_id, m_payment_id, amount)
     return jsonify({'process_url': PROCESS_URL, 'fields': fields}), 200
 
 
