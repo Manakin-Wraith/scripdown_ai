@@ -102,8 +102,8 @@ CREATE INDEX IF NOT EXISTS idx_account_seats_owner ON account_seats(owner_id);
 -- 5. Retire the credit-pack and Wise-monthly systems
 -- ============================================
 DROP FUNCTION IF EXISTS deduct_script_credit(UUID, UUID, TEXT);
-DROP FUNCTION IF EXISTS add_script_credits(UUID, INTEGER, TEXT);
-DROP FUNCTION IF EXISTS activate_monthly_subscription(UUID);
+DROP FUNCTION IF EXISTS add_script_credits(UUID, INTEGER, UUID);
+DROP FUNCTION IF EXISTS activate_monthly_subscription(UUID, UUID);
 DROP FUNCTION IF EXISTS can_upload_script(UUID);
 DROP FUNCTION IF EXISTS increment_script_upload(UUID);
 DROP TABLE IF EXISTS script_credit_usage;
