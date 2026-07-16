@@ -1079,6 +1079,8 @@ git commit -m "feat(billing): entitlement service with fail-closed decorators"
 
 **Built before checkout deliberately:** payments must register the moment they can be taken.
 
+> **SUPERSEDED (2026-07-16, during execution):** the code blocks below still show `_mark_complete` being called *after* granting, guarded only by `_already_processed`. That leaves a double-grant window — two concurrent ITNs for the same payment can both pass the check before either writes, and the loser hits the `pf_payment_id` unique violation only after its grant has already landed. `_mark_complete` was replaced by **`_claim_intent(txn_id, pf_payment_id, payload) -> bool`**, a conditional `UPDATE ... WHERE status = 'pending'` that runs *before* granting and returns False if another caller already holds the row, plus **`_release_claim(txn_id)`**, which returns the row to `pending` if the grant then raises. Postgres serialises the racing UPDATEs, so exactly one caller claims. `_already_processed` is kept as a cheap fast path only — it is no longer what makes granting idempotent. Charge-type validation moved *above* the claim so an unknown type never leaves a row marked complete. Do not reintroduce `_mark_complete`.
+
 - [ ] **Step 1: Write the failing test**
 
 Create `backend/tests/test_payfast_itn_route.py`:
