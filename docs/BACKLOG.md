@@ -74,3 +74,48 @@ to the FDX preview, PDF scripts to the existing PDF viewer.
 - FDX text source: `backend/services/fdx_parser.py` (`parse_fdx_upload` →
   `full_text`, per-scene `scene_text`)
 - Upload/persistence: `backend/routes/supabase_routes.py::upload_script`
+
+---
+
+## PayFast ITN: claim-and-grant is not a single transaction
+
+**Status:** Deferred — narrow residual gap; no money is lost or double-charged.
+
+**Context.** The ITN handler (`backend/routes/payfast_routes.py`, shipped
+2026-07-16) makes granting idempotent by *claiming* the intent row before
+granting: `_claim_intent` runs a conditional `UPDATE ... WHERE id = ? AND
+status = 'pending'`, and Postgres row serialisation guarantees exactly one of
+two racing ITNs gets a row back. This closed the original double-grant window,
+where granting happened before the row was marked and two concurrent callbacks
+could both pass the `_already_processed` SELECT.
+
+**The remaining gap.** The claim and the grant are two separate round-trips, not
+one transaction. If the process dies *between* them, `_release_claim` never
+runs: the row is left `status = 'complete'` with nothing granted, and PayFast's
+retry sees a claimed row and declines to redo it. The user has paid and received
+nothing, needing manual repair. Ordinary grant exceptions are already handled —
+`_release_claim` returns the row to `pending` — so this is specifically a
+crash/OOM/redeploy window of a few milliseconds.
+
+**Why deferred.** The failure direction is deliberate and safe: a *missed* grant
+(visible, repairable) rather than a *double* grant (silent, refund-requiring).
+The window is small and PayFast retries are spaced out.
+
+**Options when picked up.**
+1. **Postgres function (most correct).** Move claim + grant into a single
+   `SECURITY DEFINER` plpgsql function called via RPC, so both commit atomically.
+   The Supabase client cannot span statements in one transaction, which is why
+   this can't be fixed in Python alone.
+2. **Reconciliation sweep (cheapest).** A periodic job finding
+   `payfast_transactions` rows that are `complete` but have no corresponding
+   grant (no `breakdown_credits` / `account_seats` row, no active licence), and
+   either granting or alerting. Also catches unrelated drift.
+3. **Claim leases.** Record `claimed_at` and treat a `complete` row with no
+   grant after N minutes as reclaimable, letting a later retry finish it.
+
+**References.**
+- `backend/routes/payfast_routes.py` — `_claim_intent`, `_release_claim`,
+  `payfast_notify`
+- `backend/tests/test_payfast_itn_route.py` — `test_claim_happens_before_granting`,
+  `test_failed_grant_releases_the_claim`
+- Grant side: `backend/services/entitlement_service.py`
