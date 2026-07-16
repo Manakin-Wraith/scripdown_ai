@@ -298,18 +298,33 @@ There are **no `/threads` or `/workspace` backend routes** (the handoff assumes 
 - Tier 1 team UI: upsell, not a dead button. Tier 2: seat management in settings.
 - Delete `frontend/src/hooks/useCredits.js`.
 
-## 9. Prerequisite: separate PayFast account
+## 9. PayFast account — resolved 2026-07-16
 
-Merchant `33568687` belongs to **Film Resource Africa**, a different product. `require signature` is
-account-wide, so SlateOne's paywall would depend on another product's integration continuing to sign.
-A new SlateOne merchant account is required, with:
+Merchant `33568687` was originally Film Resource Africa's. **FRA is retired with no live payments**,
+so the account was renamed to "SlateOne" and reused rather than split. The merchant ID and key are
+unchanged from FRA's — worth knowing when reading old FRA records, and note the account's transaction
+history (3 txns, R423) is FRA's, not SlateOne's.
 
-- `require signature` → **On** (this is what closes §3.3's tampering hole)
-- Security passphrase set (also enables subscriptions, needed for Tier 2)
-- Fallback Notify URL → `https://api.slateone.studio/api/payfast/notify`
+Dashboard configuration is **done and verified**:
 
-The account must be created by the product owner. Implementation is not blocked — credentials are
-config — but **no real payment can be taken until this exists.**
+| Setting | State |
+|---|---|
+| ITN Status | On |
+| Notify URL | `https://api.slateone.studio/api/payfast/notify` (was `film-resource-africa.com/api/payfast/itn`) |
+| Enable require signature | **On** — closes §3.3's tampering hole |
+| Security Passphrase | Set |
+
+Consequence: **PayFast now rejects unsigned requests.** The `_paynow` snippets and `payf.st` links in
+`pricing-model-change-spec.md` §6.4 no longer work and must not be revived — §6.1's signed
+server-generated forms are the only supported path.
+
+**Outstanding:**
+- The merchant key and passphrase were displayed in plaintext during the browser session that
+  configured this, so they are considered exposed. **Rotate both**, then set
+  `PAYFAST_MERCHANT_KEY` / `PAYFAST_PASSPHRASE` in Railway. Nothing live depends on the current
+  values, so rotation is free right now and gets expensive later.
+- Verify the passphrase in Railway matches the dashboard exactly — a trailing space silently breaks
+  every signature.
 
 ## 10. Testing
 
