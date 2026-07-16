@@ -2290,6 +2290,96 @@ git commit -m "feat(billing): billing page and payment result routes"
 
 ---
 
+### Task 13b: Retire useSubscription and the old subscription-status endpoint
+
+**Files:**
+- Modify: `frontend/src/components/scenes/SceneViewer.jsx:53`
+- Modify: `frontend/src/components/subscription/SubscriptionGate.jsx:22`
+- Modify: `frontend/src/components/subscription/SubscriptionBanner.jsx:13`
+- Modify: `frontend/src/components/team/InviteModal.jsx:35`
+- Modify: `frontend/src/components/reports/ReportStudio.jsx:50`
+- Delete: `frontend/src/hooks/useSubscription.js`
+- Modify: `backend/routes/auth_routes.py` (remove `/api/auth/subscription-status`, `/api/auth/can-upload-script`)
+- Delete: `backend/services/subscription_service.py`
+
+**Interfaces:**
+- Consumes: `useEntitlement` (Task 12).
+
+**Why this task exists:** Task 1 drops `script_upload_limit`, but `subscription_service.py:95` explicitly selects it:
+
+```python
+.select('subscription_status, subscription_expires_at, created_at, script_upload_limit')
+```
+
+After the migration that select errors, the broad `except` swallows it, and `get_subscription_status()` returns `_default_trial_status()` — status `'trial'`, a value the new CHECK constraint no longer permits. The UI would show every user as "trial" while the backend correctly denies them. Two parallel subscription-state systems that must agree by hand is exactly the failure `PHASE1_FREE_ACCESS` already caused. Delete one.
+
+- [ ] **Step 1: Map the current consumers**
+
+Run: `cd frontend && grep -rn "useSubscription" src/ | grep -v "hooks/useSubscription.js"`
+Expected: five files. For each, note which fields it reads (`status`, `canAnalyze`, `scriptLimit`, …) — you must map each to a `useEntitlement` field, not invent one.
+
+Field mapping:
+
+| useSubscription | useEntitlement |
+|---|---|
+| `subscription.status === 'active'` | `entitlement.can_run_breakdown` |
+| gating team UI | `entitlement.can_use_teams` |
+| any script-limit field | **delete the branch** — uploads are free and unlimited on both tiers |
+
+- [ ] **Step 2: Migrate each consumer**
+
+In each of the five files, replace the import and call:
+
+```javascript
+// before
+import { useSubscription } from '../../hooks/useSubscription';
+const { subscription, loading } = useSubscription();
+
+// after
+import { useEntitlement } from '../../hooks/useEntitlement';
+const { entitlement, loading } = useEntitlement();
+```
+
+Then replace each read per the table above. For `InviteModal.jsx`, the gate becomes `entitlement.can_use_teams`; when false, show the Tier 2 upsell rather than a disabled button (spec §8). For `SceneViewer.jsx`, the analyse gate becomes `entitlement.can_run_breakdown`; when false, link to `/billing`.
+
+Any upsell copy must follow the Global Constraint: **no "AI" wording** — say "breakdown" or "script analysis".
+
+- [ ] **Step 3: Delete the old hook and service**
+
+```bash
+rm frontend/src/hooks/useSubscription.js backend/services/subscription_service.py
+```
+
+In `backend/routes/auth_routes.py`, delete the `/api/auth/subscription-status` route (`:97` area), the `/api/auth/can-upload-script` route (`:167`), the `/api/auth/activate-subscription` route (`:443`), and every `from services.subscription_service import ...`.
+
+- [ ] **Step 4: Confirm nothing still references them**
+
+Run:
+```bash
+cd /Users/thecasterymedia/Desktop/PORTFOLIO/SaaS/ScripDown_AI
+grep -rn "useSubscription\|subscription_service\|subscription-status\|can-upload-script" backend/ frontend/src/ --include="*.py" --include="*.js" --include="*.jsx"
+```
+Expected: **no output.**
+
+If `admin_routes.py:481` calls `activate_monthly_subscription` from the deleted service, replace that call with `entitlement_service.activate_license(user_id, None)` — the admin approve flow must keep working.
+
+- [ ] **Step 5: Verify both gates**
+
+Run: `cd backend && pytest tests/`
+Expected: all pass. Delete or rewrite any test that exercises the removed endpoints.
+
+Run: `cd frontend && npm run build`
+Expected: build succeeds.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add -A backend frontend/src
+git commit -m "refactor(billing): retire useSubscription and subscription_service for useEntitlement"
+```
+
+---
+
 ### Task 14: End-to-end verification against the PayFast sandbox
 
 **Files:**
