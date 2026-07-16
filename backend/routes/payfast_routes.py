@@ -10,15 +10,20 @@ Always returns 200: PayFast retries indefinitely on anything else, and a
 retry storm is worse than a silently-ignored bad request (which we log).
 """
 
+import uuid
 from decimal import Decimal, InvalidOperation
 
 from flask import Blueprint, request, jsonify
 
 from db.supabase_client import get_supabase_admin
+from middleware.auth import require_auth, get_user_id
 from services.payfast_service import (
     verify_itn_signature, is_valid_payfast_ip, confirm_with_payfast, PASSPHRASE,
+    compute_amount, build_checkout_fields, PROCESS_URL,
 )
-from services.entitlement_service import grant_credits, activate_license, grant_seats
+from services.entitlement_service import (
+    grant_credits, activate_license, grant_seats, get_entitlement,
+)
 
 payfast_bp = Blueprint('payfast', __name__)
 
@@ -104,3 +109,52 @@ def payfast_notify():
 
     _mark_complete(txn_id, pf_payment_id, form)
     return jsonify({'status': 'ok'}), 200
+
+
+def _create_intent(user_id, charge_type, quantity, amount, m_payment_id):
+    get_supabase_admin().table('payfast_transactions').insert({
+        'm_payment_id': m_payment_id,
+        'user_id': user_id,
+        'charge_type': charge_type,
+        'expected_amount': float(amount),
+        'quantity': quantity,
+        'status': 'pending',
+    }).execute()
+
+
+@payfast_bp.route('/api/billing/checkout', methods=['POST'])
+@require_auth
+def create_checkout():
+    """
+    Create a payment intent and return signed PayFast form fields.
+
+    The amount is computed here and persisted before the user leaves, so the
+    ITN can validate against our own record. Any `amount` in the request body
+    is ignored on purpose.
+    """
+    user_id = get_user_id()
+    body = request.get_json(silent=True) or {}
+    charge_type = body.get('charge_type')
+
+    raw_quantity = body.get('quantity', 1)
+    try:
+        quantity = int(raw_quantity)
+    except (TypeError, ValueError):
+        return jsonify({'error': 'quantity must be an integer'}), 400
+
+    try:
+        amount = compute_amount(charge_type, quantity)
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 400
+
+    m_payment_id = str(uuid.uuid4())
+    _create_intent(user_id, charge_type, quantity, amount, m_payment_id)
+
+    fields = build_checkout_fields(charge_type, user_id, m_payment_id, amount)
+    return jsonify({'process_url': PROCESS_URL, 'fields': fields}), 200
+
+
+@payfast_bp.route('/api/billing/entitlement', methods=['GET'])
+@require_auth
+def read_entitlement():
+    return jsonify(get_entitlement(get_user_id())), 200
