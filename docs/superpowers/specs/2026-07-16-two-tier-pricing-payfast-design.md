@@ -269,8 +269,34 @@ There are **no `/threads` or `/workspace` backend routes** (the handoff assumes 
    `if user_id:` — an unauthenticated request skips the paywall entirely. → `@require_auth`,
    unconditional check.
 2. **Ungated legacy path.** `routes/script_routes.py` (`:85, :98, :352, :432, :489, :557, :617`) and
-   `routes/analysis_routes.py` (`:70, :102, :243, :279`) trigger AI with no gate. → Delete the
-   blueprints if unused (verify no live callers first), else gate them.
+   `routes/analysis_routes.py` (`:70, :102, :243, :279`) trigger AI with no gate. → **Gate them;
+   do not delete.**
+
+   Deletion was proposed and rejected on evidence (2026-07-16). These routes are **live**, not
+   legacy-in-practice — every one has a real frontend caller:
+
+   | Endpoint | Caller |
+   |---|---|
+   | `/analyze_script_stream/<id>` | `ScriptLibrary.jsx:102` (EventSource) |
+   | `/scripts/<id>/reanalyze` | `ScriptLibrary.jsx:99` |
+   | `/scripts/<id>/analyze/characters` | `CharacterDashboard.jsx:24` |
+   | `/scripts/<id>/analyze/locations` | `LocationDashboard.jsx:22` |
+   | `/scripts/<id>/analysis/start` | `AnalysisContext.jsx:134` |
+   | `/scripts/<id>/analysis/retry` | `AnalysisContext.jsx:84,171` |
+   | `/analysis/queue-character`, `/queue-location` | `AnalyzePrompt.jsx:33,35` |
+
+   `AnalysisContext` is a core global context. Deleting these blueprints breaks it plus the
+   character/location dashboards and re-analysis. The paywall defect is that they are *ungated*,
+   not that they exist — so apply `@require_auth` + `@require_breakdown_entitlement`, same as §7.1.
+
+   Note `/api/scripts/<id>/analyze/bulk` is registered by **both** `script_bp` (`script_routes.py:617`)
+   and `supabase_bp` (`supabase_routes.py:3098`). `supabase_bp` registers first (`app.py:42` vs `:47`)
+   and wins. Verify this before gating — a gate on the shadowed rule is a gate on nothing.
+
+   **Follow-up (out of scope):** migrate these callers onto the Supabase pipeline, then retire
+   `script_routes.py`, `analysis_routes.py`, `analysis_queue_service.py`, and `analysis_worker.py`.
+   Not all have Supabase equivalents today (`queue-character` / `queue-location` notably), so this is
+   real work and must not ride along inside a payments change.
 3. **`set-plan` account takeover.** `routes/auth_routes.py:202` has no `@require_auth` and takes
    `user_id` from the request **body** — anyone can rewrite any user's plan. → `@require_auth`,
    `user_id` from the token only. Also stop overwriting `created_at` on upsert (`:302`), which
