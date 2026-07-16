@@ -27,6 +27,7 @@ ALTER TABLE profiles ADD CONSTRAINT profiles_subscription_status_check
 UPDATE profiles SET signup_plan = NULL
     WHERE signup_plan IS NOT NULL
       AND signup_plan NOT IN ('tier_1_pay_per_breakdown', 'tier_2_annual_team');
+ALTER TABLE profiles DROP CONSTRAINT IF EXISTS profiles_signup_plan_check;
 ALTER TABLE profiles ADD CONSTRAINT profiles_signup_plan_check
     CHECK (signup_plan IS NULL OR signup_plan IN ('tier_1_pay_per_breakdown', 'tier_2_annual_team'));
 
@@ -70,7 +71,9 @@ CREATE TABLE IF NOT EXISTS breakdown_credits (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
     delta INTEGER NOT NULL CHECK (delta <> 0),
-    script_id UUID REFERENCES scripts(id) ON DELETE SET NULL,
+    -- Deliberately no FK to scripts: this is an immutable financial record and
+    -- must survive hard-deletion of the script it refers to.
+    script_id UUID,
     payfast_transaction_id UUID REFERENCES payfast_transactions(id) ON DELETE SET NULL,
     reason TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
