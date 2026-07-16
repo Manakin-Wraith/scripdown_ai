@@ -24,19 +24,28 @@ def generate_signature(fields: dict, passphrase: str | None) -> str:
     MD5 over `key=urlencoded_value` pairs joined by '&', in the given order,
     with `&passphrase=...` appended last.
 
-    Order is significant and empty values are excluded — both are PayFast
-    requirements, not choices. Values are stripped: a stray trailing space
-    silently breaks every signature.
+    Order is significant — a PayFast requirement, not a choice. Values are
+    stripped: a stray trailing space silently breaks every signature.
+
+    A field is excluded from the payload entirely when its value is `None`,
+    or when `str(value).strip()` is empty (i.e. `''` or whitespace-only).
+    A value that stringifies to `'0'` (int 0, `Decimal('0.00')`, `'0'`) is
+    meaningful data, not emptiness, and IS included. The passphrase follows
+    the same rule: a `None` or whitespace-only passphrase is treated as "no
+    passphrase" and omitted rather than appended as `&passphrase=`.
     """
     parts = []
     for key, value in fields.items():
+        if value is None:
+            continue
         text = str(value).strip()
         if text == '':
             continue
         parts.append(f"{key}={quote_plus(text)}")
 
     payload = "&".join(parts)
-    if passphrase:
-        payload += f"&passphrase={quote_plus(passphrase.strip())}"
+    passphrase_text = passphrase.strip() if passphrase else ''
+    if passphrase_text:
+        payload += f"&passphrase={quote_plus(passphrase_text)}"
 
     return hashlib.md5(payload.encode()).hexdigest()
