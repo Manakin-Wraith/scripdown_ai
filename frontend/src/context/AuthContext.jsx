@@ -24,6 +24,13 @@ import { clearAuthCache, getAuthHeaders } from '../services/apiService';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
+// Landing sends ?plan=tier_1|tier_2; the API expects the full id. Anything
+// else (e.g. the old free-tier "free_trial") isn't a real plan anymore.
+const PLAN_ALIASES = {
+    tier_1: 'tier_1_pay_per_breakdown',
+    tier_2: 'tier_2_annual_team',
+};
+
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
@@ -110,22 +117,20 @@ export const AuthProvider = ({ children }) => {
                         
                         if (pendingName && pendingEmail === session.user.email) {
                             // Create profile with plan-specific settings via backend
-                            fetch(`${API_BASE_URL}/api/auth/set-plan`, {
+                            getAuthHeaders().then(headers => fetch(`${API_BASE_URL}/api/auth/set-plan`, {
                                 method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ 
-                                    user_id: session.user.id,
-                                    email: session.user.email,
+                                headers,
+                                body: JSON.stringify({
                                     full_name: pendingName,
                                     plan: pendingPlan || null,
                                     source: pendingSource || 'direct'
                                 })
-                            })
+                            }))
                             .then(res => res.json())
                             .then(data => {
                                 if (data.success) {
-                                    console.log(`Profile created: ${data.trial_message}, plan=${data.plan}, source=${data.source}`);
-                                    
+                                    console.log(`Profile created: plan=${data.signup_plan}, source=${pendingSource || 'direct'}`);
+
                                     // Clear pending data
                                     localStorage.removeItem('pending_profile_name');
                                     localStorage.removeItem('pending_profile_email');
@@ -226,7 +231,8 @@ export const AuthProvider = ({ children }) => {
         
         // Extract plan and source from URL parameters
         const urlParams = new URLSearchParams(window.location.search);
-        const plan = urlParams.get('plan');
+        const rawPlan = urlParams.get('plan');
+        const plan = PLAN_ALIASES[rawPlan] || null;
         const source = urlParams.get('source') || 'direct';
         
         const { data, error } = await signUp(email, password);
