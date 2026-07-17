@@ -6,13 +6,7 @@ Handles subscription status checks, limits, and access control.
 import os
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, Tuple
-from functools import wraps
-from flask import request, jsonify, g
 from db.supabase_client import get_supabase_client
-
-# Phase 1: Everyone gets active status (no subscription enforcement)
-# Set to False to enable subscription checks in Phase 4
-PHASE1_FREE_ACCESS = False
 
 # Trial configuration
 TRIAL_DURATION_DAYS = 14
@@ -72,21 +66,6 @@ def get_subscription_status(user_id: str) -> Dict[str, Any]:
             'features': list
         }
     """
-    # Phase 1: Everyone gets full access - no subscription checks
-    if PHASE1_FREE_ACCESS:
-        return {
-            'status': 'active',
-            'is_active': True,
-            'days_remaining': None,
-            'expires_at': None,
-            'trial_ends_at': None,
-            'can_upload_script': True,
-            'script_count': 0,
-            'script_limit': None,  # Unlimited
-            'features': ACTIVE_FEATURES,
-            'message': None
-        }
-    
     try:
         supabase = get_supabase_client()
         
@@ -472,70 +451,7 @@ def get_trial_users_expiring_soon(days: int = 3) -> list:
             .execute()
         
         return result.data or []
-        
+
     except Exception as e:
         print(f"Error getting expiring trial users: {e}")
         return []
-
-
-# Decorator for protecting routes
-def require_active_subscription(f):
-    """
-    Decorator to require an active subscription for a route.
-    Returns 403 if subscription is not active.
-    """
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        # Get user_id from request (assumes auth middleware sets this)
-        user_id = getattr(g, 'user_id', None)
-        
-        if not user_id:
-            # Try to get from request headers or body
-            auth_header = request.headers.get('Authorization', '')
-            if not auth_header:
-                return jsonify({'error': 'Authentication required'}), 401
-            # For now, pass through - actual auth check happens elsewhere
-            return f(*args, **kwargs)
-        
-        sub_status = get_subscription_status(user_id)
-        
-        if not sub_status['is_active']:
-            return jsonify({
-                'error': 'Subscription required',
-                'subscription_status': sub_status['status'],
-                'message': sub_status.get('message', 'Please upgrade to access this feature.'),
-                'upgrade_url': WISE_PAYMENT_URL
-            }), 403
-        
-        return f(*args, **kwargs)
-    
-    return decorated
-
-
-def require_feature(feature: str):
-    """
-    Decorator factory to require a specific feature.
-    Usage: @require_feature('team_collaboration')
-    """
-    def decorator(f):
-        @wraps(f)
-        def decorated(*args, **kwargs):
-            user_id = getattr(g, 'user_id', None)
-            
-            if not user_id:
-                return f(*args, **kwargs)
-            
-            can_access, message = can_access_feature(user_id, feature)
-            
-            if not can_access:
-                return jsonify({
-                    'error': 'Feature not available',
-                    'feature': feature,
-                    'message': message,
-                    'upgrade_url': WISE_PAYMENT_URL
-                }), 403
-            
-            return f(*args, **kwargs)
-        
-        return decorated
-    return decorator
