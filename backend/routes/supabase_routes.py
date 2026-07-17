@@ -3903,6 +3903,7 @@ def delete_scene_item(item_id):
 # ============================================
 
 @supabase_bp.route('/api/departments', methods=['GET'])
+@require_auth
 def get_departments():
     """Get all departments with their colors and icons."""
     if not supabase:

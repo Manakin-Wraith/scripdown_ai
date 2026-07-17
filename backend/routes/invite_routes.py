@@ -15,7 +15,8 @@ import secrets
 from datetime import datetime, timedelta
 from flask import Blueprint, request, jsonify, g
 from db.supabase_client import get_supabase_client, get_supabase_admin
-from middleware.auth import require_auth, optional_auth, get_user_id
+from middleware.auth import require_auth, get_user_id
+from services.entitlement_service import require_team_tier, get_entitlement
 from services.email_service import send_invite_accepted_notification, send_team_invite, send_member_removed, send_invite_revoked, send_test_email, is_configured as email_configured
 
 invite_bp = Blueprint('invite', __name__)
@@ -59,6 +60,7 @@ def generate_invite_token():
 
 
 @invite_bp.route('/api/invite/departments', methods=['GET'])
+@require_auth
 def get_invite_departments():
     """Get list of available departments for invites."""
     return jsonify({'departments': get_departments_list()})
@@ -66,6 +68,7 @@ def get_invite_departments():
 
 @invite_bp.route('/api/scripts/<script_id>/invites', methods=['POST'])
 @require_auth
+@require_team_tier
 def create_invite(script_id):
     """
     Create a new invite for a script.
@@ -81,11 +84,19 @@ def create_invite(script_id):
         return jsonify({'error': 'Database not configured'}), 500
     
     user_id = get_user_id()
+
+    ent = get_entitlement(user_id)
+    if ent['seats_used'] >= ent['seats_paid']:
+        return jsonify({
+            'error': 'All paid seats are in use. Purchase more seats to invite.',
+            'code': 'no_seats_available',
+        }), 402
+
     data = request.get_json()
-    
+
     if not data:
         return jsonify({'error': 'Request body required'}), 400
-    
+
     email = data.get('email', '').strip().lower()
     department_code = data.get('department_code')
     role = data.get('role', 'member')
@@ -204,6 +215,7 @@ def create_invite(script_id):
 
 @invite_bp.route('/api/scripts/<script_id>/invites', methods=['GET'])
 @require_auth
+@require_team_tier
 def list_invites(script_id):
     """Get all invites for a script."""
     if not supabase:
@@ -244,6 +256,7 @@ def list_invites(script_id):
 
 @invite_bp.route('/api/invites/<invite_id>', methods=['DELETE'])
 @require_auth
+@require_team_tier
 def revoke_invite(invite_id):
     """Revoke a pending invite."""
     if not supabase:
@@ -609,7 +622,8 @@ def auto_accept_pending_invites():
 
 
 @invite_bp.route('/api/scripts/<script_id>/members', methods=['GET'])
-@optional_auth
+@require_auth
+@require_team_tier
 def list_members(script_id):
     """Get all team members for a script."""
     if not supabase:
@@ -723,6 +737,7 @@ def get_my_membership(script_id):
 
 @invite_bp.route('/api/scripts/<script_id>/members/<member_id>', methods=['DELETE'])
 @require_auth
+@require_team_tier
 def remove_member(script_id, member_id):
     """Remove a team member from a script."""
     if not supabase:
