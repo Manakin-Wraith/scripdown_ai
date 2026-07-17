@@ -194,10 +194,18 @@ def build_checkout_fields(charge_type: str, user_id: str, m_payment_id: str,
     }
 
     if charge_type == 'tier_2_license':
-        fields['subscription_type'] = '1'
-        fields['recurring_amount'] = f"{amount:.2f}"
-        fields['cycles'] = '0'      # until cancelled
-        fields['frequency'] = '6'   # annual
+        # subscription_type=1 (true recurring billing, PayFast auto-charges
+        # on schedule) consistently rejects with a signature mismatch on
+        # this account — confirmed via live sandbox testing that our
+        # signing is correct: an otherwise-identical subscription_type=2
+        # (tokenization) request succeeds immediately. Recurring Billing
+        # isn't enabled on this merchant; tokenization is available by
+        # default. Tokenization means PayFast only charges when WE tell it
+        # to via its API, using the token it returns on activation — see
+        # entitlement_service.activate_license and profiles.subscription_
+        # payfast_token (migration 042). No billing_date/recurring_amount/
+        # frequency/cycles: those only apply to true subscriptions.
+        fields['subscription_type'] = '2'
 
     fields['signature'] = generate_signature(fields, PASSPHRASE)
     return fields

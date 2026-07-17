@@ -55,17 +55,22 @@ def test_signature_is_valid_over_the_fields(monkeypatch):
     assert pf.generate_signature(fields, "pass") == sig
 
 
-def test_license_includes_subscription_params(monkeypatch):
+def test_license_uses_tokenization(monkeypatch):
+    # subscription_type=1 (true recurring billing) isn't enabled on our
+    # PayFast account — confirmed via live sandbox testing (an identical
+    # request with subscription_type=2 succeeds where =1 signature-mismatches).
+    # =2 (tokenization) needs none of billing_date/recurring_amount/
+    # frequency/cycles, since we trigger renewal charges ourselves later.
     monkeypatch.setattr(pf, "MERCHANT_ID", "33568687")
     monkeypatch.setattr(pf, "MERCHANT_KEY", "key123")
     monkeypatch.setattr(pf, "PASSPHRASE", "pass")
     fields = pf.build_checkout_fields(
         'tier_2_license', 'u1', 'm1', Decimal('1850.00')
     )
-    assert fields['subscription_type'] == '1'
-    assert fields['recurring_amount'] == '1850.00'
-    assert fields['cycles'] == '0'
-    assert fields['frequency'] == '6'   # annual
+    assert fields['subscription_type'] == '2'
+    assert 'recurring_amount' not in fields
+    assert 'cycles' not in fields
+    assert 'frequency' not in fields
 
 
 def test_one_off_charges_have_no_subscription_params(monkeypatch):

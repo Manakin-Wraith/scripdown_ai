@@ -135,7 +135,7 @@ def payfast_notify():
         if charge_type == 'tier_1_credits':
             grant_credits(user_id, quantity, txn_id)
         elif charge_type == 'tier_2_license':
-            activate_license(user_id, txn_id)
+            activate_license(user_id, txn_id, form.get('token'))
         elif charge_type == 'tier_2_seats':
             grant_seats(user_id, quantity, txn_id)
     except Exception as exc:

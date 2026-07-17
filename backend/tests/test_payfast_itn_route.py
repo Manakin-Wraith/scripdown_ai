@@ -27,7 +27,7 @@ def _pass_all(monkeypatch, grants):
     monkeypatch.setattr(pr, "_claim_intent", lambda *a, **k: True)
     monkeypatch.setattr(pr, "_release_claim", lambda *a, **k: None)
     monkeypatch.setattr(pr, "grant_credits", lambda u, n, t: grants.append(('credits', u, n)))
-    monkeypatch.setattr(pr, "activate_license", lambda u, t: grants.append(('license', u)))
+    monkeypatch.setattr(pr, "activate_license", lambda u, t, tok=None: grants.append(('license', u)))
     monkeypatch.setattr(pr, "grant_seats", lambda u, n, t: grants.append(('seats', u, n)))
 
 

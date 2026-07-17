@@ -143,16 +143,26 @@ def grant_credits(user_id: str, n: int, txn_id: str) -> None:
     }).execute()
 
 
-def activate_license(user_id: str, txn_id: str) -> None:
+def activate_license(user_id: str, txn_id: str, payfast_token: str | None = None) -> None:
+    """
+    payfast_token: the tokenization token PayFast's ITN returns on this
+    charge (subscription_type=2 — see payfast_service.build_checkout_fields
+    for why tier_2_license uses tokenization, not true recurring billing).
+    Needed to charge next year's renewal via PayFast's Recurring Billing
+    API; None from the admin manual-approval path, which has no ITN.
+    """
     expires = datetime.now(timezone.utc) + ONE_YEAR
-    get_supabase_admin().table('profiles').update({
+    update = {
         'subscription_plan': TIER_2,
         'subscription_status': 'active',
         'subscription_expires_at': expires.isoformat(),
         'subscription_payment_provider': 'payfast',
         'subscription_amount': 1850.00,
         'subscription_currency': 'ZAR',
-    }).eq('id', user_id).execute()
+    }
+    if payfast_token:
+        update['subscription_payfast_token'] = payfast_token
+    get_supabase_admin().table('profiles').update(update).eq('id', user_id).execute()
 
 
 def grant_seats(owner_id: str, n: int, txn_id: str) -> None:
