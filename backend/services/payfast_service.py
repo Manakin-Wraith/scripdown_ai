@@ -22,7 +22,7 @@ PRICES = {
 }
 
 
-def generate_signature(fields: dict, passphrase: str | None) -> str:
+def generate_signature(fields: dict, passphrase: str | None, include_empty: bool = False) -> str:
     """
     MD5 over `key=urlencoded_value` pairs joined by '&', in the given order,
     with `&passphrase=...` appended last.
@@ -30,19 +30,34 @@ def generate_signature(fields: dict, passphrase: str | None) -> str:
     Order is significant — a PayFast requirement, not a choice. Values are
     stripped: a stray trailing space silently breaks every signature.
 
-    A field is excluded from the payload entirely when its value is `None`,
-    or when `str(value).strip()` is empty (i.e. `''` or whitespace-only).
-    A value that stringifies to `'0'` (int 0, `Decimal('0.00')`, `'0'`) is
-    meaningful data, not emptiness, and IS included. The passphrase follows
-    the same rule: a `None` or whitespace-only passphrase is treated as "no
-    passphrase" and omitted rather than appended as `&passphrase=`.
+    `include_empty` must match which direction this is signing:
+    - False (default) — for OUTGOING checkout fields, which we build.
+      PayFast's checkout spec expects unset fields to be omitted entirely.
+      A field is excluded when its value is `None`, or when
+      `str(value).strip()` is empty. A value that stringifies to `'0'`
+      (int 0, `Decimal('0.00')`, `'0'`) is meaningful data, not emptiness,
+      and IS included regardless.
+    - True — for verifying an INCOMING ITN's signature. PayFast's own ITN
+      payload includes every field it always sends (custom_str3-5,
+      custom_int1-5, name_first, name_last, email_address) even when
+      empty, e.g. `custom_str3=`, and signs over that full set. Excluding
+      them here — the outgoing-direction default — silently produces a
+      signature PayFast never sent, rejecting every legitimate ITN.
+
+    The passphrase follows the outgoing (False) emptiness rule always: a
+    `None` or whitespace-only passphrase is treated as "no passphrase" and
+    omitted rather than appended as `&passphrase=`.
     """
     parts = []
     for key, value in fields.items():
         if value is None:
+            if include_empty:
+                parts.append(f"{key}=")
             continue
         text = str(value).strip()
         if text == '':
+            if include_empty:
+                parts.append(f"{key}=")
             continue
         parts.append(f"{key}={quote_plus(text)}")
 
@@ -74,12 +89,17 @@ def verify_itn_signature(form: dict, passphrase: str | None) -> bool:
     """
     Recompute the signature over the received fields, in received order,
     excluding `signature` itself.
+
+    include_empty=True: PayFast's own ITN includes its always-sent-but-often-
+    blank fields (custom_str3-5, custom_int1-5, name_first, name_last,
+    email_address) in what it signs, e.g. `custom_str3=`. See
+    generate_signature's docstring for why this differs from checkout.
     """
     received = form.get('signature')
     if not received:
         return False
     payload = {k: v for k, v in form.items() if k != 'signature'}
-    return generate_signature(payload, passphrase) == received
+    return generate_signature(payload, passphrase, include_empty=True) == received
 
 
 def _resolve_payfast_ips() -> set:

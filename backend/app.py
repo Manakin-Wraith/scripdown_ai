@@ -1,5 +1,6 @@
 from flask import Flask
 from flask_cors import CORS
+from werkzeug.middleware.proxy_fix import ProxyFix
 import os
 from dotenv import load_dotenv
 
@@ -26,6 +27,13 @@ from utils.env_validator import validate_required_env
 validate_required_env()
 
 app = Flask(__name__)
+
+# Both Railway and a local ngrok tunnel sit exactly one reverse-proxy hop in
+# front of this app. Without this, request.remote_addr is always the proxy's
+# own address (e.g. ngrok's local relay, 127.0.0.1) — not the real client —
+# which silently breaks any IP-based check (see payfast_routes.py's PayFast
+# source-IP validation on the ITN webhook).
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1)
 
 # Configure CORS for production - allow all origins for now
 # Flask-CORS handles preflight OPTIONS requests automatically
