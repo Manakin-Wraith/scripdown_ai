@@ -116,7 +116,11 @@ MERCHANT_ID = os.getenv('PAYFAST_MERCHANT_ID', '')
 MERCHANT_KEY = os.getenv('PAYFAST_MERCHANT_KEY', '')
 PASSPHRASE = os.getenv('PAYFAST_PASSPHRASE', '')
 
-PROCESS_URL = 'https://payment.payfast.io/eng/process'
+PROCESS_URL = (
+    'https://sandbox.payfast.co.za/eng/process'
+    if os.getenv('PAYFAST_SANDBOX', 'false').lower() == 'true'
+    else 'https://payment.payfast.io/eng/process'
+)
 
 APP_URL = os.getenv('PAYFAST_APP_URL', 'https://app.slateone.studio')
 API_URL = os.getenv('PAYFAST_API_URL', 'https://api.slateone.studio')
