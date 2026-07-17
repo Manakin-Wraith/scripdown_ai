@@ -29,7 +29,13 @@ def client(monkeypatch):
                           "scene_order": 1, "setting": "INT. ROOM - DAY"}}
     fake = FakeTable(store)
     monkeypatch.setattr(sr, "supabase", type("S", (), {"table": lambda self, _n: fake})())
-    monkeypatch.setattr(sr, "get_user_id", lambda: None)  # skip subscription gate
+    monkeypatch.setattr(sr, "get_user_id", lambda: "u1")
+    monkeypatch.setattr("middleware.auth.DEV_MODE", True)
+    monkeypatch.setattr("services.entitlement_service.get_user_id", lambda: "u1")
+    monkeypatch.setattr("services.entitlement_service.get_entitlement", lambda uid: {
+        'tier': 'tier_2_annual_team', 'status': 'active', 'breakdown_balance': 999,
+        'seats_paid': 0, 'seats_used': 0, 'can_run_breakdown': True, 'can_use_teams': True,
+    })
     from app import app
     app.config["TESTING"] = True
     return app.test_client(), store

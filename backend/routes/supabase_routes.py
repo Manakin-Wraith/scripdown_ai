@@ -19,6 +19,9 @@ load_dotenv()
 
 # Auth middleware
 from middleware.auth import require_auth, optional_auth, get_user_id, get_current_user
+from services.entitlement_service import (
+    require_breakdown_entitlement, consume_breakdown, InsufficientCredits,
+)
 
 # Location resolution (canonical base-place derivation)
 from services.location_resolver import (
@@ -2746,47 +2749,34 @@ def _recalc_start_order(script_id, current_order):
 
 
 @supabase_bp.route('/api/scenes/<scene_id>/analyze', methods=['POST'])
-@optional_auth
+@require_auth
+@require_breakdown_entitlement
 def analyze_scene(scene_id):
     """
     Analyze a single scene using Gemini AI.
-    Requires active subscription (upload is free, analysis is paywalled).
-    
+    Requires breakdown entitlement (upload is free, analysis is paywalled).
+
     Extracts: characters, props, wardrobe, special_fx, vehicles, description
     """
     if not supabase:
         return jsonify({'error': 'Supabase not configured'}), 500
-    
-    # Subscription gate: block analysis for non-subscribers
+
     user_id = get_user_id()
-    if user_id:
-        from services.subscription_service import get_subscription_status
-        sub_status = get_subscription_status(user_id)
-        if sub_status.get('status') != 'active':
-            return jsonify({
-                'error': 'Active subscription required for AI analysis',
-                'upgrade_url': 'https://wise.com/pay/r/8j9W0j5SUuPivxk',
-                'subscription_required': True
-            }), 403
-    
+
     try:
         # Get scene data
         scene_result = supabase.table('scenes').select('*').eq('id', scene_id).single().execute()
         scene = scene_result.data
-        
+
         if not scene:
             return jsonify({'error': 'Scene not found'}), 404
-        
-        # Track breakdown usage and deduct credit (idempotent per script)
-        if user_id:
-            try:
-                script_meta = supabase.table('scripts').select('title').eq('id', scene['script_id']).single().execute()
-                script_name = script_meta.data.get('title', 'Untitled') if script_meta.data else 'Untitled'
-                from services.credit_service import track_breakdown_usage
-                track_breakdown_usage(user_id, scene['script_id'], script_name)
-            except Exception as track_err:
-                print(f"[Credits] Warning: tracking failed (non-blocking): {track_err}")
-        
+
+        try:
+            consume_breakdown(user_id, scene['script_id'])
+        except InsufficientCredits:
+            return jsonify({'error': 'No breakdown credits remaining',
+                            'code': 'insufficient_credits'}), 402
+
         # Update status to analyzing
         supabase.table('scenes').update({'analysis_status': 'analyzing'}).eq('id', scene_id).execute()
         
@@ -3096,13 +3086,14 @@ IMPORTANT:
 
 
 @supabase_bp.route('/api/scripts/<script_id>/analyze/bulk', methods=['POST'])
-@optional_auth
+@require_auth
+@require_breakdown_entitlement
 def analyze_bulk_scenes(script_id):
     """
     Analyze all pending scenes for a script.
-    Requires active subscription (upload is free, analysis is paywalled).
+    Requires breakdown entitlement (upload is free, analysis is paywalled).
     Returns immediately (202 Accepted), analysis happens in background thread.
-    
+
     Flow:
     1. Get all pending scenes for the script
     2. Create a job record in analysis_jobs table
@@ -3112,30 +3103,16 @@ def analyze_bulk_scenes(script_id):
     """
     if not supabase:
         return jsonify({'error': 'Supabase not configured'}), 500
-    
-    # Subscription gate: block analysis for non-subscribers
+
     user_id = get_user_id()
-    if user_id:
-        from services.subscription_service import get_subscription_status
-        sub_status = get_subscription_status(user_id)
-        if sub_status.get('status') != 'active':
-            return jsonify({
-                'error': 'Active subscription required for AI analysis',
-                'upgrade_url': 'https://wise.com/pay/r/8j9W0j5SUuPivxk',
-                'subscription_required': True
-            }), 403
-    
+
     try:
-        # Track breakdown usage and deduct credit (idempotent per script)
-        if user_id:
-            try:
-                script_meta = supabase.table('scripts').select('title').eq('id', script_id).single().execute()
-                script_name = script_meta.data.get('title', 'Untitled') if script_meta.data else 'Untitled'
-                from services.credit_service import track_breakdown_usage
-                track_breakdown_usage(user_id, script_id, script_name)
-            except Exception as track_err:
-                print(f"[Credits] Warning: tracking failed (non-blocking): {track_err}")
-        
+        try:
+            consume_breakdown(user_id, script_id)
+        except InsufficientCredits:
+            return jsonify({'error': 'No breakdown credits remaining',
+                            'code': 'insufficient_credits'}), 402
+
         # Get all pending + error scenes (error scenes can be retried)
         result = supabase.table('scenes').select('id, scene_number').eq('script_id', script_id).in_('analysis_status', ['pending', 'error']).order('scene_number').execute()
         
@@ -3184,7 +3161,8 @@ def analyze_bulk_scenes(script_id):
 
 
 @supabase_bp.route('/api/scripts/<script_id>/scenes/retry-failed', methods=['POST'])
-@optional_auth
+@require_auth
+@require_breakdown_entitlement
 def retry_failed_scenes(script_id):
     """Re-run every scene currently marked 'failed' for a script.
 
@@ -3194,17 +3172,14 @@ def retry_failed_scenes(script_id):
         return jsonify({'error': 'Supabase not configured'}), 500
 
     user_id = get_user_id()
-    if user_id:
-        from services.subscription_service import get_subscription_status
-        sub_status = get_subscription_status(user_id)
-        if sub_status.get('status') != 'active':
-            return jsonify({
-                'error': 'Active subscription required for analysis',
-                'upgrade_url': 'https://wise.com/pay/r/8j9W0j5SUuPivxk',
-                'subscription_required': True
-            }), 403
 
     try:
+        try:
+            consume_breakdown(user_id, script_id)
+        except InsufficientCredits:
+            return jsonify({'error': 'No breakdown credits remaining',
+                            'code': 'insufficient_credits'}), 402
+
         result = supabase.table('scenes').select('id, scene_number').eq(
             'script_id', script_id).eq('analysis_status', 'failed').order('scene_number').execute()
         failed_scenes = result.data or []

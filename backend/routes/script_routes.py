@@ -1,8 +1,7 @@
-from flask import Blueprint, request, jsonify, Response, stream_with_context
+from flask import Blueprint, request, jsonify, Response
 import json
-import time
-from services.script_service import process_script, process_script_v2, analyze_script_async
-from services.analysis_service import analyze_characters, analyze_locations, clear_analysis_cache
+from services.script_service import process_script, process_script_v2
+from services.analysis_service import clear_analysis_cache
 from services.analysis_queue_service import queue_full_analysis
 from db.db_connection import get_db
 
@@ -81,92 +80,6 @@ def upload_script_legacy():
             }), 201
         except Exception as e:
             return jsonify({'error': str(e)}), 500
-
-@script_bp.route('/analyze_script/<int:script_id>', methods=['POST'])
-def analyze_script_endpoint(script_id):
-    """Analyze script with AI in background."""
-    try:
-        scene_count = analyze_script_async(script_id)
-        return jsonify({
-            'message': 'Analysis complete',
-            'script_id': script_id,
-            'scenes_extracted': scene_count
-        }), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@script_bp.route('/analyze_script_stream/<int:script_id>')
-def analyze_script_stream(script_id):
-    """Stream analysis progress using Server-Sent Events."""
-    def generate():
-        try:
-            db = get_db()
-            cursor = db.cursor()
-            
-            # Get script text
-            cursor.execute("SELECT script_text FROM scripts WHERE script_id = ?", (script_id,))
-            row = cursor.fetchone()
-            
-            if not row:
-                yield f"data: {json.dumps({'error': 'Script not found'})}\n\n"
-                return
-            
-            script_text = row[0]
-            cursor.close()
-            
-            # Send initial progress
-            yield f"data: {json.dumps({'progress': 0, 'status': 'Starting analysis...'})}\n\n"
-            time.sleep(0.5)
-            
-            # Import here to avoid circular imports
-            from services.gemini_service import analyze_script
-            
-            # Analyze script with progress updates
-            yield f"data: {json.dumps({'progress': 10, 'status': 'Sending script to AI...'})}\n\n"
-            time.sleep(0.5)
-            
-            yield f"data: {json.dumps({'progress': 15, 'status': 'AI is analyzing the script...'})}\n\n"
-            time.sleep(1)
-            
-            yield f"data: {json.dumps({'progress': 20, 'status': 'Extracting scenes and characters...'})}\n\n"
-            
-            # Call AI (this is the slow part)
-            analysis = analyze_script(script_text)
-            
-            if 'error' in analysis:
-                yield f"data: {json.dumps({'error': analysis['error']})}\n\n"
-                return
-            
-            scenes = analysis.get('scenes', [])
-            total_scenes = len(scenes)
-            
-            if total_scenes == 0:
-                yield f"data: {json.dumps({'progress': 100, 'status': 'No scenes found', 'scenes_extracted': 0})}\n\n"
-                return
-            
-            yield f"data: {json.dumps({'progress': 30, 'status': f'Found {total_scenes} scenes! Saving to database...'})}\n\n"
-            time.sleep(0.5)
-            
-            # Save scenes in chunks of 10
-            from services.script_service import save_scene
-            chunk_size = 10
-            
-            for i, scene_data in enumerate(scenes):
-                save_scene(script_id, scene_data)
-                
-                # Send progress update every 10 scenes or at the end
-                if (i + 1) % chunk_size == 0 or (i + 1) == total_scenes:
-                    progress = 30 + int((i + 1) / total_scenes * 70)
-                    yield f"data: {json.dumps({'progress': progress, 'status': f'Saved {i + 1}/{total_scenes} scenes...'})}\n\n"
-                    time.sleep(0.2)  # Slightly longer delay for visibility
-            
-            # Final completion message
-            yield f"data: {json.dumps({'progress': 100, 'status': 'Analysis complete!', 'scenes_extracted': total_scenes, 'done': True})}\n\n"
-            
-        except Exception as e:
-            yield f"data: {json.dumps({'error': str(e)})}\n\n"
-    
-    return Response(stream_with_context(generate()), mimetype='text/event-stream')
 
 @script_bp.route('/get_scenes/<int:script_id>', methods=['GET'])
 def get_scenes(script_id):
@@ -349,34 +262,6 @@ def delete_script(script_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@script_bp.route('/scripts/<int:script_id>/reanalyze', methods=['POST'])
-def reanalyze_script(script_id):
-    """Delete existing scenes and prepare for re-analysis."""
-    try:
-        db = get_db()
-        cursor = db.cursor()
-        
-        # Check if script exists
-        cursor.execute("SELECT script_name FROM scripts WHERE script_id = ?", (script_id,))
-        script = cursor.fetchone()
-        
-        if not script:
-            return jsonify({'error': 'Script not found'}), 404
-        
-        # Delete existing scenes
-        cursor.execute("DELETE FROM scenes WHERE script_id = ?", (script_id,))
-        db.commit()
-        cursor.close()
-        
-        return jsonify({
-            'message': 'Ready for re-analysis',
-            'script_id': script_id,
-            'script_name': script[0]
-        }), 200
-        
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
 @script_bp.route('/scripts/<int:script_id>/metadata', methods=['GET'])
 def get_script_metadata(script_id):
     """Get metadata for a specific script."""
@@ -429,121 +314,6 @@ def get_script_metadata(script_id):
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
-@script_bp.route('/scripts/<int:script_id>/analyze/characters', methods=['POST'])
-def analyze_characters_endpoint(script_id):
-    """Analyze characters using Gemini AI."""
-    try:
-        db = get_db()
-        cursor = db.cursor()
-        
-        # Get scenes for this script
-        query = """
-            SELECT scene_id, scene_number, setting, description, characters
-            FROM scenes
-            WHERE script_id = ?
-            ORDER BY scene_number
-        """
-        cursor.execute(query, (script_id,))
-        rows = cursor.fetchall()
-        
-        if not rows:
-            return jsonify({'error': 'No scenes found for this script'}), 404
-        
-        # Build scenes list and aggregate characters
-        scenes = []
-        characters = {}
-        
-        for row in rows:
-            scene = {
-                'scene_id': row[0],
-                'scene_number': row[1],
-                'setting': row[2],
-                'description': row[3],
-                'characters': json.loads(row[4]) if row[4] else []
-            }
-            scenes.append(scene)
-            
-            # Aggregate characters
-            for char in scene['characters']:
-                if char not in characters:
-                    characters[char] = []
-                characters[char].append(scene)
-        
-        cursor.close()
-        
-        if not characters:
-            return jsonify({'error': 'No characters found in scenes'}), 404
-        
-        # Analyze with Gemini
-        result = analyze_characters(script_id, characters, scenes)
-        
-        return jsonify(result), 200
-        
-    except Exception as e:
-        print(f"Error in analyze_characters: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
-
-
-@script_bp.route('/scripts/<int:script_id>/analyze/locations', methods=['POST'])
-def analyze_locations_endpoint(script_id):
-    """Analyze locations using Gemini AI."""
-    try:
-        db = get_db()
-        cursor = db.cursor()
-        
-        # Get scenes for this script
-        query = """
-            SELECT scene_id, scene_number, setting, description, characters
-            FROM scenes
-            WHERE script_id = ?
-            ORDER BY scene_number
-        """
-        cursor.execute(query, (script_id,))
-        rows = cursor.fetchall()
-        
-        if not rows:
-            return jsonify({'error': 'No scenes found for this script'}), 404
-        
-        # Build scenes list and aggregate locations
-        scenes = []
-        locations = {}
-        
-        for row in rows:
-            scene = {
-                'scene_id': row[0],
-                'scene_number': row[1],
-                'setting': row[2],
-                'description': row[3],
-                'characters': json.loads(row[4]) if row[4] else []
-            }
-            scenes.append(scene)
-            
-            # Aggregate locations
-            if scene['setting']:
-                setting = scene['setting']
-                if setting not in locations:
-                    locations[setting] = []
-                locations[setting].append(scene)
-        
-        cursor.close()
-        
-        if not locations:
-            return jsonify({'error': 'No locations found in scenes'}), 404
-        
-        # Analyze with Gemini
-        result = analyze_locations(script_id, locations, scenes)
-        
-        return jsonify(result), 200
-        
-    except Exception as e:
-        print(f"Error in analyze_locations: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
-
-
 @script_bp.route('/scripts/<int:script_id>/analysis/clear', methods=['POST'])
 def clear_analysis_endpoint(script_id):
     """Clear cached analysis for a script."""
@@ -551,95 +321,6 @@ def clear_analysis_endpoint(script_id):
         clear_analysis_cache(script_id)
         return jsonify({'message': 'Analysis cache cleared', 'script_id': script_id}), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-
-@script_bp.route('/scenes/<int:scene_id>/analyze', methods=['POST'])
-def analyze_single_scene(scene_id):
-    """
-    Analyze a single scene on-demand.
-    
-    This allows users to selectively analyze scenes instead of
-    processing the entire script at once.
-    """
-    try:
-        db = get_db()
-        cursor = db.cursor()
-        
-        # Get scene and script info
-        cursor.execute("""
-            SELECT s.script_id, s.scene_number, sc.script_text
-            FROM scenes s
-            JOIN scripts sc ON s.script_id = sc.script_id
-            WHERE s.scene_id = ?
-        """, (scene_id,))
-        row = cursor.fetchone()
-        
-        if not row:
-            return jsonify({'error': 'Scene not found'}), 404
-        
-        script_id, scene_number = row[0], row[1]
-        
-        # Check if scene is already analyzed (has breakdown data)
-        cursor.execute("""
-            SELECT props, wardrobe, special_fx, vehicles
-            FROM scenes WHERE scene_id = ?
-        """, (scene_id,))
-        scene_data = cursor.fetchone()
-        
-        # Queue single scene enhancement
-        from services.analysis_queue_service import create_analysis_job
-        
-        job_id = create_analysis_job(
-            script_id,
-            'single_scene',
-            scene_id,  # target_id is the scene_id
-            priority=1  # High priority for user-triggered
-        )
-        
-        cursor.close()
-        
-        return jsonify({
-            'message': 'Scene analysis queued',
-            'scene_id': scene_id,
-            'script_id': script_id,
-            'scene_number': scene_number,
-            'job_id': job_id
-        }), 200
-        
-    except Exception as e:
-        print(f"Error in analyze_single_scene: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
-
-
-@script_bp.route('/scripts/<int:script_id>/analyze/bulk', methods=['POST'])
-def analyze_bulk_scenes(script_id):
-    """
-    Analyze all pending scenes for a script.
-    
-    This is the "Analyze All" functionality, hidden but available.
-    """
-    try:
-        from services.analysis_queue_service import queue_scene_enhancement
-        
-        result = queue_scene_enhancement(script_id, priority=3, force=True)
-        
-        if result:
-            return jsonify({
-                'message': 'Bulk analysis queued',
-                'script_id': script_id,
-                'jobs_created': result.get('jobs_created', 0),
-                'scene_candidates': result.get('scene_candidates', 0)
-            }), 200
-        else:
-            return jsonify({'error': 'Failed to queue analysis'}), 500
-            
-    except Exception as e:
-        print(f"Error in analyze_bulk_scenes: {e}")
-        import traceback
-        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 
