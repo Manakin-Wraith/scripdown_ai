@@ -5,7 +5,7 @@ import { Spinner, Button } from '../ui';
 import { useToast } from '../../context/ToastContext';
 import { useConfirmDialog } from '../../context/ConfirmDialogContext';
 import { useScript } from '../../context/ScriptContext';
-import { useSubscription } from '../../hooks/useSubscription';
+import { useEntitlement } from '../../hooks/useEntitlement';
 import { SubscriptionGate } from '../subscription';
 import PageHeader from '../layout/PageHeader';
 import {
@@ -47,7 +47,7 @@ const ReportStudio = () => {
     const toast = useToast();
     const { confirm } = useConfirmDialog();
     const { setScript } = useScript();
-    const { canAccess } = useSubscription();
+    const { entitlement } = useEntitlement();
 
     const [reportTypes, setReportTypes] = useState({});
     const [selectedType, setSelectedType] = useState('scene_breakdown');
@@ -282,7 +282,7 @@ const ReportStudio = () => {
         );
     }
 
-    if (!canAccess('reports')) {
+    if (!entitlement?.can_run_breakdown) {
         return (
             <div className="report-studio page-container">
                 <PageHeader icon={<FileText size={24} />} title="Reports" />

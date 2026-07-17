@@ -4,13 +4,13 @@
  * Shows blur preview with upgrade prompt for locked features.
  */
 
-import React, { useState } from 'react';
+import React from 'react';
+import { Link } from 'react-router-dom';
 import { Lock, Sparkles } from 'lucide-react';
-import { useSubscription } from '../../hooks/useSubscription';
-import UpgradeModal from './UpgradeModal';
+import { useEntitlement } from '../../hooks/useEntitlement';
 import './SubscriptionGate.css';
 
-const SubscriptionGate = ({ 
+const SubscriptionGate = ({
     feature,
     children,
     fallback = null,
@@ -19,10 +19,9 @@ const SubscriptionGate = ({
     showLockIcon = true,
     customMessage = null
 }) => {
-    const { canAccess, status, daysRemaining } = useSubscription();
-    const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+    const { entitlement } = useEntitlement();
 
-    const hasAccess = canAccess(feature);
+    const hasAccess = entitlement?.can_run_breakdown ?? false;
 
     if (hasAccess) {
         return <>{children}</>;
@@ -39,52 +38,37 @@ const SubscriptionGate = ({
 
     const getMessage = () => {
         if (customMessage) return customMessage;
-        if (status === 'expired') return 'Your subscription has expired';
-        if (status === 'trial') return `Upgrade to access ${formatFeature(feature)}`;
-        return 'This feature requires an active subscription';
+        return `Buy breakdown credits to unlock ${formatFeature(feature)}`;
     };
 
     return (
-        <>
-            <div className="subscription-gate">
-                {/* Blurred content preview */}
-                {showBlur && (
-                    <div 
-                        className="subscription-gate-blur"
-                        style={{ filter: `blur(${blurAmount}px)` }}
-                    >
-                        {children}
-                    </div>
-                )}
+        <div className="subscription-gate">
+            {/* Blurred content preview */}
+            {showBlur && (
+                <div
+                    className="subscription-gate-blur"
+                    style={{ filter: `blur(${blurAmount}px)` }}
+                >
+                    {children}
+                </div>
+            )}
 
-                {/* Lock overlay */}
-                <div className="subscription-gate-overlay">
-                    <div className="subscription-gate-content">
-                        {showLockIcon && (
-                            <div className="subscription-gate-icon">
-                                <Lock size={24} />
-                            </div>
-                        )}
-                        <p className="subscription-gate-message">{getMessage()}</p>
-                        <button 
-                            className="subscription-gate-btn"
-                            onClick={() => setShowUpgradeModal(true)}
-                        >
-                            <Sparkles size={16} />
-                            Upgrade Now
-                        </button>
-                    </div>
+            {/* Lock overlay */}
+            <div className="subscription-gate-overlay">
+                <div className="subscription-gate-content">
+                    {showLockIcon && (
+                        <div className="subscription-gate-icon">
+                            <Lock size={24} />
+                        </div>
+                    )}
+                    <p className="subscription-gate-message">{getMessage()}</p>
+                    <Link to="/billing" className="subscription-gate-btn">
+                        <Sparkles size={16} />
+                        Go to Billing
+                    </Link>
                 </div>
             </div>
-
-            <UpgradeModal
-                isOpen={showUpgradeModal}
-                onClose={() => setShowUpgradeModal(false)}
-                feature={feature}
-                daysRemaining={daysRemaining}
-                isExpired={status === 'expired'}
-            />
-        </>
+        </div>
     );
 };
 

@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import {
     Mail,
     Users,
@@ -17,8 +18,8 @@ import {
     Sparkles
 } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
-import { useSubscription } from '../../hooks/useSubscription';
-import { UpgradeModal } from '../subscription';
+import { useEntitlement } from '../../hooks/useEntitlement';
+import { getDepartments } from '../../services/apiService';
 import { Spinner, Button, Modal } from '../ui';
 import './InviteModal.css';
 
@@ -32,8 +33,8 @@ const ROLES = [
 
 const InviteModal = ({ isOpen, onClose, scriptId, scriptTitle }) => {
     const toast = useToast();
-    const { canAccess, status, daysRemaining } = useSubscription();
-    
+    const { entitlement } = useEntitlement();
+
     const [email, setEmail] = useState('');
     const [department, setDepartment] = useState('');
     const [role, setRole] = useState('member');
@@ -41,17 +42,15 @@ const InviteModal = ({ isOpen, onClose, scriptId, scriptTitle }) => {
     const [inviteResult, setInviteResult] = useState(null);
     const [copied, setCopied] = useState(false);
     const [departments, setDepartments] = useState([]);
-    const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-    
+
     // Check if user has team collaboration access
-    const hasTeamAccess = canAccess('team_collaboration');
+    const hasTeamAccess = entitlement?.can_use_teams ?? false;
 
     // Fetch departments from API
     useEffect(() => {
         const fetchDepartments = async () => {
             try {
-                const response = await fetch(`${API_BASE_URL}/api/departments`);
-                const data = await response.json();
+                const data = await getDepartments();
                 if (data.departments) {
                     setDepartments(data.departments);
                 }
@@ -138,47 +137,37 @@ const InviteModal = ({ isOpen, onClose, scriptId, scriptTitle }) => {
         setCopied(false);
     };
 
-    // If no team access, show upgrade prompt
+    // If no team access, show the Tier 2 upsell rather than a disabled button.
     if (!hasTeamAccess) {
         return (
-            <>
-                <Modal
-                    isOpen={isOpen}
-                    onClose={onClose}
-                    closeOnEscape={!showUpgradeModal}
-                    size="md"
-                    title={
-                        <div className="header-content">
-                            <Users size={24} />
-                            <div>
-                                <h2>Invite Team Member</h2>
-                                <p className="script-name">{scriptTitle}</p>
-                            </div>
-                        </div>
-                    }
-                >
-                    <div className="invite-locked">
-                        <div className="locked-content">
-                            <div className="locked-icon">
-                                <Lock size={32} />
-                            </div>
-                            <h3>Team Collaboration Locked</h3>
-                            <p>Upgrade to invite team members and collaborate on your scripts.</p>
-                            <button className="upgrade-btn" onClick={() => setShowUpgradeModal(true)}>
-                                <Sparkles size={18} />
-                                Subscribe — $49/month
-                            </button>
+            <Modal
+                isOpen={isOpen}
+                onClose={onClose}
+                size="md"
+                title={
+                    <div className="header-content">
+                        <Users size={24} />
+                        <div>
+                            <h2>Invite Team Member</h2>
+                            <p className="script-name">{scriptTitle}</p>
                         </div>
                     </div>
-                </Modal>
-                <UpgradeModal
-                    isOpen={showUpgradeModal}
-                    onClose={() => setShowUpgradeModal(false)}
-                    feature="team_collaboration"
-                    daysRemaining={daysRemaining}
-                    isExpired={status === 'expired'}
-                />
-            </>
+                }
+            >
+                <div className="invite-locked">
+                    <div className="locked-content">
+                        <div className="locked-icon">
+                            <Lock size={32} />
+                        </div>
+                        <h3>Team Collaboration Locked</h3>
+                        <p>Team invites require the Annual Team License. Subscribe to invite members and collaborate on your scripts.</p>
+                        <Link to="/billing" className="upgrade-btn">
+                            <Sparkles size={18} />
+                            Get the Annual Team License
+                        </Link>
+                    </div>
+                </div>
+            </Modal>
         );
     }
 

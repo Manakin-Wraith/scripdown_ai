@@ -478,7 +478,7 @@ def approve_payment(purchase_id):
     try:
         from db.supabase_client import get_supabase_admin
         from middleware.auth import get_user_id
-        from services.subscription_service import activate_monthly_subscription
+        from services.entitlement_service import activate_license
         from datetime import datetime, timedelta
         
         data = request.get_json() or {}
@@ -517,14 +517,14 @@ def approve_payment(purchase_id):
             
             sp = sp_result.data
             user_id = sp.get('user_id')
-            email = sp.get('email')
-            
-            # Activate monthly subscription via service
-            if user_id and email:
-                result = activate_monthly_subscription(user_id, email, admin_reference)
-                if not result.get('success'):
-                    return jsonify({'success': False, 'error': result.get('error', 'Failed to activate subscription')}), 400
-            
+
+            # Activate Tier 2 annual license via entitlement service
+            if user_id:
+                try:
+                    activate_license(user_id, admin_reference)
+                except Exception as e:
+                    return jsonify({'success': False, 'error': f'Failed to activate license: {e}'}), 400
+
             # Update the payment record with admin info
             supabase.table('subscription_payments').update({
                 'status': 'completed',
@@ -533,10 +533,10 @@ def approve_payment(purchase_id):
                 'verified_by': admin_user_id,
                 'notes': notes
             }).eq('id', purchase_id).execute()
-            
+
             return jsonify({
                 'success': True,
-                'message': 'Monthly subscription activated — $49/month for 30 days'
+                'message': 'Annual Team License activated'
             }), 200
         
         elif payment_type == 'beta_access':
@@ -552,8 +552,7 @@ def approve_payment(purchase_id):
             
             bp = bp_result.data
             user_id = bp.get('user_id')
-            email = bp.get('email')
-            
+
             # Mark beta_payment as completed
             supabase.table('beta_payments').update({
                 'status': 'completed',
@@ -561,14 +560,14 @@ def approve_payment(purchase_id):
                 'paid_at': datetime.now().isoformat(),
                 'metadata': {**(bp.get('metadata') or {}), 'verified_by': admin_user_id, 'notes': notes}
             }).eq('id', purchase_id).execute()
-            
-            # Activate subscription via new system
-            if user_id and email:
-                activate_monthly_subscription(user_id, email, admin_reference)
-            
+
+            # Activate Tier 2 annual license via entitlement service
+            if user_id:
+                activate_license(user_id, admin_reference)
+
             return jsonify({
                 'success': True,
-                'message': 'Subscription activated from legacy beta payment'
+                'message': 'Annual Team License activated from legacy beta payment'
             }), 200
         
         else:

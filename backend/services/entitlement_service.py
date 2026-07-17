@@ -2,7 +2,8 @@
 Entitlement — the single source of truth for "may this user do this?".
 
 Replaces the three copy-pasted `status != 'active'` checks in supabase_routes
-and the dead, fail-open `require_active_subscription` in subscription_service.
+and the dead, fail-open `require_active_subscription` that used to live in
+subscription_service.py (retired in Task 13b).
 
 Every decorator here fails CLOSED. The old one read `g.user_id`, which
 middleware/auth.py never sets, so it passed every request through.
