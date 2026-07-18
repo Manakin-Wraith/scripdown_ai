@@ -119,3 +119,161 @@ The window is small and PayFast retries are spaced out.
 - `backend/tests/test_payfast_itn_route.py` — `test_claim_happens_before_granting`,
   `test_failed_grant_releases_the_claim`
 - Grant side: `backend/services/entitlement_service.py`
+
+---
+
+## Two-tier pricing / PayFast billing — outstanding fixes
+
+**Status:** Open, tracked against `feat/two-tier-pricing` (not merged to main). Branch
+is functionally verified end-to-end against live PayFast sandbox transactions
+for all three charge types, but not yet safe to ship as-is.
+
+### `routes/analysis_routes.py` has no auth at all
+
+**Found:** 2026-07-18, via live adversarial testing (curl against a locally
+running instance in non-dev auth mode).
+
+**Context.** Every route in this blueprint — `GET /api/scripts/<id>/analysis/status`,
+`GET .../characters`, `GET .../characters/<name>`, `GET .../story-arc`, `POST
+.../cancel` — is registered in `app.py` with no `@require_auth`. Confirmed live:
+all returned data or succeeded with no Authorization header. This is separate
+from the write-side analysis endpoints in `supabase_routes.py`
+(`/api/scenes/<id>/analyze`, `/api/scripts/<id>/analyze/bulk`), which correctly
+require both `@require_auth` and `@require_breakdown_entitlement`.
+
+**Impact.** Any anonymous caller who knows or guesses a numeric `script_id` can
+read that script's character breakdown and story-arc data, and can cancel
+another user's in-progress analysis job with no auth at all — a griefing vector
+against a paying customer.
+
+**Fix.** Add `@require_auth` (and an ownership/entitlement check, matching the
+pattern used elsewhere) to every route in `backend/routes/analysis_routes.py`.
+Small, contained change.
+
+### Renewal automation not built
+
+**Context.** `tier_2_license` (Annual Team License) uses PayFast tokenization
+(migration `042_payfast_tokenization.sql`, `profiles.subscription_payfast_token`)
+because true Recurring Billing isn't enabled on this merchant account. The token
+is captured on activation, but there is no scheduled job that calls PayFast's
+Recurring Billing API to charge it before each license's year expires.
+
+**Why deferred.** Needed before `tier_2_license` is production-ready, but the
+charge-type itself has been verified working; this is the follow-up piece.
+
+**Scope when picked up.** A scheduled job (cron / Supabase pg_cron) that finds
+licenses nearing expiry, charges the stored token via PayFast's API, and
+updates `profiles.subscription_status` based on the result — which also feeds
+directly into the failed-renewal gap below.
+
+### Failed-renewal downgrade gap
+
+**Context.** `get_entitlement` (`backend/services/entitlement_service.py`)
+correctly denies team access once `subscription_status != 'active'`, but
+nothing currently writes `status = 'expired'` when a renewal charge fails —
+because renewal automation (above) doesn't exist yet to fail in the first
+place. Flagged in the original two-tier pricing design doc, never closed.
+
+**Why deferred.** Needs a real failed-renewal ITN payload (or the renewal job
+itself) to test against; blocked on the renewal-automation item above.
+
+### `list_members` IDOR-shaped gap
+
+**Context.** Noted during Task 10 (team gating). The tier-2 gating check on
+`list_members` verifies the *caller's own* tier, not whether the caller
+belongs to the *specific script* being queried. Any tier-2 user can list any
+script's team roster by ID.
+
+**Why deferred.** Separate from the billing work in scope for this branch; a
+straightforward authorization-check fix once picked up (verify membership on
+the specific script, not just tier).
+
+**References.**
+- `backend/routes/analysis_routes.py`, `backend/routes/supabase_routes.py`
+- `backend/services/entitlement_service.py` — `get_entitlement`, `activate_license`
+- `backend/db/migrations/042_payfast_tokenization.sql`
+- Team gating: wherever `list_members` is implemented (routes handling
+  `/api/scripts/<id>/team` or similar)
+
+---
+
+## Report Studio: CSV export
+
+**Status:** Not started — feature request.
+
+**Context.** Report Studio (`frontend/src/components/reports/ReportStudio.jsx`,
+`ReportPreviewPane.jsx`) and the backend `services/report_service.py` currently
+only produce the WeasyPrint-rendered PDF/HTML report. There is no CSV export
+path — grep of `report_service.py` / `report_routes.py` turns up nothing CSV-
+related today.
+
+**Scope when picked up.** Brainstorm before implementing (see
+`superpowers:brainstorming`) — open questions: which report types get a CSV
+export (stripboard, breakdown, all of them?), whether it reuses the same
+filtered/configured view the PDF export uses (`report_config` column,
+`029_report_filter_presets.sql`), and where the download entry point lives in
+the UI (`ReportRail.jsx` / `ReportPreviewPane.jsx`).
+
+**References.**
+- `backend/services/report_service.py`, `backend/routes/report_routes.py`
+- `frontend/src/components/reports/ReportStudio.jsx`,
+  `ReportPreviewPane.jsx`, `ReportRail.jsx`
+
+---
+
+## Report version control and tracking
+
+**Status:** Not started — feature request.
+
+**Context.** No versioning of generated reports exists today — `report_config`
+(migration `023_report_config_column.sql`) stores the current config for a
+report, but there's no history of prior configs/generations, and no way to see
+what changed between two versions of the same report or roll back.
+
+**Scope when picked up.** Brainstorm before implementing — open questions:
+version on every generation vs. only on explicit save; whether this tracks the
+`report_config` (the filter/settings state) or the generated output (PDF/CSV)
+itself, or both; retention (keep all versions forever vs. prune); how this
+surfaces in `ReportLibraryDrawer.jsx` (version history per report).
+
+**References.**
+- `backend/db/migrations/023_report_config_column.sql`,
+  `029_report_filter_presets.sql`
+- `frontend/src/components/reports/ReportLibraryDrawer.jsx`,
+  `ReportStudio.jsx`
+
+---
+
+## Discuss: user flow when a script Owner buys a Seat for a team member
+
+**Status:** Needs discussion — not yet a design or a plan.
+
+**Context.** `tier_2_seats` charges are verified working at the payment/grant
+layer (checkout → PayFast → ITN → `account_seats +1`, per Task 14 verification
+on `feat/two-tier-pricing`). What's undefined is the *product flow* around it:
+who the seat is for, when they get access, and what happens if nobody claims
+it.
+
+**Open questions to resolve before implementing anything.**
+- Does the Owner pick/invite a specific person at purchase time, or buy a seat
+  first and assign it later?
+- If assigned later: is an unassigned seat just a number on the account
+  (`account_seats` incremented with no user attached), or does it need its own
+  pending/invited state?
+- How does this interact with the existing team-invite flow (Task 10 gating —
+  `require_auth` + tier_2 entitlement + seat limits) — does buying a seat
+  auto-raise the limit the invite check compares against, or is there a manual
+  step?
+- What does the invitee see/receive (email invite? in-app notification?), and
+  what if they already have an account under a different plan?
+- Revocation/reassignment: can the Owner reclaim a seat from one member and
+  give it to another without buying a new one?
+
+**Why deferred.** This is a product-flow decision, not a code gap — needs
+brainstorming (see `superpowers:brainstorming`) before it becomes a design doc
+or plan.
+
+**References.**
+- `backend/services/entitlement_service.py` — `grant_seats`
+- `backend/routes/payfast_routes.py` — `tier_2_seats` charge type
+- Team gating (Task 10): invite/member endpoints, seat-limit checks
