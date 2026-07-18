@@ -2225,4 +2225,13 @@ export const createCheckout = async (chargeType, quantity = 1) => {
     return response.data;
 };
 
+export const createInvite = async (scriptId, { email, departmentCode, role }) => {
+    const response = await api.post(`/api/scripts/${scriptId}/invites`, {
+        email,
+        department_code: departmentCode,
+        role,
+    });
+    return response.data;
+};
+
 export default api;
