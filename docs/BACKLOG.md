@@ -399,6 +399,56 @@ referenced in billing logic and tests, not only marketing pages:
 
 ---
 
+## Character merge: uppercase/lowercase name variants won't merge
+
+**Status:** Bug report — not yet reproduced/root-caused in code.
+
+**Context.** Reported: two character entries that differ only by case (e.g.
+`JOHN` vs `John`) cannot be merged via the character-merge UI.
+
+**What the code appears to do today**, which makes this worth verifying
+carefully before fixing:
+- `merge_characters` (`backend/routes/supabase_routes.py:4596`) upcases both
+  `canonical_name` and `aliases` before comparing/writing, and matches
+  `scenes.characters` entries case-insensitively (`c.strip().upper()`).
+- The frontend duplicate detector (`frontend/src/components/scenes/ScriptSummary.jsx`,
+  `detectDuplicates`) also upcases before Levenshtein-comparing, so a
+  case-only difference (distance 0 after upcasing) should already surface as
+  a suspected duplicate; `normalizeForMerge` for `characters` also upcases.
+
+So the case-insensitive path looks intentionally handled in both the scene
+merge route and the duplicate-detection UI — meaning the reported failure is
+likely somewhere the case-insensitive handling *doesn't* reach, not a missing
+`.upper()` in the obvious place. Prime suspect: `character_analyses`
+(populated by `analysis_queue_service.py::save_character_analysis` /
+`analysis_worker.py::worker_save_character_analysis`, keyed by whatever
+`character_name` string the AI job used) is a **separate table that
+`merge_characters` never touches** — so even after `scenes.characters` merges
+cleanly, two case-variant rows could persist there, keeping the character
+list looking unmerged (e.g. two rows in the Characters analysis view) or
+causing `get_single_character_analysis` lookups to miss.
+
+**Scope when picked up.**
+- Reproduce first: upload/construct a script with a genuine case-only
+  duplicate and confirm exactly where it survives a merge (which table/view
+  still shows two entries).
+- If confirmed as `character_analyses`: fix `merge_characters` to also fold
+  the alias rows into the canonical row (delete-or-merge duplicate
+  `character_analyses` rows for the aliases) the same way it already does
+  for `department_items` and `character_aliases`.
+- If the actual repro is different from this hypothesis (e.g. a specific
+  UI path that bypasses `detectDuplicates`), re-scope around the real cause.
+
+**References.**
+- `backend/routes/supabase_routes.py` — `merge_characters` (line ~4596)
+- `backend/services/analysis_queue_service.py` — `save_character_analysis`,
+  `get_all_character_analyses`
+- `backend/services/analysis_worker.py` — `worker_save_character_analysis`
+- `frontend/src/components/scenes/ScriptSummary.jsx` — `detectDuplicates`,
+  `normalizeForMerge`
+
+---
+
 ## Seat purchase flow — RESOLVED, shipped
 
 **Status:** Done. Was "Discuss: user flow when a script Owner buys a Seat for
