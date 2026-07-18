@@ -124,31 +124,46 @@ The window is small and PayFast retries are spaced out.
 
 ## Two-tier pricing / PayFast billing — outstanding fixes
 
-**Status:** Open, tracked against `feat/two-tier-pricing` (not merged to main). Branch
-is functionally verified end-to-end against live PayFast sandbox transactions
-for all three charge types, but not yet safe to ship as-is.
+**Status:** Open, tracked against `feat/two-tier-pricing` (merged to `main`
+2026-07-18). Branch is functionally verified end-to-end against live PayFast
+sandbox transactions for all three charge types. The anonymous-access
+vulnerability below is fixed and merged; renewal automation and the
+`list_members` gap remain open post-merge.
 
-### `routes/analysis_routes.py` has no auth at all
+### `routes/analysis_routes.py` has no auth at all — RESOLVED, fixed
 
 **Found:** 2026-07-18, via live adversarial testing (curl against a locally
-running instance in non-dev auth mode).
+running instance in non-dev auth mode). **Fixed:** 2026-07-18, same day.
 
 **Context.** Every route in this blueprint — `GET /api/scripts/<id>/analysis/status`,
 `GET .../characters`, `GET .../characters/<name>`, `GET .../story-arc`, `POST
-.../cancel` — is registered in `app.py` with no `@require_auth`. Confirmed live:
+.../cancel` — was registered in `app.py` with no `@require_auth`. Confirmed live:
 all returned data or succeeded with no Authorization header. This is separate
 from the write-side analysis endpoints in `supabase_routes.py`
 (`/api/scenes/<id>/analyze`, `/api/scripts/<id>/analyze/bulk`), which correctly
 require both `@require_auth` and `@require_breakdown_entitlement`.
 
-**Impact.** Any anonymous caller who knows or guesses a numeric `script_id` can
-read that script's character breakdown and story-arc data, and can cancel
-another user's in-progress analysis job with no auth at all — a griefing vector
-against a paying customer.
+**Impact.** Any anonymous caller who knew or guessed a numeric `script_id`
+could read that script's character breakdown and story-arc data, and cancel
+another user's in-progress analysis job with no auth at all — a griefing
+vector against a paying customer.
 
-**Fix.** Add `@require_auth` (and an ownership/entitlement check, matching the
-pattern used elsewhere) to every route in `backend/routes/analysis_routes.py`.
-Small, contained change.
+**Fix.** Every route in `backend/routes/analysis_routes.py` now has
+`@require_auth`, plus a `_user_can_access_script` ownership/team-membership
+check (imported from `supabase_routes.py`, the same helper already used by
+the write-side endpoints) before touching any script-scoped data. The one
+global, non-script-scoped route (`GET /api/analysis/status`) got
+`@require_auth` only, matching the backlog's original scope.
+
+**Verification.** `backend/tests/test_analysis_routes_auth.py` (new): every
+route rejects anonymous callers (401) and non-members (403); an authorized
+member still gets a 200. Full backend suite (399 tests) and app boot both
+pass with no regressions.
+
+**References.**
+- `backend/routes/analysis_routes.py`
+- `backend/routes/supabase_routes.py` — `_user_can_access_script`
+- `backend/tests/test_analysis_routes_auth.py`
 
 ### Renewal automation not built
 
