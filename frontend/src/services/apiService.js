@@ -2212,4 +2212,26 @@ export const getLocationHealthCounts = async () => {
     return response.data; // { counts: { script_id: total } }
 };
 
+export const getEntitlement = async () => {
+    const response = await api.get('/api/billing/entitlement');
+    return response.data;
+};
+
+export const createCheckout = async (chargeType, quantity = 1) => {
+    const response = await api.post('/api/billing/checkout', {
+        charge_type: chargeType,
+        quantity,
+    });
+    return response.data;
+};
+
+export const createInvite = async (scriptId, { email, departmentCode, role }) => {
+    const response = await api.post(`/api/scripts/${scriptId}/invites`, {
+        email,
+        department_code: departmentCode,
+        role,
+    });
+    return response.data;
+};
+
 export default api;

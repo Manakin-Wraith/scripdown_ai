@@ -15,6 +15,16 @@ REQUIRED_VARS = {
     'SUPABASE_ANON_KEY': 'Supabase anonymous/public key for client operations',
     'SUPABASE_SERVICE_KEY': 'Supabase service role key for admin operations (bypasses RLS)',
     'RESEND_API_KEY': 'Resend email service API key for sending emails',
+    'PAYFAST_MERCHANT_ID': 'PayFast merchant ID for checkout signing',
+    'PAYFAST_MERCHANT_KEY': 'PayFast merchant key for checkout signing',
+}
+
+# Required only outside PAYFAST_SANDBOX mode: PayFast's own shared sandbox
+# demo merchant (10000100) has no passphrase configured, so a real value
+# can't be required for local sandbox testing — but a live deploy must set
+# one, since signatures are enforced.
+SANDBOX_EXEMPT_VARS = {
+    'PAYFAST_PASSPHRASE': 'PayFast security passphrase — required outside PAYFAST_SANDBOX mode, signatures are enforced',
 }
 
 # Optional but recommended environment variables
@@ -34,13 +44,20 @@ def validate_required_env():
     """
     missing_required = []
     missing_recommended = []
-    
+
     # Check required variables
     for var, description in REQUIRED_VARS.items():
         value = os.getenv(var)
         if not value:
             missing_required.append(f"  ❌ {var}: {description}")
-    
+
+    # Sandbox-exempt vars: required unless PAYFAST_SANDBOX=true
+    if os.getenv('PAYFAST_SANDBOX', 'false').lower() != 'true':
+        for var, description in SANDBOX_EXEMPT_VARS.items():
+            value = os.getenv(var)
+            if not value:
+                missing_required.append(f"  ❌ {var}: {description}")
+
     # Check recommended variables
     for var, description in RECOMMENDED_VARS.items():
         value = os.getenv(var)

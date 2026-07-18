@@ -74,3 +74,421 @@ to the FDX preview, PDF scripts to the existing PDF viewer.
 - FDX text source: `backend/services/fdx_parser.py` (`parse_fdx_upload` →
   `full_text`, per-scene `scene_text`)
 - Upload/persistence: `backend/routes/supabase_routes.py::upload_script`
+
+---
+
+## PayFast ITN: claim-and-grant is not a single transaction
+
+**Status:** Deferred — narrow residual gap; no money is lost or double-charged.
+
+**Context.** The ITN handler (`backend/routes/payfast_routes.py`, shipped
+2026-07-16) makes granting idempotent by *claiming* the intent row before
+granting: `_claim_intent` runs a conditional `UPDATE ... WHERE id = ? AND
+status = 'pending'`, and Postgres row serialisation guarantees exactly one of
+two racing ITNs gets a row back. This closed the original double-grant window,
+where granting happened before the row was marked and two concurrent callbacks
+could both pass the `_already_processed` SELECT.
+
+**The remaining gap.** The claim and the grant are two separate round-trips, not
+one transaction. If the process dies *between* them, `_release_claim` never
+runs: the row is left `status = 'complete'` with nothing granted, and PayFast's
+retry sees a claimed row and declines to redo it. The user has paid and received
+nothing, needing manual repair. Ordinary grant exceptions are already handled —
+`_release_claim` returns the row to `pending` — so this is specifically a
+crash/OOM/redeploy window of a few milliseconds.
+
+**Why deferred.** The failure direction is deliberate and safe: a *missed* grant
+(visible, repairable) rather than a *double* grant (silent, refund-requiring).
+The window is small and PayFast retries are spaced out.
+
+**Options when picked up.**
+1. **Postgres function (most correct).** Move claim + grant into a single
+   `SECURITY DEFINER` plpgsql function called via RPC, so both commit atomically.
+   The Supabase client cannot span statements in one transaction, which is why
+   this can't be fixed in Python alone.
+2. **Reconciliation sweep (cheapest).** A periodic job finding
+   `payfast_transactions` rows that are `complete` but have no corresponding
+   grant (no `breakdown_credits` / `account_seats` row, no active licence), and
+   either granting or alerting. Also catches unrelated drift.
+3. **Claim leases.** Record `claimed_at` and treat a `complete` row with no
+   grant after N minutes as reclaimable, letting a later retry finish it.
+
+**References.**
+- `backend/routes/payfast_routes.py` — `_claim_intent`, `_release_claim`,
+  `payfast_notify`
+- `backend/tests/test_payfast_itn_route.py` — `test_claim_happens_before_granting`,
+  `test_failed_grant_releases_the_claim`
+- Grant side: `backend/services/entitlement_service.py`
+
+---
+
+## Two-tier pricing / PayFast billing — outstanding fixes
+
+**Status:** Open, tracked against `feat/two-tier-pricing` (merged to `main`
+2026-07-18). Branch is functionally verified end-to-end against live PayFast
+sandbox transactions for all three charge types. The anonymous-access
+vulnerability below is fixed and merged; renewal automation and the
+`list_members` gap remain open post-merge.
+
+### `routes/analysis_routes.py` has no auth at all — RESOLVED, fixed
+
+**Found:** 2026-07-18, via live adversarial testing (curl against a locally
+running instance in non-dev auth mode). **Fixed:** 2026-07-18, same day.
+
+**Context.** Every route in this blueprint — `GET /api/scripts/<id>/analysis/status`,
+`GET .../characters`, `GET .../characters/<name>`, `GET .../story-arc`, `POST
+.../cancel` — was registered in `app.py` with no `@require_auth`. Confirmed live:
+all returned data or succeeded with no Authorization header. This is separate
+from the write-side analysis endpoints in `supabase_routes.py`
+(`/api/scenes/<id>/analyze`, `/api/scripts/<id>/analyze/bulk`), which correctly
+require both `@require_auth` and `@require_breakdown_entitlement`.
+
+**Impact.** Any anonymous caller who knew or guessed a numeric `script_id`
+could read that script's character breakdown and story-arc data, and cancel
+another user's in-progress analysis job with no auth at all — a griefing
+vector against a paying customer.
+
+**Fix.** Every route in `backend/routes/analysis_routes.py` now has
+`@require_auth`, plus a `_user_can_access_script` ownership/team-membership
+check (imported from `supabase_routes.py`, the same helper already used by
+the write-side endpoints) before touching any script-scoped data. The one
+global, non-script-scoped route (`GET /api/analysis/status`) got
+`@require_auth` only, matching the backlog's original scope.
+
+**Verification.** `backend/tests/test_analysis_routes_auth.py` (new): every
+route rejects anonymous callers (401) and non-members (403); an authorized
+member still gets a 200. Full backend suite (399 tests) and app boot both
+pass with no regressions.
+
+**References.**
+- `backend/routes/analysis_routes.py`
+- `backend/routes/supabase_routes.py` — `_user_can_access_script`
+- `backend/tests/test_analysis_routes_auth.py`
+
+### Renewal automation not built
+
+**Context.** `tier_2_license` (Annual Team License) uses PayFast tokenization
+(migration `042_payfast_tokenization.sql`, `profiles.subscription_payfast_token`)
+because true Recurring Billing isn't enabled on this merchant account. The token
+is captured on activation, but there is no scheduled job that calls PayFast's
+Recurring Billing API to charge it before each license's year expires.
+
+**Why deferred.** Needed before `tier_2_license` is production-ready, but the
+charge-type itself has been verified working; this is the follow-up piece.
+
+**Scope when picked up.** A scheduled job (cron / Supabase pg_cron) that finds
+licenses nearing expiry, charges the stored token via PayFast's API, and
+updates `profiles.subscription_status` based on the result — which also feeds
+directly into the failed-renewal gap below.
+
+### Failed-renewal downgrade gap
+
+**Context.** `get_entitlement` (`backend/services/entitlement_service.py`)
+correctly denies team access once `subscription_status != 'active'`, but
+nothing currently writes `status = 'expired'` when a renewal charge fails —
+because renewal automation (above) doesn't exist yet to fail in the first
+place. Flagged in the original two-tier pricing design doc, never closed.
+
+**Why deferred.** Needs a real failed-renewal ITN payload (or the renewal job
+itself) to test against; blocked on the renewal-automation item above.
+
+### `list_members` IDOR-shaped gap
+
+**Context.** Noted during Task 10 (team gating). The tier-2 gating check on
+`list_members` verifies the *caller's own* tier, not whether the caller
+belongs to the *specific script* being queried. Any tier-2 user can list any
+script's team roster by ID.
+
+**Why deferred.** Separate from the billing work in scope for this branch; a
+straightforward authorization-check fix once picked up (verify membership on
+the specific script, not just tier).
+
+**References.**
+- `backend/routes/analysis_routes.py`, `backend/routes/supabase_routes.py`
+- `backend/services/entitlement_service.py` — `get_entitlement`, `activate_license`
+- `backend/db/migrations/042_payfast_tokenization.sql`
+- Team gating: wherever `list_members` is implemented (routes handling
+  `/api/scripts/<id>/team` or similar)
+
+---
+
+## Report Studio: CSV export
+
+**Status:** Not started — feature request.
+
+**Context.** Report Studio (`frontend/src/components/reports/ReportStudio.jsx`,
+`ReportPreviewPane.jsx`) and the backend `services/report_service.py` currently
+only produce the WeasyPrint-rendered PDF/HTML report. There is no CSV export
+path — grep of `report_service.py` / `report_routes.py` turns up nothing CSV-
+related today.
+
+**Scope when picked up.** Brainstorm before implementing (see
+`superpowers:brainstorming`) — open questions: which report types get a CSV
+export (stripboard, breakdown, all of them?), whether it reuses the same
+filtered/configured view the PDF export uses (`report_config` column,
+`029_report_filter_presets.sql`), and where the download entry point lives in
+the UI (`ReportRail.jsx` / `ReportPreviewPane.jsx`).
+
+**References.**
+- `backend/services/report_service.py`, `backend/routes/report_routes.py`
+- `frontend/src/components/reports/ReportStudio.jsx`,
+  `ReportPreviewPane.jsx`, `ReportRail.jsx`
+
+---
+
+## Report version control and tracking
+
+**Status:** Not started — feature request.
+
+**Context.** No versioning of generated reports exists today — `report_config`
+(migration `023_report_config_column.sql`) stores the current config for a
+report, but there's no history of prior configs/generations, and no way to see
+what changed between two versions of the same report or roll back.
+
+**Scope when picked up.** Brainstorm before implementing — open questions:
+version on every generation vs. only on explicit save; whether this tracks the
+`report_config` (the filter/settings state) or the generated output (PDF/CSV)
+itself, or both; retention (keep all versions forever vs. prune); how this
+surfaces in `ReportLibraryDrawer.jsx` (version history per report).
+
+**References.**
+- `backend/db/migrations/023_report_config_column.sql`,
+  `029_report_filter_presets.sql`
+- `frontend/src/components/reports/ReportLibraryDrawer.jsx`,
+  `ReportStudio.jsx`
+
+---
+
+## Script re-upload: detect and highlight what changed
+
+**Status:** Not started — feature request.
+
+**Context.** Today a new draft of a script has no relationship to the one
+already analyzed — re-uploading means a brand-new `script_id`, a full re-parse,
+and a full re-run of AI extraction, discarding all prior breakdown work even
+for scenes that didn't change. Production scripts get revised constantly
+(new drafts, "pink/blue pages" revision sets), and a user coming back with an
+updated draft has no way to carry forward what's already been broken down or
+see at a glance what's different.
+
+**What exists to build on.** The extraction pipeline already content-hashes
+per page (`compute_content_hash`, `check_already_processed` in
+`backend/services/extraction_pipeline.py`) and stores per-page text in
+`script_pages` keyed by hash for upload-time idempotency — that's a diffing
+primitive, just not currently used across two different `script_id`s or
+surfaced to the user.
+
+**Options (to brainstorm).**
+1. **Full re-upload + diff.** User uploads the entire new draft as normal;
+   the system diffs the new `script_pages`/scene text against the prior
+   version's (via content hash / scene-header + text comparison), flags
+   changed/added/removed scenes, carries forward breakdown data for unchanged
+   scenes, and only re-queues AI analysis for scenes that actually changed.
+   Simplest for the user (no need to know what changed ahead of time) but
+   needs a real diffing pass and a UI to review "here's what changed."
+2. **Partial upload of changed scenes only.** Mirrors how productions
+   actually distribute revisions (a "pink pages" packet of just the changed
+   pages) — user uploads only the revised scenes/pages, and the system merges
+   them into the existing script in place, re-numbering/re-flagging only what
+   was touched. Less data to process and more true to how revisions are
+   communicated on real productions, but requires the user to correctly scope
+   what they upload, and a merge UI (matching revised pages to existing scene
+   numbers) that doesn't exist today.
+3. **Both, sequenced.** Ship (1) first since it needs no new user workflow —
+   upload works exactly as it does now, diffing happens automatically after.
+   Add (2) later as a faster path once diffing infrastructure exists, for
+   users who already know which scenes changed.
+
+**Also decide:** whether a re-upload creates a new script version under the
+same "script" concept (versioned, with history) or a wholly separate
+`script_id` that's merely linked to the prior one for diffing purposes — this
+affects schedules, reports, and team assignments that reference the old
+`script_id` and would otherwise silently go stale.
+
+**References.**
+- `backend/services/extraction_pipeline.py` — `compute_content_hash`,
+  `check_already_processed`, `script_pages` schema
+- Upload entry point: `backend/routes/supabase_routes.py::upload_script`
+- Scene identity: `backend/services/entity_resolver.py` (duplicate/merge logic
+  for character names — same kind of matching problem applies to
+  matching scenes across versions)
+
+---
+
+## Series / multi-episode analysis
+
+**Status:** Not started — feature request.
+
+**Context.** The data model is single-script-centric — one script upload,
+one set of scenes, one breakdown. There's no concept of a series or season
+grouping multiple related scripts (episodes) together. A production
+breaking down a season needs both to manage episodes as a set and, ideally,
+to have entity extraction (cast, locations) be consistent across episodes
+rather than independently guessed each time.
+
+**Options (to brainstorm), as a two-phase idea.**
+1. **Phase 1 — grouping/reporting layer.** Episodes stay independently
+   uploaded and analyzed exactly as scripts are today (no change to the
+   extraction pipeline). A new `series`/`season` entity groups a set of
+   `script_id`s for shared views: a combined cast list across episodes, a
+   season-wide schedule/stripboard, cross-episode reports. Lowest risk —
+   additive on top of existing per-script analysis.
+2. **Phase 2 — cross-episode entity continuity.** Character/location/prop
+   identity carries across episodes, so "JOHN" extracted in episode 3
+   resolves to the same entity as "JOHN" in episode 1 rather than being
+   independently AI-guessed each time (risking inconsistent naming,
+   descriptions, or actor/casting notes per episode). Would likely extend
+   `backend/services/entity_resolver.py`'s existing duplicate-character
+   merging logic to operate across scripts within a series, not just within
+   one. Higher value but meaningfully harder — needs a cross-script identity
+   store and a strategy for when episode 5 legitimately introduces a
+   different "JOHN."
+
+**Also decide:** how a script is assigned to a series (at upload time vs.
+after the fact), whether series membership affects entitlement/billing (is a
+season priced differently than N independent scripts?), and whether
+Phase 2 identity matching is AI-assisted (embedding/fuzzy match against prior
+episodes' entities) or requires manual user confirmation before merging.
+
+**References.**
+- `backend/services/entity_resolver.py` — existing single-script duplicate
+  character-name merging, the closest existing analog for cross-episode
+  identity matching
+- `backend/services/extraction_pipeline.py` — per-script upload/analysis
+  entry points that a series concept would need to group
+- Schedule/report surfaces that would gain a series-wide view:
+  `backend/services/report_service.py`, stripboard/schedule routes
+
+---
+
+## Landing page copy — reword
+
+**Status:** Not started — feature request.
+
+**Context.** The landing page copy (marketing framing, FAQ, tier
+descriptions) needs a rewrite. No specifics captured yet on what's wrong
+with the current copy or what tone/positioning it should move toward —
+needs a proper brainstorming pass before writing.
+
+**References.**
+- `docs/landing-faq.md` — current FAQ copy (references the old flat "$49/month"
+  framing, which predates the two-tier model on this branch and needs to be
+  reconciled with it either way)
+- `docs/SPEC_Tiered_Business_Model.md` — current tier names/positioning
+  ("Tier 1 — Pay-Per-Breakdown", "Tier 2 — Annual Team License") that landing
+  copy would need to reflect if SOLO/TEAMS naming and pricing (see below)
+  change
+
+---
+
+## SOLO / TEAMS pricing — change pricing
+
+**Status:** Not started — feature request. No new numbers decided yet.
+
+**Context.** Current pricing per `docs/SPEC_Tiered_Business_Model.md`:
+- **Tier 1 (Solo)** — ZAR 450 per AI breakdown/analysis, pay-per-use, no team
+  features.
+- **Tier 2 (Teams)** — ZAR 1,850/year + ZAR 150 per seat, annual license,
+  full team collaboration.
+
+Pricing for both tiers needs to change; new numbers not yet decided —
+needs a brainstorming pass to pick them and work through downstream impact.
+
+**Downstream impact when picked up.** Prices aren't just copy — they're
+referenced in billing logic and tests, not only marketing pages:
+- `backend/services/entitlement_service.py` — tier constants (`TIER_1`,
+  `TIER_2`) and any hardcoded amounts used when creating PayFast payment
+  requests
+- `backend/routes/payfast_routes.py` — ITN handling, amount verification
+  against what was charged
+- Any frontend pricing display (`BillingPage.jsx`, invite/seat-purchase
+  quantity picker) that shows per-seat or per-breakdown cost to the user
+- `docs/landing-faq.md` / `docs/SPEC_Tiered_Business_Model.md` — copy and
+  spec both currently state the old numbers and would go stale
+
+**References.**
+- `docs/SPEC_Tiered_Business_Model.md` — §3 (current price points), §8
+  (billing mechanics per tier)
+- `backend/services/entitlement_service.py`, `backend/routes/payfast_routes.py`
+- `frontend/src/pages/BillingPage.jsx`
+
+---
+
+## Character merge: uppercase/lowercase name variants won't merge — RESOLVED, fixed
+
+**Status:** Done. Reproduced with a test, root-caused, fixed, and verified —
+the `character_analyses` hypothesis originally noted here was wrong; the real
+bug was simpler and in a different place.
+
+**Root cause (confirmed via test, not the original hypothesis).** Both
+`merge_characters` and `merge_locations` (`backend/routes/supabase_routes.py`)
+deduped the alias list by comparing the *uppercased* alias against the
+*uppercased* canonical name/place, then dropped any alias that matched —
+intending to strip an accidentally-reselected canonical. That comparison
+can't distinguish "alias is literally already the canonical spelling" from
+"alias is a genuine case-only variant" (`John` vs `JOHN`), so a real
+case-only duplicate always normalized to "identical to canonical" and got
+filtered out of the alias list entirely — backend responded `400 No valid
+aliases to merge` even though `scenes.characters`/`scenes.setting` still held
+the literal differently-cased string, unrewritten. The frontend's
+`normalizeForMerge` guard (`ScriptSummary.jsx`) had the identical bug for
+characters: it upcased before the no-op check, so the request never even
+reached the backend — it was blocked client-side with a false "these already
+share the same name" toast.
+
+**Fix.**
+- `backend/routes/supabase_routes.py::merge_characters` — alias-dedup filter
+  now excludes an alias only if its *raw* (pre-uppercase) spelling exactly
+  equals `canonical_name`, not its uppercased form. A case-only alias is kept
+  and gets rewritten to the canonical spelling by the existing scene-matching
+  loop.
+- `backend/routes/supabase_routes.py::merge_locations` — same fix shape:
+  compare raw alias text against `canonical_place` verbatim, not `.upper()`
+  vs `.upper()`.
+- `frontend/src/components/scenes/ScriptSummary.jsx::normalizeForMerge` —
+  dropped the character-specific uppercase branch; both types now just
+  trim/collapse whitespace, so the client-side no-op guard no longer blocks
+  a genuine case-only merge before it's sent.
+
+**Verification.** `backend/tests/test_character_merge_case.py` (new) covers:
+a case-only character alias (`JOHN`/`John`) merges and rewrites the scene's
+`characters` array to the canonical spelling; the same for locations
+(`VILLA`/`villa`); a truly identical alias (verbatim match to canonical) is
+still correctly rejected as a no-op. Full backend suite (396 tests) and
+frontend `npm run build` pass with no regressions.
+
+**References.**
+- `backend/routes/supabase_routes.py` — `merge_characters`, `merge_locations`
+- `frontend/src/components/scenes/ScriptSummary.jsx` — `normalizeForMerge`
+- `backend/tests/test_character_merge_case.py`
+
+---
+
+## Seat purchase flow — RESOLVED, shipped
+
+**Status:** Done. Was "Discuss: user flow when a script Owner buys a Seat for
+a team member" — brainstormed, designed, planned, and implemented on
+`feat/two-tier-pricing`.
+
+**What shipped.** Seats stay a fungible pool (no per-seat assignment records).
+The overbooking race is fixed: `_fetch_seats_used` now counts pending invites
+toward the limit, not just accepted ones, so a seat is reserved the instant an
+invite is sent rather than only once accepted. Two entry points: proactive
+purchase from Billing (now with a quantity picker, was hardcoded to 1), and a
+reactive "buy seats" panel in the invite modal when a `402
+no_seats_available` is hit — the in-progress invite survives the PayFast
+redirect via a sessionStorage draft and the Owner lands back on the same
+script's team page with the invite pre-filled, ready to send. A cross-task
+review caught and fixed one timing bug: the resume redirect was gated on the
+generic `can_run_breakdown || can_use_teams` settle-check, which is already
+true for a tier-2 owner before a seat purchase (seat count doesn't move those
+booleans) — now gated on `seats_paid` growing past a captured pre-purchase
+baseline instead.
+
+**References.**
+- Design: `docs/superpowers/specs/2026-07-18-seat-purchase-flow-design.md`
+- Plan: `docs/superpowers/plans/2026-07-18-seat-purchase-flow.md`
+- `backend/services/entitlement_service.py` — `_fetch_seats_used`, `grant_seats`
+- `frontend/src/components/team/InviteModal.jsx`,
+  `frontend/src/pages/PaymentResultPage.jsx`,
+  `frontend/src/utils/pendingSeatInviteDraft.js`

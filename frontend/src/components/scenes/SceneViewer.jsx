@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getScenes, getScriptMetadata, getScriptItems } from '../../services/apiService';
 import SceneList from './SceneList';
 import SceneDetail from './SceneDetail';
@@ -13,12 +13,12 @@ import { useScript } from '../../context/ScriptContext';
 import { useStoryDayListener, useStoryDayNotify } from '../../context/StoryDayContext';
 import SegmentManager from './SegmentManager';
 import { analyzeBulkScenes, analyzeScene, getPageMapping, reorderScenes, omitScene, getSegments } from '../../services/apiService';
-import { useSubscription } from '../../hooks/useSubscription';
-import { UpgradeModal } from '../subscription';
+import { useEntitlement } from '../../hooks/useEntitlement';
 import './SceneViewer.css';
 
 const SceneViewer = () => {
     const { scriptId } = useParams();
+    const navigate = useNavigate();
     const toast = useToast();
     const { setScript } = useScript();
     
@@ -39,7 +39,6 @@ const SceneViewer = () => {
     const [recentlyCompletedScenes, setRecentlyCompletedScenes] = useState(new Set());
     const [storyDayFilter, setStoryDayFilter] = useState(null);
     const [refetching, setRefetching] = useState(false);
-    const [showUpgradeModal, setShowUpgradeModal] = useState(false);
     const [showSegmentManager, setShowSegmentManager] = useState(false);
     const [segmentCount, setSegmentCount] = useState(0);
     const notifyStoryDayChange = useStoryDayNotify();
@@ -50,8 +49,8 @@ const SceneViewer = () => {
     }, [scriptId]);
 
     useEffect(() => { loadSegmentCount(); }, [loadSegmentCount]);
-    const { status, daysRemaining } = useSubscription();
-    const isPaidSubscriber = status === 'active';
+    const { entitlement } = useEntitlement();
+    const canRunBreakdown = entitlement?.can_run_breakdown ?? false;
     const selectedSceneRef = useRef(null);
     selectedSceneRef.current = selectedScene;
 
@@ -238,9 +237,9 @@ const SceneViewer = () => {
 
     // Handle single scene analysis
     const handleAnalyzeScene = async (sceneId) => {
-        // Subscription gate: block analysis for non-subscribers
-        if (!isPaidSubscriber) {
-            setShowUpgradeModal(true);
+        // Breakdown entitlement gate: block analysis with no credits/plan
+        if (!canRunBreakdown) {
+            navigate('/billing');
             return;
         }
         setAnalyzingScenes(prev => new Set([...prev, sceneId]));
@@ -308,9 +307,9 @@ const SceneViewer = () => {
 
     // Handle bulk analysis - starts background job and polls for updates
     const handleBulkAnalyze = async () => {
-        // Subscription gate: block analysis for non-subscribers
-        if (!isPaidSubscriber) {
-            setShowUpgradeModal(true);
+        // Breakdown entitlement gate: block analysis with no credits/plan
+        if (!canRunBreakdown) {
+            navigate('/billing');
             return;
         }
         setIsBulkAnalyzing(true);
@@ -790,14 +789,6 @@ const SceneViewer = () => {
                     onPageChange={handlePdfPageChange}
                 />
             </div>
-            {/* Subscription upgrade modal */}
-            <UpgradeModal
-                isOpen={showUpgradeModal}
-                onClose={() => setShowUpgradeModal(false)}
-                feature="ai_analysis"
-                daysRemaining={daysRemaining}
-                isExpired={status === 'expired'}
-            />
             {showSegmentManager && (
                 <SegmentManager
                     scriptId={scriptId}

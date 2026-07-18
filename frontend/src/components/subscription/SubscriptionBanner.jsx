@@ -4,73 +4,44 @@
  */
 
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Clock, Sparkles, X } from 'lucide-react';
-import { useSubscription } from '../../hooks/useSubscription';
-import UpgradeModal from './UpgradeModal';
+import { useEntitlement } from '../../hooks/useEntitlement';
 import './SubscriptionBanner.css';
 
-const SubscriptionBanner = () => {
-    const { status, daysRemaining, shouldShowUpgradePrompt, message } = useSubscription();
-    const [dismissed, setDismissed] = useState(false);
-    const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+const TIER_1 = 'tier_1_pay_per_breakdown';
 
-    if (dismissed || !shouldShowUpgradePrompt()) {
+const SubscriptionBanner = () => {
+    const { entitlement } = useEntitlement();
+    const [dismissed, setDismissed] = useState(false);
+
+    // Only tier 1 (pay-per-breakdown) runs out — tier 2 active is unlimited.
+    const outOfCredits = entitlement?.tier === TIER_1 && !entitlement?.can_run_breakdown;
+
+    if (dismissed || !outOfCredits) {
         return null;
     }
 
-    const getBannerStyle = () => {
-        if (status === 'expired') return 'banner-expired';
-        if (daysRemaining <= 3) return 'banner-urgent';
-        return 'banner-warning';
-    };
-
-    const getBannerMessage = () => {
-        if (status === 'expired') {
-            return 'Your access has expired. Upgrade now to continue using SlateOne.';
-        }
-        if (status === 'trial') {
-            return `Your trial ends in ${daysRemaining} ${daysRemaining === 1 ? 'day' : 'days'}. Upgrade to keep your scripts.`;
-        }
-        if (status === 'active' && daysRemaining <= 14) {
-            return `Your subscription expires in ${daysRemaining} days. Renew to continue.`;
-        }
-        return message;
-    };
-
     return (
-        <>
-            <div className={`subscription-banner ${getBannerStyle()}`}>
-                <div className="subscription-banner-content">
-                    <Clock size={18} />
-                    <span>{getBannerMessage()}</span>
-                </div>
-                <div className="subscription-banner-actions">
-                    <button 
-                        className="subscription-banner-upgrade"
-                        onClick={() => setShowUpgradeModal(true)}
-                    >
-                        <Sparkles size={14} />
-                        Upgrade Now
-                    </button>
-                    {status !== 'expired' && (
-                        <button 
-                            className="subscription-banner-dismiss"
-                            onClick={() => setDismissed(true)}
-                            aria-label="Dismiss"
-                        >
-                            <X size={16} />
-                        </button>
-                    )}
-                </div>
+        <div className="subscription-banner banner-warning">
+            <div className="subscription-banner-content">
+                <Clock size={18} />
+                <span>You're out of breakdown credits. Buy more to keep analyzing scenes.</span>
             </div>
-
-            <UpgradeModal
-                isOpen={showUpgradeModal}
-                onClose={() => setShowUpgradeModal(false)}
-                daysRemaining={daysRemaining}
-                isExpired={status === 'expired'}
-            />
-        </>
+            <div className="subscription-banner-actions">
+                <Link to="/billing" className="subscription-banner-upgrade">
+                    <Sparkles size={14} />
+                    Buy Credits
+                </Link>
+                <button
+                    className="subscription-banner-dismiss"
+                    onClick={() => setDismissed(true)}
+                    aria-label="Dismiss"
+                >
+                    <X size={16} />
+                </button>
+            </div>
+        </div>
     );
 };
 

@@ -176,6 +176,20 @@
     cursor: not-allowed;
 }
 
+.link-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    text-decoration: underline;
+    cursor: pointer;
+    font-size: 0.875rem;
+    margin-top: 8px;
+}
+
+.link-btn:hover {
+    color: var(--text-primary);
+}
+
 /* Success State */
 .invite-success {
     text-align: center;

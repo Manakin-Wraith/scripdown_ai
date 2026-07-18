@@ -52,15 +52,13 @@ function detectDuplicates(names) {
 /**
  * Client-side mirror of the backend merge matching, used to detect when
  * selected items already reduce to the same value (so a merge would be a no-op).
- * Characters match case-insensitively (backend upcases). Locations now merge on
- * raw setting text like character names, where a case-only difference IS a real
- * merge (villa -> VILLA) — so only trim + collapse whitespace, preserving case.
+ * Both characters and locations merge on raw text, where a case-only
+ * difference (villa -> VILLA, John -> JOHN) IS a real merge the underlying
+ * scenes still need rewritten — so only trim + collapse whitespace,
+ * preserving case, never fold it away here.
  */
-function normalizeForMerge(type, name) {
-    if (type === 'locations') {
-        return (name || '').trim().replace(/\s+/g, ' ');
-    }
-    return (name || '').trim().toUpperCase().replace(/\s+/g, ' ');
+function normalizeForMerge(_type, name) {
+    return (name || '').trim().replace(/\s+/g, ' ');
 }
 
 /** Count the number of distinct duplicate groups from a suspects map. */

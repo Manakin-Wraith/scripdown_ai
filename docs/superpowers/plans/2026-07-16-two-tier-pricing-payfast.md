@@ -18,7 +18,7 @@
 - **Never grant entitlement from a browser return URL.** Only a validated ITN grants.
 - **Never trust `amount`, `plan`, or `custom_str2` from a request.** They come from the intent row.
 - Migrations live in `backend/db/migrations/NNN_name.sql` and are **applied by hand** — there is no runner. The plan does not automate application.
-- Backend gate: `cd backend && pytest tests/`. Frontend gate: `cd frontend && npm run build`. **`npm run lint` is broken repo-wide — do not gate on it.**
+- Backend gate: `cd backend && ./venv/bin/python -m pytest tests/`. **You must use the venv interpreter** — bare `pytest` / system `python3` has no pytest installed and will make it look like the suite is broken when it is not. Baseline on a clean branch: **334 passed** in ~50s. Frontend gate: `cd frontend && npm run build`. **`npm run lint` is broken repo-wide — do not gate on it.**
 - Tests use `monkeypatch` + `app.test_client()`. There is no `conftest.py`; each test file does `sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))`.
 - Supabase access is via `from db.supabase_client import get_supabase_admin` (service role, bypasses RLS).
 - Never commit PayFast credentials. They are already set in Railway as `PAYFAST_MERCHANT_ID`, `PAYFAST_MERCHANT_KEY`, `PAYFAST_PASSPHRASE`.
@@ -191,6 +191,8 @@ git commit -m "feat(billing): migration 041 — two-tier pricing schema"
 - Produces: `PRICES: dict[str, Decimal]` — `{'tier_1_credits': 450, 'tier_2_license': 1850, 'tier_2_seats': 150}`.
 
 **Why this is its own task:** the signature is pure, deterministic, and the single point where a subtle bug silently breaks every payment. It gets tested in isolation before anything depends on it.
+
+> **SUPERSEDED (2026-07-16, during execution):** the code blocks in Task 4 below still show `custom_int1: str(quantity)` and a `quantity` parameter on `build_checkout_fields`. Both were **removed** after review: spec §6.1 does not list `custom_int1` and states "Quantity lives in our UI, not PayFast's form", and `amount` already encodes quantity so the param was dead. The shipped signature is `build_checkout_fields(charge_type, user_id, m_payment_id, amount)`. Do not reintroduce either. `compute_amount` still takes quantity — that is correct and unchanged.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -511,7 +513,7 @@ git commit -m "feat(billing): PayFast ITN validation (signature, source IP, conf
 **Interfaces:**
 - Consumes: `generate_signature`, `PRICES`.
 - Produces: `compute_amount(charge_type: str, quantity: int) -> Decimal`
-- Produces: `build_checkout_fields(charge_type, quantity, user_id, m_payment_id, amount) -> dict` — includes `signature`.
+- Produces: `build_checkout_fields(charge_type, user_id, m_payment_id, amount) -> dict` — includes `signature`. No `quantity` param: `amount` already encodes it, and per spec §6.1 quantity never goes in PayFast's form.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1077,6 +1079,8 @@ git commit -m "feat(billing): entitlement service with fail-closed decorators"
 
 **Built before checkout deliberately:** payments must register the moment they can be taken.
 
+> **SUPERSEDED (2026-07-16, during execution):** the code blocks below still show `_mark_complete` being called *after* granting, guarded only by `_already_processed`. That leaves a double-grant window — two concurrent ITNs for the same payment can both pass the check before either writes, and the loser hits the `pf_payment_id` unique violation only after its grant has already landed. `_mark_complete` was replaced by **`_claim_intent(txn_id, pf_payment_id, payload) -> bool`**, a conditional `UPDATE ... WHERE status = 'pending'` that runs *before* granting and returns False if another caller already holds the row, plus **`_release_claim(txn_id)`**, which returns the row to `pending` if the grant then raises. Postgres serialises the racing UPDATEs, so exactly one caller claims. `_already_processed` is kept as a cheap fast path only — it is no longer what makes granting idempotent. Charge-type validation moved *above* the claim so an unknown type never leaves a row marked complete. Do not reintroduce `_mark_complete`.
+
 - [ ] **Step 1: Write the failing test**
 
 Create `backend/tests/test_payfast_itn_route.py`:
@@ -1517,7 +1521,7 @@ def create_checkout():
     m_payment_id = str(uuid.uuid4())
     _create_intent(user_id, charge_type, quantity, amount, m_payment_id)
 
-    fields = build_checkout_fields(charge_type, quantity, user_id, m_payment_id, amount)
+    fields = build_checkout_fields(charge_type, user_id, m_payment_id, amount)
     return jsonify({'process_url': PROCESS_URL, 'fields': fields}), 200
 
 
@@ -1553,6 +1557,12 @@ git commit -m "feat(billing): server-signed checkout + entitlement endpoints"
 - Produces: `set-plan` that derives `user_id` from the token.
 
 **These are independent of the billing build and close live holes. Land them early.**
+
+> **AMENDED (2026-07-16, during execution):** two gaps found against the real code.
+> 1. **`_upsert_profile` must keep writing `email` and `full_name`.** The Step 3 block below drops them, but `set-plan` is the *only* thing that creates a profile row — there is no `handle_new_user` trigger (migration 006's `on_auth_user_created` only syncs `early_access_users` and never touches `profiles`). Dropping them would create profiles with no email, which admin views and Resend depend on. `email` is taken from `get_current_user()` (the verified token), not the body — same reasoning as `user_id`.
+> 2. **Adding `@require_auth` breaks signup until Task 12 Step 3b lands.** The only caller sends no JWT. Accepted knowingly: the takeover hole closes now, the caller is fixed in Task 12.
+>
+> Also: `auth_bp` already sets `url_prefix='/api/auth'`, so the decorator is `@auth_bp.route('/set-plan')` — the block below would register `/api/auth/api/auth/set-plan`. And the old `free_trial` / `early_access` branches were **deleted, not preserved**: they key off plan values that no longer validate, and they write `script_upload_limit` (dropped in Task 1) and `subscription_status='trial'` (now a CHECK violation), so the route was already 500ing against the new schema.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -2090,6 +2100,33 @@ if (plan) {
 
 The backend also accepts the short aliases (Task 8), so this is belt-and-braces — but it keeps `localStorage` holding the same vocabulary as the database.
 
+- [ ] **Step 3b: Send the JWT with set-plan — REQUIRED, signup is broken until this lands**
+
+**Added 2026-07-16 during execution of Task 8.** Task 8 put `@require_auth` on `set-plan`, but its only caller — the raw `fetch` at `frontend/src/context/AuthContext.jsx:113` — sends no `Authorization` header (it bypasses `apiService.js`, which is what normally attaches the token). **Every signup currently 401s and creates no profile.** This was a knowing trade: the account-takeover hole was closed first.
+
+The backend now derives `user_id` and `email` from the token, so stop sending them:
+
+```javascript
+const { data: { session } } = await supabase.auth.getSession();
+
+fetch(`${API_BASE_URL}/api/auth/set-plan`, {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session?.access_token}`,
+    },
+    body: JSON.stringify({
+        full_name: pendingName,
+        plan: pendingPlan || null,
+        source: pendingSource || 'direct',
+    }),
+})
+```
+
+Also update the `.then` handler: the response is now `{success, signup_plan}` — `trial_message`, `plan`, and `source` are gone.
+
+Verify against a real signup, not just the build: a 401 here is invisible in `npm run build`.
+
 - [ ] **Step 4: Remove the frontend kill switch**
 
 In `frontend/src/hooks/useSubscription.js`, delete `const PHASE1_FREE_ACCESS = false;` (`:13`) and any branch reading it. It had to be kept in sync by hand with the backend constant deleted in Task 11.
@@ -2286,6 +2323,96 @@ Expected: both appear, matching the `App.jsx` paths exactly. A mismatch means ev
 ```bash
 git add frontend/src/pages/BillingPage.jsx frontend/src/pages/PaymentResultPage.jsx frontend/src/App.jsx
 git commit -m "feat(billing): billing page and payment result routes"
+```
+
+---
+
+### Task 13b: Retire useSubscription and the old subscription-status endpoint
+
+**Files:**
+- Modify: `frontend/src/components/scenes/SceneViewer.jsx:53`
+- Modify: `frontend/src/components/subscription/SubscriptionGate.jsx:22`
+- Modify: `frontend/src/components/subscription/SubscriptionBanner.jsx:13`
+- Modify: `frontend/src/components/team/InviteModal.jsx:35`
+- Modify: `frontend/src/components/reports/ReportStudio.jsx:50`
+- Delete: `frontend/src/hooks/useSubscription.js`
+- Modify: `backend/routes/auth_routes.py` (remove `/api/auth/subscription-status`, `/api/auth/can-upload-script`)
+- Delete: `backend/services/subscription_service.py`
+
+**Interfaces:**
+- Consumes: `useEntitlement` (Task 12).
+
+**Why this task exists:** Task 1 drops `script_upload_limit`, but `subscription_service.py:95` explicitly selects it:
+
+```python
+.select('subscription_status, subscription_expires_at, created_at, script_upload_limit')
+```
+
+After the migration that select errors, the broad `except` swallows it, and `get_subscription_status()` returns `_default_trial_status()` — status `'trial'`, a value the new CHECK constraint no longer permits. The UI would show every user as "trial" while the backend correctly denies them. Two parallel subscription-state systems that must agree by hand is exactly the failure `PHASE1_FREE_ACCESS` already caused. Delete one.
+
+- [ ] **Step 1: Map the current consumers**
+
+Run: `cd frontend && grep -rn "useSubscription" src/ | grep -v "hooks/useSubscription.js"`
+Expected: five files. For each, note which fields it reads (`status`, `canAnalyze`, `scriptLimit`, …) — you must map each to a `useEntitlement` field, not invent one.
+
+Field mapping:
+
+| useSubscription | useEntitlement |
+|---|---|
+| `subscription.status === 'active'` | `entitlement.can_run_breakdown` |
+| gating team UI | `entitlement.can_use_teams` |
+| any script-limit field | **delete the branch** — uploads are free and unlimited on both tiers |
+
+- [ ] **Step 2: Migrate each consumer**
+
+In each of the five files, replace the import and call:
+
+```javascript
+// before
+import { useSubscription } from '../../hooks/useSubscription';
+const { subscription, loading } = useSubscription();
+
+// after
+import { useEntitlement } from '../../hooks/useEntitlement';
+const { entitlement, loading } = useEntitlement();
+```
+
+Then replace each read per the table above. For `InviteModal.jsx`, the gate becomes `entitlement.can_use_teams`; when false, show the Tier 2 upsell rather than a disabled button (spec §8). For `SceneViewer.jsx`, the analyse gate becomes `entitlement.can_run_breakdown`; when false, link to `/billing`.
+
+Any upsell copy must follow the Global Constraint: **no "AI" wording** — say "breakdown" or "script analysis".
+
+- [ ] **Step 3: Delete the old hook and service**
+
+```bash
+rm frontend/src/hooks/useSubscription.js backend/services/subscription_service.py
+```
+
+In `backend/routes/auth_routes.py`, delete the `/api/auth/subscription-status` route (`:97` area), the `/api/auth/can-upload-script` route (`:167`), the `/api/auth/activate-subscription` route (`:443`), and every `from services.subscription_service import ...`.
+
+- [ ] **Step 4: Confirm nothing still references them**
+
+Run:
+```bash
+cd /Users/thecasterymedia/Desktop/PORTFOLIO/SaaS/ScripDown_AI
+grep -rn "useSubscription\|subscription_service\|subscription-status\|can-upload-script" backend/ frontend/src/ --include="*.py" --include="*.js" --include="*.jsx"
+```
+Expected: **no output.**
+
+If `admin_routes.py:481` calls `activate_monthly_subscription` from the deleted service, replace that call with `entitlement_service.activate_license(user_id, None)` — the admin approve flow must keep working.
+
+- [ ] **Step 5: Verify both gates**
+
+Run: `cd backend && pytest tests/`
+Expected: all pass. Delete or rewrite any test that exercises the removed endpoints.
+
+Run: `cd frontend && npm run build`
+Expected: build succeeds.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add -A backend frontend/src
+git commit -m "refactor(billing): retire useSubscription and subscription_service for useEntitlement"
 ```
 
 ---

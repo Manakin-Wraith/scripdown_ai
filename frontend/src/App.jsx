@@ -40,7 +40,8 @@ import SharedReportView from './components/reports/SharedReportView';
 // import DepartmentWorkspace from './components/workspace/DepartmentWorkspace';
 // import SettingsPage from './pages/SettingsPage';
 import InvitePage from './pages/InvitePage';
-// import PaymentSuccessPage from './pages/PaymentSuccessPage';
+import BillingPage from './pages/BillingPage';
+import PaymentResultPage from './pages/PaymentResultPage';
 
 function App() {
   return (
@@ -68,6 +69,9 @@ function App() {
                     <Route path="scripts/:scriptId/board" element={<ZoomableStripboard />} />
                     <Route path="scripts/:scriptId/schedule" element={<ShootingSchedulePage />} />
                     <Route path="profile" element={<ProfilePage />} />
+                    <Route path="billing" element={<BillingPage />} />
+                    <Route path="payment/success" element={<PaymentResultPage outcome="success" />} />
+                    <Route path="payment/cancel" element={<PaymentResultPage outcome="cancel" />} />
 
                     {/* Phase 2+ routes (deferred - commented out) */}
                     {/* <Route path="scenes/:scriptId/workspace/:departmentCode" element={<DepartmentWorkspace />} /> */}
@@ -124,9 +128,7 @@ function App() {
                   {/* Shared report view (public) */}
                   <Route path="shared/:shareToken" element={<SharedReportView />} />
                   
-                  {/* Phase 2+ public routes (deferred) */}
                   <Route path="invite/:token" element={<InvitePage />} />
-                  {/* <Route path="payment-success" element={<PaymentSuccessPage />} /> */}
                 </Routes>
               </Router>
               </StoryDayProvider>
