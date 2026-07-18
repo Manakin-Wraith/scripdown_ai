@@ -54,16 +54,52 @@ def _fetch_seats_paid(owner_id: str) -> int:
 
 def _fetch_seats_used(owner_id: str) -> int:
     """
-    Seats are billed per team MEMBER (per person), not per membership row.
+    Seats are billed per team MEMBER (per person), not per membership row
+    or per invite. A pending invite reserves a seat immediately — this is
+    what prevents overbooking: without it, several pending invites could
+    each pass the seats_used < seats_paid check before any of them were
+    accepted. Accepting an invite is a no-op for this count; the person
+    just moves from the pending half of the tally to the accepted half.
+
     `script_members` is a per-(script, user) table, so the same person
-    invited to three scripts must consume one seat, not three. supabase-py
-    has no count-distinct, so select the raw user_id column and dedupe in
-    Python.
+    invited to three scripts must consume one seat, not three. Pending
+    invites are keyed by email (the invitee has no user_id yet); accepted
+    memberships are keyed by user_id — so a person pending on one script
+    and already accepted on another (same owner) is deduped by matching
+    the pending invite's email against `profiles.email` for the accepted
+    user_ids. supabase-py has no count-distinct, so dedupe in Python.
     """
-    resp = get_supabase_admin().table('script_members').select(
-        'user_id'
-    ).eq('invited_by', owner_id).execute()
-    return len({row['user_id'] for row in (resp.data or [])})
+    admin = get_supabase_admin()
+    now = datetime.now(timezone.utc).isoformat()
+
+    members_resp = admin.table('script_members').select('user_id').eq(
+        'invited_by', owner_id
+    ).execute()
+    accepted_ids = {row['user_id'] for row in (members_resp.data or [])}
+
+    invites_resp = admin.table('script_invites').select('email').eq(
+        'invited_by', owner_id
+    ).eq('status', 'pending').gt('expires_at', now).execute()
+    pending_emails = {
+        row['email'].strip().lower()
+        for row in (invites_resp.data or []) if row.get('email')
+    }
+
+    if not pending_emails:
+        return len(accepted_ids)
+
+    accepted_emails = set()
+    if accepted_ids:
+        profiles_resp = admin.table('profiles').select('id, email').in_(
+            'id', list(accepted_ids)
+        ).execute()
+        accepted_emails = {
+            row['email'].strip().lower()
+            for row in (profiles_resp.data or []) if row.get('email')
+        }
+
+    new_pending = pending_emails - accepted_emails
+    return len(accepted_ids) + len(new_pending)
 
 
 def _script_already_charged(user_id: str, script_id: str) -> bool:

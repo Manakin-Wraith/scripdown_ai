@@ -139,22 +139,93 @@ def test_team_decorator_403s_for_tier1(monkeypatch):
     assert resp[1] == 403
 
 
+class _FakeSeatsAdmin:
+    """Routes get_supabase_admin().table(name) calls by table name for
+    _fetch_seats_used tests. Each table's canned rows are passed in."""
+
+    def __init__(self, members=None, invites=None, profiles=None):
+        self._data = {
+            'script_members': members or [],
+            'script_invites': invites or [],
+            'profiles': profiles or [],
+        }
+
+    def table(self, name):
+        return _FakeSeatsQuery(self._data[name])
+
+
+class _FakeSeatsQuery:
+    def __init__(self, rows):
+        self._rows = rows
+
+    def select(self, *a, **k):
+        return self
+
+    def eq(self, *a, **k):
+        return self
+
+    def gt(self, *a, **k):
+        return self
+
+    def in_(self, *a, **k):
+        return self
+
+    def execute(self):
+        class Resp:
+            data = self._rows
+        return Resp()
+
+
 def test_fetch_seats_used_dedupes_by_user_not_membership_row(monkeypatch):
     # A single person invited to 3 scripts must consume 1 seat, not 3.
-    class FakeResp:
-        data = [{'user_id': 'p1'}, {'user_id': 'p1'}, {'user_id': 'p1'}]
+    admin = _FakeSeatsAdmin(members=[
+        {'user_id': 'p1'}, {'user_id': 'p1'}, {'user_id': 'p1'},
+    ])
+    monkeypatch.setattr(es, "get_supabase_admin", lambda: admin)
+    assert es._fetch_seats_used('owner1') == 1
 
-    class FakeQuery:
-        def select(self, *a, **k): return self
-        def eq(self, *a, **k): return self
-        def execute(self): return FakeResp()
 
-    class FakeTable:
-        def table(self, name):
-            assert name == 'script_members'
-            return FakeQuery()
+def test_fetch_seats_used_counts_pending_invite(monkeypatch):
+    # A pending (not yet accepted) invite must already reserve a seat.
+    admin = _FakeSeatsAdmin(
+        members=[],
+        invites=[{'email': 'new@x.com'}],
+    )
+    monkeypatch.setattr(es, "get_supabase_admin", lambda: admin)
+    assert es._fetch_seats_used('owner1') == 1
 
-    monkeypatch.setattr(es, "get_supabase_admin", lambda: FakeTable())
+
+def test_fetch_seats_used_counts_pending_and_accepted_together(monkeypatch):
+    admin = _FakeSeatsAdmin(
+        members=[{'user_id': 'accepted1'}],
+        invites=[{'email': 'pending@x.com'}],
+        profiles=[{'id': 'accepted1', 'email': 'accepted1@x.com'}],
+    )
+    monkeypatch.setattr(es, "get_supabase_admin", lambda: admin)
+    assert es._fetch_seats_used('owner1') == 2
+
+
+def test_fetch_seats_used_dedupes_pending_invite_already_accepted_elsewhere(monkeypatch):
+    # Same person: accepted on one script, still has an unrelated pending
+    # invite row lingering (e.g. re-invited to a second script under the
+    # same owner before the first invite's status caught up). Must count
+    # as one seat, not two.
+    admin = _FakeSeatsAdmin(
+        members=[{'user_id': 'jane_id'}],
+        invites=[{'email': 'jane@x.com'}],
+        profiles=[{'id': 'jane_id', 'email': 'jane@x.com'}],
+    )
+    monkeypatch.setattr(es, "get_supabase_admin", lambda: admin)
+    assert es._fetch_seats_used('owner1') == 1
+
+
+def test_fetch_seats_used_email_match_is_case_insensitive(monkeypatch):
+    admin = _FakeSeatsAdmin(
+        members=[{'user_id': 'jane_id'}],
+        invites=[{'email': 'JANE@X.COM'}],
+        profiles=[{'id': 'jane_id', 'email': 'jane@x.com'}],
+    )
+    monkeypatch.setattr(es, "get_supabase_admin", lambda: admin)
     assert es._fetch_seats_used('owner1') == 1
 
 
