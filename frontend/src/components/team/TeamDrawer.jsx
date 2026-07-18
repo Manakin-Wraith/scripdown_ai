@@ -26,6 +26,7 @@ import { useToast } from '../../context/ToastContext';
 import { useConfirmDialog } from '../../context/ConfirmDialogContext';
 import InviteModal from './InviteModal';
 import { Spinner, Drawer } from '../ui';
+import { readPendingSeatInviteDraft, clearPendingSeatInviteDraft } from '../../utils/pendingSeatInviteDraft';
 import './TeamDrawer.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -48,6 +49,19 @@ const TeamDrawer = ({
     const [error, setError] = useState(null);
     const [showInvites, setShowInvites] = useState(false);
     const [inviteModalOpen, setInviteModalOpen] = useState(false);
+    const [resumedDraft, setResumedDraft] = useState(null);
+
+    // If the Owner just came back from buying seats, resume the invite
+    // they had in progress instead of making them retype it.
+    useEffect(() => {
+        if (!isOpen || !scriptId) return;
+        const draft = readPendingSeatInviteDraft();
+        if (draft && draft.scriptId === scriptId) {
+            clearPendingSeatInviteDraft();
+            setResumedDraft(draft);
+            setInviteModalOpen(true);
+        }
+    }, [isOpen, scriptId]);
 
     // Fetch team data when drawer opens
     useEffect(() => {
@@ -401,9 +415,10 @@ const TeamDrawer = ({
             {/* Invite Modal */}
             <InviteModal
                 isOpen={inviteModalOpen}
-                onClose={handleInviteSuccess}
+                onClose={() => { setResumedDraft(null); handleInviteSuccess(); }}
                 scriptId={scriptId}
                 scriptTitle={scriptTitle}
+                initialDraft={resumedDraft}
             />
         </>
     );

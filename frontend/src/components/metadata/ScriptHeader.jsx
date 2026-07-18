@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { 
     User, 
     Mail, 
@@ -24,6 +24,17 @@ const ScriptHeader = ({ metadata, sceneCount = 0 }) => {
     const popoverRef = useRef(null);
     const { user } = useAuth();
     const isOwner = metadata?.user_id && user?.id && metadata.user_id === user.id;
+    const [searchParams, setSearchParams] = useSearchParams();
+
+    // PaymentResultPage sends the Owner back here after a seat purchase
+    // settles, with a stashed invite draft waiting to be resumed.
+    useEffect(() => {
+        if (searchParams.get('resume_invite') !== '1') return;
+        setTeamDrawerOpen(true);
+        const next = new URLSearchParams(searchParams);
+        next.delete('resume_invite');
+        setSearchParams(next, { replace: true });
+    }, [searchParams, setSearchParams]);
 
     // Close popover when clicking outside
     useEffect(() => {
