@@ -24,6 +24,7 @@ const postToPayFast = ({ process_url, fields }) => {
 export default function BillingPage() {
     const { entitlement, loading } = useEntitlement();
     const [quantity, setQuantity] = useState(1);
+    const [seatQuantity, setSeatQuantity] = useState(1);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState(null);
 
@@ -63,8 +64,14 @@ export default function BillingPage() {
                 <section>
                     <h2>Team seats</h2>
                     <p>{entitlement.seats_used} of {entitlement.seats_paid} seats in use</p>
-                    <button disabled={busy} onClick={() => buy('tier_2_seats', 1)}>
-                        Add a seat — R{PRICE_ZAR.tier_2_seats}/yr
+                    <label htmlFor="seat-qty">Quantity</label>
+                    <select id="seat-qty" value={seatQuantity}
+                            onChange={(e) => setSeatQuantity(Number(e.target.value))}>
+                        {[1, 2, 3, 5, 10].map((n) => <option key={n} value={n}>{n}</option>)}
+                    </select>
+                    <p>Total: R{PRICE_ZAR.tier_2_seats * seatQuantity}/yr</p>
+                    <button disabled={busy} onClick={() => buy('tier_2_seats', seatQuantity)}>
+                        Add {seatQuantity} seat{seatQuantity > 1 ? 's' : ''} — R{PRICE_ZAR.tier_2_seats}/yr each
                     </button>
                 </section>
             ) : (
