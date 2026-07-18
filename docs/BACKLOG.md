@@ -244,36 +244,31 @@ surfaces in `ReportLibraryDrawer.jsx` (version history per report).
 
 ---
 
-## Discuss: user flow when a script Owner buys a Seat for a team member
+## Seat purchase flow — RESOLVED, shipped
 
-**Status:** Needs discussion — not yet a design or a plan.
+**Status:** Done. Was "Discuss: user flow when a script Owner buys a Seat for
+a team member" — brainstormed, designed, planned, and implemented on
+`feat/two-tier-pricing`.
 
-**Context.** `tier_2_seats` charges are verified working at the payment/grant
-layer (checkout → PayFast → ITN → `account_seats +1`, per Task 14 verification
-on `feat/two-tier-pricing`). What's undefined is the *product flow* around it:
-who the seat is for, when they get access, and what happens if nobody claims
-it.
-
-**Open questions to resolve before implementing anything.**
-- Does the Owner pick/invite a specific person at purchase time, or buy a seat
-  first and assign it later?
-- If assigned later: is an unassigned seat just a number on the account
-  (`account_seats` incremented with no user attached), or does it need its own
-  pending/invited state?
-- How does this interact with the existing team-invite flow (Task 10 gating —
-  `require_auth` + tier_2 entitlement + seat limits) — does buying a seat
-  auto-raise the limit the invite check compares against, or is there a manual
-  step?
-- What does the invitee see/receive (email invite? in-app notification?), and
-  what if they already have an account under a different plan?
-- Revocation/reassignment: can the Owner reclaim a seat from one member and
-  give it to another without buying a new one?
-
-**Why deferred.** This is a product-flow decision, not a code gap — needs
-brainstorming (see `superpowers:brainstorming`) before it becomes a design doc
-or plan.
+**What shipped.** Seats stay a fungible pool (no per-seat assignment records).
+The overbooking race is fixed: `_fetch_seats_used` now counts pending invites
+toward the limit, not just accepted ones, so a seat is reserved the instant an
+invite is sent rather than only once accepted. Two entry points: proactive
+purchase from Billing (now with a quantity picker, was hardcoded to 1), and a
+reactive "buy seats" panel in the invite modal when a `402
+no_seats_available` is hit — the in-progress invite survives the PayFast
+redirect via a sessionStorage draft and the Owner lands back on the same
+script's team page with the invite pre-filled, ready to send. A cross-task
+review caught and fixed one timing bug: the resume redirect was gated on the
+generic `can_run_breakdown || can_use_teams` settle-check, which is already
+true for a tier-2 owner before a seat purchase (seat count doesn't move those
+booleans) — now gated on `seats_paid` growing past a captured pre-purchase
+baseline instead.
 
 **References.**
-- `backend/services/entitlement_service.py` — `grant_seats`
-- `backend/routes/payfast_routes.py` — `tier_2_seats` charge type
-- Team gating (Task 10): invite/member endpoints, seat-limit checks
+- Design: `docs/superpowers/specs/2026-07-18-seat-purchase-flow-design.md`
+- Plan: `docs/superpowers/plans/2026-07-18-seat-purchase-flow.md`
+- `backend/services/entitlement_service.py` — `_fetch_seats_used`, `grant_seats`
+- `frontend/src/components/team/InviteModal.jsx`,
+  `frontend/src/pages/PaymentResultPage.jsx`,
+  `frontend/src/utils/pendingSeatInviteDraft.js`
