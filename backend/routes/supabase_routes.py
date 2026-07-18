@@ -4619,11 +4619,16 @@ def merge_characters(script_id):
         if not aliases or not isinstance(aliases, list):
             return jsonify({'error': 'aliases must be a non-empty array'}), 400
         
-        # Normalize aliases
-        aliases = list(set(a.strip().upper() for a in aliases if a.strip()))
-        # Remove canonical from aliases if accidentally included
-        aliases = [a for a in aliases if a != canonical_name]
-        
+        # Drop an alias only if its raw spelling is already exactly the
+        # canonical spelling (a true no-op). Compare pre-uppercase, so a
+        # case-only variant (e.g. "John" vs canonical "JOHN") is kept as a
+        # real alias to merge -- scenes.characters still holds that literal
+        # lowercase string and needs it rewritten to canonical_name.
+        aliases = list(dict.fromkeys(
+            a.strip().upper() for a in aliases
+            if a.strip() and a.strip() != canonical_name
+        ))
+
         if not aliases:
             return jsonify({'error': 'No valid aliases to merge'}), 400
         
@@ -5208,14 +5213,18 @@ def merge_locations(script_id):
         if not raw_aliases or not isinstance(raw_aliases, list):
             return jsonify({'error': 'aliases must be a non-empty array'}), 400
 
-        # Distinct raw alias settings (case-insensitive), excluding the canonical
-        # spelling itself. Keep original casing for department_items lookups.
+        # Distinct raw alias settings, excluding only the canonical spelling
+        # itself (compared verbatim, not case-insensitively) -- a case-only
+        # variant like "villa" vs canonical "VILLA" is a real alias whose
+        # scenes still hold the literal lowercase setting text and need it
+        # rewritten to the canonical spelling. Keep original casing for
+        # department_items lookups.
         seen = set()
         aliases = []
         for a in raw_aliases:
             a = (a or '').strip()
             key = a.upper()
-            if not a or key == canonical_place.upper() or key in seen:
+            if not a or a == canonical_place or key in seen:
                 continue
             seen.add(key)
             aliases.append(a)
