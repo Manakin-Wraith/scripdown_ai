@@ -346,6 +346,59 @@ episodes' entities) or requires manual user confirmation before merging.
 
 ---
 
+## Landing page copy — reword
+
+**Status:** Not started — feature request.
+
+**Context.** The landing page copy (marketing framing, FAQ, tier
+descriptions) needs a rewrite. No specifics captured yet on what's wrong
+with the current copy or what tone/positioning it should move toward —
+needs a proper brainstorming pass before writing.
+
+**References.**
+- `docs/landing-faq.md` — current FAQ copy (references the old flat "$49/month"
+  framing, which predates the two-tier model on this branch and needs to be
+  reconciled with it either way)
+- `docs/SPEC_Tiered_Business_Model.md` — current tier names/positioning
+  ("Tier 1 — Pay-Per-Breakdown", "Tier 2 — Annual Team License") that landing
+  copy would need to reflect if SOLO/TEAMS naming and pricing (see below)
+  change
+
+---
+
+## SOLO / TEAMS pricing — change pricing
+
+**Status:** Not started — feature request. No new numbers decided yet.
+
+**Context.** Current pricing per `docs/SPEC_Tiered_Business_Model.md`:
+- **Tier 1 (Solo)** — ZAR 450 per AI breakdown/analysis, pay-per-use, no team
+  features.
+- **Tier 2 (Teams)** — ZAR 1,850/year + ZAR 150 per seat, annual license,
+  full team collaboration.
+
+Pricing for both tiers needs to change; new numbers not yet decided —
+needs a brainstorming pass to pick them and work through downstream impact.
+
+**Downstream impact when picked up.** Prices aren't just copy — they're
+referenced in billing logic and tests, not only marketing pages:
+- `backend/services/entitlement_service.py` — tier constants (`TIER_1`,
+  `TIER_2`) and any hardcoded amounts used when creating PayFast payment
+  requests
+- `backend/routes/payfast_routes.py` — ITN handling, amount verification
+  against what was charged
+- Any frontend pricing display (`BillingPage.jsx`, invite/seat-purchase
+  quantity picker) that shows per-seat or per-breakdown cost to the user
+- `docs/landing-faq.md` / `docs/SPEC_Tiered_Business_Model.md` — copy and
+  spec both currently state the old numbers and would go stale
+
+**References.**
+- `docs/SPEC_Tiered_Business_Model.md` — §3 (current price points), §8
+  (billing mechanics per tier)
+- `backend/services/entitlement_service.py`, `backend/routes/payfast_routes.py`
+- `frontend/src/pages/BillingPage.jsx`
+
+---
+
 ## Seat purchase flow — RESOLVED, shipped
 
 **Status:** Done. Was "Discuss: user flow when a script Owner buys a Seat for
