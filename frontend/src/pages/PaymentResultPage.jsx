@@ -25,13 +25,24 @@ export default function PaymentResultPage({ outcome }) {
     // generic landing. The draft itself (email/department/role) is left
     // in sessionStorage for TeamDrawer (Task 7) to read and clear — this
     // page only needs scriptId to know where to route.
+    //
+    // This can't reuse the generic `settled` flag above: a tier_2_seats
+    // purchase is only ever made by an owner who already has
+    // can_use_teams/can_run_breakdown true *before* paying (seat count
+    // doesn't gate those flags — see entitlement_service.py), so `settled`
+    // is already true on the very first render and would fire the redirect
+    // before the ITN has actually granted the seat. Instead, compare
+    // entitlement.seats_paid against the pre-purchase baseline captured in
+    // the draft, and only redirect once the pool has actually grown.
     useEffect(() => {
-        if (outcome !== 'success' || params.get('type') !== 'tier_2_seats' || !settled) return;
+        if (outcome !== 'success' || params.get('type') !== 'tier_2_seats' || !entitlement) return;
         const draft = readPendingSeatInviteDraft();
-        if (draft?.scriptId) {
+        if (!draft?.scriptId) return;
+        const baseline = draft.seatsPaidBaseline ?? 0;
+        if (entitlement.seats_paid > baseline) {
             navigate(`/scenes/${draft.scriptId}?resume_invite=1`, { replace: true });
         }
-    }, [outcome, params, settled, navigate]);
+    }, [outcome, params, entitlement, navigate]);
 
     if (outcome === 'cancel') {
         return (

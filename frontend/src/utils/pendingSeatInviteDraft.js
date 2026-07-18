@@ -2,8 +2,8 @@
 // which leaves and re-enters the SPA (so React state alone can't survive it).
 const STORAGE_KEY = 'slateone_pending_seat_invite_draft';
 
-export function stashPendingSeatInviteDraft({ scriptId, email, departmentCode, role }) {
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ scriptId, email, departmentCode, role }));
+export function stashPendingSeatInviteDraft({ scriptId, email, departmentCode, role, seatsPaidBaseline }) {
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ scriptId, email, departmentCode, role, seatsPaidBaseline }));
 }
 
 export function readPendingSeatInviteDraft() {

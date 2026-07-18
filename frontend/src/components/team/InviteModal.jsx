@@ -127,6 +127,7 @@ const InviteModal = ({ isOpen, onClose, scriptId, scriptTitle, initialDraft = nu
                 email,
                 departmentCode: department,
                 role,
+                seatsPaidBaseline: entitlement.seats_paid,
             });
             const checkout = await createCheckout('tier_2_seats', seatQuantity);
             postToPayFast(checkout);

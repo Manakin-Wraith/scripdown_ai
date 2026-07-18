@@ -141,11 +141,18 @@ link.
 `PaymentResultPage` already polls `refetch()` on the entitlement hook up to
 5 times over ~10 seconds waiting for the ITN to land, since it's a separate
 server-to-server call that can arrive after the browser returns. The
-reactive flow reuses this unchanged — the "restore draft and route to the
-team page" step only fires once `entitlement.seats_paid` reflects the
-purchase (i.e. after the same settle-check the page already does for other
-charge types), so the Owner doesn't land back on the invite form only to
-immediately re-hit the 402.
+reactive flow reuses this poll unchanged, but the "restore draft and route
+to the team page" step cannot use the page's generic settle-check
+(`can_run_breakdown || can_use_teams`): a `tier_2_seats` purchase is only
+ever made by a tier-2-active owner who already has both flags true
+*before* paying, since seat count doesn't gate them (see
+`entitlement_service.py`). That check would be true on the very first
+render, firing the redirect before the ITN has granted the seat. Instead,
+the draft stashed before the PayFast redirect also carries
+`seatsPaidBaseline` (the owner's `seats_paid` at purchase time), and the
+redirect only fires once `entitlement.seats_paid > seatsPaidBaseline` —
+i.e. once the seat pool has actually grown — so the Owner doesn't land
+back on the invite form only to immediately re-hit the 402.
 
 ### 5. Known residual race (not fixed here)
 
