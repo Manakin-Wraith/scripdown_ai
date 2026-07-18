@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { useEntitlement } from '../hooks/useEntitlement';
+import { readPendingSeatInviteDraft } from '../utils/pendingSeatInviteDraft';
 
 export default function PaymentResultPage({ outcome }) {
     const [params] = useSearchParams();
+    const navigate = useNavigate();
     const { entitlement, refetch } = useEntitlement();
     const [waited, setWaited] = useState(0);
 
@@ -15,6 +17,22 @@ export default function PaymentResultPage({ outcome }) {
         return () => clearTimeout(t);
     }, [outcome, waited, refetch]);
 
+    const settled = entitlement?.can_run_breakdown || entitlement?.can_use_teams;
+
+    // A seat purchase started from the invite modal's "buy seats" panel
+    // stashes a draft before redirecting to PayFast — once the purchase
+    // settles, send the Owner back to finish that invite instead of the
+    // generic landing. The draft itself (email/department/role) is left
+    // in sessionStorage for TeamDrawer (Task 7) to read and clear — this
+    // page only needs scriptId to know where to route.
+    useEffect(() => {
+        if (outcome !== 'success' || params.get('type') !== 'tier_2_seats' || !settled) return;
+        const draft = readPendingSeatInviteDraft();
+        if (draft?.scriptId) {
+            navigate(`/scenes/${draft.scriptId}?resume_invite=1`, { replace: true });
+        }
+    }, [outcome, params, settled, navigate]);
+
     if (outcome === 'cancel') {
         return (
             <div>
@@ -24,8 +42,6 @@ export default function PaymentResultPage({ outcome }) {
             </div>
         );
     }
-
-    const settled = entitlement?.can_run_breakdown || entitlement?.can_use_teams;
 
     return (
         <div>
