@@ -244,6 +244,108 @@ surfaces in `ReportLibraryDrawer.jsx` (version history per report).
 
 ---
 
+## Script re-upload: detect and highlight what changed
+
+**Status:** Not started — feature request.
+
+**Context.** Today a new draft of a script has no relationship to the one
+already analyzed — re-uploading means a brand-new `script_id`, a full re-parse,
+and a full re-run of AI extraction, discarding all prior breakdown work even
+for scenes that didn't change. Production scripts get revised constantly
+(new drafts, "pink/blue pages" revision sets), and a user coming back with an
+updated draft has no way to carry forward what's already been broken down or
+see at a glance what's different.
+
+**What exists to build on.** The extraction pipeline already content-hashes
+per page (`compute_content_hash`, `check_already_processed` in
+`backend/services/extraction_pipeline.py`) and stores per-page text in
+`script_pages` keyed by hash for upload-time idempotency — that's a diffing
+primitive, just not currently used across two different `script_id`s or
+surfaced to the user.
+
+**Options (to brainstorm).**
+1. **Full re-upload + diff.** User uploads the entire new draft as normal;
+   the system diffs the new `script_pages`/scene text against the prior
+   version's (via content hash / scene-header + text comparison), flags
+   changed/added/removed scenes, carries forward breakdown data for unchanged
+   scenes, and only re-queues AI analysis for scenes that actually changed.
+   Simplest for the user (no need to know what changed ahead of time) but
+   needs a real diffing pass and a UI to review "here's what changed."
+2. **Partial upload of changed scenes only.** Mirrors how productions
+   actually distribute revisions (a "pink pages" packet of just the changed
+   pages) — user uploads only the revised scenes/pages, and the system merges
+   them into the existing script in place, re-numbering/re-flagging only what
+   was touched. Less data to process and more true to how revisions are
+   communicated on real productions, but requires the user to correctly scope
+   what they upload, and a merge UI (matching revised pages to existing scene
+   numbers) that doesn't exist today.
+3. **Both, sequenced.** Ship (1) first since it needs no new user workflow —
+   upload works exactly as it does now, diffing happens automatically after.
+   Add (2) later as a faster path once diffing infrastructure exists, for
+   users who already know which scenes changed.
+
+**Also decide:** whether a re-upload creates a new script version under the
+same "script" concept (versioned, with history) or a wholly separate
+`script_id` that's merely linked to the prior one for diffing purposes — this
+affects schedules, reports, and team assignments that reference the old
+`script_id` and would otherwise silently go stale.
+
+**References.**
+- `backend/services/extraction_pipeline.py` — `compute_content_hash`,
+  `check_already_processed`, `script_pages` schema
+- Upload entry point: `backend/routes/supabase_routes.py::upload_script`
+- Scene identity: `backend/services/entity_resolver.py` (duplicate/merge logic
+  for character names — same kind of matching problem applies to
+  matching scenes across versions)
+
+---
+
+## Series / multi-episode analysis
+
+**Status:** Not started — feature request.
+
+**Context.** The data model is single-script-centric — one script upload,
+one set of scenes, one breakdown. There's no concept of a series or season
+grouping multiple related scripts (episodes) together. A production
+breaking down a season needs both to manage episodes as a set and, ideally,
+to have entity extraction (cast, locations) be consistent across episodes
+rather than independently guessed each time.
+
+**Options (to brainstorm), as a two-phase idea.**
+1. **Phase 1 — grouping/reporting layer.** Episodes stay independently
+   uploaded and analyzed exactly as scripts are today (no change to the
+   extraction pipeline). A new `series`/`season` entity groups a set of
+   `script_id`s for shared views: a combined cast list across episodes, a
+   season-wide schedule/stripboard, cross-episode reports. Lowest risk —
+   additive on top of existing per-script analysis.
+2. **Phase 2 — cross-episode entity continuity.** Character/location/prop
+   identity carries across episodes, so "JOHN" extracted in episode 3
+   resolves to the same entity as "JOHN" in episode 1 rather than being
+   independently AI-guessed each time (risking inconsistent naming,
+   descriptions, or actor/casting notes per episode). Would likely extend
+   `backend/services/entity_resolver.py`'s existing duplicate-character
+   merging logic to operate across scripts within a series, not just within
+   one. Higher value but meaningfully harder — needs a cross-script identity
+   store and a strategy for when episode 5 legitimately introduces a
+   different "JOHN."
+
+**Also decide:** how a script is assigned to a series (at upload time vs.
+after the fact), whether series membership affects entitlement/billing (is a
+season priced differently than N independent scripts?), and whether
+Phase 2 identity matching is AI-assisted (embedding/fuzzy match against prior
+episodes' entities) or requires manual user confirmation before merging.
+
+**References.**
+- `backend/services/entity_resolver.py` — existing single-script duplicate
+  character-name merging, the closest existing analog for cross-episode
+  identity matching
+- `backend/services/extraction_pipeline.py` — per-script upload/analysis
+  entry points that a series concept would need to group
+- Schedule/report surfaces that would gain a series-wide view:
+  `backend/services/report_service.py`, stripboard/schedule routes
+
+---
+
 ## Seat purchase flow — RESOLVED, shipped
 
 **Status:** Done. Was "Discuss: user flow when a script Owner buys a Seat for
