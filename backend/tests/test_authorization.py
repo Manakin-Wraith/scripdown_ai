@@ -65,3 +65,47 @@ def test_from_note_resolves(monkeypatch, fake_supabase):
     fake_supabase.set_table("department_notes", [{"id": "n1", "script_id": "s9"}])
     _patch_client(monkeypatch, fake_supabase)
     assert from_note({"note_id": "n1"}) == "s9"
+
+
+# Tests for @require_script_role decorator
+import pytest
+from flask import Flask, g, jsonify
+from middleware.authorization import require_script_role
+
+
+def _app_with_route(monkeypatch, role_returned, min_role):
+    app = Flask(__name__)
+    monkeypatch.setattr(authz, "get_user_id", lambda: "u1")
+    monkeypatch.setattr(authz, "get_script_role", lambda sid, uid: role_returned)
+
+    @app.route("/api/scripts/<script_id>/thing", methods=["POST"])
+    @require_script_role(min_role)
+    def thing(script_id):
+        return jsonify({"role": g.script_role}), 200
+
+    return app.test_client()
+
+
+def test_member_allowed_on_member_route(monkeypatch):
+    client = _app_with_route(monkeypatch, "member", "member")
+    assert client.post("/api/scripts/s1/thing").status_code == 200
+
+
+def test_viewer_denied_on_member_route(monkeypatch):
+    client = _app_with_route(monkeypatch, "viewer", "member")
+    assert client.post("/api/scripts/s1/thing").status_code == 403
+
+
+def test_owner_allowed_on_admin_route(monkeypatch):
+    client = _app_with_route(monkeypatch, "owner", "admin")
+    assert client.post("/api/scripts/s1/thing").status_code == 200
+
+
+def test_non_member_denied(monkeypatch):
+    client = _app_with_route(monkeypatch, None, "viewer")
+    assert client.post("/api/scripts/s1/thing").status_code == 403
+
+
+def test_missing_script_404(monkeypatch):
+    client = _app_with_route(monkeypatch, SCRIPT_NOT_FOUND, "viewer")
+    assert client.post("/api/scripts/s1/thing").status_code == 404
