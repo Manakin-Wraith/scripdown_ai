@@ -377,9 +377,9 @@ def accept_invite(token):
         
         invite = result.data
         
-        # Verify email matches (optional - can be removed for flexibility)
-        # if invite['email'].lower() != user_email:
-        #     return jsonify({'error': 'This invite was sent to a different email address'}), 403
+        # Verify email matches - invite is bound to the invited address only
+        if invite['email'].lower() != user_email:
+            return jsonify({'error': 'This invitation was sent to a different email address'}), 403
         
         # Check if expired
         if invite['expires_at']:
