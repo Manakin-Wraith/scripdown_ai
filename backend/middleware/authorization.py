@@ -45,3 +45,50 @@ def get_script_role(script_id, user_id):
         return member.data[0].get('role')
 
     return None
+
+
+def _lookup_script_id(table, id_value, id_col='id', script_col='script_id'):
+    """Fetch a single row by id and return its script_id (or None)."""
+    if not id_value:
+        return None
+    supabase = get_supabase_client()
+    res = (supabase.table(table)
+           .select(script_col).eq(id_col, id_value).limit(1).execute())
+    return res.data[0].get(script_col) if res.data else None
+
+
+def from_script(kwargs):
+    return kwargs.get('script_id')
+
+
+def from_scene(kwargs):
+    return _lookup_script_id('scenes', kwargs.get('scene_id'))
+
+
+def from_note(kwargs):
+    return _lookup_script_id('department_notes', kwargs.get('note_id'))
+
+
+def from_item(kwargs):
+    return _lookup_script_id('department_items', kwargs.get('item_id'))
+
+
+def from_schedule(kwargs):
+    return _lookup_script_id('shooting_schedules', kwargs.get('schedule_id'))
+
+
+def from_report(kwargs):
+    return _lookup_script_id('reports', kwargs.get('report_id'))
+
+
+def from_preset(kwargs):
+    return _lookup_script_id('report_filter_presets', kwargs.get('preset_id'))
+
+
+def from_day(kwargs):
+    """Two-hop: shooting_days.schedule_id -> shooting_schedules.script_id."""
+    schedule_id = _lookup_script_id('shooting_days', kwargs.get('day_id'),
+                                    script_col='schedule_id')
+    if not schedule_id:
+        return None
+    return _lookup_script_id('shooting_schedules', schedule_id)
