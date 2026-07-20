@@ -32,6 +32,19 @@ def test_admin_cannot_grant_owner():
 
 
 def test_admin_cannot_elevate_above_self():
+    # This is the only place the in-view rank check
+    # (`ROLE_RANK[new_role] > ROLE_RANK[g.script_role]` in
+    # update_member_role) gets exercised at all. No live route call can
+    # reach it: the route is gated by @require_script_role('admin'), so
+    # g.script_role is always 'admin' (rank 3) or 'owner' (rank 4) by the
+    # time the view body runs, and `new_role` is capped at 'admin' (rank 3)
+    # by the value check above it. There's no combination of an
+    # admin-floor-or-higher actor and a viewer/member/admin target where
+    # the target outranks the actor. `_allowed()` re-derives the same rule
+    # so the logic is still verified, even though the route can't prove it
+    # live today -- see the NOTE above the check in invite_routes.py, and
+    # TestUpdateMemberRoleRoute.test_member_rank_actor_rejected_by_decorator_before_reaching_rank_check
+    # for the route-level test that documents the same gap.
     assert _allowed("admin", "admin") is True
     assert _allowed("member", "admin") is False
 
@@ -116,14 +129,6 @@ class TestUpdateMemberRoleRoute:
         self._setup_and_assert(monkeypatch, "admin", members, "owner", 400)
         assert members[0]["role"] == "member"  # untouched
 
-    def test_admin_cannot_elevate_above_own_rank_returns_403(self, monkeypatch):
-        # A viewer-ranked admin (edge case aside) can't grant 'admin' to
-        # someone if that would exceed the actor's own rank. Simulate an
-        # actor whose role is 'member' trying to grant 'admin'.
-        members = [{"id": "m1", "script_id": "s1", "role": "viewer"}]
-        self._setup_and_assert(monkeypatch, "member", members, "admin", 403)
-        assert members[0]["role"] == "viewer"  # untouched
-
     def test_valid_downgrade_returns_200_and_persists(self, monkeypatch):
         members = [{"id": "m1", "script_id": "s1", "role": "admin"}]
         resp = self._setup_and_assert(monkeypatch, "admin", members, "member", 200)
@@ -147,11 +152,22 @@ class TestUpdateMemberRoleRoute:
     def _setup(monkeypatch, actor_role, members):
         return _setup(monkeypatch, actor_role, members)
 
-    def test_non_admin_actor_is_rejected_by_decorator_before_view_runs(self, monkeypatch):
+    def test_member_rank_actor_rejected_by_decorator_before_reaching_rank_check(self, monkeypatch):
         # @require_script_role('admin') gates entry; a mere 'member' should
         # never reach the view body at all (403 from the decorator itself).
+        #
+        # This subsumes what a previous test here
+        # (`test_admin_cannot_elevate_above_own_rank_returns_403`, removed)
+        # claimed to prove: it set actor_role="member" and asserted a 403,
+        # but that 403 always comes from this decorator, not from the
+        # in-view `ROLE_RANK[new_role] > ROLE_RANK[g.script_role]` check --
+        # a 'member'-rank actor never gets past @require_script_role('admin')
+        # to reach that line. The in-view check is unreachable via any live
+        # route call today (see the NOTE above it in invite_routes.py and
+        # the comment on test_admin_cannot_elevate_above_self above, which
+        # is what actually exercises that check's logic in isolation).
         members = [{"id": "m1", "script_id": "s1", "role": "member"}]
         self._setup(monkeypatch, "member", members)
-        resp = _client().patch("/api/scripts/s1/members/m1", json={"role": "viewer"})
+        resp = _client().patch("/api/scripts/s1/members/m1", json={"role": "admin"})
         assert resp.status_code == 403
         assert members[0]["role"] == "member"  # untouched

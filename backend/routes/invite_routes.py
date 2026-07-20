@@ -692,6 +692,14 @@ def update_member_role(script_id, member_id):
     new_role = (request.get_json(silent=True) or {}).get('role')
     if new_role not in ('viewer', 'member', 'admin'):
         return jsonify({'error': 'Invalid role'}), 400
+    # NOTE: unreachable today, by construction. This route is gated by
+    # @require_script_role('admin'), so g.script_role is always 'admin'
+    # (rank 3) or 'owner' (rank 4) here, and new_role is capped at 'admin'
+    # (rank 3) by the check above -- there is no valid combination where
+    # ROLE_RANK[new_role] > ROLE_RANK[g.script_role] can be True. It is kept
+    # as defense-in-depth for if the decorator floor is ever lowered (e.g.
+    # to 'member'), at which point this becomes the only thing stopping a
+    # lower-ranked actor from granting a role above their own.
     if ROLE_RANK[new_role] > ROLE_RANK[g.script_role]:
         return jsonify({'error': 'Cannot grant a role above your own'}), 403
 
