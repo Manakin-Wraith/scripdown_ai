@@ -16,6 +16,7 @@ from datetime import datetime, timedelta
 from flask import Blueprint, request, jsonify, g
 from db.supabase_client import get_supabase_client, get_supabase_admin
 from middleware.auth import require_auth, get_user_id
+from middleware.authorization import require_script_role, from_script, ROLE_RANK
 from services.entitlement_service import require_team_tier, get_entitlement
 from services.email_service import send_invite_accepted_notification, send_team_invite, send_member_removed, send_invite_revoked, send_test_email, is_configured as email_configured
 
@@ -68,6 +69,7 @@ def get_invite_departments():
 
 @invite_bp.route('/api/scripts/<script_id>/invites', methods=['POST'])
 @require_auth
+@require_script_role('admin', resolver=from_script)
 @require_team_tier
 def create_invite(script_id):
     """
@@ -112,20 +114,14 @@ def create_invite(script_id):
         return jsonify({'error': 'Invalid role'}), 400
     
     try:
-        # Verify user owns the script or is admin
+        # Authorization (owner/admin) already enforced by @require_script_role('admin').
         script_result = supabase.table('scripts').select('id, user_id, title').eq('id', script_id).single().execute()
-        
+
         if not script_result.data:
             return jsonify({'error': 'Script not found'}), 404
-        
+
         script = script_result.data
-        
-        # Check ownership or admin status
-        if script['user_id'] != user_id:
-            member_check = supabase.table('script_members').select('role').eq('script_id', script_id).eq('user_id', user_id).single().execute()
-            if not member_check.data or member_check.data['role'] not in ['owner', 'admin']:
-                return jsonify({'error': 'Not authorized to invite members'}), 403
-        
+
         # Check if invite already exists for this email/script
         # Note: We skip the "already a member" check here - it will be handled during accept
         try:
@@ -623,6 +619,7 @@ def auto_accept_pending_invites():
 
 @invite_bp.route('/api/scripts/<script_id>/members', methods=['GET'])
 @require_auth
+@require_script_role('viewer', resolver=from_script)
 @require_team_tier
 def list_members(script_id):
     """Get all team members for a script."""
@@ -675,6 +672,41 @@ def list_members(script_id):
         
     except Exception as e:
         print(f"Error listing members: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@invite_bp.route('/api/scripts/<script_id>/members/<member_id>', methods=['PATCH'])
+@require_auth
+@require_script_role('admin', resolver=from_script)
+def update_member_role(script_id, member_id):
+    """Change a team member's role.
+
+    Body: {"role": "viewer|member|admin"}. 'owner' is never a valid target
+    (it is not one of the three accepted values, and the owner is never a
+    script_members row to begin with). The actor can never grant a role
+    ranked above their own (g.script_role, set by @require_script_role).
+    """
+    if not supabase:
+        return jsonify({'error': 'Database not configured'}), 500
+
+    new_role = (request.get_json(silent=True) or {}).get('role')
+    if new_role not in ('viewer', 'member', 'admin'):
+        return jsonify({'error': 'Invalid role'}), 400
+    if ROLE_RANK[new_role] > ROLE_RANK[g.script_role]:
+        return jsonify({'error': 'Cannot grant a role above your own'}), 403
+
+    try:
+        member = (supabase.table('script_members')
+                  .select('id, script_id').eq('id', member_id)
+                  .eq('script_id', script_id).limit(1).execute())
+        if not member.data:
+            return jsonify({'error': 'Member not found'}), 404
+
+        supabase.table('script_members').update({'role': new_role}).eq('id', member_id).execute()
+        return jsonify({'success': True, 'role': new_role}), 200
+
+    except Exception as e:
+        print(f"Error updating member role: {e}")
         return jsonify({'error': str(e)}), 500
 
 
