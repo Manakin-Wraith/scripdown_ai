@@ -6,6 +6,46 @@ implementing (see `superpowers:brainstorming`).
 
 ---
 
+## Backend test suite has no CI gate
+
+**Status:** Not started — infrastructure gap.
+
+**Context.** There is no `.github/workflows/` directory in this repo at all.
+The only checks currently wired to GitHub PRs are GitGuardian (secret
+scanning) and Vercel's preview-deploy + comment bot — both frontend/deploy
+concerned, neither runs `backend/tests/`. Confirmed on PR #7
+(`feature/teams-access-control`): all 3 checks passed, but the 427-test
+backend suite was only ever run locally, never gated in CI. A backend
+regression can merge to `main` with a fully green PR.
+
+**Scope when picked up.** Add a GitHub Actions workflow
+(`.github/workflows/backend-tests.yml`) that, on PRs touching `backend/**`
+(or unconditionally — decide breadth when picked up):
+- Sets up Python 3.13, installs `backend/requirements.txt`.
+- Runs `pytest tests/` from `backend/`.
+- Fails the check on any non-zero exit, surfacing in the PR checks list
+  alongside GitGuardian/Vercel.
+
+**Also decide:** whether to require the required env vars
+(`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_KEY`,
+`RESEND_API_KEY`) via repo/CI secrets for the suite to run at all (per
+`utils/env_validator.py`, the app — and by extension some tests — refuses
+to start without them), or whether the test suite already mocks around
+that boundary cleanly enough to run without real credentials; whether to
+gate on this new check being required before merge (branch protection)
+or advisory-only at first; and whether frontend gets an equivalent
+`npm run build` CI gate at the same time (`npm run lint` is broken
+repo-wide — see other memory — so build, not lint, should be the
+frontend gate if added).
+
+**References.**
+- `backend/tests/` (427 tests as of PR #7)
+- `backend/requirements.txt`, `backend/utils/env_validator.py`
+- No existing `.github/workflows/*` to pattern-match against — this would
+  be the first workflow in the repo.
+
+---
+
 ## FDX Tagger breakdown ingestion
 
 **Status:** Deferred — gated on obtaining a real Final Draft Tagger-tagged `.fdx` sample.
