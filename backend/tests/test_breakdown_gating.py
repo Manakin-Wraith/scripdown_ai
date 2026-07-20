@@ -3,6 +3,7 @@ import os, sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import routes.supabase_routes as sr
+import middleware.authorization as authz
 
 
 def _client():
@@ -25,8 +26,13 @@ def test_anonymous_bulk_is_rejected(monkeypatch):
     assert resp.status_code == 401
 
 
-def test_tier1_without_credits_gets_402(monkeypatch):
+def test_tier1_without_credits_gets_402(monkeypatch, fake_supabase):
     monkeypatch.setattr("middleware.auth.DEV_MODE", True)
+    # require_script_role(resolver=from_scene) runs before the entitlement gate —
+    # supply a resolvable scene/role so the request reaches the credits check.
+    fake_supabase.set_table("scenes", [{"id": "scene-1", "script_id": "scr-1"}])
+    monkeypatch.setattr(authz, "get_supabase_client", lambda: fake_supabase)
+    monkeypatch.setattr(authz, "get_script_role", lambda script_id, user_id: "member")
     monkeypatch.setattr("services.entitlement_service.get_user_id", lambda: 'u1')
     monkeypatch.setattr("services.entitlement_service.get_entitlement",
                         lambda uid: {'can_run_breakdown': False})

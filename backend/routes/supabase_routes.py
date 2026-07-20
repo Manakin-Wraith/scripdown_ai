@@ -21,6 +21,7 @@ load_dotenv()
 from middleware.auth import require_auth, optional_auth, get_user_id, get_current_user
 from middleware.authorization import (
     require_script_role, from_scene, from_note, from_item,
+    get_script_role, ROLE_RANK, SCRIPT_NOT_FOUND,
 )
 from services.entitlement_service import (
     require_breakdown_entitlement, consume_breakdown, InsufficientCredits,
@@ -1155,16 +1156,24 @@ def get_scenes(script_id):
 
 
 @supabase_bp.route('/api/scenes', methods=['POST'])
+@require_auth
 def create_scene():
     """Create a new scene (for manual labeling)."""
     if not supabase:
         return jsonify({'error': 'Supabase not configured'}), 500
-    
+
     try:
         data = request.get_json()
-        
+
         # Get next scene order
         script_id = data.get('script_id')
+
+        role = get_script_role(script_id, get_user_id())
+        if role is SCRIPT_NOT_FOUND or not script_id:
+            return jsonify({'error': 'Not found'}), 404
+        if role is None or ROLE_RANK[role] < ROLE_RANK['member']:
+            return jsonify({'error': 'Insufficient permissions'}), 403
+
         result = supabase.table('scenes').select('scene_order').eq('script_id', script_id).order('scene_order', desc=True).limit(1).execute()
         
         next_order = 1
@@ -1201,6 +1210,8 @@ def create_scene():
 
 
 @supabase_bp.route('/api/scenes/<scene_id>', methods=['PUT'])
+@require_auth
+@require_script_role('member', resolver=from_scene)
 def update_scene(scene_id):
     """Update a scene."""
     if not supabase:
@@ -1238,6 +1249,8 @@ def update_scene(scene_id):
 
 
 @supabase_bp.route('/api/scenes/<scene_id>', methods=['DELETE'])
+@require_auth
+@require_script_role('member', resolver=from_scene)
 def delete_scene(scene_id):
     """Delete a scene."""
     if not supabase:
@@ -2546,6 +2559,7 @@ def get_shooting_script_data(script_id):
 # ============================================
 
 @supabase_bp.route('/api/stats', methods=['GET'])
+@require_auth
 def get_stats():
     """Get dashboard statistics."""
     if not supabase:
@@ -2787,6 +2801,7 @@ def _recalc_start_order(script_id, current_order):
 
 @supabase_bp.route('/api/scenes/<scene_id>/analyze', methods=['POST'])
 @require_auth
+@require_script_role('member', resolver=from_scene)
 @require_breakdown_entitlement
 def analyze_scene(scene_id):
     """
@@ -3773,7 +3788,8 @@ def create_scene_item(script_id, scene_id):
 
 
 @supabase_bp.route('/api/items/<item_id>', methods=['PUT'])
-@optional_auth
+@require_auth
+@require_script_role('member', resolver=from_item)
 def update_scene_item(item_id):
     """
     Update a breakdown item.
@@ -3931,7 +3947,8 @@ def remove_ai_item(script_id, scene_id):
 
 
 @supabase_bp.route('/api/items/<item_id>', methods=['DELETE'])
-@optional_auth
+@require_auth
+@require_script_role('member', resolver=from_item)
 def delete_scene_item(item_id):
     """Soft-delete a breakdown item by setting status to 'removed'."""
     if not supabase:
@@ -4135,7 +4152,8 @@ def create_note(script_id):
 
 
 @supabase_bp.route('/api/notes/<note_id>/replies', methods=['POST'])
-@optional_auth
+@require_auth
+@require_script_role('member', resolver=from_note)
 def create_reply(note_id):
     """
     Create a reply to an existing note.
@@ -4219,6 +4237,8 @@ def create_reply(note_id):
 
 
 @supabase_bp.route('/api/notes/<note_id>', methods=['GET'])
+@require_auth
+@require_script_role('viewer', resolver=from_note)
 def get_note(note_id):
     """Get a single note by ID."""
     if not supabase:
@@ -4249,6 +4269,8 @@ def get_note(note_id):
 
 
 @supabase_bp.route('/api/notes/<note_id>', methods=['PUT'])
+@require_auth
+@require_script_role('member', resolver=from_note)
 def update_note(note_id):
     """
     Update a note.
@@ -4306,7 +4328,8 @@ def update_note(note_id):
 
 
 @supabase_bp.route('/api/notes/<note_id>/status', methods=['PATCH'])
-@optional_auth
+@require_auth
+@require_script_role('member', resolver=from_note)
 def update_note_status(note_id):
     """
     Quick endpoint to toggle note status.
@@ -4364,6 +4387,8 @@ def update_note_status(note_id):
 
 
 @supabase_bp.route('/api/notes/<note_id>', methods=['DELETE'])
+@require_auth
+@require_script_role('member', resolver=from_note)
 def delete_note(note_id):
     """Delete a note."""
     if not supabase:
@@ -4378,6 +4403,8 @@ def delete_note(note_id):
 
 
 @supabase_bp.route('/api/scenes/<scene_id>/notes', methods=['GET'])
+@require_auth
+@require_script_role('viewer', resolver=from_scene)
 def get_scene_notes(scene_id):
     """Get all notes for a specific scene, grouped by department."""
     if not supabase:

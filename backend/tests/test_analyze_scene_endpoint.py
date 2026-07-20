@@ -4,6 +4,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import pytest
 import routes.supabase_routes as sr
+import middleware.authorization as authz
 from services.gemini_client import GeminiError
 
 
@@ -24,13 +25,19 @@ class FakeTable:
 
 
 @pytest.fixture
-def client(monkeypatch):
+def client(monkeypatch, fake_supabase):
     store = {"scene-1": {"id": "scene-1", "script_id": "scr-1", "scene_text": "INT. ROOM - DAY\nAction here.",
                           "scene_order": 1, "setting": "INT. ROOM - DAY"}}
     fake = FakeTable(store)
     monkeypatch.setattr(sr, "supabase", type("S", (), {"table": lambda self, _n: fake})())
     monkeypatch.setattr(sr, "get_user_id", lambda: "u1")
     monkeypatch.setattr("middleware.auth.DEV_MODE", True)
+    # require_script_role(resolver=from_scene) resolves scene-1 -> scr-1 via its own
+    # DB lookup (middleware.authorization.get_supabase_client), then checks role —
+    # supply both via the shared fake_supabase fixture and a role stub.
+    fake_supabase.set_table("scenes", [{"id": "scene-1", "script_id": "scr-1"}])
+    monkeypatch.setattr(authz, "get_supabase_client", lambda: fake_supabase)
+    monkeypatch.setattr(authz, "get_script_role", lambda script_id, user_id: "member")
     monkeypatch.setattr("services.entitlement_service.get_user_id", lambda: "u1")
     monkeypatch.setattr("services.entitlement_service.get_entitlement", lambda uid: {
         'tier': 'tier_2_annual_team', 'status': 'active', 'breakdown_balance': 999,
