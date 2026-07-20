@@ -7,12 +7,20 @@ whitelist of endpoints that are intentionally not single-script scoped
 (list endpoint, upload/creation endpoint), or that are known/tracked
 exceptions (see comments below).
 
+This also covers routes keyed by a CHILD resource instead of script_id
+directly -- scene_id, note_id, item_id in the URL path -- which Task 5
+converted using resolvers (from_scene, from_note, from_item) that look up
+the parent script_id from the database. These routes carry the same
+require_script_role decorator and the same _authz_min_role marker, so
+they're checked identically; only the URL-argument name differs.
+
 Scope: this test currently checks only the `supabase` blueprint
 (routes/supabase_routes.py), which is what teams-access-control-hardening
-Task 4 converted. Other blueprints (reports, invite, analysis, script,
-schedule, segments) have script_id-scoped routes of their own that are
-NOT yet decorated with require_script_role -- that is out of scope for
-Task 4 and is tracked by later tasks in
+Task 4 (script_id-keyed) and Task 5 (child-resource-keyed) converted.
+Other blueprints (reports, invite, analysis, script, schedule, segments)
+have script_id-scoped routes of their own that are NOT yet decorated with
+require_script_role -- that is out of scope for Task 4/5 and is tracked by
+later tasks in
 docs/superpowers/plans/2026-07-08-teams-access-control-hardening.md.
 When those blueprints are converted, broaden BLUEPRINT_PREFIXES (or drop
 the filter entirely) so this test covers them too.
@@ -24,6 +32,11 @@ up.
 import pytest
 
 BLUEPRINT_PREFIXES = ("supabase.",)
+
+# URL rule arguments that indicate a route is scoped to a single script,
+# either directly (script_id) or via a child resource whose parent script
+# is resolved by a resolver function (scene_id, note_id, item_id).
+SCOPED_ARG_NAMES = {"script_id", "scene_id", "note_id", "item_id"}
 
 # Not single-script scoped: list endpoint (filters by owner+membership
 # itself) and the upload/creation endpoint (no script exists yet).
@@ -64,7 +77,7 @@ def flask_app():
 def test_script_scoped_routes_enforced(flask_app):
     missing = []
     for rule in flask_app.url_map.iter_rules():
-        if "script_id" not in rule.arguments:
+        if not (SCOPED_ARG_NAMES & rule.arguments):
             continue
         endpoint = rule.endpoint
         if not endpoint.startswith(BLUEPRINT_PREFIXES):
