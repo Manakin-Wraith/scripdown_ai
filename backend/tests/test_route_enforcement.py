@@ -32,12 +32,6 @@ WHITELIST_ENDPOINTS = {"supabase.get_scripts", "supabase.upload_script"}
 # Known script-scoped routes in supabase_routes.py that are NOT part of
 # Task 4's conversion table and are therefore left untouched here:
 #
-# - retry_failed_scenes: has @require_auth but NO script-role check at
-#   all (not even the legacy inline `_user_can_access_script` helper).
-#   This looks like a genuine authorization gap, not an intentional
-#   exception -- flagged for follow-up, not silently fixed as part of
-#   this task since it wasn't in the plan's route table.
-#
 # - merge_characters, rename_parent_location, rename_sub_location,
 #   reassign_scene_location, merge_parent_locations, nest_location,
 #   unnest_location, merge_locations, get_location_aliases,
@@ -47,7 +41,6 @@ WHITELIST_ENDPOINTS = {"supabase.get_scripts", "supabase.upload_script"}
 #   don't set `_authz_min_role`, but they are not unauthorized -- migrating
 #   them to the decorator is left to a later task in the plan.
 KNOWN_EXCEPTIONS = {
-    "supabase.retry_failed_scenes",  # gap: no authz check at all -- see above
     "supabase.merge_characters",
     "supabase.rename_parent_location",
     "supabase.rename_sub_location",

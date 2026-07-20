@@ -3200,6 +3200,7 @@ def analyze_bulk_scenes(script_id):
 
 @supabase_bp.route('/api/scripts/<script_id>/scenes/retry-failed', methods=['POST'])
 @require_auth
+@require_script_role('member')
 @require_breakdown_entitlement
 def retry_failed_scenes(script_id):
     """Re-run every scene currently marked 'failed' for a script.
