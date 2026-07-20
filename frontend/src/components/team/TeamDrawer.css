@@ -199,10 +199,10 @@
     flex-shrink: 0;
     margin-left: 0.75rem;
     padding: 0.35rem 0.5rem;
-    border: 1px solid var(--gray-200, #e5e7eb);
+    border: 1px solid var(--gray-700, #374151);
     border-radius: 6px;
-    background: var(--gray-50, #f9fafb);
-    color: var(--gray-700, #374151);
+    background: var(--gray-800, #1f2937);
+    color: var(--gray-200, #e5e7eb);
     font-size: 0.8125rem;
     cursor: pointer;
 }
