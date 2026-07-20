@@ -1,5 +1,5 @@
 import middleware.authorization as authz
-from middleware.authorization import get_script_role, SCRIPT_NOT_FOUND, ROLE_RANK, from_scene, from_day, from_note
+from middleware.authorization import get_script_role, SCRIPT_NOT_FOUND, ROLE_RANK, from_scene, from_day, from_note, from_move_day
 
 
 def _patch_client(monkeypatch, fake):
@@ -59,6 +59,13 @@ def test_from_day_second_hop_missing_returns_none(monkeypatch, fake_supabase):
     fake_supabase.set_table("shooting_schedules", [])  # No matching schedule
     _patch_client(monkeypatch, fake_supabase)
     assert from_day({"day_id": "d1"}) is None
+
+
+def test_from_move_day_two_hop(monkeypatch, fake_supabase):
+    fake_supabase.set_table("shooting_days", [{"id": "d1", "schedule_id": "sch1"}])
+    fake_supabase.set_table("shooting_schedules", [{"id": "sch1", "script_id": "s1"}])
+    _patch_client(monkeypatch, fake_supabase)
+    assert from_move_day({"from_day_id": "d1"}) == "s1"
 
 
 def test_from_note_resolves(monkeypatch, fake_supabase):

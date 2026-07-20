@@ -94,6 +94,15 @@ def from_day(kwargs):
     return _lookup_script_id('shooting_schedules', schedule_id)
 
 
+def from_move_day(kwargs):
+    """Two-hop resolver for the move route, which uses `from_day_id` instead of `day_id`."""
+    schedule_id = _lookup_script_id('shooting_days', kwargs.get('from_day_id'),
+                                    script_col='schedule_id')
+    if not schedule_id:
+        return None
+    return _lookup_script_id('shooting_schedules', schedule_id)
+
+
 from functools import wraps
 from flask import g, jsonify
 from middleware.auth import get_user_id
