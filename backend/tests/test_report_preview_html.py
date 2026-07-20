@@ -103,6 +103,8 @@ def test_preview_html_invalid_type_returns_400(monkeypatch):
 def test_reports_list_includes_config_and_type(monkeypatch):
     monkeypatch.setattr("middleware.auth.DEV_MODE", True)
     monkeypatch.setattr(rr, "script_access", lambda c, sid, uid: "ok")
+    import middleware.authorization as authz
+    monkeypatch.setattr(authz, "get_script_role", lambda sid, uid: "owner")
     fake_reports = [
         {"id": "r1", "report_type": "scene_breakdown",
          "config": {"filters": {"locations": ["INT. KITCHEN"]}, "group_by": "location"},

@@ -88,3 +88,22 @@ def test_script_scoped_routes_enforced(flask_app):
         if not getattr(view, "_authz_min_role", None):
             missing.append(endpoint)
     assert not missing, f"Unenforced script-scoped routes: {missing}"
+
+
+def test_shared_report_routes_are_public(flask_app):
+    # Endpoint names are blueprint-qualified ("reports.<view_func_name>")
+    # since report_bp = Blueprint('reports', __name__); bare names would
+    # never match any rule and this test would pass vacuously.
+    public = {
+        "reports.get_shared_report",
+        "reports.download_shared_pdf",
+        "reports.get_shared_printable",
+    }
+    matched = set()
+    for rule in flask_app.url_map.iter_rules():
+        if rule.endpoint in public:
+            matched.add(rule.endpoint)
+            view = flask_app.view_functions[rule.endpoint]
+            assert not getattr(view, "_authz_min_role", None), \
+                f"{rule.endpoint} must stay public"
+    assert matched == public, f"Expected shared routes not found: {public - matched}"
