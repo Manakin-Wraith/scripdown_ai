@@ -211,16 +211,17 @@ def create_invite(script_id):
 
 @invite_bp.route('/api/scripts/<script_id>/invites', methods=['GET'])
 @require_auth
+@require_script_role('admin', resolver=from_script)
 @require_team_tier
 def list_invites(script_id):
     """Get all invites for a script."""
     if not supabase:
         return jsonify({'error': 'Database not configured'}), 500
-    
+
     user_id = get_user_id()
-    
+
     try:
-        # Verify access
+        # Authorization (owner/admin) already enforced by @require_script_role('admin').
         script_result = supabase.table('scripts').select('user_id').eq('id', script_id).single().execute()
         
         if not script_result.data:
@@ -777,23 +778,21 @@ def get_my_membership(script_id):
 
 @invite_bp.route('/api/scripts/<script_id>/members/<member_id>', methods=['DELETE'])
 @require_auth
+@require_script_role('owner', resolver=from_script)
 @require_team_tier
 def remove_member(script_id, member_id):
     """Remove a team member from a script."""
     if not supabase:
         return jsonify({'error': 'Database not configured'}), 500
-    
+
     user_id = get_user_id()
-    
+
     try:
-        # Verify ownership
+        # Owner-only authorization already enforced by @require_script_role('owner').
         script_result = supabase.table('scripts').select('user_id, title').eq('id', script_id).single().execute()
 
         if not script_result.data:
             return jsonify({'error': 'Script not found'}), 404
-
-        if script_result.data['user_id'] != user_id:
-            return jsonify({'error': 'Only script owner can remove members'}), 403
 
         # Capture the removed member's contact details BEFORE deleting the row
         removed_email = None

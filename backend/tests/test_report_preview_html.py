@@ -49,6 +49,8 @@ class _FakeSupabaseClient:
 def test_preview_html_returns_html_and_counts(monkeypatch):
     monkeypatch.setattr("middleware.auth.DEV_MODE", True)
     monkeypatch.setattr(rr, "script_access", lambda c, sid, uid: "ok")
+    import middleware.authorization as authz
+    monkeypatch.setattr(authz, "get_script_role", lambda sid, uid: "owner")
     calls = {"insert": 0}
 
     monkeypatch.setattr(rr.report_service, "aggregate_scene_data",
@@ -90,6 +92,8 @@ def test_preview_html_returns_html_and_counts(monkeypatch):
 def test_preview_html_invalid_type_returns_400(monkeypatch):
     monkeypatch.setattr("middleware.auth.DEV_MODE", True)
     monkeypatch.setattr(rr, "script_access", lambda c, sid, uid: "ok")
+    import middleware.authorization as authz
+    monkeypatch.setattr(authz, "get_script_role", lambda sid, uid: "owner")
     from app import app
     app.config["TESTING"] = True
     resp = app.test_client().post(

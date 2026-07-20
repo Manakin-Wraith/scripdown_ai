@@ -297,6 +297,7 @@ def preview_report(script_id):
 
 @report_bp.route('/scripts/<script_id>/reports/preview-html', methods=['POST'])
 @require_auth
+@require_script_role('member', resolver=from_script)
 def preview_report_html(script_id):
     """
     Render report HTML from unsaved config for live preview. Does not persist.

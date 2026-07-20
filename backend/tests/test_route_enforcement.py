@@ -14,13 +14,14 @@ the parent script_id from the database. These routes carry the same
 require_script_role decorator and the same _authz_min_role marker, so
 they're checked identically; only the URL-argument name differs.
 
-Scope: this test currently checks only the `supabase` blueprint
-(routes/supabase_routes.py), which is what teams-access-control-hardening
-Task 4 (script_id-keyed) and Task 5 (child-resource-keyed) converted.
-Other blueprints (reports, invite, analysis, script, schedule, segments)
-have script_id-scoped routes of their own that are NOT yet decorated with
-require_script_role -- that is out of scope for Task 4/5 and is tracked by
-later tasks in
+Scope: this test checks the `supabase` blueprint (routes/supabase_routes.py,
+Tasks 4-5), the `schedule` blueprint (routes/schedule_routes.py, Task 6),
+the `reports` blueprint (routes/report_routes.py, Task 7), and the `invite`
+blueprint (routes/invite_routes.py, Task 11) -- the four blueprints the
+teams-access-control-hardening plan converted to the decorator.
+Other blueprints (analysis, script, segments) have script_id-scoped routes
+of their own that are NOT yet decorated with require_script_role -- that is
+out of scope for this plan and is tracked separately in
 docs/superpowers/plans/2026-07-08-teams-access-control-hardening.md.
 When those blueprints are converted, broaden BLUEPRINT_PREFIXES (or drop
 the filter entirely) so this test covers them too.
@@ -31,16 +32,33 @@ up.
 """
 import pytest
 
-BLUEPRINT_PREFIXES = ("supabase.",)
+BLUEPRINT_PREFIXES = ("supabase.", "reports.", "schedule.", "invite.")
 
 # URL rule arguments that indicate a route is scoped to a single script,
 # either directly (script_id) or via a child resource whose parent script
-# is resolved by a resolver function (scene_id, note_id, item_id).
-SCOPED_ARG_NAMES = {"script_id", "scene_id", "note_id", "item_id"}
+# is resolved by a resolver function. schedule_id/day_id/from_day_id come
+# from schedule_routes.py (Task 6); report_id/preset_id from
+# report_routes.py (Task 7); member_id from invite_routes.py (Task 11).
+SCOPED_ARG_NAMES = {
+    "script_id", "scene_id", "note_id", "item_id",
+    "schedule_id", "day_id", "from_day_id",
+    "report_id", "preset_id",
+    "member_id",
+}
 
 # Not single-script scoped: list endpoint (filters by owner+membership
 # itself) and the upload/creation endpoint (no script exists yet).
-WHITELIST_ENDPOINTS = {"supabase.get_scripts", "supabase.upload_script"}
+#
+# invite.get_my_membership is self-scoped like supabase.get_scripts: it
+# only ever returns the CALLING user's own membership/role on the script
+# (looked up by .eq('user_id', user_id), or an owner check against the
+# caller's own id) -- it never exposes another user's data, so a min-role
+# gate isn't meaningful here (the "role" being read IS the answer to the
+# authorization question).
+WHITELIST_ENDPOINTS = {
+    "supabase.get_scripts", "supabase.upload_script",
+    "invite.get_my_membership",
+}
 
 # Known script-scoped routes in supabase_routes.py that are NOT part of
 # Task 4's conversion table and are therefore left untouched here:
