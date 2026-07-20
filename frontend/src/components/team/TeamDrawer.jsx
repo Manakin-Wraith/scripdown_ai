@@ -27,6 +27,7 @@ import { useConfirmDialog } from '../../context/ConfirmDialogContext';
 import InviteModal from './InviteModal';
 import { Spinner, Drawer } from '../ui';
 import { readPendingSeatInviteDraft, clearPendingSeatInviteDraft } from '../../utils/pendingSeatInviteDraft';
+import { updateMemberRole } from '../../services/apiService';
 import './TeamDrawer.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -50,6 +51,12 @@ const TeamDrawer = ({
     const [showInvites, setShowInvites] = useState(false);
     const [inviteModalOpen, setInviteModalOpen] = useState(false);
     const [resumedDraft, setResumedDraft] = useState(null);
+
+    // The current viewer's own membership row (if they're a non-owner team
+    // member). Used to decide whether they can see the role picker: owners
+    // always can, and so can members whose own role is 'admin'.
+    const currentMembership = members.find(m => m.user_id === currentUserId);
+    const canManageRoles = isOwner || currentMembership?.role === 'admin';
 
     // If the Owner just came back from buying seats, resume the invite
     // they had in progress instead of making them retype it.
@@ -144,6 +151,25 @@ const TeamDrawer = ({
         } catch (err) {
             console.error('Error removing member:', err);
             toast.error('Error', err.message);
+        }
+    };
+
+    const handleRoleChange = async (member, newRole) => {
+        if (newRole === member.role) return;
+
+        const previousRole = member.role;
+
+        // Optimistic update
+        setMembers(prev => prev.map(m => m.id === member.id ? { ...m, role: newRole } : m));
+
+        try {
+            await updateMemberRole(scriptId, member.id, newRole);
+            toast.success('Role Updated', `${member.name} is now ${newRole}`);
+        } catch (err) {
+            // Revert on failure
+            setMembers(prev => prev.map(m => m.id === member.id ? { ...m, role: previousRole } : m));
+            console.error('Error updating member role:', err);
+            toast.error('Error', err.response?.data?.error || err.message || 'Failed to update role');
         }
     };
 
@@ -345,6 +371,19 @@ const TeamDrawer = ({
                                                         Joined {formatDate(member.joined_at)}
                                                     </span>
                                                 </div>
+                                                {canManageRoles && (
+                                                    <select
+                                                        className="role-select"
+                                                        value={member.role}
+                                                        onChange={(e) => handleRoleChange(member, e.target.value)}
+                                                        title={`Change ${member.name}'s role`}
+                                                        aria-label={`Role for ${member.name}`}
+                                                    >
+                                                        <option value="viewer">Viewer</option>
+                                                        <option value="member">Member</option>
+                                                        <option value="admin">Admin</option>
+                                                    </select>
+                                                )}
                                                 {isOwner && (
                                                     <button
                                                         className="remove-btn"

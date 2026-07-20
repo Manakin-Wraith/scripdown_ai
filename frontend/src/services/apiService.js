@@ -181,6 +181,23 @@ export const reanalyzeScript = async (scriptId) => {
     return response.data;
 };
 
+/**
+ * Update a team member's role on a script
+ * @param {string} scriptId - The script UUID
+ * @param {string} memberId - The script_members row UUID
+ * @param {string} role - New role: 'viewer' | 'member' | 'admin'
+ * @returns {Promise<Object>} { success, role }
+ */
+export const updateMemberRole = async (scriptId, memberId, role) => {
+    try {
+        const response = await api.patch(`/api/scripts/${scriptId}/members/${memberId}`, { role });
+        return response.data;
+    } catch (error) {
+        console.error('Error updating member role:', error);
+        throw error;
+    }
+};
+
 // Use Supabase API for metadata
 export const getScriptMetadata = async (scriptId) => {
     try {
