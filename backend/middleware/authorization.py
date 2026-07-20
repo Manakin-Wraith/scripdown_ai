@@ -129,5 +129,6 @@ def require_script_role(min_role, resolver=from_script):
             g.script_role = role
             g.resolved_script_id = script_id
             return f(*args, **kwargs)
+        wrapper._authz_min_role = min_role  # introspection marker for tests
         return wrapper
     return decorator

@@ -162,10 +162,13 @@ def test_store_fdx_preview_uploads_and_updates(monkeypatch, tmp_path):
 
 def test_get_pdf_url_prefers_preview_path(monkeypatch):
     import routes.supabase_routes as sr
+    import middleware.authorization as authz
     try:
         import app as app_module
     except Exception:
         import pytest; pytest.skip("Flask app requires env vars")
+
+    monkeypatch.setattr(authz, "get_script_role", lambda sid, uid: "owner")
 
     class Q:
         def __init__(self, table): self.table = table
@@ -194,10 +197,13 @@ def test_get_pdf_url_prefers_preview_path(monkeypatch):
 
 def test_get_pdf_url_lazy_generates_for_fdx(monkeypatch):
     import routes.supabase_routes as sr
+    import middleware.authorization as authz
     try:
         import app as app_module
     except Exception:
         import pytest; pytest.skip("Flask app requires env vars")
+
+    monkeypatch.setattr(authz, "get_script_role", lambda sid, uid: "owner")
 
     signed = {}
     class Q:
