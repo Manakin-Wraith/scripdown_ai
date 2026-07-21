@@ -51,6 +51,102 @@ frontend gate if added).
 
 ---
 
+## Production billing was fully broken for 3 days — RESOLVED, fixed
+
+**Found:** 2026-07-21, when the user (an existing annual subscriber) tried to
+subscribe/buy breakdowns/buy seats on production and got a generic "Could
+not start checkout" error. **Fixed:** same day, across three independent
+root causes discovered in sequence.
+
+**Context.** The two-tier-pricing/PayFast billing backend (merged to `main`
+2026-07-18) had never actually served traffic in production — every
+`/api/billing/*` and `/api/payfast/notify` request returned a plain 404 as
+if the routes didn't exist, despite the code being in `main` for three
+days and every PR since showing green. Diagnosing this took three separate
+investigations:
+
+**1. Deploy pipeline never went live (backend/Dockerfile, backend/railway.json).**
+`backend/Dockerfile`'s `CMD` and `backend/railway.json`'s `deploy.startCommand`
+both hardcoded `--bind 0.0.0.0:8080`, ignoring Railway's dynamically-assigned
+`$PORT` — every deploy attempt failed Railway's healthcheck (`service
+unavailable`, every retry, every attempt) and Railway silently kept serving
+whatever old pre-payfast build was last successful. First fix attempt
+(`${PORT:-8080}` in `railway.json`'s `startCommand`) made it worse — Railway
+executes `startCommand` without a shell, so the string was passed to
+gunicorn *unexpanded* (`Error: '${PORT' is not a valid port number.`,
+confirmed via real runtime logs). Final fix: removed the `startCommand`
+override entirely so Railway falls back to the Dockerfile's own
+`CMD ["sh", "-c", "..."]` array form, which Docker guarantees runs through
+a real shell regardless of how the platform invokes it — matching the
+repo-root `Dockerfile`/`railway.json`, which never had this bug. Verified
+locally via `docker run` with a custom `PORT` injected before touching
+production.
+
+**2. `api.slateone.studio` DNS pointed at a dead Vercel deployment.**
+`PAYFAST_API_URL` defaults to `https://api.slateone.studio`, used to build
+PayFast's `notify_url`. That domain's DNS was pointed at Vercel (`server:
+Vercel`, `DEPLOYMENT_NOT_FOUND`) with no project actually configured to
+answer it — meaning even once (1) was fixed, PayFast's ITN webhook had
+nowhere to reach. An interim attempt to override `PAYFAST_API_URL` to the
+raw `*.up.railway.app` domain got rejected by PayFast's own checkout
+form ("The notify url format is invalid" — PayFast validates/whitelists the
+notify domain against the merchant's registered settings). Real fix: added
+a CNAME for `api.slateone.studio` directly to Railway's custom-domain
+target (Railway supports attaching custom domains straight to a service;
+no reason for API traffic to route through Vercel at all), keeping
+`PAYFAST_API_URL` on its branded default. Verified via `dig @ns1.vercel-dns.com`
+(Vercel's own authoritative nameserver) and public resolvers (8.8.8.8,
+1.1.1.1) resolving correctly to Railway, plus a live `/health` 200 over
+the branded domain.
+
+**3. `is_valid_payfast_ip` silently rejected legitimate ITNs.**
+Even with (1) and (2) fixed, real checkouts still got stuck `status:
+'pending'` forever with `pf_payment_id: NULL` (PayFast believed the payment
+succeeded; our webhook never claimed the row). Added a diagnostic
+`reject_reason` column (migration `044_payfast_reject_reason.sql`) so
+`_reject()` in `payfast_routes.py` records *why* an ITN was rejected,
+directly queryable via Supabase — this replaced several rounds of unreliable
+Railway log copy-pasting. First real evidence: `reject_reason: 'untrusted
+source ip 152.233.12.24x'`. `is_valid_payfast_ip` live-resolved 5 hardcoded
+PayFast hostnames via DNS and rejected any ITN from an IP outside that
+snapshot; PayFast's actual sandbox ITN sender IPs weren't in the resolved
+set at all (confirmed: 66 IPs resolved, none in the `152.x` range). This
+check has likely been silently dropping legitimate ITNs since it was
+written, not just this week. Removed `is_valid_payfast_ip`,
+`_resolve_payfast_ips`, and `PAYFAST_HOSTS` entirely — signature
+verification (`verify_itn_signature`) plus the server-to-server
+confirmation call (`confirm_with_payfast`, which asks PayFast directly "did
+you send this?") remain as the security boundary; the latter is the check
+PayFast's own integration guidance actually recommends and doesn't depend
+on a moment-in-time DNS snapshot.
+
+**Verification.** After all three fixes, two real sandbox purchases (10
+breakdown credits, 9 team seats) went all the way through: transaction rows
+show `status: 'complete'` with a real `pf_payment_id`; `breakdown_credits`
+ledger shows a correctly-linked `+10` row; `account_seats` shows a
+correctly-linked `9`-seat grant with a proper `term_expires_at`. Backend
+suite (422 tests) passes after the IP-check removal.
+
+**Outstanding follow-up.** Four transactions created during the diagnosis
+window are permanently stuck `pending` (PayFast will not retry an ITN
+indefinitely) and need a manual grant: two from before any fix landed
+(`pf_payment_id: NULL`, `reject_reason: NULL` — ITN never reached
+production at all) and two from mid-diagnosis (`reject_reason: 'untrusted
+source ip ...'`). No admin manual-approval UI/route currently exists in
+`backend/routes/admin_routes.py` for this — needs building or a one-off
+manual grant via `entitlement_service.py`'s `grant_credits`/`grant_seats`.
+
+**References.**
+- `backend/Dockerfile`, `backend/railway.json` — `$PORT` binding fix
+- `backend/db/migrations/044_payfast_reject_reason.sql` — diagnostic column
+- `backend/routes/payfast_routes.py`, `backend/services/payfast_service.py`
+  — IP-check removal
+- `backend/tests/test_payfast_itn_route.py`,
+  `backend/tests/test_payfast_itn_validation.py` — updated for IP-check removal
+- DNS: `api.slateone.studio` CNAME, now pointed directly at Railway
+
+---
+
 ## FDX Tagger breakdown ingestion
 
 **Status:** Deferred — gated on obtaining a real Final Draft Tagger-tagged `.fdx` sample.
@@ -145,10 +241,13 @@ to the FDX preview, PDF scripts to the existing PDF viewer.
 ## Two-tier pricing / PayFast billing — outstanding fixes
 
 **Status:** Open, tracked against `feat/two-tier-pricing` (merged to `main`
-2026-07-18). Branch is functionally verified end-to-end against live PayFast
-sandbox transactions for all three charge types. The anonymous-access
-vulnerability below is fixed and merged; renewal automation remains open
-post-merge. The `list_members` gap below is now resolved.
+2026-07-18). Branch was functionally verified end-to-end against live
+PayFast sandbox transactions pre-merge — that verification did NOT reflect
+the actual deployed Railway service, which had never gone live in
+production at all until 2026-07-21 (see "Production billing was fully
+broken for 3 days" above). The anonymous-access vulnerability below is
+fixed and merged; renewal automation remains open post-merge. The
+`list_members` gap below is now resolved.
 
 ### `routes/analysis_routes.py` has no auth at all — RESOLVED, fixed
 
