@@ -23,8 +23,9 @@ COPY . .
 # Create uploads directory
 RUN mkdir -p uploads
 
-# Railway uses port 8080 by default
+# Railway injects a dynamic $PORT at runtime and healthchecks that exact
+# port -- a hardcoded bind here means the healthcheck hits a closed port
+# and Railway discards the deploy, silently keeping the previous build
+# live. Shell form so ${PORT} is expanded; 8080 is only a local-run fallback.
 EXPOSE 8080
-
-# Run with gunicorn on port 8080
-CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:8080"]
+CMD ["sh", "-c", "gunicorn app:app --bind 0.0.0.0:${PORT:-8080} --timeout 120 --workers 2"]
