@@ -489,31 +489,25 @@ episodes' entities) or requires manual user confirmation before merging.
 
 ---
 
-## Billing page and payment success messages — misaligned (screen-left instead of centered)
+## Billing page and payment success messages — misaligned (screen-left instead of centered) — RESOLVED, fixed
 
-**Status:** Not started — bug report from user.
+**Status:** Done. Brainstormed, designed, planned, and implemented 2026-07-21.
 
-**Context.** The `/billing` page (`frontend/src/pages/BillingPage.jsx`,
-`BillingPage.css`) currently renders content aligned to the left edge of the
-screen rather than centered — inconsistent with the rest of the app's
-card-based, centered layout (see the "Billing page UI/placement" entry above,
-which restyled the page's cards/tokens but apparently left the horizontal
-alignment issue). Separately, the post-payment success messages shown on
-`frontend/src/pages/PaymentResultPage.jsx` are aligned top-left and don't
-match the app's design style (card styling, spacing, centering) used
-elsewhere.
-
-**Scope when picked up.**
-- Center the Billing page's content within the viewport/container (likely a
-  missing `margin: 0 auto` / flex-centering / max-width wrapper in
-  `BillingPage.css`).
-- Restyle the payment success/result messaging in `PaymentResultPage.jsx` to
-  match the app's existing card design language (same tokens as
-  `BillingPage`/`ProfilePage`), and center it instead of top-left.
+**What shipped.** `BillingPage.jsx`/`.css` — header, error message, and the
+card stack are now wrapped in a `.billing-content` container
+(`max-width: 640px; margin: 0 auto;`), centering the page's content instead
+of leaving it flush against the left padding on wide screens.
+`PaymentResultPage.jsx` gained a dedicated `PaymentResultPage.css` and is now
+a centered, card-styled result screen (matching `.billing-card`'s token
+palette) with a per-state `lucide-react` icon: green `CheckCircle` once
+settled, gray `Clock` while confirming, red `XCircle` on cancel. No changes
+to checkout logic, polling, or the seat-invite resume redirect.
 
 **References.**
-- `frontend/src/pages/BillingPage.jsx`, `frontend/src/pages/BillingPage.css`
-- `frontend/src/pages/PaymentResultPage.jsx`
+- Design: `docs/superpowers/specs/2026-07-21-billing-alignment-fix-design.md`
+- Plan: `docs/superpowers/plans/2026-07-21-billing-alignment-fix.md`
+- `frontend/src/pages/BillingPage.jsx`, `BillingPage.css`
+- `frontend/src/pages/PaymentResultPage.jsx`, `PaymentResultPage.css` (new)
 
 ---
 
