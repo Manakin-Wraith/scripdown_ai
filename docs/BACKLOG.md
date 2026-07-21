@@ -511,28 +511,27 @@ to checkout logic, polling, or the seat-invite resume redirect.
 
 ---
 
-## Better layout for the Breakdown credits and Team seats cards
+## Better layout for the Breakdown credits and Team seats cards — RESOLVED, shipped
 
-**Status:** Not started — feature request. Needs a brainstorming pass
-before implementing (see `superpowers:brainstorming`).
+**Status:** Done. Brainstormed (3 visual mockups compared), designed, planned,
+and implemented 2026-07-21.
 
-**Context.** On the now-centered `/billing` page (see "Billing page and
-payment success messages" above), the "Breakdown credits" card and the
-"Team seats"/"Annual Team License" card are plain stacked sections — each
-just a heading, a line of body text, the quantity stepper, a total, and a
-buy button (`frontend/src/pages/BillingPage.jsx:101-165`,
-`frontend/src/pages/BillingPage.css:45-188`). User wants a better-designed
-layout for these two cards specifically (the plan summary card above them
-is not called out). No specifics yet on what "better" means — needs a
-brainstorm on direction (e.g. side-by-side on desktop vs. stacked, clearer
-visual hierarchy between price/quantity/total/CTA, pricing-tier-card style
-treatment, icons/illustrations, etc.) before design work starts.
+**What shipped.** The Breakdown Credits and Team Seats sections on
+`/billing` are now one card (`.billing-purchase-card`) with each purchase
+as a compact horizontal row — icon badge (reusing the existing `Wallet`/
+`Users` lucide-react icons), title + subtitle, quantity stepper, running
+total, and a buy button — separated by a divider when both rows are
+present. On narrow screens each row wraps via CSS flexbox (icon+text on
+one line, stepper+total+button on the next) with no separate mobile
+markup. The Annual Team License upsell card (shown instead of the seats
+row for non-team accounts) is unchanged — it's a distinct action
+(subscribe vs. buy-more), not a peer row. No changes to checkout logic,
+`PRICE_ZAR`, or any purchase state/handlers.
 
 **References.**
-- `frontend/src/pages/BillingPage.jsx` — `.billing-card` sections for
-  breakdown credits (line 101) and team seats/license (line 129)
-- `frontend/src/pages/BillingPage.css` — `.billing-card`, `.quantity-stepper`,
-  `.billing-buy-btn` and related rules
+- Design: `docs/superpowers/specs/2026-07-21-billing-purchase-cards-layout-design.md`
+- Plan: `docs/superpowers/plans/2026-07-21-billing-purchase-cards-layout.md`
+- `frontend/src/pages/BillingPage.jsx`, `BillingPage.css`
 
 ---
 
