@@ -3,6 +3,7 @@ import os, sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import routes.report_routes as rr
+import middleware.authorization as authz
 
 
 def _client():
@@ -22,6 +23,9 @@ def test_reports_list_forbidden_for_non_member(monkeypatch):
     monkeypatch.setattr("middleware.auth.DEV_MODE", True)   # bypass auth layer
     monkeypatch.setattr(rr, "get_user_id", lambda: "u2")
     monkeypatch.setattr(rr, "script_access", lambda c, sid, uid: "forbidden")
+    # require_script_role runs before the view body's _check_script/script_access;
+    # it does its own DB-backed role lookup, so that must be mocked too.
+    monkeypatch.setattr(authz, "get_script_role", lambda sid, uid: None)
     resp = _client().get("/api/reports/scripts/s1/reports")
     assert resp.status_code == 403
 
@@ -30,6 +34,7 @@ def test_reports_list_ok_for_owner(monkeypatch):
     monkeypatch.setattr("middleware.auth.DEV_MODE", True)
     monkeypatch.setattr(rr, "get_user_id", lambda: "u1")
     monkeypatch.setattr(rr, "script_access", lambda c, sid, uid: "ok")
+    monkeypatch.setattr(authz, "get_script_role", lambda sid, uid: "owner")
     monkeypatch.setattr(rr.report_service, "get_script_reports", lambda sid: [])
     resp = _client().get("/api/reports/scripts/s1/reports")
     assert resp.status_code == 200
@@ -40,6 +45,7 @@ def test_missing_script_is_404(monkeypatch):
     monkeypatch.setattr("middleware.auth.DEV_MODE", True)
     monkeypatch.setattr(rr, "get_user_id", lambda: "u1")
     monkeypatch.setattr(rr, "script_access", lambda c, sid, uid: "not_found")
+    monkeypatch.setattr(authz, "get_script_role", lambda sid, uid: authz.SCRIPT_NOT_FOUND)
     resp = _client().get("/api/reports/scripts/s1/reports")
     assert resp.status_code == 404
 
@@ -64,6 +70,10 @@ def test_print_forbidden_for_non_member(monkeypatch):
     monkeypatch.setattr(rr, "get_user_id", lambda: "u2")
     monkeypatch.setattr(rr, "report_script_id", lambda c, rid: "s1")
     monkeypatch.setattr(rr, "script_access", lambda c, sid, uid: "forbidden")
+    # from_report resolver looks up reports.script_id via the DB; stub that hop,
+    # then stub the role check itself.
+    monkeypatch.setattr(authz, "_lookup_script_id", lambda table, id_value, **k: "s1")
+    monkeypatch.setattr(authz, "get_script_role", lambda sid, uid: None)
     resp = _client().get("/api/reports/reports/r1/print")
     assert resp.status_code == 403
 
@@ -73,6 +83,8 @@ def test_print_ok_for_owner(monkeypatch):
     monkeypatch.setattr(rr, "get_user_id", lambda: "u1")
     monkeypatch.setattr(rr, "report_script_id", lambda c, rid: "s1")
     monkeypatch.setattr(rr, "script_access", lambda c, sid, uid: "ok")
+    monkeypatch.setattr(authz, "_lookup_script_id", lambda table, id_value, **k: "s1")
+    monkeypatch.setattr(authz, "get_script_role", lambda sid, uid: "owner")
     monkeypatch.setattr(rr.report_service, "get_report",
                         lambda rid: {"title": "R", "report_type": "scene_breakdown", "data_snapshot": {}})
     monkeypatch.setattr(rr.report_service, "_render_report_html", lambda report: "<html><body>x</body></html>")
@@ -85,5 +97,8 @@ def test_missing_report_is_404(monkeypatch):
     monkeypatch.setattr("middleware.auth.DEV_MODE", True)
     monkeypatch.setattr(rr, "get_user_id", lambda: "u1")
     monkeypatch.setattr(rr, "report_script_id", lambda c, rid: None)
+    # from_report resolver itself finds no script_id for the report -> 404
+    # before the view body (and its report_script_id mock) ever runs.
+    monkeypatch.setattr(authz, "_lookup_script_id", lambda table, id_value, **k: None)
     resp = _client().get("/api/reports/reports/r1/print")
     assert resp.status_code == 404

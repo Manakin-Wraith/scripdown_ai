@@ -3,6 +3,7 @@ import os, sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import routes.invite_routes as ir
+import middleware.authorization as authz
 
 
 def _client():
@@ -16,6 +17,9 @@ def test_tier1_cannot_create_invite(monkeypatch):
     monkeypatch.setattr("services.entitlement_service.get_user_id", lambda: 'u1')
     monkeypatch.setattr("services.entitlement_service.get_entitlement",
                         lambda uid: {'can_use_teams': False})
+    # @require_script_role('admin') now runs before @require_team_tier;
+    # give the caller admin so the request reaches the tier gate.
+    monkeypatch.setattr(authz, "get_script_role", lambda sid, uid: 'admin')
     resp = _client().post("/api/scripts/s1/invites", json={'email': 'a@b.com'})
     assert resp.status_code == 403
     assert resp.get_json()['code'] == 'tier_2_required'
@@ -35,6 +39,7 @@ def test_invite_blocked_when_seats_exhausted(monkeypatch):
                         lambda uid: {'can_use_teams': True})
     monkeypatch.setattr(ir, "get_entitlement",
                         lambda uid: {'can_use_teams': True, 'seats_paid': 2, 'seats_used': 2})
+    monkeypatch.setattr(authz, "get_script_role", lambda sid, uid: 'owner')
     resp = _client().post("/api/scripts/s1/invites", json={'email': 'a@b.com'})
     assert resp.status_code == 402
     assert resp.get_json()['code'] == 'no_seats_available'

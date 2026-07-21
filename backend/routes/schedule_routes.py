@@ -8,6 +8,9 @@ Supports the "Add to Schedule" workflow from the Zoomable Stripboard.
 import os
 from flask import Blueprint, request, jsonify
 from middleware.auth import require_auth, optional_auth, get_user_id
+from middleware.authorization import (
+    require_script_role, from_script, from_schedule, from_day, from_move_day,
+)
 from supabase import create_client
 
 SUPABASE_URL = os.getenv('SUPABASE_URL')
@@ -30,7 +33,8 @@ schedule_bp = Blueprint('schedule', __name__)
 # ============================================
 
 @schedule_bp.route('/api/scripts/<script_id>/schedules', methods=['GET'])
-@optional_auth
+@require_auth
+@require_script_role('viewer', resolver=from_script)
 def get_schedules(script_id):
     """List all shooting schedules for a script."""
     if not supabase:
@@ -47,7 +51,8 @@ def get_schedules(script_id):
 
 
 @schedule_bp.route('/api/scripts/<script_id>/schedules', methods=['POST'])
-@optional_auth
+@require_auth
+@require_script_role('member', resolver=from_script)
 def create_schedule(script_id):
     """Create a new shooting schedule for a script."""
     if not supabase:
@@ -73,7 +78,8 @@ def create_schedule(script_id):
 
 
 @schedule_bp.route('/api/schedules/<schedule_id>', methods=['PATCH'])
-@optional_auth
+@require_auth
+@require_script_role('member', resolver=from_schedule)
 def update_schedule(schedule_id):
     """Update a schedule (name, status, start_date, notes)."""
     if not supabase:
@@ -93,7 +99,8 @@ def update_schedule(schedule_id):
 
 
 @schedule_bp.route('/api/schedules/<schedule_id>', methods=['DELETE'])
-@optional_auth
+@require_auth
+@require_script_role('member', resolver=from_schedule)
 def delete_schedule(schedule_id):
     """Delete a schedule and all its days/scenes (CASCADE)."""
     if not supabase:
@@ -110,7 +117,8 @@ def delete_schedule(schedule_id):
 # ============================================
 
 @schedule_bp.route('/api/schedules/<schedule_id>/days', methods=['GET'])
-@optional_auth
+@require_auth
+@require_script_role('viewer', resolver=from_schedule)
 def get_shooting_days(schedule_id):
     """List all shooting days for a schedule, with their scenes."""
     if not supabase:
@@ -139,7 +147,8 @@ def get_shooting_days(schedule_id):
 
 
 @schedule_bp.route('/api/schedules/<schedule_id>/days', methods=['POST'])
-@optional_auth
+@require_auth
+@require_script_role('member', resolver=from_schedule)
 def create_shooting_day(schedule_id):
     """Create a new shooting day, optionally with initial scenes."""
     if not supabase:
@@ -194,7 +203,8 @@ def create_shooting_day(schedule_id):
 
 
 @schedule_bp.route('/api/shooting-days/<day_id>', methods=['PATCH'])
-@optional_auth
+@require_auth
+@require_script_role('member', resolver=from_day)
 def update_shooting_day(day_id):
     """Update a shooting day (notes, date, status, color)."""
     if not supabase:
@@ -214,7 +224,8 @@ def update_shooting_day(day_id):
 
 
 @schedule_bp.route('/api/shooting-days/<day_id>', methods=['DELETE'])
-@optional_auth
+@require_auth
+@require_script_role('member', resolver=from_day)
 def delete_shooting_day(day_id):
     """Delete a shooting day (scenes are cascade-deleted from the join table)."""
     if not supabase:
@@ -231,7 +242,8 @@ def delete_shooting_day(day_id):
 # ============================================
 
 @schedule_bp.route('/api/shooting-days/<day_id>/scenes', methods=['POST'])
-@optional_auth
+@require_auth
+@require_script_role('member', resolver=from_day)
 def add_scenes_to_day(day_id):
     """Add one or more scenes to a shooting day."""
     if not supabase:
@@ -267,7 +279,8 @@ def add_scenes_to_day(day_id):
 
 
 @schedule_bp.route('/api/shooting-days/<day_id>/scenes/<scene_id>', methods=['DELETE'])
-@optional_auth
+@require_auth
+@require_script_role('member', resolver=from_day)
 def remove_scene_from_day(day_id, scene_id):
     """Remove a scene from a shooting day."""
     if not supabase:
@@ -288,7 +301,8 @@ def remove_scene_from_day(day_id, scene_id):
 # ============================================
 
 @schedule_bp.route('/api/shooting-days/<day_id>/scenes/reorder', methods=['PATCH'])
-@optional_auth
+@require_auth
+@require_script_role('member', resolver=from_day)
 def reorder_day_scenes(day_id):
     """
     Reorder scenes within a shooting day.
@@ -315,7 +329,8 @@ def reorder_day_scenes(day_id):
 
 
 @schedule_bp.route('/api/shooting-days/<from_day_id>/scenes/<scene_id>/move', methods=['POST'])
-@optional_auth
+@require_auth
+@require_script_role('member', resolver=from_move_day)
 def move_scene_to_day(from_day_id, scene_id):
     """
     Move a scene from one day to another (and optionally set its position).
@@ -381,7 +396,8 @@ def move_scene_to_day(from_day_id, scene_id):
 # ============================================
 
 @schedule_bp.route('/api/scripts/<script_id>/schedule/quick-add', methods=['POST'])
-@optional_auth
+@require_auth
+@require_script_role('member', resolver=from_script)
 def quick_add_to_schedule(script_id):
     """
     Quick-add selected scenes to a schedule.

@@ -258,6 +258,9 @@ def test_get_scenes_includes_segment_type(monkeypatch):
     segments = [{'id': 'seg-A', 'segment_type': 'FLASHBACK'}]
     monkeypatch.setattr(sup_routes, 'supabase', _ScenesFakeSupabase(scenes, segments))
 
+    import middleware.authorization as authz
+    monkeypatch.setattr(authz, 'get_script_role', lambda sid, uid: 'owner')
+
     from flask import Flask
     app = Flask(__name__)
     app.register_blueprint(sup_routes.supabase_bp)

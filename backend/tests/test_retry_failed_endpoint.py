@@ -4,6 +4,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import pytest
 import routes.supabase_routes as sr
+import middleware.authorization as authz
 
 
 def _allow_entitlement(monkeypatch):
@@ -14,6 +15,8 @@ def _allow_entitlement(monkeypatch):
         'tier': 'tier_2_annual_team', 'status': 'active', 'breakdown_balance': 999,
         'seats_paid': 0, 'seats_used': 0, 'can_run_breakdown': True, 'can_use_teams': True,
     })
+    # Mock authorization checks to return 'member' role (allows all script-scoped operations)
+    monkeypatch.setattr(authz, "get_script_role", lambda script_id, user_id: 'member')
 
 
 class SelectTable:

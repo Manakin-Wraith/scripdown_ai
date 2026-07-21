@@ -19,6 +19,10 @@ load_dotenv()
 
 # Auth middleware
 from middleware.auth import require_auth, optional_auth, get_user_id, get_current_user
+from middleware.authorization import (
+    require_script_role, from_scene, from_note, from_item,
+    get_script_role, ROLE_RANK, SCRIPT_NOT_FOUND,
+)
 from services.entitlement_service import (
     require_breakdown_entitlement, consume_breakdown, InsufficientCredits,
 )
@@ -195,6 +199,8 @@ def get_scripts():
 
 
 @supabase_bp.route('/api/scripts/<script_id>', methods=['GET'])
+@require_auth
+@require_script_role('viewer')
 def get_script(script_id):
     """Get a single script by ID."""
     if not supabase:
@@ -209,6 +215,8 @@ def get_script(script_id):
 
 
 @supabase_bp.route('/api/scripts/<script_id>', methods=['DELETE'])
+@require_auth
+@require_script_role('owner')
 def delete_script(script_id):
     """Delete a script and all related data including Storage files."""
     if not supabase:
@@ -240,7 +248,8 @@ def delete_script(script_id):
 
 
 @supabase_bp.route('/api/scripts/<script_id>', methods=['PATCH'])
-@optional_auth
+@require_auth
+@require_script_role('member')
 def update_script(script_id):
     """Update script metadata (title, writer_name, etc.)."""
     if not supabase:
@@ -268,6 +277,8 @@ def update_script(script_id):
 
 
 @supabase_bp.route('/api/scripts/<script_id>/metadata', methods=['GET'])
+@require_auth
+@require_script_role('viewer')
 def get_script_metadata(script_id):
     """Get script metadata."""
     if not supabase:
@@ -1041,6 +1052,8 @@ def detect_and_create_scenes(script_id, full_text, pages_data=None):
 # ============================================
 
 @supabase_bp.route('/api/scripts/<script_id>/scenes', methods=['GET'])
+@require_auth
+@require_script_role('viewer')
 def get_scenes(script_id):
     """Get all scenes for a script."""
     if not supabase:
@@ -1143,16 +1156,24 @@ def get_scenes(script_id):
 
 
 @supabase_bp.route('/api/scenes', methods=['POST'])
+@require_auth
 def create_scene():
     """Create a new scene (for manual labeling)."""
     if not supabase:
         return jsonify({'error': 'Supabase not configured'}), 500
-    
+
     try:
         data = request.get_json()
-        
+
         # Get next scene order
         script_id = data.get('script_id')
+
+        role = get_script_role(script_id, get_user_id())
+        if role is SCRIPT_NOT_FOUND or not script_id:
+            return jsonify({'error': 'Not found'}), 404
+        if role is None or ROLE_RANK[role] < ROLE_RANK['member']:
+            return jsonify({'error': 'Insufficient permissions'}), 403
+
         result = supabase.table('scenes').select('scene_order').eq('script_id', script_id).order('scene_order', desc=True).limit(1).execute()
         
         next_order = 1
@@ -1189,6 +1210,8 @@ def create_scene():
 
 
 @supabase_bp.route('/api/scenes/<scene_id>', methods=['PUT'])
+@require_auth
+@require_script_role('member', resolver=from_scene)
 def update_scene(scene_id):
     """Update a scene."""
     if not supabase:
@@ -1226,6 +1249,8 @@ def update_scene(scene_id):
 
 
 @supabase_bp.route('/api/scenes/<scene_id>', methods=['DELETE'])
+@require_auth
+@require_script_role('member', resolver=from_scene)
 def delete_scene(scene_id):
     """Delete a scene."""
     if not supabase:
@@ -1257,7 +1282,8 @@ def delete_scene(scene_id):
 # ============================================
 
 @supabase_bp.route('/api/scripts/<script_id>/scenes/manage', methods=['GET'])
-@optional_auth
+@require_auth
+@require_script_role('viewer')
 def get_scenes_for_management(script_id):
     """
     Get all scenes for scene management view.
@@ -1329,7 +1355,8 @@ def get_scenes_for_management(script_id):
 
 
 @supabase_bp.route('/api/scripts/<script_id>/scenes/reorder', methods=['PATCH'])
-@optional_auth
+@require_auth
+@require_script_role('member')
 def reorder_scenes(script_id):
     """
     Reorder scenes by updating their scene_order based on array position.
@@ -1413,7 +1440,8 @@ def reorder_scenes(script_id):
 
 
 @supabase_bp.route('/api/scripts/<script_id>/scenes/<scene_id>/omit', methods=['PATCH'])
-@optional_auth
+@require_auth
+@require_script_role('member')
 def omit_scene(script_id, scene_id):
     """
     Mark a scene as omitted (or restore it).
@@ -1484,7 +1512,8 @@ def omit_scene(script_id, scene_id):
 
 
 @supabase_bp.route('/api/scripts/<script_id>/scenes/<scene_id>/header', methods=['PATCH'])
-@optional_auth
+@require_auth
+@require_script_role('member')
 def update_scene_header(script_id, scene_id):
     """
     Update scene header (INT/EXT, setting, time of day).
@@ -1556,7 +1585,8 @@ def update_scene_header(script_id, scene_id):
 
 
 @supabase_bp.route('/api/scripts/<script_id>/scenes/<scene_id>/history', methods=['GET'])
-@optional_auth
+@require_auth
+@require_script_role('viewer')
 def get_scene_history(script_id, scene_id):
     """Get change history for a scene."""
     if not supabase:
@@ -1582,7 +1612,8 @@ def get_scene_history(script_id, scene_id):
 # ============================================
 
 @supabase_bp.route('/api/scripts/<script_id>/scenes/<scene_id>/toggle-new-day', methods=['PATCH'])
-@optional_auth
+@require_auth
+@require_script_role('member')
 def toggle_new_day(script_id, scene_id):
     """Toggle is_new_story_day on a scene, then recalculate."""
     if not supabase:
@@ -1613,7 +1644,8 @@ def toggle_new_day(script_id, scene_id):
 
 
 @supabase_bp.route('/api/scripts/<script_id>/scenes/<scene_id>/lock-story-day', methods=['PATCH'])
-@optional_auth
+@require_auth
+@require_script_role('member')
 def lock_story_day(script_id, scene_id):
     """Toggle story_day_is_locked on a scene."""
     if not supabase:
@@ -1642,7 +1674,8 @@ def lock_story_day(script_id, scene_id):
 
 
 @supabase_bp.route('/api/scripts/<script_id>/scenes/<scene_id>/timeline-code', methods=['PATCH'])
-@optional_auth
+@require_auth
+@require_script_role('member')
 def set_timeline_code(script_id, scene_id):
     """Set timeline_code on a scene, then recalculate."""
     if not supabase:
@@ -1677,7 +1710,8 @@ def set_timeline_code(script_id, scene_id):
 
 
 @supabase_bp.route('/api/scripts/<script_id>/scenes/<scene_id>/story-day', methods=['PATCH'])
-@optional_auth
+@require_auth
+@require_script_role('member')
 def set_story_day(script_id, scene_id):
     """Manually set story_day on a scene, lock it, then recalculate."""
     if not supabase:
@@ -1712,7 +1746,8 @@ def set_story_day(script_id, scene_id):
 
 
 @supabase_bp.route('/api/scripts/<script_id>/story-days/calculate', methods=['POST'])
-@optional_auth
+@require_auth
+@require_script_role('member')
 def calculate_story_days(script_id):
     """Trigger full recalculation of story days for a script."""
     if not supabase:
@@ -1730,7 +1765,8 @@ def calculate_story_days(script_id):
 
 
 @supabase_bp.route('/api/scripts/<script_id>/story-days/summary', methods=['GET'])
-@optional_auth
+@require_auth
+@require_script_role('viewer')
 def story_day_summary(script_id):
     """Get story day summary for a script."""
     if not supabase:
@@ -1745,7 +1781,8 @@ def story_day_summary(script_id):
 
 
 @supabase_bp.route('/api/scripts/<script_id>/story-days/bulk-update', methods=['POST'])
-@optional_auth
+@require_auth
+@require_script_role('member')
 def bulk_update_story_days(script_id):
     """
     Bulk update story day fields on multiple scenes.
@@ -1800,7 +1837,8 @@ def bulk_update_story_days(script_id):
 # ============================================
 
 @supabase_bp.route('/api/scripts/<script_id>/scenes/<scene_id>/split', methods=['POST'])
-@optional_auth
+@require_auth
+@require_script_role('member')
 def split_scene(script_id, scene_id):
     """
     Split a scene into two scenes.
@@ -1928,7 +1966,8 @@ def split_scene(script_id, scene_id):
 
 
 @supabase_bp.route('/api/scripts/<script_id>/scenes/<scene_id>/merge', methods=['POST'])
-@optional_auth
+@require_auth
+@require_script_role('member')
 def merge_scenes(script_id, scene_id):
     """
     Merge two adjacent scenes into one.
@@ -2063,7 +2102,8 @@ def merge_scenes(script_id, scene_id):
 
 
 @supabase_bp.route('/api/scripts/<script_id>/scenes/manual', methods=['POST'])
-@optional_auth
+@require_auth
+@require_script_role('member')
 def add_manual_scene(script_id):
     """
     Add a new scene manually.
@@ -2177,7 +2217,8 @@ def add_manual_scene(script_id):
 
 
 @supabase_bp.route('/api/scripts/<script_id>/scenes/merge-multiple', methods=['POST'])
-@optional_auth
+@require_auth
+@require_script_role('member')
 def merge_multiple_scenes(script_id):
     """
     Merge multiple scenes into one.
@@ -2322,7 +2363,8 @@ def merge_multiple_scenes(script_id):
 # ============================================
 
 @supabase_bp.route('/api/scripts/<script_id>/lock', methods=['POST'])
-@optional_auth
+@require_auth
+@require_script_role('owner')
 def lock_script(script_id):
     """
     Lock a script for production (shooting script).
@@ -2408,7 +2450,8 @@ def lock_script(script_id):
 
 
 @supabase_bp.route('/api/scripts/<script_id>/unlock', methods=['POST'])
-@optional_auth
+@require_auth
+@require_script_role('owner')
 def unlock_script(script_id):
     """
     Unlock a script (revert to working draft).
@@ -2448,7 +2491,8 @@ def unlock_script(script_id):
 
 
 @supabase_bp.route('/api/scripts/<script_id>/shooting-script', methods=['GET'])
-@optional_auth
+@require_auth
+@require_script_role('viewer')
 def get_shooting_script_data(script_id):
     """
     Get shooting script data for preview/export.
@@ -2515,6 +2559,7 @@ def get_shooting_script_data(script_id):
 # ============================================
 
 @supabase_bp.route('/api/stats', methods=['GET'])
+@require_auth
 def get_stats():
     """Get dashboard statistics."""
     if not supabase:
@@ -2561,6 +2606,8 @@ def get_stats():
 # ============================================
 
 @supabase_bp.route('/api/scripts/<script_id>/full-text', methods=['GET'])
+@require_auth
+@require_script_role('viewer')
 def get_script_full_text(script_id):
     """Get full script text for manual scene labeling."""
     if not supabase:
@@ -2581,6 +2628,8 @@ def get_script_full_text(script_id):
 
 
 @supabase_bp.route('/api/scripts/<script_id>/page-mapping', methods=['GET'])
+@require_auth
+@require_script_role('viewer')
 def get_page_mapping(script_id):
     """
     Calculate page numbers for each scene based on text positions.
@@ -2672,6 +2721,8 @@ def get_page_mapping(script_id):
 
 
 @supabase_bp.route('/api/scripts/<script_id>/pdf-url', methods=['GET'])
+@require_auth
+@require_script_role('viewer')
 def get_pdf_url(script_id):
     """
     Get a signed URL for the script's PDF file.
@@ -2750,6 +2801,7 @@ def _recalc_start_order(script_id, current_order):
 
 @supabase_bp.route('/api/scenes/<scene_id>/analyze', methods=['POST'])
 @require_auth
+@require_script_role('member', resolver=from_scene)
 @require_breakdown_entitlement
 def analyze_scene(scene_id):
     """
@@ -3087,6 +3139,7 @@ IMPORTANT:
 
 @supabase_bp.route('/api/scripts/<script_id>/analyze/bulk', methods=['POST'])
 @require_auth
+@require_script_role('member')
 @require_breakdown_entitlement
 def analyze_bulk_scenes(script_id):
     """
@@ -3162,6 +3215,7 @@ def analyze_bulk_scenes(script_id):
 
 @supabase_bp.route('/api/scripts/<script_id>/scenes/retry-failed', methods=['POST'])
 @require_auth
+@require_script_role('member')
 @require_breakdown_entitlement
 def retry_failed_scenes(script_id):
     """Re-run every scene currently marked 'failed' for a script.
@@ -3469,6 +3523,8 @@ def analyze_scene_internal(scene_id):
 # ============================================
 
 @supabase_bp.route('/api/scripts/<script_id>/reextract-metadata', methods=['POST'])
+@require_auth
+@require_script_role('member')
 def reextract_metadata(script_id):
     """
     Re-extract metadata from the first page of an existing script.
@@ -3535,6 +3591,8 @@ def reextract_metadata(script_id):
 # ============================================
 
 @supabase_bp.route('/api/scripts/<script_id>/items', methods=['GET'])
+@require_auth
+@require_script_role('viewer')
 def get_script_items(script_id):
     """
     Get all department_items for an entire script (across all scenes).
@@ -3567,6 +3625,8 @@ def get_script_items(script_id):
 
 
 @supabase_bp.route('/api/scripts/<script_id>/scenes/<scene_id>/items', methods=['GET'])
+@require_auth
+@require_script_role('viewer')
 def get_scene_items(script_id, scene_id):
     """
     Get all department_items for a scene, optionally filtered by item_type.
@@ -3623,7 +3683,8 @@ def get_scene_items(script_id, scene_id):
 
 
 @supabase_bp.route('/api/scripts/<script_id>/scenes/<scene_id>/items', methods=['POST'])
-@optional_auth
+@require_auth
+@require_script_role('member')
 def create_scene_item(script_id, scene_id):
     """
     Create a new breakdown item for a scene.
@@ -3727,7 +3788,8 @@ def create_scene_item(script_id, scene_id):
 
 
 @supabase_bp.route('/api/items/<item_id>', methods=['PUT'])
-@optional_auth
+@require_auth
+@require_script_role('member', resolver=from_item)
 def update_scene_item(item_id):
     """
     Update a breakdown item.
@@ -3790,7 +3852,8 @@ def update_scene_item(item_id):
 
 
 @supabase_bp.route('/api/scripts/<script_id>/scenes/<scene_id>/remove-ai-item', methods=['PATCH'])
-@optional_auth
+@require_auth
+@require_script_role('member')
 def remove_ai_item(script_id, scene_id):
     """
     Remove an item from a scene's JSONB breakdown array.
@@ -3884,7 +3947,8 @@ def remove_ai_item(script_id, scene_id):
 
 
 @supabase_bp.route('/api/items/<item_id>', methods=['DELETE'])
-@optional_auth
+@require_auth
+@require_script_role('member', resolver=from_item)
 def delete_scene_item(item_id):
     """Soft-delete a breakdown item by setting status to 'removed'."""
     if not supabase:
@@ -3918,6 +3982,8 @@ def get_departments():
 
 
 @supabase_bp.route('/api/scripts/<script_id>/notes', methods=['GET'])
+@require_auth
+@require_script_role('viewer')
 def get_script_notes(script_id):
     """
     Get all notes for a script.
@@ -3999,7 +4065,8 @@ def get_script_notes(script_id):
 
 
 @supabase_bp.route('/api/scripts/<script_id>/notes', methods=['POST'])
-@optional_auth
+@require_auth
+@require_script_role('member')
 def create_note(script_id):
     """
     Create a new note. User's department is auto-detected from script_members.
@@ -4040,27 +4107,8 @@ def create_note(script_id):
                     if dept_result.data:
                         department_id = dept_result.data.get('id')
             except Exception as member_err:
-                print(f"Note: User not a member of this script, using production department: {member_err}")
-        
-        # Fallback to 'production' department if user has no membership
-        if not department_id:
-            try:
-                prod_dept = supabase.table('departments').select('id, code').eq('code', 'production').single().execute()
-                if prod_dept.data:
-                    department_id = prod_dept.data['id']
-                    department_code = 'production'
-            except:
-                # Create production department if it doesn't exist
-                new_dept = supabase.table('departments').insert({
-                    'code': 'production',
-                    'name': 'Production',
-                    'color': '#6B7280',
-                    'icon': 'briefcase'
-                }).execute()
-                if new_dept.data:
-                    department_id = new_dept.data[0]['id']
-                    department_code = 'production'
-        
+                print(f"Note: Could not resolve department for member: {member_err}")
+
         # Build note data
         note_data = {
             'script_id': script_id,
@@ -4104,7 +4152,8 @@ def create_note(script_id):
 
 
 @supabase_bp.route('/api/notes/<note_id>/replies', methods=['POST'])
-@optional_auth
+@require_auth
+@require_script_role('member', resolver=from_note)
 def create_reply(note_id):
     """
     Create a reply to an existing note.
@@ -4188,6 +4237,8 @@ def create_reply(note_id):
 
 
 @supabase_bp.route('/api/notes/<note_id>', methods=['GET'])
+@require_auth
+@require_script_role('viewer', resolver=from_note)
 def get_note(note_id):
     """Get a single note by ID."""
     if not supabase:
@@ -4218,6 +4269,8 @@ def get_note(note_id):
 
 
 @supabase_bp.route('/api/notes/<note_id>', methods=['PUT'])
+@require_auth
+@require_script_role('member', resolver=from_note)
 def update_note(note_id):
     """
     Update a note.
@@ -4275,7 +4328,8 @@ def update_note(note_id):
 
 
 @supabase_bp.route('/api/notes/<note_id>/status', methods=['PATCH'])
-@optional_auth
+@require_auth
+@require_script_role('member', resolver=from_note)
 def update_note_status(note_id):
     """
     Quick endpoint to toggle note status.
@@ -4333,6 +4387,8 @@ def update_note_status(note_id):
 
 
 @supabase_bp.route('/api/notes/<note_id>', methods=['DELETE'])
+@require_auth
+@require_script_role('member', resolver=from_note)
 def delete_note(note_id):
     """Delete a note."""
     if not supabase:
@@ -4347,6 +4403,8 @@ def delete_note(note_id):
 
 
 @supabase_bp.route('/api/scenes/<scene_id>/notes', methods=['GET'])
+@require_auth
+@require_script_role('viewer', resolver=from_scene)
 def get_scene_notes(scene_id):
     """Get all notes for a specific scene, grouped by department."""
     if not supabase:
@@ -4391,6 +4449,7 @@ def get_scene_notes(scene_id):
 
 @supabase_bp.route('/api/scripts/<script_id>/versions', methods=['GET'])
 @require_auth
+@require_script_role('member')
 def get_script_versions(script_id):
     """Get all versions/revisions of a script."""
     if not supabase:
@@ -4414,6 +4473,7 @@ def get_script_versions(script_id):
 
 @supabase_bp.route('/api/scripts/<script_id>/versions/import', methods=['POST'])
 @require_auth
+@require_script_role('member')
 def import_revision(script_id):
     """
     Import a new revision of a script.
@@ -4528,6 +4588,7 @@ def import_revision(script_id):
 
 @supabase_bp.route('/api/scripts/<script_id>/versions/<version_id>/diff', methods=['GET'])
 @require_auth
+@require_script_role('member')
 def get_version_diff(script_id, version_id):
     """
     Get the diff for a specific version.
@@ -4559,6 +4620,7 @@ def get_version_diff(script_id, version_id):
 
 @supabase_bp.route('/api/scripts/<script_id>/versions/<version_id>', methods=['GET'])
 @require_auth
+@require_script_role('member')
 def get_version_details(script_id, version_id):
     """Get details of a specific version."""
     if not supabase:
@@ -4714,7 +4776,8 @@ def merge_characters(script_id):
 
 
 @supabase_bp.route('/api/scripts/<script_id>/characters/aliases', methods=['GET'])
-@optional_auth
+@require_auth
+@require_script_role('viewer')
 def get_character_aliases(script_id):
     """Get all character alias mappings for a script (for prevention hook)."""
     if not supabase:

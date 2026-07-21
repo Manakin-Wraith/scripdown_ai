@@ -7,6 +7,7 @@ API endpoints for report generation, management, and sharing.
 from flask import Blueprint, request, jsonify, Response
 from services.report_service import report_service
 from middleware.auth import require_auth, get_user_id
+from middleware.authorization import require_script_role, from_script, from_report, from_preset
 from utils.report_access import script_access, report_script_id
 
 report_bp = Blueprint('reports', __name__)
@@ -35,6 +36,7 @@ def _check_report(report_id):
 # ============================================
 
 @report_bp.route('/templates', methods=['GET'])
+@require_auth
 def get_templates():
     """Get all available report templates."""
     try:
@@ -49,6 +51,7 @@ def get_templates():
 
 
 @report_bp.route('/templates/<template_id>', methods=['GET'])
+@require_auth
 def get_template(template_id):
     """Get a specific template."""
     try:
@@ -69,6 +72,7 @@ def get_template(template_id):
 
 @report_bp.route('/scripts/<script_id>/filter-options', methods=['GET'])
 @require_auth
+@require_script_role('viewer', resolver=from_script)
 def get_filter_options(script_id):
     """
     Get unique values for each filter dimension.
@@ -93,6 +97,7 @@ def get_filter_options(script_id):
 
 @report_bp.route('/scripts/<script_id>/filter-presets', methods=['GET'])
 @require_auth
+@require_script_role('viewer', resolver=from_script)
 def get_filter_presets(script_id):
     """Get filter presets (default + user's own) for a script."""
     denied = _check_script(script_id)
@@ -111,6 +116,7 @@ def get_filter_presets(script_id):
 
 @report_bp.route('/scripts/<script_id>/filter-presets', methods=['POST'])
 @require_auth
+@require_script_role('member', resolver=from_script)
 def save_filter_preset(script_id):
     """
     Save a new filter preset.
@@ -161,6 +167,7 @@ def save_filter_preset(script_id):
 
 @report_bp.route('/filter-presets/<preset_id>', methods=['DELETE'])
 @require_auth
+@require_script_role('member', resolver=from_preset)
 def delete_filter_preset(preset_id):
     """Delete a user's filter preset."""
     try:
@@ -180,6 +187,7 @@ def delete_filter_preset(preset_id):
 
 @report_bp.route('/scripts/<script_id>/reports', methods=['GET'])
 @require_auth
+@require_script_role('viewer', resolver=from_script)
 def get_script_reports(script_id):
     """Get all reports for a script."""
     denied = _check_script(script_id)
@@ -197,6 +205,7 @@ def get_script_reports(script_id):
 
 @report_bp.route('/scripts/<script_id>/reports/generate', methods=['POST'])
 @require_auth
+@require_script_role('member', resolver=from_script)
 def generate_report(script_id):
     """
     Generate a new report for a script.
@@ -258,6 +267,7 @@ def generate_report(script_id):
 
 @report_bp.route('/scripts/<script_id>/reports/preview', methods=['POST'])
 @require_auth
+@require_script_role('member', resolver=from_script)
 def preview_report(script_id):
     """
     Preview report data without saving.
@@ -287,6 +297,7 @@ def preview_report(script_id):
 
 @report_bp.route('/scripts/<script_id>/reports/preview-html', methods=['POST'])
 @require_auth
+@require_script_role('member', resolver=from_script)
 def preview_report_html(script_id):
     """
     Render report HTML from unsaved config for live preview. Does not persist.
@@ -342,6 +353,7 @@ def preview_report_html(script_id):
 
 @report_bp.route('/reports/<report_id>', methods=['GET'])
 @require_auth
+@require_script_role('viewer', resolver=from_report)
 def get_report(report_id):
     """Get a specific report."""
     denied = _check_report(report_id)
@@ -361,6 +373,7 @@ def get_report(report_id):
 
 @report_bp.route('/reports/<report_id>', methods=['DELETE'])
 @require_auth
+@require_script_role('member', resolver=from_report)
 def delete_report(report_id):
     """Delete a report."""
     denied = _check_report(report_id)
@@ -382,6 +395,7 @@ def delete_report(report_id):
 
 @report_bp.route('/reports/<report_id>/pdf', methods=['GET'])
 @require_auth
+@require_script_role('viewer', resolver=from_report)
 def download_pdf(report_id):
     """Download report as PDF."""
     denied = _check_report(report_id)
@@ -417,6 +431,7 @@ def download_pdf(report_id):
 
 @report_bp.route('/reports/<report_id>/print', methods=['GET'])
 @require_auth
+@require_script_role('viewer', resolver=from_report)
 def get_printable_html(report_id):
     """Get printable HTML version of report."""
     denied = _check_report(report_id)
@@ -461,6 +476,7 @@ def get_printable_html(report_id):
 
 @report_bp.route('/reports/<report_id>/share', methods=['POST'])
 @require_auth
+@require_script_role('member', resolver=from_report)
 def create_share_link(report_id):
     """
     Create a shareable link for a report.
@@ -492,6 +508,7 @@ def create_share_link(report_id):
 
 @report_bp.route('/reports/<report_id>/share', methods=['DELETE'])
 @require_auth
+@require_script_role('member', resolver=from_report)
 def revoke_share_link(report_id):
     """Revoke a share link."""
     denied = _check_report(report_id)
@@ -603,6 +620,7 @@ def get_shared_printable(share_token):
 # ============================================
 
 @report_bp.route('/report-types', methods=['GET'])
+@require_auth
 def get_report_types():
     """Get available report types and their descriptions."""
     return jsonify({
@@ -612,6 +630,7 @@ def get_report_types():
 
 
 @report_bp.route('/report-presets', methods=['GET'])
+@require_auth
 def get_report_presets():
     """
     Get available report configuration presets.
