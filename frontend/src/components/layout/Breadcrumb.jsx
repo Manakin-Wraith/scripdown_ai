@@ -17,6 +17,7 @@ const ROUTE_CONFIG = {
     '/scripts/:scriptId/schedule': { label: 'Schedule', parent: '/scripts' },
     '/upload': { label: 'Upload Script', parent: '/scripts' },
     '/profile': { label: 'Profile', parent: null },
+    '/billing': { label: 'Billing', parent: null },
 };
 
 /**

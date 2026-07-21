@@ -6,6 +6,7 @@ import {
   LogOut,
   ChevronDown,
   User,
+  CreditCard,
   Film,
   LogIn,
   Shield
@@ -123,12 +124,19 @@ const TopBar = () => {
                   </div>
                 </div>
                 <div className="dropdown-divider"></div>
-                <button 
+                <button
                   className="dropdown-item"
                   onClick={() => { navigate('/profile'); setUserMenuOpen(false); }}
                 >
                   <User size={16} />
                   <span>Profile</span>
+                </button>
+                <button
+                  className="dropdown-item"
+                  onClick={() => { navigate('/billing'); setUserMenuOpen(false); }}
+                >
+                  <CreditCard size={16} />
+                  <span>Billing</span>
                 </button>
                 {/* Phase 2+: Settings button - deferred
                 <button 
