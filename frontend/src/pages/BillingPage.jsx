@@ -102,11 +102,23 @@ export default function BillingPage() {
                     <h2><Wallet size={20} /> Breakdown credits</h2>
                     <p>{entitlement.breakdown_balance} remaining · R{PRICE_ZAR.tier_1_credits} each (incl. VAT)</p>
                     <div className="billing-form-group">
-                        <label htmlFor="qty">Quantity</label>
-                        <select id="qty" value={quantity}
-                                onChange={(e) => setQuantity(Number(e.target.value))}>
-                            {[1, 5, 10].map((n) => <option key={n} value={n}>{n}</option>)}
-                        </select>
+                        <label>Quantity</label>
+                        <div className="quantity-stepper">
+                            <button
+                                type="button"
+                                className="stepper-btn"
+                                onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                                disabled={quantity <= 1}
+                                aria-label="Decrease quantity"
+                            >−</button>
+                            <span className="stepper-value">{quantity}</span>
+                            <button
+                                type="button"
+                                className="stepper-btn"
+                                onClick={() => setQuantity((q) => q + 1)}
+                                aria-label="Increase quantity"
+                            >+</button>
+                        </div>
                     </div>
                     <p className="billing-total">Total: R{PRICE_ZAR.tier_1_credits * quantity}</p>
                     <button className="billing-buy-btn" disabled={busy} onClick={() => buy('tier_1_credits', quantity)}>
@@ -119,11 +131,23 @@ export default function BillingPage() {
                         <h2><Users size={20} /> Team seats</h2>
                         <p>{entitlement.seats_used} of {entitlement.seats_paid} seats in use</p>
                         <div className="billing-form-group">
-                            <label htmlFor="seat-qty">Quantity</label>
-                            <select id="seat-qty" value={seatQuantity}
-                                    onChange={(e) => setSeatQuantity(Number(e.target.value))}>
-                                {[1, 2, 3, 5, 10].map((n) => <option key={n} value={n}>{n}</option>)}
-                            </select>
+                            <label>Quantity</label>
+                            <div className="quantity-stepper">
+                                <button
+                                    type="button"
+                                    className="stepper-btn"
+                                    onClick={() => setSeatQuantity((q) => Math.max(1, q - 1))}
+                                    disabled={seatQuantity <= 1}
+                                    aria-label="Decrease quantity"
+                                >−</button>
+                                <span className="stepper-value">{seatQuantity}</span>
+                                <button
+                                    type="button"
+                                    className="stepper-btn"
+                                    onClick={() => setSeatQuantity((q) => q + 1)}
+                                    aria-label="Increase quantity"
+                                >+</button>
+                            </div>
                         </div>
                         <p className="billing-total">Total: R{PRICE_ZAR.tier_2_seats * seatQuantity}/yr</p>
                         <button className="billing-buy-btn" disabled={busy} onClick={() => buy('tier_2_seats', seatQuantity)}>
