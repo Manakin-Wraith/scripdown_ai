@@ -489,6 +489,72 @@ episodes' entities) or requires manual user confirmation before merging.
 
 ---
 
+## Billing page and payment success messages — misaligned (screen-left instead of centered)
+
+**Status:** Not started — bug report from user.
+
+**Context.** The `/billing` page (`frontend/src/pages/BillingPage.jsx`,
+`BillingPage.css`) currently renders content aligned to the left edge of the
+screen rather than centered — inconsistent with the rest of the app's
+card-based, centered layout (see the "Billing page UI/placement" entry above,
+which restyled the page's cards/tokens but apparently left the horizontal
+alignment issue). Separately, the post-payment success messages shown on
+`frontend/src/pages/PaymentResultPage.jsx` are aligned top-left and don't
+match the app's design style (card styling, spacing, centering) used
+elsewhere.
+
+**Scope when picked up.**
+- Center the Billing page's content within the viewport/container (likely a
+  missing `margin: 0 auto` / flex-centering / max-width wrapper in
+  `BillingPage.css`).
+- Restyle the payment success/result messaging in `PaymentResultPage.jsx` to
+  match the app's existing card design language (same tokens as
+  `BillingPage`/`ProfilePage`), and center it instead of top-left.
+
+**References.**
+- `frontend/src/pages/BillingPage.jsx`, `frontend/src/pages/BillingPage.css`
+- `frontend/src/pages/PaymentResultPage.jsx`
+
+---
+
+## No way for a user to downgrade from Teams (annual) back to Solo
+
+**Status:** Not started — feature gap, no design yet.
+
+**Context.** There is no cancel/downgrade path anywhere in the billing code
+today — grep of `entitlement_service.py`, `payfast_routes.py`, and
+`BillingPage.jsx` turns up no `cancel`/`downgrade`/`unsubscribe` route or
+button. The only way a `tier_2_license` account currently loses team access
+is the passive failed-renewal path (see "Failed-renewal downgrade gap"
+above), which isn't built yet either and isn't something a user can trigger
+on purpose. A Teams subscriber who wants to drop to Solo (pay-per-breakdown)
+has no self-serve action to take.
+
+**Why it matters.** Renewal automation (also open, above) will charge the
+stored PayFast token automatically before expiry unless something stops it —
+so this gap isn't just "missing UI," it risks auto-charging a user for
+another year with no opt-out once that job exists.
+
+**Scope when picked up.** Brainstorm before implementing — open questions:
+what "downgrade" means given PayFast tokenization isn't true recurring
+billing (is it just "let the current annual term lapse and don't renew" vs.
+an immediate switch with a refund/proration?); whether it needs to void/clear
+`profiles.subscription_payfast_token` so the (future) renewal job skips it;
+what happens to existing team members/seats already granted under the
+annual term; and where the action surfaces in `BillingPage.jsx` (needs a
+visible "Cancel"/"Downgrade to Solo" control — currently absent).
+
+**References.**
+- `backend/services/entitlement_service.py` — `get_entitlement`,
+  `subscription_status` handling
+- `backend/db/migrations/042_payfast_tokenization.sql` —
+  `profiles.subscription_payfast_token`
+- `frontend/src/pages/BillingPage.jsx`
+- Related open items: "Renewal automation not built", "Failed-renewal
+  downgrade gap" (above)
+
+---
+
 ## Landing page copy — reword
 
 **Status:** Not started — feature request.
