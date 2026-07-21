@@ -65,104 +65,106 @@ export default function BillingPage() {
 
     return (
         <div className="billing-page">
-            <PageHeader title="Billing" />
+            <div className="billing-content">
+                <PageHeader title="Billing" />
 
-            {error && (
-                <div className="billing-message error" role="alert">
-                    <span>{error}</span>
-                </div>
-            )}
+                {error && (
+                    <div className="billing-message error" role="alert">
+                        <span>{error}</span>
+                    </div>
+                )}
 
-            <div className="billing-cards">
-                <section className="billing-card plan-summary-card">
-                    <h2><CreditCard size={20} /> Current plan</h2>
-                    <div className="plan-summary-row">
-                        <span>Plan</span>
-                        <span>{tierLabel}</span>
-                    </div>
-                    <div className="plan-summary-row">
-                        <span>Status</span>
-                        <span className={`plan-status-badge ${entitlement.status === 'active' ? 'active' : 'inactive'}`}>
-                            {entitlement.status}
-                        </span>
-                    </div>
-                    <div className="plan-summary-row">
-                        <span>Breakdown credits</span>
-                        <span>{entitlement.breakdown_balance} remaining</span>
-                    </div>
-                    {isActiveTeam && (
+                <div className="billing-cards">
+                    <section className="billing-card plan-summary-card">
+                        <h2><CreditCard size={20} /> Current plan</h2>
                         <div className="plan-summary-row">
-                            <span>Team seats</span>
-                            <span>{entitlement.seats_used} of {entitlement.seats_paid} in use</span>
+                            <span>Plan</span>
+                            <span>{tierLabel}</span>
                         </div>
-                    )}
-                </section>
-
-                <section className="billing-card">
-                    <h2><Wallet size={20} /> Breakdown credits</h2>
-                    <p>{entitlement.breakdown_balance} remaining · R{PRICE_ZAR.tier_1_credits} each (incl. VAT)</p>
-                    <div className="billing-form-group">
-                        <label>Quantity</label>
-                        <div className="quantity-stepper">
-                            <button
-                                type="button"
-                                className="stepper-btn"
-                                onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                                disabled={quantity <= 1}
-                                aria-label="Decrease quantity"
-                            >−</button>
-                            <span className="stepper-value">{quantity}</span>
-                            <button
-                                type="button"
-                                className="stepper-btn"
-                                onClick={() => setQuantity((q) => q + 1)}
-                                aria-label="Increase quantity"
-                            >+</button>
+                        <div className="plan-summary-row">
+                            <span>Status</span>
+                            <span className={`plan-status-badge ${entitlement.status === 'active' ? 'active' : 'inactive'}`}>
+                                {entitlement.status}
+                            </span>
                         </div>
-                    </div>
-                    <p className="billing-total">Total: R{PRICE_ZAR.tier_1_credits * quantity}</p>
-                    <button className="billing-buy-btn" disabled={busy} onClick={() => buy('tier_1_credits', quantity)}>
-                        Buy breakdowns
-                    </button>
-                </section>
+                        <div className="plan-summary-row">
+                            <span>Breakdown credits</span>
+                            <span>{entitlement.breakdown_balance} remaining</span>
+                        </div>
+                        {isActiveTeam && (
+                            <div className="plan-summary-row">
+                                <span>Team seats</span>
+                                <span>{entitlement.seats_used} of {entitlement.seats_paid} in use</span>
+                            </div>
+                        )}
+                    </section>
 
-                {isActiveTeam ? (
                     <section className="billing-card">
-                        <h2><Users size={20} /> Team seats</h2>
-                        <p>{entitlement.seats_used} of {entitlement.seats_paid} seats in use</p>
+                        <h2><Wallet size={20} /> Breakdown credits</h2>
+                        <p>{entitlement.breakdown_balance} remaining · R{PRICE_ZAR.tier_1_credits} each (incl. VAT)</p>
                         <div className="billing-form-group">
                             <label>Quantity</label>
                             <div className="quantity-stepper">
                                 <button
                                     type="button"
                                     className="stepper-btn"
-                                    onClick={() => setSeatQuantity((q) => Math.max(1, q - 1))}
-                                    disabled={seatQuantity <= 1}
+                                    onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                                    disabled={quantity <= 1}
                                     aria-label="Decrease quantity"
                                 >−</button>
-                                <span className="stepper-value">{seatQuantity}</span>
+                                <span className="stepper-value">{quantity}</span>
                                 <button
                                     type="button"
                                     className="stepper-btn"
-                                    onClick={() => setSeatQuantity((q) => q + 1)}
+                                    onClick={() => setQuantity((q) => q + 1)}
                                     aria-label="Increase quantity"
                                 >+</button>
                             </div>
                         </div>
-                        <p className="billing-total">Total: R{PRICE_ZAR.tier_2_seats * seatQuantity}/yr</p>
-                        <button className="billing-buy-btn" disabled={busy} onClick={() => buy('tier_2_seats', seatQuantity)}>
-                            Add {seatQuantity} seat{seatQuantity > 1 ? 's' : ''} — R{PRICE_ZAR.tier_2_seats}/yr each
+                        <p className="billing-total">Total: R{PRICE_ZAR.tier_1_credits * quantity}</p>
+                        <button className="billing-buy-btn" disabled={busy} onClick={() => buy('tier_1_credits', quantity)}>
+                            Buy breakdowns
                         </button>
                     </section>
-                ) : (
-                    <section className="billing-card">
-                        <h2><Crown size={20} /> Annual Team License</h2>
-                        <p>R{PRICE_ZAR.tier_2_license}/yr — unlimited breakdowns for you and your team.</p>
-                        <button className="billing-buy-btn" disabled={busy} onClick={() => buy('tier_2_license', 1)}>
-                            Subscribe
-                        </button>
-                    </section>
-                )}
+
+                    {isActiveTeam ? (
+                        <section className="billing-card">
+                            <h2><Users size={20} /> Team seats</h2>
+                            <p>{entitlement.seats_used} of {entitlement.seats_paid} seats in use</p>
+                            <div className="billing-form-group">
+                                <label>Quantity</label>
+                                <div className="quantity-stepper">
+                                    <button
+                                        type="button"
+                                        className="stepper-btn"
+                                        onClick={() => setSeatQuantity((q) => Math.max(1, q - 1))}
+                                        disabled={seatQuantity <= 1}
+                                        aria-label="Decrease quantity"
+                                    >−</button>
+                                    <span className="stepper-value">{seatQuantity}</span>
+                                    <button
+                                        type="button"
+                                        className="stepper-btn"
+                                        onClick={() => setSeatQuantity((q) => q + 1)}
+                                        aria-label="Increase quantity"
+                                    >+</button>
+                                </div>
+                            </div>
+                            <p className="billing-total">Total: R{PRICE_ZAR.tier_2_seats * seatQuantity}/yr</p>
+                            <button className="billing-buy-btn" disabled={busy} onClick={() => buy('tier_2_seats', seatQuantity)}>
+                                Add {seatQuantity} seat{seatQuantity > 1 ? 's' : ''} — R{PRICE_ZAR.tier_2_seats}/yr each
+                            </button>
+                        </section>
+                    ) : (
+                        <section className="billing-card">
+                            <h2><Crown size={20} /> Annual Team License</h2>
+                            <p>R{PRICE_ZAR.tier_2_license}/yr — unlimited breakdowns for you and your team.</p>
+                            <button className="billing-buy-btn" disabled={busy} onClick={() => buy('tier_2_license', 1)}>
+                                Subscribe
+                            </button>
+                        </section>
+                    )}
+                </div>
             </div>
         </div>
     );

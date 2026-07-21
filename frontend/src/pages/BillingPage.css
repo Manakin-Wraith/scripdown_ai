@@ -34,6 +34,12 @@
     color: #FCA5A5;
 }
 
+/* Centered content column */
+.billing-content {
+    max-width: 640px;
+    margin: 0 auto;
+}
+
 /* Card layout */
 .billing-cards {
     display: flex;
