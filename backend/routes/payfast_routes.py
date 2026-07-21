@@ -60,47 +60,58 @@ def _claim_and_grant(txn_id: str, pf_payment_id: str, payload: dict,
     return resp.data
 
 
-def _reject(reason: str):
+def _reject(reason: str, m_payment_id: str | None = None):
     # 200 so PayFast stops retrying; the body is for our logs only.
     print(f"[payfast-itn] REJECTED: {reason}")
+    # Diagnostic only -- records why a row is stuck 'pending' without
+    # needing Railway logs. Never let a write failure affect the ITN
+    # response PayFast receives.
+    if m_payment_id:
+        try:
+            get_supabase_admin().table('payfast_transactions').update(
+                {'reject_reason': reason}
+            ).eq('m_payment_id', m_payment_id).execute()
+        except Exception:
+            pass
     return jsonify({'status': 'ignored'}), 200
 
 
 @payfast_bp.route('/api/payfast/notify', methods=['POST'])
 def payfast_notify():
     form = request.form.to_dict()
+    m_payment_id = form.get('m_payment_id')
 
     if not verify_itn_signature(form, PASSPHRASE):
-        return _reject('signature mismatch')
+        return _reject('signature mismatch', m_payment_id)
 
     if not is_valid_payfast_ip(request.remote_addr):
-        return _reject(f'untrusted source ip {request.remote_addr}')
+        return _reject(f'untrusted source ip {request.remote_addr}', m_payment_id)
 
     pf_payment_id = form.get('pf_payment_id')
     if not pf_payment_id:
-        return _reject('missing pf_payment_id')
+        return _reject('missing pf_payment_id', m_payment_id)
 
     if _already_processed(pf_payment_id):
         return jsonify({'status': 'duplicate'}), 200   # idempotent
 
-    intent = _load_intent(form.get('m_payment_id', ''))
+    intent = _load_intent(m_payment_id or '')
     if not intent:
-        return _reject(f"unknown m_payment_id {form.get('m_payment_id')}")
+        return _reject(f"unknown m_payment_id {m_payment_id}", m_payment_id)
 
     try:
         paid = Decimal(form.get('amount_gross', '0'))
     except (InvalidOperation, TypeError):
-        return _reject('unparseable amount_gross')
+        return _reject('unparseable amount_gross', m_payment_id)
 
     expected = Decimal(str(intent['expected_amount']))
     if abs(paid - expected) > Decimal('0.01'):
-        return _reject(f'amount mismatch: paid {paid}, expected {expected}')
+        return _reject(f'amount mismatch: paid {paid}, expected {expected}', m_payment_id)
 
     if not confirm_with_payfast(form):
-        return _reject('payfast did not confirm')
+        return _reject('payfast did not confirm', m_payment_id)
 
     if form.get('payment_status') != 'COMPLETE':
-        return _reject(f"payment_status {form.get('payment_status')}")
+        return _reject(f"payment_status {form.get('payment_status')}", m_payment_id)
 
     # Authoritative values — from the intent, not the request.
     user_id = intent['user_id']
@@ -110,7 +121,7 @@ def payfast_notify():
 
     # Validate before claiming, so a bad row is never left marked complete.
     if charge_type not in ('tier_1_credits', 'tier_2_license', 'tier_2_seats'):
-        return _reject(f'unknown charge_type {charge_type}')
+        return _reject(f'unknown charge_type {charge_type}', m_payment_id)
 
     # The concurrency boundary: claim + grant now happen in one DB
     # transaction (migration 043) -- no window for a crash to leave the
@@ -122,7 +133,7 @@ def payfast_notify():
         # DB-side failure (RPC error, constraint violation, etc). The
         # function's exception already rolled back any partial writes,
         # including the claim -- nothing to release here.
-        return _reject(f'grant failed: {exc!r}')
+        return _reject(f'grant failed: {exc!r}', m_payment_id)
 
     if result == 'duplicate':
         return jsonify({'status': 'duplicate'}), 200   # someone else has it
