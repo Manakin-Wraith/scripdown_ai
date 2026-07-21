@@ -541,3 +541,30 @@ baseline instead.
 - `frontend/src/components/team/InviteModal.jsx`,
   `frontend/src/pages/PaymentResultPage.jsx`,
   `frontend/src/utils/pendingSeatInviteDraft.js`
+
+---
+
+## Billing page UI/placement — brainstorm needed
+
+**Status:** Not started — needs `superpowers:brainstorming` before any
+implementation.
+
+**Context.** `frontend/src/pages/BillingPage.jsx` (88 lines) and
+`frontend/src/pages/ProfilePage.jsx` (365 lines) currently exist as separate
+top-level routes (`/profile`, `/billing` in `App.jsx`), navigated to
+independently. The Billing page's current UI is minimal/functional (seat
+purchase entry point, per the seat-purchase-flow work above) and hasn't had
+a design pass.
+
+**Open questions to brainstorm:**
+- Where Billing should "live": user's instinct is nesting it inside the
+  Profile page (as a section/tab) rather than a separate top-level route —
+  worth weighing against keeping it a distinct route linked from Profile,
+  given Billing already covers plan tier, seat purchase, and (eventually)
+  renewal/subscription status.
+- What the Billing UI itself should show and how it should look — current
+  state is unstyled/minimal, no design direction decided yet.
+
+**References.**
+- `frontend/src/pages/BillingPage.jsx`, `frontend/src/pages/ProfilePage.jsx`
+- `frontend/src/App.jsx` — current route definitions (lines ~71-72)
