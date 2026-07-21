@@ -104,7 +104,7 @@ export default function BillingPage() {
                             <div className="purchase-row-icon"><Wallet size={20} /></div>
                             <div className="purchase-row-text">
                                 <h3>Breakdown credits</h3>
-                                <p>{entitlement.breakdown_balance} remaining · R{PRICE_ZAR.tier_1_credits} each</p>
+                                <p>{entitlement.breakdown_balance} remaining · R{PRICE_ZAR.tier_1_credits} each (incl. VAT)</p>
                             </div>
                             <div className="quantity-stepper">
                                 <button
