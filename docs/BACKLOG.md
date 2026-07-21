@@ -511,6 +511,66 @@ to checkout logic, polling, or the seat-invite resume redirect.
 
 ---
 
+## Better layout for the Breakdown credits and Team seats cards
+
+**Status:** Not started — feature request. Needs a brainstorming pass
+before implementing (see `superpowers:brainstorming`).
+
+**Context.** On the now-centered `/billing` page (see "Billing page and
+payment success messages" above), the "Breakdown credits" card and the
+"Team seats"/"Annual Team License" card are plain stacked sections — each
+just a heading, a line of body text, the quantity stepper, a total, and a
+buy button (`frontend/src/pages/BillingPage.jsx:101-165`,
+`frontend/src/pages/BillingPage.css:45-188`). User wants a better-designed
+layout for these two cards specifically (the plan summary card above them
+is not called out). No specifics yet on what "better" means — needs a
+brainstorm on direction (e.g. side-by-side on desktop vs. stacked, clearer
+visual hierarchy between price/quantity/total/CTA, pricing-tier-card style
+treatment, icons/illustrations, etc.) before design work starts.
+
+**References.**
+- `frontend/src/pages/BillingPage.jsx` — `.billing-card` sections for
+  breakdown credits (line 101) and team seats/license (line 129)
+- `frontend/src/pages/BillingPage.css` — `.billing-card`, `.quantity-stepper`,
+  `.billing-buy-btn` and related rules
+
+---
+
+## Team seat price change: R150 → R250 per seat
+
+**Status:** Not started — pricing change, numbers decided.
+
+**Context.** Team seat price (`tier_2_seats`) needs to go from R150/yr to
+R250/yr per seat. This value exists in two places and both must change
+together, or the frontend total shown to the user will disagree with what
+PayFast actually charges:
+- `backend/services/payfast_service.py:20` —
+  `'tier_2_seats': Decimal('150.00')` — the server-side source of truth
+  used to compute the actual PayFast charge amount.
+- `frontend/src/pages/BillingPage.jsx:10` —
+  `PRICE_ZAR = { ..., tier_2_seats: 150 }` — display-only, used for the
+  per-seat price shown and the running total as the user adjusts the
+  quantity stepper.
+
+**Scope when picked up.**
+- Update both constants from `150` to `250`.
+- Check `backend/tests/` for any test asserting the old `150.00`/`R150`
+  amount for `tier_2_seats` (e.g. PayFast ITN/amount-verification tests)
+  and update expected values accordingly.
+- Check `docs/SPEC_Tiered_Business_Model.md` for the old per-seat figure
+  and update it to stay consistent with what's actually charged.
+- No brainstorm needed — this is a straightforward value change, not a
+  design decision — but should still go through the normal
+  implement → test → verify cycle given it touches real billing amounts.
+
+**References.**
+- `backend/services/payfast_service.py` — `compute_amount`, per-charge-type
+  price table
+- `frontend/src/pages/BillingPage.jsx` — `PRICE_ZAR`
+- `docs/SPEC_Tiered_Business_Model.md` — current documented per-seat price
+
+---
+
 ## No way for a user to downgrade from Teams (annual) back to Solo
 
 **Status:** Not started — feature gap, no design yet.
