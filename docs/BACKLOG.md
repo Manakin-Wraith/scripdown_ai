@@ -117,48 +117,23 @@ to the FDX preview, PDF scripts to the existing PDF viewer.
 
 ---
 
-## PayFast ITN: claim-and-grant is not a single transaction
+## PayFast ITN: claim-and-grant is not a single transaction — RESOLVED, fixed
 
-**Status:** Deferred — narrow residual gap; no money is lost or double-charged.
+**Found:** Originally noted as deferred in the backlog (narrow residual gap where crash between claim and grant would leave row `complete` with nothing granted). **Fixed:** 2026-07-21.
 
-**Context.** The ITN handler (`backend/routes/payfast_routes.py`, shipped
-2026-07-16) makes granting idempotent by *claiming* the intent row before
-granting: `_claim_intent` runs a conditional `UPDATE ... WHERE id = ? AND
-status = 'pending'`, and Postgres row serialisation guarantees exactly one of
-two racing ITNs gets a row back. This closed the original double-grant window,
-where granting happened before the row was marked and two concurrent callbacks
-could both pass the `_already_processed` SELECT.
+**Context.** The ITN handler (`backend/routes/payfast_routes.py`, shipped 2026-07-16) claimed the intent row before granting to make granting idempotent, closing the double-grant window. However, claim and grant were two separate round-trips — if the process crashed *between* them, `_release_claim` never ran, leaving the row `status = 'complete'` with nothing granted, requiring manual repair.
 
-**The remaining gap.** The claim and the grant are two separate round-trips, not
-one transaction. If the process dies *between* them, `_release_claim` never
-runs: the row is left `status = 'complete'` with nothing granted, and PayFast's
-retry sees a claimed row and declines to redo it. The user has paid and received
-nothing, needing manual repair. Ordinary grant exceptions are already handled —
-`_release_claim` returns the row to `pending` — so this is specifically a
-crash/OOM/redeploy window of a few milliseconds.
+**Fix.** Migration `backend/db/migrations/043_payfast_atomic_claim_grant.sql` added a `SECURITY DEFINER` Postgres function `payfast_claim_and_grant` that performs the claim UPDATE and the charge-type-specific grant (breakdown_credits / profiles / account_seats) in a single transaction. A mid-call crash now rolls back both, closing the gap entirely. `backend/routes/payfast_routes.py::payfast_notify` was rewired to call this function via a single `_claim_and_grant` RPC seam, replacing the old `_claim_intent` / grant-dispatch / `_release_claim` orchestration. The admin manual-approval path (`admin_routes.py`) deliberately left unchanged since it has no race to close.
 
-**Why deferred.** The failure direction is deliberate and safe: a *missed* grant
-(visible, repairable) rather than a *double* grant (silent, refund-requiring).
-The window is small and PayFast retries are spaced out.
+**Verification.** All scenarios verified against a real local Postgres (Docker): each of the 3 charge types (`tier_1_credits`, `tier_2_license`, `tier_2_seats`) grants correctly; a duplicate call returns `'duplicate'` without double-granting; a forced failure rolls back the claim too; and two genuinely concurrent calls on the same row grant exactly once. `backend/tests/test_payfast_itn_route.py` rewritten for the new single-call mock seam — seven affected tests updated, structural changes (one test deleted, one renamed).
 
-**Options when picked up.**
-1. **Postgres function (most correct).** Move claim + grant into a single
-   `SECURITY DEFINER` plpgsql function called via RPC, so both commit atomically.
-   The Supabase client cannot span statements in one transaction, which is why
-   this can't be fixed in Python alone.
-2. **Reconciliation sweep (cheapest).** A periodic job finding
-   `payfast_transactions` rows that are `complete` but have no corresponding
-   grant (no `breakdown_credits` / `account_seats` row, no active licence), and
-   either granting or alerting. Also catches unrelated drift.
-3. **Claim leases.** Record `claimed_at` and treat a `complete` row with no
-   grant after N minutes as reclaimable, letting a later retry finish it.
+**Deploy note.** Migration 043 must be applied to the real Supabase project before (or atomically with) deploying this branch's `backend/routes/payfast_routes.py`. If the code deploys first, the `payfast_claim_and_grant` RPC call fails with "function does not exist," which `payfast_notify` catches and turns into an HTTP 200 -- telling PayFast to stop retrying, so a real payment in that window is silently lost (no claim, no grant, no retry). Separately: the Docker verification above called the function via raw `psycopg2`, and every automated test mocks `_claim_and_grant` wholesale, so the actual runtime boundary -- `get_supabase_admin().rpc('payfast_claim_and_grant', {...}).execute()` returning `resp.data` as a bare string (`'granted'`/`'duplicate'`) -- has never been exercised for real. Recommend one manual `get_supabase_admin().rpc(...)` smoke call against a throwaway pending row right after applying the migration, to confirm `resp.data` is actually the bare string the Python code assumes (and not, say, a list or dict wrapping it).
 
 **References.**
-- `backend/routes/payfast_routes.py` — `_claim_intent`, `_release_claim`,
-  `payfast_notify`
-- `backend/tests/test_payfast_itn_route.py` — `test_claim_happens_before_granting`,
-  `test_failed_grant_releases_the_claim`
-- Grant side: `backend/services/entitlement_service.py`
+- `backend/db/migrations/043_payfast_atomic_claim_grant.sql` — new atomic function definition
+- `backend/routes/payfast_routes.py` — `payfast_notify` rewired to call `_claim_and_grant` via RPC
+- `backend/tests/test_payfast_itn_route.py` — test suite updated for single-call seam
+- Grant side: `backend/services/entitlement_service.py` (unchanged for ITN path)
 
 ---
 

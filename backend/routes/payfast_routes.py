@@ -21,9 +21,7 @@ from services.payfast_service import (
     verify_itn_signature, is_valid_payfast_ip, confirm_with_payfast, PASSPHRASE,
     compute_amount, build_checkout_fields, PROCESS_URL,
 )
-from services.entitlement_service import (
-    grant_credits, activate_license, grant_seats, get_entitlement,
-)
+from services.entitlement_service import get_entitlement
 
 payfast_bp = Blueprint('payfast', __name__)
 
@@ -42,37 +40,24 @@ def _already_processed(pf_payment_id: str) -> bool:
     return bool(resp.data)
 
 
-def _claim_intent(txn_id: str, pf_payment_id: str, payload: dict) -> bool:
+def _claim_and_grant(txn_id: str, pf_payment_id: str, payload: dict,
+                      charge_type: str, user_id: str, quantity: int,
+                      payfast_token: str | None) -> str:
     """
-    Atomically claim an intent for granting. Returns False if someone else
-    already has it.
-
-    This — not `_already_processed` — is what makes granting idempotent.
-    Two ITNs for the same payment can both pass that check before either
-    writes, so the check alone leaves a double-grant window. Postgres
-    serialises concurrent UPDATEs to the same row and re-evaluates the WHERE
-    against the winner's committed result, so of two racing callers exactly
-    one matches `status = 'pending'` and gets a row back. The loser sees no
-    rows and must not grant.
-
-    Claiming *before* granting means the failure mode is a missed grant
-    rather than a double grant. `_release_claim` hands the row back so
-    PayFast's next retry can redo it.
+    Calls the payfast_claim_and_grant Postgres function (migration 043),
+    which claims the intent row and performs its grant atomically in one
+    transaction. Returns 'granted' or 'duplicate'.
     """
-    resp = get_supabase_admin().table('payfast_transactions').update({
-        'pf_payment_id': pf_payment_id,
-        'status': 'complete',
-        'raw_payload': payload,
-    }).eq('id', txn_id).eq('status', 'pending').execute()
-    return bool(resp.data)
-
-
-def _release_claim(txn_id: str) -> None:
-    """Return a claimed row to 'pending' so a retry can grant it."""
-    get_supabase_admin().table('payfast_transactions').update({
-        'pf_payment_id': None,
-        'status': 'pending',
-    }).eq('id', txn_id).execute()
+    resp = get_supabase_admin().rpc('payfast_claim_and_grant', {
+        'p_txn_id': txn_id,
+        'p_pf_payment_id': pf_payment_id,
+        'p_raw_payload': payload,
+        'p_charge_type': charge_type,
+        'p_user_id': user_id,
+        'p_quantity': quantity,
+        'p_payfast_token': payfast_token,
+    }).execute()
+    return resp.data
 
 
 def _reject(reason: str):
@@ -127,20 +112,20 @@ def payfast_notify():
     if charge_type not in ('tier_1_credits', 'tier_2_license', 'tier_2_seats'):
         return _reject(f'unknown charge_type {charge_type}')
 
-    # The concurrency boundary: past here we hold the row exclusively.
-    if not _claim_intent(txn_id, pf_payment_id, form):
-        return jsonify({'status': 'duplicate'}), 200   # someone else has it
-
+    # The concurrency boundary: claim + grant now happen in one DB
+    # transaction (migration 043) -- no window for a crash to leave the
+    # row 'complete' with nothing granted.
     try:
-        if charge_type == 'tier_1_credits':
-            grant_credits(user_id, quantity, txn_id)
-        elif charge_type == 'tier_2_license':
-            activate_license(user_id, txn_id, form.get('token'))
-        elif charge_type == 'tier_2_seats':
-            grant_seats(user_id, quantity, txn_id)
+        result = _claim_and_grant(txn_id, pf_payment_id, form, charge_type,
+                                   user_id, quantity, form.get('token'))
     except Exception as exc:
-        _release_claim(txn_id)
-        return _reject(f'grant failed, released for retry: {exc!r}')
+        # DB-side failure (RPC error, constraint violation, etc). The
+        # function's exception already rolled back any partial writes,
+        # including the claim -- nothing to release here.
+        return _reject(f'grant failed: {exc!r}')
+
+    if result == 'duplicate':
+        return jsonify({'status': 'duplicate'}), 200   # someone else has it
 
     return jsonify({'status': 'ok'}), 200
 
