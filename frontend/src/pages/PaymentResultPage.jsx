@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
+import { CheckCircle, Clock, XCircle } from 'lucide-react';
 import { useEntitlement } from '../hooks/useEntitlement';
 import { readPendingSeatInviteDraft } from '../utils/pendingSeatInviteDraft';
+import './PaymentResultPage.css';
 
 export default function PaymentResultPage({ outcome }) {
     const [params] = useSearchParams();
@@ -46,24 +48,36 @@ export default function PaymentResultPage({ outcome }) {
 
     if (outcome === 'cancel') {
         return (
-            <div>
-                <h1>Payment cancelled</h1>
-                <p>You have not been charged.</p>
-                <Link to="/billing">Back to billing</Link>
+            <div className="payment-result-page">
+                <div className="payment-result-card">
+                    <XCircle size={40} className="payment-result-icon cancel" />
+                    <h1>Payment cancelled</h1>
+                    <p>You have not been charged.</p>
+                    <Link to="/billing" className="payment-result-link">Back to billing</Link>
+                </div>
             </div>
         );
     }
 
     return (
-        <div>
-            <h1>Thank you</h1>
-            {settled ? (
-                <p>Your purchase is active. Type: {params.get('type')}</p>
-            ) : (
-                <p>Payment received — confirming with our payment provider. This
-                   usually takes a few seconds.</p>
-            )}
-            <Link to="/">Continue</Link>
+        <div className="payment-result-page">
+            <div className="payment-result-card">
+                {settled ? (
+                    <>
+                        <CheckCircle size={40} className="payment-result-icon success" />
+                        <h1>Thank you</h1>
+                        <p>Your purchase is active. Type: {params.get('type')}</p>
+                    </>
+                ) : (
+                    <>
+                        <Clock size={40} className="payment-result-icon pending" />
+                        <h1>Thank you</h1>
+                        <p>Payment received — confirming with our payment provider. This
+                           usually takes a few seconds.</p>
+                    </>
+                )}
+                <Link to="/" className="payment-result-link">Continue</Link>
+            </div>
         </div>
     );
 }

@@ -1,0 +1,70 @@
+/* Payment Result Page Styles */
+
+.payment-result-page {
+    min-height: 100vh;
+    background: var(--gray-900);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+}
+
+.payment-result-card {
+    background: var(--gray-800);
+    border: 1px solid var(--gray-700);
+    border-radius: 16px;
+    padding: 2.5rem;
+    max-width: 420px;
+    width: 100%;
+    text-align: center;
+}
+
+.payment-result-icon {
+    margin-bottom: 1rem;
+}
+
+.payment-result-icon.success {
+    color: #86EFAC;
+}
+
+.payment-result-icon.pending {
+    color: var(--gray-400);
+}
+
+.payment-result-icon.cancel {
+    color: #FCA5A5;
+}
+
+.payment-result-card h1 {
+    margin: 0 0 0.75rem;
+    font-size: 1.375rem;
+    font-weight: 600;
+    color: var(--gray-100);
+}
+
+.payment-result-card p {
+    margin: 0 0 1.5rem;
+    color: var(--gray-300);
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+.payment-result-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
+    border-radius: 10px;
+    color: var(--gray-900);
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.payment-result-link:hover {
+    background: linear-gradient(135deg, var(--primary-400), var(--primary-500));
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px var(--primary-alpha-30);
+}
