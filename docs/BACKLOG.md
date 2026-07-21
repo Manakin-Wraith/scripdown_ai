@@ -167,8 +167,8 @@ The window is small and PayFast retries are spaced out.
 **Status:** Open, tracked against `feat/two-tier-pricing` (merged to `main`
 2026-07-18). Branch is functionally verified end-to-end against live PayFast
 sandbox transactions for all three charge types. The anonymous-access
-vulnerability below is fixed and merged; renewal automation and the
-`list_members` gap remain open post-merge.
+vulnerability below is fixed and merged; renewal automation remains open
+post-merge. The `list_members` gap below is now resolved.
 
 ### `routes/analysis_routes.py` has no auth at all — RESOLVED, fixed
 
@@ -232,23 +232,32 @@ place. Flagged in the original two-tier pricing design doc, never closed.
 **Why deferred.** Needs a real failed-renewal ITN payload (or the renewal job
 itself) to test against; blocked on the renewal-automation item above.
 
-### `list_members` IDOR-shaped gap
+### `list_members` IDOR-shaped gap — RESOLVED, fixed
 
-**Context.** Noted during Task 10 (team gating). The tier-2 gating check on
-`list_members` verifies the *caller's own* tier, not whether the caller
-belongs to the *specific script* being queried. Any tier-2 user can list any
+**Found:** Noted during Task 10 (team gating), 2026-07-18. **Fixed:**
+2026-07-20, incidentally, by commit `90037b7` ("feat(teams): admin role
+management with rank guardrails") while converting `list_members` and
+`create_invite` to the `@require_script_role` decorator.
+
+**Context.** The tier-2 gating check on `list_members` verified the
+*caller's own* tier (`@require_team_tier`), not whether the caller belonged
+to the *specific script* being queried. Any tier-2 user could list any
 script's team roster by ID.
 
-**Why deferred.** Separate from the billing work in scope for this branch; a
-straightforward authorization-check fix once picked up (verify membership on
-the specific script, not just tier).
+**Fix.** `backend/routes/invite_routes.py` — `list_members` now carries
+`@require_script_role('viewer', resolver=from_script)` ahead of
+`@require_team_tier`, so the caller must hold at least `viewer` on the
+specific `script_id` in the URL (owner or a `script_members` row), not just
+the tier check.
+
+**Verification.** `backend/tests/test_route_enforcement.py::test_script_scoped_routes_enforced`
+asserts every script-scoped route in this blueprint (including
+`invite.list_members`) carries the `_authz_min_role` marker; passes.
 
 **References.**
-- `backend/routes/analysis_routes.py`, `backend/routes/supabase_routes.py`
-- `backend/services/entitlement_service.py` — `get_entitlement`, `activate_license`
-- `backend/db/migrations/042_payfast_tokenization.sql`
-- Team gating: wherever `list_members` is implemented (routes handling
-  `/api/scripts/<id>/team` or similar)
+- `backend/routes/invite_routes.py` — `list_members`
+- `backend/middleware/authorization.py` — `require_script_role`, `get_script_role`
+- `backend/tests/test_route_enforcement.py`
 
 ---
 
