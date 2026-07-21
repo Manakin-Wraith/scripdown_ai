@@ -524,27 +524,29 @@ baseline instead.
 
 ---
 
-## Billing page UI/placement — brainstorm needed
+## Billing page UI/placement — RESOLVED, shipped
 
-**Status:** Not started — needs `superpowers:brainstorming` before any
-implementation.
+**Status:** Done. Brainstormed, designed, planned, and implemented
+2026-07-21 across two merged branches.
 
-**Context.** `frontend/src/pages/BillingPage.jsx` (88 lines) and
-`frontend/src/pages/ProfilePage.jsx` (365 lines) currently exist as separate
-top-level routes (`/profile`, `/billing` in `App.jsx`), navigated to
-independently. The Billing page's current UI is minimal/functional (seat
-purchase entry point, per the seat-purchase-flow work above) and hasn't had
-a design pass.
-
-**Open questions to brainstorm:**
-- Where Billing should "live": user's instinct is nesting it inside the
-  Profile page (as a section/tab) rather than a separate top-level route —
-  worth weighing against keeping it a distinct route linked from Profile,
-  given Billing already covers plan tier, seat purchase, and (eventually)
-  renewal/subscription status.
-- What the Billing UI itself should show and how it should look — current
-  state is unstyled/minimal, no design direction decided yet.
+**What shipped.** `/billing` stays its own top-level route (decided against
+nesting inside `ProfilePage`). Restyled to match `ProfilePage`'s card-based
+design language (`PageHeader`, `Spinner` loading state, `.billing-card`
+sections using the same gray-800/900/700 tokens), plus a new "current plan"
+summary card (tier label, status badge, breakdown/seat usage) that didn't
+exist before. A "Billing" entry was added to the TopBar user dropdown next
+to "Profile" — previously `/billing` had no direct nav entry point at all,
+only contextual upgrade prompts or a manual URL. Follow-up same day: both
+quantity pickers (breakdown credits, team seats) were changed from
+fixed-preset dropdowns (1/5/10 and 1/2/3/5/10) to a click-only `−`/`+`
+stepper, so any exact positive integer quantity is reachable — matching the
+backend's only real constraint (`quantity >= 1`, no upper bound, confirmed
+in `payfast_service.py::compute_amount`).
 
 **References.**
-- `frontend/src/pages/BillingPage.jsx`, `frontend/src/pages/ProfilePage.jsx`
-- `frontend/src/App.jsx` — current route definitions (lines ~71-72)
+- Design: `docs/superpowers/specs/2026-07-21-billing-page-redesign-design.md`,
+  `docs/superpowers/specs/2026-07-21-billing-quantity-stepper-design.md`
+- Plan: `docs/superpowers/plans/2026-07-21-billing-page-redesign.md`,
+  `docs/superpowers/plans/2026-07-21-billing-quantity-stepper.md`
+- `frontend/src/pages/BillingPage.jsx`, `BillingPage.css` (new)
+- `frontend/src/components/layout/TopBar.jsx`, `Breadcrumb.jsx`
