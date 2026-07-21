@@ -99,63 +99,67 @@ export default function BillingPage() {
                         )}
                     </section>
 
-                    <section className="billing-card">
-                        <h2><Wallet size={20} /> Breakdown credits</h2>
-                        <p>{entitlement.breakdown_balance} remaining · R{PRICE_ZAR.tier_1_credits} each (incl. VAT)</p>
-                        <div className="billing-form-group">
-                            <label>Quantity</label>
+                    <section className="billing-card billing-purchase-card">
+                        <div className="purchase-row">
+                            <div className="purchase-row-icon"><Wallet size={20} /></div>
+                            <div className="purchase-row-text">
+                                <h3>Breakdown credits</h3>
+                                <p>{entitlement.breakdown_balance} remaining · R{PRICE_ZAR.tier_1_credits} each</p>
+                            </div>
                             <div className="quantity-stepper">
                                 <button
                                     type="button"
                                     className="stepper-btn"
                                     onClick={() => setQuantity((q) => Math.max(1, q - 1))}
                                     disabled={quantity <= 1}
-                                    aria-label="Decrease quantity"
+                                    aria-label="Decrease breakdown credit quantity"
                                 >−</button>
                                 <span className="stepper-value">{quantity}</span>
                                 <button
                                     type="button"
                                     className="stepper-btn"
                                     onClick={() => setQuantity((q) => q + 1)}
-                                    aria-label="Increase quantity"
+                                    aria-label="Increase breakdown credit quantity"
                                 >+</button>
                             </div>
+                            <p className="purchase-row-total">R{PRICE_ZAR.tier_1_credits * quantity}</p>
+                            <button className="billing-buy-btn" disabled={busy} onClick={() => buy('tier_1_credits', quantity)}>
+                                Buy
+                            </button>
                         </div>
-                        <p className="billing-total">Total: R{PRICE_ZAR.tier_1_credits * quantity}</p>
-                        <button className="billing-buy-btn" disabled={busy} onClick={() => buy('tier_1_credits', quantity)}>
-                            Buy breakdowns
-                        </button>
-                    </section>
 
-                    {isActiveTeam ? (
-                        <section className="billing-card">
-                            <h2><Users size={20} /> Team seats</h2>
-                            <p>{entitlement.seats_used} of {entitlement.seats_paid} seats in use</p>
-                            <div className="billing-form-group">
-                                <label>Quantity</label>
+                        {isActiveTeam && (
+                            <div className="purchase-row">
+                                <div className="purchase-row-icon"><Users size={20} /></div>
+                                <div className="purchase-row-text">
+                                    <h3>Team seats</h3>
+                                    <p>{entitlement.seats_used} of {entitlement.seats_paid} in use · R{PRICE_ZAR.tier_2_seats}/seat/yr</p>
+                                </div>
                                 <div className="quantity-stepper">
                                     <button
                                         type="button"
                                         className="stepper-btn"
                                         onClick={() => setSeatQuantity((q) => Math.max(1, q - 1))}
                                         disabled={seatQuantity <= 1}
-                                        aria-label="Decrease quantity"
+                                        aria-label="Decrease team seat quantity"
                                     >−</button>
                                     <span className="stepper-value">{seatQuantity}</span>
                                     <button
                                         type="button"
                                         className="stepper-btn"
                                         onClick={() => setSeatQuantity((q) => q + 1)}
-                                        aria-label="Increase quantity"
+                                        aria-label="Increase team seat quantity"
                                     >+</button>
                                 </div>
+                                <p className="purchase-row-total">R{PRICE_ZAR.tier_2_seats * seatQuantity}/yr</p>
+                                <button className="billing-buy-btn" disabled={busy} onClick={() => buy('tier_2_seats', seatQuantity)}>
+                                    Add
+                                </button>
                             </div>
-                            <p className="billing-total">Total: R{PRICE_ZAR.tier_2_seats * seatQuantity}/yr</p>
-                            <button className="billing-buy-btn" disabled={busy} onClick={() => buy('tier_2_seats', seatQuantity)}>
-                                Add {seatQuantity} seat{seatQuantity > 1 ? 's' : ''} — R{PRICE_ZAR.tier_2_seats}/yr each
-                            </button>
-                        </section>
-                    ) : (
+                        )}
+                    </section>
+
+                    {!isActiveTeam && (
                         <section className="billing-card">
                             <h2><Crown size={20} /> Annual Team License</h2>
                             <p>R{PRICE_ZAR.tier_2_license}/yr — unlimited breakdowns for you and your team.</p>

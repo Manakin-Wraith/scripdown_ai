@@ -105,18 +105,60 @@
     color: var(--gray-400);
 }
 
-/* Purchase form controls */
-.billing-form-group {
+/* Combined purchase card (Breakdown credits / Team seats rows) */
+.billing-purchase-card {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
-    margin-bottom: 1rem;
 }
 
-.billing-form-group label {
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: var(--gray-300);
+.purchase-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 0;
+    flex-wrap: wrap;
+}
+
+.purchase-row + .purchase-row {
+    border-top: 1px solid var(--gray-700);
+}
+
+.purchase-row-icon {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    background: var(--primary-alpha-15);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary-400);
+}
+
+.purchase-row-text {
+    flex: 1 1 180px;
+    min-width: 0;
+}
+
+.purchase-row-text h3 {
+    margin: 0 0 0.15rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--gray-100);
+}
+
+.purchase-row-text p {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--gray-400);
+}
+
+.purchase-row-total {
+    font-weight: 700;
+    color: var(--gray-100);
+    font-size: 0.9rem;
+    white-space: nowrap;
+    margin: 0;
 }
 
 .quantity-stepper {
@@ -158,12 +200,6 @@
     font-size: 1rem;
     font-weight: 600;
     color: var(--gray-100);
-}
-
-.billing-total {
-    color: var(--gray-100);
-    font-weight: 600;
-    margin: 0.75rem 0;
 }
 
 .billing-buy-btn {
