@@ -12,6 +12,17 @@
 --              race and keeps calling the plain Python grant functions
 --              in services/entitlement_service.py unchanged.
 -- Date: 2026-07-21
+--
+-- DEPLOY ORDER: This migration MUST be applied to the real Supabase project
+--              before (or atomically with) deploying the corresponding
+--              backend/routes/payfast_routes.py code that calls it. If the
+--              Python code goes out first, the `payfast_claim_and_grant` RPC
+--              call fails with "function does not exist"; payfast_notify's
+--              own exception handling catches that and returns HTTP 200
+--              ("ignored"). Per this module's own docstring, PayFast treats
+--              any 200 as "stop retrying" -- so a real payment during that
+--              window is claimed by nothing, granted nothing, and never
+--              retried. Silent payment loss, not a loud failure.
 
 CREATE OR REPLACE FUNCTION payfast_claim_and_grant(
     p_txn_id UUID,

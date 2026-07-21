@@ -157,8 +157,17 @@ def test_grant_failure_still_returns_200(monkeypatch):
     # If the RPC call raises (DB-side failure), the function's own
     # exception has already rolled back any partial writes, including
     # the claim (migration 043) -- there is nothing to release here.
-    # We only need to confirm the failure doesn't propagate as a 500,
-    # so PayFast retries instead of giving up.
+    # This only verifies the failure doesn't propagate as a 500 and no
+    # partial grant occurs. Per this module's docstring, the 200 returned
+    # here does NOT mean "PayFast will retry" -- a 200 is what tells
+    # PayFast to stop. The real retry protection this atomic fix provides
+    # is for the crash path (no HTTP response at all, so PayFast's own
+    # timeout/retry logic eventually resends and finds the row rolled
+    # back to 'pending'). This caught-exception path is different: it's
+    # a genuine application-level failure, and returning 200 here is a
+    # deliberate choice to avoid a PayFast retry storm -- but it means
+    # this attempt is a lost grant unless someone intervenes manually or
+    # PayFast happens to redeliver the same ITN for unrelated reasons.
     calls = []
     _pass_all(monkeypatch, calls)
 
@@ -167,7 +176,7 @@ def test_grant_failure_still_returns_200(monkeypatch):
 
     monkeypatch.setattr(pr, "_claim_and_grant", _boom)
     resp = _post()
-    assert resp.status_code == 200      # still 200 — PayFast will retry
+    assert resp.status_code == 200      # no 500 propagates; not a "retry signal"
     assert calls == []
 
 
