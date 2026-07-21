@@ -6,9 +6,14 @@ implementing (see `superpowers:brainstorming`).
 
 ---
 
-## Backend test suite has no CI gate
+## Backend test suite has no CI gate — RESOLVED, shipped
 
-**Status:** Not started — infrastructure gap.
+**Status:** Done. `.github/workflows/backend-tests.yml` merged via PR #8
+(commit `d3e086e`, 2026-07-21). Runs `pytest tests/` on every PR with dummy,
+non-secret env vars; advisory only (not yet wired into branch protection).
+Flipping the check to "required" remains an open follow-up if desired.
+
+**Original context (kept for history):**
 
 **Context.** There is no `.github/workflows/` directory in this repo at all.
 The only checks currently wired to GitHub PRs are GitGuardian (secret
