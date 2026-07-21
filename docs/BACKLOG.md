@@ -768,3 +768,51 @@ in `payfast_service.py::compute_amount`).
   `docs/superpowers/plans/2026-07-21-billing-quantity-stepper.md`
 - `frontend/src/pages/BillingPage.jsx`, `BillingPage.css` (new)
 - `frontend/src/components/layout/TopBar.jsx`, `Breadcrumb.jsx`
+
+---
+
+## Vercel git integration silently stopped auto-deploying `main`
+
+**Found:** 2026-07-21, pushing commit `6653400` (billing purchase-row
+layout fix). **Worked around same day** via a manual CLI deploy; root
+cause not yet fixed.
+
+**Context.** Every earlier push to `main` today (`503b61e`, `006ffad`,
+etc.) triggered an automatic Vercel production deployment within about a
+minute, confirmed via `vercel_list_deployments`. Push `6653400` did not —
+`vercel_get_project` kept reporting the previous commit (`006ffad`) as
+`latestDeployment` for several minutes with no new deployment ever
+appearing for `6653400`. Confirmed via `gh api
+repos/.../commits/6653400.../status`: Railway posted two commit statuses
+for this SHA (both `success`), but **no Vercel status was ever posted at
+all** — the GitHub App integration never picked up the push, this wasn't
+just slow webhook delivery.
+
+**Workaround applied.** Ran `vercel --prod --yes` manually from the repo
+root (not `frontend/` — running it from inside `frontend/` fails with
+"path .../frontend/frontend does not exist", because the linked
+project's Root Directory setting is `frontend` relative to the repo root
+where `.vercel/project.json` lives one level up from the CLI's cwd
+expectation). This built and deployed the correct commit and aliased it
+to `app.slateone.studio` successfully.
+
+**Why deferred.** Single occurrence so far — could be a transient GitHub
+App delivery glitch, or something about repeated pushes in quick
+succession (several pushes happened within ~30 minutes today) that the
+integration doesn't handle well. Not enough data yet to root-cause.
+
+**Scope when picked up.** Watch the next few pushes to `main` for a
+repeat. If it recurs: check the Vercel dashboard's Git integration
+settings (Project → Settings → Git) for a disconnected/reinstalled
+GitHub App, check GitHub's org-level "Installed GitHub Apps" settings for
+Vercel's access/permissions, and check Vercel's own status page for
+incidents around the affected timestamps. If it's a recurring quick-
+succession issue, consider whether a deploy hook or CI step that calls
+`vercel --prod` explicitly (rather than relying solely on the GitHub App
+webhook) is worth adding as a fallback.
+
+**References.**
+- `frontend/.vercel/project.json` — linked project id or Vercel CLI
+- Vercel dashboard: Project → Settings → Git (integration config)
+- `gh api repos/Manakin-Wraith/scripdown_ai/commits/<sha>/status` — how
+  the missing Vercel status was confirmed
