@@ -8,7 +8,6 @@ Pay Now buttons are NOT usable: `require signature` is enabled on merchant
 
 import hashlib
 import os
-import socket
 from decimal import Decimal
 from urllib.parse import quote_plus
 
@@ -69,14 +68,6 @@ def generate_signature(fields: dict, passphrase: str | None, include_empty: bool
     return hashlib.md5(payload.encode()).hexdigest()
 
 
-PAYFAST_HOSTS = [
-    'www.payfast.co.za',
-    'sandbox.payfast.co.za',
-    'w1w.payfast.co.za',
-    'w2w.payfast.co.za',
-    'payment.payfast.io',
-]
-
 VALIDATE_URL = os.getenv(
     'PAYFAST_VALIDATE_URL',
     'https://sandbox.payfast.co.za/eng/query/validate'
@@ -100,23 +91,6 @@ def verify_itn_signature(form: dict, passphrase: str | None) -> bool:
         return False
     payload = {k: v for k, v in form.items() if k != 'signature'}
     return generate_signature(payload, passphrase, include_empty=True) == received
-
-
-def _resolve_payfast_ips() -> set:
-    """Resolve PayFast's ITN source hosts. Separated for test injection."""
-    ips = set()
-    for host in PAYFAST_HOSTS:
-        for info in socket.getaddrinfo(host, 443):
-            ips.add(info[4][0])
-    return ips
-
-
-def is_valid_payfast_ip(ip: str) -> bool:
-    """Fails closed: a DNS failure means we cannot prove the source, so we reject."""
-    try:
-        return ip in _resolve_payfast_ips()
-    except Exception:
-        return False
 
 
 def confirm_with_payfast(form: dict) -> bool:

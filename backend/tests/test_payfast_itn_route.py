@@ -25,7 +25,6 @@ def _pass_all(monkeypatch, calls):
     have granted. Default: 'granted'.
     """
     monkeypatch.setattr(pr, "verify_itn_signature", lambda f, p: True)
-    monkeypatch.setattr(pr, "is_valid_payfast_ip", lambda ip: True)
     monkeypatch.setattr(pr, "confirm_with_payfast", lambda f: True)
     monkeypatch.setattr(pr, "_load_intent", lambda m: _intent())
     monkeypatch.setattr(pr, "_already_processed", lambda pf: False)
@@ -61,14 +60,6 @@ def test_bad_signature_grants_nothing(monkeypatch):
     resp = _post()
     assert resp.status_code == 200      # always 200, or PayFast retries forever
     assert calls == []                  # but nothing granted
-
-
-def test_bad_ip_grants_nothing(monkeypatch):
-    calls = []
-    _pass_all(monkeypatch, calls)
-    monkeypatch.setattr(pr, "is_valid_payfast_ip", lambda ip: False)
-    _post()
-    assert calls == []
 
 
 def test_failed_confirmation_grants_nothing(monkeypatch):

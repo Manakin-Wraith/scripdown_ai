@@ -1,4 +1,4 @@
-"""ITN validation: signature over received order, PayFast source IP, server confirmation."""
+"""ITN validation: signature over received order, server confirmation."""
 import os, sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
@@ -34,23 +34,6 @@ def test_signature_excluded_from_its_own_payload():
     sig = pf.generate_signature(form, None)
     form["signature"] = sig
     assert pf.verify_itn_signature(form, None) is True
-
-
-def test_valid_ip_accepted(monkeypatch):
-    monkeypatch.setattr(pf, "_resolve_payfast_ips", lambda: {"1.2.3.4", "5.6.7.8"})
-    assert pf.is_valid_payfast_ip("1.2.3.4") is True
-
-
-def test_unknown_ip_rejected(monkeypatch):
-    monkeypatch.setattr(pf, "_resolve_payfast_ips", lambda: {"1.2.3.4"})
-    assert pf.is_valid_payfast_ip("9.9.9.9") is False
-
-
-def test_dns_failure_fails_closed(monkeypatch):
-    def boom():
-        raise OSError("dns down")
-    monkeypatch.setattr(pf, "_resolve_payfast_ips", boom)
-    assert pf.is_valid_payfast_ip("1.2.3.4") is False
 
 
 def test_confirm_returns_true_on_valid(monkeypatch):

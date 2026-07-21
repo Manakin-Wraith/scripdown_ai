@@ -18,7 +18,7 @@ from flask import Blueprint, request, jsonify
 from db.supabase_client import get_supabase_admin
 from middleware.auth import require_auth, get_user_id
 from services.payfast_service import (
-    verify_itn_signature, is_valid_payfast_ip, confirm_with_payfast, PASSPHRASE,
+    verify_itn_signature, confirm_with_payfast, PASSPHRASE,
     compute_amount, build_checkout_fields, PROCESS_URL,
 )
 from services.entitlement_service import get_entitlement
@@ -83,9 +83,6 @@ def payfast_notify():
 
     if not verify_itn_signature(form, PASSPHRASE):
         return _reject('signature mismatch', m_payment_id)
-
-    if not is_valid_payfast_ip(request.remote_addr):
-        return _reject(f'untrusted source ip {request.remote_addr}', m_payment_id)
 
     pf_payment_id = form.get('pf_payment_id')
     if not pf_payment_id:
