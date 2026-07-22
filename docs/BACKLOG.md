@@ -771,11 +771,23 @@ in `payfast_service.py::compute_amount`).
 
 ---
 
-## Vercel git integration silently stopped auto-deploying `main`
+## Vercel git integration silently stopped auto-deploying `main` — RESOLVED, no recurrence
 
 **Found:** 2026-07-21, pushing commit `6653400` (billing purchase-row
-layout fix). **Worked around same day** via a manual CLI deploy; root
-cause not yet fixed.
+layout fix). **Worked around same day** via a manual CLI deploy.
+**Confirmed isolated, 2026-07-22:** checked the project's actual Vercel
+deployment history (`list_deployments`) — the deploy for `6653400`
+itself carries `"gitDirty": "1"` and is missing every GitHub-webhook
+metadata field (`githubRepoOwnerType`, `githubCommitVerification`,
+`repoPushedAt`, etc.), confirming it really was the manual `vercel
+--prod` CLI workaround. Both the push immediately before it (`503b61e`)
+and the push immediately after it (`8c4f37b`) show clean webhook
+metadata and deployed automatically with no manual intervention — the
+integration recovered on its own for the very next push, and every
+deployment recorded since has the same healthy webhook pattern. No
+repeat across 10+ subsequent pushes. Treating this as a one-off GitHub
+App delivery glitch, not a systemic break — no fallback deploy hook
+needed unless it recurs.
 
 **Context.** Every earlier push to `main` today (`503b61e`, `006ffad`,
 etc.) triggered an automatic Vercel production deployment within about a
