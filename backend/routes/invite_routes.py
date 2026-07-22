@@ -14,7 +14,7 @@ import os
 import secrets
 from datetime import datetime, timedelta
 from flask import Blueprint, request, jsonify, g
-from db.supabase_client import get_supabase_client, get_supabase_admin
+from db.supabase_client import get_supabase_client, get_supabase_admin, fetch_single
 from middleware.auth import require_auth, get_user_id
 from middleware.authorization import require_script_role, from_script, ROLE_RANK
 from services.entitlement_service import require_team_tier, get_entitlement
@@ -115,12 +115,12 @@ def create_invite(script_id):
     
     try:
         # Authorization (owner/admin) already enforced by @require_script_role('admin').
-        script_result = supabase.table('scripts').select('id, user_id, title').eq('id', script_id).single().execute()
+        script = fetch_single(
+            supabase.table('scripts').select('id, user_id, title').eq('id', script_id).single()
+        )
 
-        if not script_result.data:
+        if not script:
             return jsonify({'error': 'Script not found'}), 404
-
-        script = script_result.data
 
         # Check if invite already exists for this email/script
         # Note: We skip the "already a member" check here - it will be handled during accept
@@ -167,10 +167,12 @@ def create_invite(script_id):
             try:
                 # Resolve inviter's display name from their profile
                 inviter_name = 'A teammate'
-                inviter_result = supabase.table('profiles').select('full_name, email').eq('id', user_id).single().execute()
-                if inviter_result.data:
-                    inviter_name = (inviter_result.data.get('full_name')
-                                    or inviter_result.data.get('email', '').split('@')[0]
+                inviter_result = fetch_single(
+                    supabase.table('profiles').select('full_name, email').eq('id', user_id).single()
+                )
+                if inviter_result:
+                    inviter_name = (inviter_result.get('full_name')
+                                    or inviter_result.get('email', '').split('@')[0]
                                     or 'A teammate')
 
                 send_result = send_team_invite(
@@ -222,11 +224,13 @@ def list_invites(script_id):
 
     try:
         # Authorization (owner/admin) already enforced by @require_script_role('admin').
-        script_result = supabase.table('scripts').select('user_id').eq('id', script_id).single().execute()
-        
-        if not script_result.data:
+        script_result = fetch_single(
+            supabase.table('scripts').select('user_id').eq('id', script_id).single()
+        )
+
+        if not script_result:
             return jsonify({'error': 'Script not found'}), 404
-        
+
         # Get invites
         result = supabase.table('script_invites').select('*').eq('script_id', script_id).order('created_at', desc=True).execute()
         
@@ -263,12 +267,12 @@ def revoke_invite(invite_id):
     
     try:
         # Get invite and verify ownership
-        invite_result = supabase.table('script_invites').select('*, scripts(user_id, title)').eq('id', invite_id).single().execute()
+        invite = fetch_single(
+            supabase.table('script_invites').select('*, scripts(user_id, title)').eq('id', invite_id).single()
+        )
 
-        if not invite_result.data:
+        if not invite:
             return jsonify({'error': 'Invite not found'}), 404
-
-        invite = invite_result.data
 
         # Check authorization
         if invite['scripts']['user_id'] != user_id and invite['invited_by'] != user_id:
@@ -284,10 +288,12 @@ def revoke_invite(invite_id):
         if was_pending and invite.get('email') and email_configured():
             try:
                 revoker_name = 'The script owner'
-                revoker_result = supabase.table('profiles').select('full_name, email').eq('id', user_id).single().execute()
-                if revoker_result.data:
-                    revoker_name = (revoker_result.data.get('full_name')
-                                    or revoker_result.data.get('email', '').split('@')[0]
+                revoker_result = fetch_single(
+                    supabase.table('profiles').select('full_name, email').eq('id', user_id).single()
+                )
+                if revoker_result:
+                    revoker_name = (revoker_result.get('full_name')
+                                    or revoker_result.get('email', '').split('@')[0]
                                     or 'The script owner')
                 script_title = (invite.get('scripts') or {}).get('title') or 'Unknown Script'
                 send_invite_revoked(
@@ -314,13 +320,13 @@ def get_invite_by_token(token):
         return jsonify({'error': 'Database not configured'}), 500
     
     try:
-        result = supabase.table('script_invites').select('*, scripts(id, title)').eq('token', token).single().execute()
-        
-        if not result.data:
+        invite = fetch_single(
+            supabase.table('script_invites').select('*, scripts(id, title)').eq('token', token).single()
+        )
+
+        if not invite:
             return jsonify({'error': 'Invite not found'}), 404
-        
-        invite = result.data
-        
+
         # Check if expired
         if invite['expires_at']:
             expires = datetime.fromisoformat(invite['expires_at'].replace('Z', '+00:00'))
@@ -367,13 +373,13 @@ def accept_invite(token):
     
     try:
         # Get invite
-        result = supabase.table('script_invites').select('*').eq('token', token).single().execute()
-        
-        if not result.data:
+        invite = fetch_single(
+            supabase.table('script_invites').select('*').eq('token', token).single()
+        )
+
+        if not invite:
             return jsonify({'error': 'Invite not found'}), 404
-        
-        invite = result.data
-        
+
         # Verify email matches - invite is bound to the invited address only
         if invite['email'].lower() != user_email:
             return jsonify({'error': 'This invitation was sent to a different email address'}), 403
@@ -416,14 +422,18 @@ def accept_invite(token):
         }).eq('id', invite['id']).execute()
         
         # Get script title for notification
-        script_result = supabase.table('scripts').select('title').eq('id', invite['script_id']).single().execute()
-        script_title = script_result.data.get('title', 'Unknown Script') if script_result.data else 'Unknown Script'
-        
+        script_result = fetch_single(
+            supabase.table('scripts').select('title').eq('id', invite['script_id']).single()
+        )
+        script_title = script_result.get('title', 'Unknown Script') if script_result else 'Unknown Script'
+
         # Get accepting user's name
-        profile_result = supabase.table('profiles').select('full_name, email').eq('id', user_id).single().execute()
+        profile_result = fetch_single(
+            supabase.table('profiles').select('full_name, email').eq('id', user_id).single()
+        )
         accepter_name = 'Someone'
-        if profile_result.data:
-            accepter_name = profile_result.data.get('full_name') or profile_result.data.get('email', 'Someone')
+        if profile_result:
+            accepter_name = profile_result.get('full_name') or profile_result.get('email', 'Someone')
         
         # Create notification for the invite sender
         if invite['invited_by']:
@@ -451,12 +461,14 @@ def accept_invite(token):
             if email_configured():
                 try:
                     # Get inviter's profile for email and name
-                    inviter_result = supabase.table('profiles').select('email, full_name').eq('id', invite['invited_by']).single().execute()
-                    if inviter_result.data and inviter_result.data.get('email'):
-                        inviter_email = inviter_result.data['email']
-                        inviter_name = inviter_result.data.get('full_name') or inviter_email.split('@')[0]
+                    inviter_result = fetch_single(
+                        supabase.table('profiles').select('email, full_name').eq('id', invite['invited_by']).single()
+                    )
+                    if inviter_result and inviter_result.get('email'):
+                        inviter_email = inviter_result['email']
+                        inviter_name = inviter_result.get('full_name') or inviter_email.split('@')[0]
                         script_url = f"{FRONTEND_URL}/scenes/{invite['script_id']}"
-                        
+
                         send_invite_accepted_notification(
                             to_email=inviter_email,
                             inviter_name=inviter_name,
@@ -467,7 +479,7 @@ def accept_invite(token):
                         )
                 except Exception as email_err:
                     print(f"Warning: Failed to send email notification: {email_err}")
-        
+
         return jsonify({
             'success': True,
             'script_id': invite['script_id'],
@@ -545,8 +557,10 @@ def auto_accept_pending_invites():
                     }).eq('id', invite['id']).execute()
                     
                     # Get script title
-                    script_result = supabase.table('scripts').select('title').eq('id', invite['script_id']).single().execute()
-                    script_title = script_result.data.get('title', 'Unknown Script') if script_result.data else 'Unknown Script'
+                    script_result = fetch_single(
+                        supabase.table('scripts').select('title').eq('id', invite['script_id']).single()
+                    )
+                    script_title = script_result.get('title', 'Unknown Script') if script_result else 'Unknown Script'
                     
                     dept_name = get_department_name(invite['department_code'])
                     
@@ -559,10 +573,12 @@ def auto_accept_pending_invites():
                     
                     # Create notification for invite sender
                     if invite['invited_by']:
-                        profile_result = supabase.table('profiles').select('full_name, email').eq('id', user_id).single().execute()
+                        profile_result = fetch_single(
+                            supabase.table('profiles').select('full_name, email').eq('id', user_id).single()
+                        )
                         accepter_name = 'Someone'
-                        if profile_result.data:
-                            accepter_name = profile_result.data.get('full_name') or profile_result.data.get('email', 'Someone')
+                        if profile_result:
+                            accepter_name = profile_result.get('full_name') or profile_result.get('email', 'Someone')
                         
                         notification_data = {
                             'user_id': invite['invited_by'],
@@ -586,10 +602,12 @@ def auto_accept_pending_invites():
                         # Send email notification
                         if email_configured():
                             try:
-                                inviter_result = supabase.table('profiles').select('email, full_name').eq('id', invite['invited_by']).single().execute()
-                                if inviter_result.data and inviter_result.data.get('email'):
-                                    inviter_email = inviter_result.data['email']
-                                    inviter_name = inviter_result.data.get('full_name') or inviter_email.split('@')[0]
+                                inviter_result = fetch_single(
+                                    supabase.table('profiles').select('email, full_name').eq('id', invite['invited_by']).single()
+                                )
+                                if inviter_result and inviter_result.get('email'):
+                                    inviter_email = inviter_result['email']
+                                    inviter_name = inviter_result.get('full_name') or inviter_email.split('@')[0]
                                     script_url = f"{FRONTEND_URL}/scenes/{invite['script_id']}"
                                     
                                     send_invite_accepted_notification(
@@ -650,14 +668,18 @@ def list_members(script_id):
             })
         
         # Get script to find owner user_id
-        script_result = supabase.table('scripts').select('user_id').eq('id', script_id).single().execute()
-        
+        script_result = fetch_single(
+            supabase.table('scripts').select('user_id').eq('id', script_id).single()
+        )
+
         owner = None
-        if script_result.data:
-            owner_user_id = script_result.data['user_id']
+        if script_result:
+            owner_user_id = script_result['user_id']
             # Fetch owner's profile separately
-            owner_profile_result = supabase.table('profiles').select('id, email, full_name, avatar_url').eq('id', owner_user_id).single().execute()
-            owner_profile = owner_profile_result.data or {}
+            owner_profile_result = fetch_single(
+                supabase.table('profiles').select('id, email, full_name, avatar_url').eq('id', owner_user_id).single()
+            )
+            owner_profile = owner_profile_result or {}
             owner = {
                 'user_id': owner_user_id,
                 'name': owner_profile.get('full_name') or owner_profile.get('email', 'Owner'),
@@ -730,12 +752,14 @@ def get_my_membership(script_id):
     
     try:
         # Check if user is the owner
-        script_result = supabase.table('scripts').select('user_id, title').eq('id', script_id).single().execute()
-        
-        if not script_result.data:
+        script_result = fetch_single(
+            supabase.table('scripts').select('user_id, title').eq('id', script_id).single()
+        )
+
+        if not script_result:
             return jsonify({'error': 'Script not found'}), 404
-        
-        if script_result.data['user_id'] == user_id:
+
+        if script_result['user_id'] == user_id:
             # User is the owner
             return jsonify({
                 'membership': {
@@ -745,14 +769,14 @@ def get_my_membership(script_id):
                     'is_owner': True
                 }
             })
-        
+
         # Check if user is a team member
-        member_result = supabase.table('script_members').select('*').eq('script_id', script_id).eq('user_id', user_id).single().execute()
-        
-        if not member_result.data:
+        member = fetch_single(
+            supabase.table('script_members').select('*').eq('script_id', script_id).eq('user_id', user_id).single()
+        )
+
+        if not member:
             return jsonify({'membership': None})
-        
-        member = member_result.data
         dept_name = get_department_name(member['department_code'])
         
         # Get department color
@@ -789,21 +813,27 @@ def remove_member(script_id, member_id):
 
     try:
         # Owner-only authorization already enforced by @require_script_role('owner').
-        script_result = supabase.table('scripts').select('user_id, title').eq('id', script_id).single().execute()
+        script_result = fetch_single(
+            supabase.table('scripts').select('user_id, title').eq('id', script_id).single()
+        )
 
-        if not script_result.data:
+        if not script_result:
             return jsonify({'error': 'Script not found'}), 404
 
         # Capture the removed member's contact details BEFORE deleting the row
         removed_email = None
         removed_name = 'there'
         try:
-            member_row = supabase.table('script_members').select('user_id').eq('id', member_id).eq('script_id', script_id).single().execute()
-            if member_row.data and member_row.data.get('user_id'):
-                profile = supabase.table('profiles').select('email, full_name').eq('id', member_row.data['user_id']).single().execute()
-                if profile.data:
-                    removed_email = profile.data.get('email')
-                    removed_name = profile.data.get('full_name') or (removed_email.split('@')[0] if removed_email else 'there')
+            member_row = fetch_single(
+                supabase.table('script_members').select('user_id').eq('id', member_id).eq('script_id', script_id).single()
+            )
+            if member_row and member_row.get('user_id'):
+                profile = fetch_single(
+                    supabase.table('profiles').select('email, full_name').eq('id', member_row['user_id']).single()
+                )
+                if profile:
+                    removed_email = profile.get('email')
+                    removed_name = profile.get('full_name') or (removed_email.split('@')[0] if removed_email else 'there')
         except Exception as lookup_err:
             print(f"Warning: Could not look up removed member's profile: {lookup_err}")
 
@@ -814,15 +844,17 @@ def remove_member(script_id, member_id):
         if removed_email and email_configured():
             try:
                 remover_name = 'The script owner'
-                remover_result = supabase.table('profiles').select('full_name, email').eq('id', user_id).single().execute()
-                if remover_result.data:
-                    remover_name = (remover_result.data.get('full_name')
-                                    or remover_result.data.get('email', '').split('@')[0]
+                remover_result = fetch_single(
+                    supabase.table('profiles').select('full_name, email').eq('id', user_id).single()
+                )
+                if remover_result:
+                    remover_name = (remover_result.get('full_name')
+                                    or remover_result.get('email', '').split('@')[0]
                                     or 'The script owner')
                 send_member_removed(
                     to_email=removed_email,
                     member_name=removed_name,
-                    script_title=script_result.data.get('title') or 'Unknown Script',
+                    script_title=script_result.get('title') or 'Unknown Script',
                     remover_name=remover_name
                 )
             except Exception as email_err:

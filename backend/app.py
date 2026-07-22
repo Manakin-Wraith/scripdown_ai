@@ -19,6 +19,7 @@ from routes.campaign_webhook_routes import webhook_bp
 from routes.schedule_routes import schedule_bp
 from routes.segment_routes import segment_bp
 from routes.payfast_routes import payfast_bp
+from routes.series_routes import series_bp
 
 load_dotenv()
 
@@ -60,6 +61,7 @@ app.register_blueprint(campaign_bp)  # Email campaign routes at /api/campaigns/*
 app.register_blueprint(schedule_bp)  # Shooting schedule routes at /api/scripts/:id/schedules/*
 app.register_blueprint(segment_bp)  # Timeline segment routes at /api/segments/* and /api/scripts/:id/segments
 app.register_blueprint(payfast_bp)  # PayFast ITN webhook at /api/payfast/notify (public — PayFast calls it)
+app.register_blueprint(series_bp)  # Series/season grouping routes at /api/series/*, /api/seasons/*, /api/scripts/:id/season
 
 @app.route('/health')
 def health_check():

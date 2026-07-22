@@ -16,6 +16,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import routes.invite_routes as ir
 from middleware.auth import DEV_USER_ID
+from postgrest.exceptions import APIError
 
 
 def test_email_mismatch_is_rejected():
@@ -73,7 +74,17 @@ class MockTable:
         if self._op == "select":
             matches = self._filtered()
             if self._single:
-                return SimpleNamespace(data=matches[0] if matches else None)
+                # Match real supabase-py behavior: .single() with zero matches
+                # makes PostgREST respond 406, which postgrest-py surfaces as
+                # an APIError with code 'PGRST116' -- not a graceful data=None.
+                if not matches:
+                    raise APIError({
+                        "message": "JSON object requested, multiple (or no) rows returned",
+                        "code": "PGRST116",
+                        "hint": None,
+                        "details": None,
+                    })
+                return SimpleNamespace(data=matches[0])
             return SimpleNamespace(data=matches)
         if self._op == "insert":
             new_row = dict(self._payload)

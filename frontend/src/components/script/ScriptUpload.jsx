@@ -8,6 +8,8 @@ import { useToast } from '../../context/ToastContext';
 import { supabase } from '../../lib/supabase';
 import { UpgradeModal } from '../subscription';
 import PageHeader from '../layout/PageHeader';
+import SeriesPicker from '../series/SeriesPicker';
+import { updateScriptSeason } from '../../services/apiService';
 import './ScriptUpload.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -29,6 +31,8 @@ const ScriptUpload = () => {
     const [error, setError] = useState(null);
     const [isAiDetecting, setIsAiDetecting] = useState(false);
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+    const [pendingSeasonAssignment, setPendingSeasonAssignment] = useState(null); // {seasonId, episodeNumber} | null
+    const [uploadAttempt, setUploadAttempt] = useState(0);
     const navigate = useNavigate();
     const toast = useToast();
 
@@ -96,14 +100,30 @@ const ScriptUpload = () => {
             setProcessingStage('Complete!');
             
             const result = uploadResponse.data;
-            
+
             setUploadResult(result);
             setUploading(false);
-            
+
+            // If the user picked a series/season assignment before uploading,
+            // apply it now that we have a script_id. Non-fatal on failure --
+            // the script uploaded successfully either way, and the user can
+            // still assign it later via the reassignment surface (Task 9).
+            if (result?.script_id && pendingSeasonAssignment) {
+                try {
+                    await updateScriptSeason(
+                        result.script_id,
+                        pendingSeasonAssignment.seasonId,
+                        pendingSeasonAssignment.episodeNumber
+                    );
+                } catch (err) {
+                    console.error('Failed to assign script to season:', err);
+                }
+            }
+
             // Show success message
             const methodLabel = result.parse_method === 'grammar' ? 'Grammar parser' : 'Pattern matching';
             toast.success(
-                'Script Uploaded!', 
+                'Script Uploaded!',
                 `${methodLabel} found ${result.scene_candidates || 0} scenes. Ready for analysis.`
             );
 
@@ -124,6 +144,8 @@ const ScriptUpload = () => {
         setUploadProgress(0);
         setUploadResult(null);
         setError(null);
+        setPendingSeasonAssignment(null);
+        setUploadAttempt((prev) => prev + 1);
     };
 
     const goToSceneViewer = () => {
@@ -189,7 +211,15 @@ const ScriptUpload = () => {
 
             <div className="upload-content">
                 {!uploading && !uploadResult ? (
-                    <DropZone onFileSelect={processFile} disabled={false} />
+                    <>
+                        <SeriesPicker
+                            key={uploadAttempt}
+                            onAssign={(seasonId, episodeNumber) =>
+                                setPendingSeasonAssignment(seasonId ? { seasonId, episodeNumber } : null)
+                            }
+                        />
+                        <DropZone onFileSelect={processFile} disabled={false} />
+                    </>
                 ) : uploading ? (
                     <div className="upload-progress-container">
                         <div className="upload-progress-card">

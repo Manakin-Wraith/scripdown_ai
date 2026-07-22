@@ -8,6 +8,7 @@ for database operations.
 import os
 from functools import lru_cache
 from dotenv import load_dotenv
+from postgrest.exceptions import APIError
 
 # Load environment variables
 load_dotenv()
@@ -63,6 +64,30 @@ def get_db():
     This allows gradual migration from SQLite.
     """
     return get_supabase_client()
+
+
+def fetch_single(query):
+    """
+    Execute a supabase-py query built with `.single()`, returning the row
+    dict or None if no row matched.
+
+    `.single()` makes PostgREST respond 406 when zero rows match, which
+    postgrest-py surfaces as an APIError with code 'PGRST116' -- NOT as a
+    graceful `data=None` result. Every call site in this codebase that did
+    `result = query.single().execute(); if not result.data: return 404`
+    was unreachable for a genuinely missing row (the exception fired
+    first). This helper restores that intended behavior: PGRST116
+    (no rows) becomes a clean None; any other APIError re-raises
+    unchanged, so real database errors still propagate and get handled by
+    each route's own try/except, same as before.
+    """
+    try:
+        result = query.execute()
+        return result.data
+    except APIError as e:
+        if e.code == 'PGRST116':
+            return None
+        raise
 
 
 # ============================================

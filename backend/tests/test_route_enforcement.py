@@ -32,7 +32,7 @@ up.
 """
 import pytest
 
-BLUEPRINT_PREFIXES = ("supabase.", "reports.", "schedule.", "invite.")
+BLUEPRINT_PREFIXES = ("supabase.", "reports.", "schedule.", "invite.", "series.")
 
 # URL rule arguments that indicate a route is scoped to a single script,
 # either directly (script_id) or via a child resource whose parent script
