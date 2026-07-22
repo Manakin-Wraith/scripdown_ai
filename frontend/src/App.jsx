@@ -42,6 +42,8 @@ import SharedReportView from './components/reports/SharedReportView';
 import InvitePage from './pages/InvitePage';
 import BillingPage from './pages/BillingPage';
 import PaymentResultPage from './pages/PaymentResultPage';
+import SeriesListPage from './pages/SeriesListPage';
+import SeasonPage from './pages/SeasonPage';
 
 function App() {
   return (
@@ -70,6 +72,8 @@ function App() {
                     <Route path="scripts/:scriptId/schedule" element={<ShootingSchedulePage />} />
                     <Route path="profile" element={<ProfilePage />} />
                     <Route path="billing" element={<BillingPage />} />
+                    <Route path="series" element={<SeriesListPage />} />
+                    <Route path="series/:seriesId/seasons/:seasonId" element={<SeasonPage />} />
                     <Route path="payment/success" element={<PaymentResultPage outcome="success" />} />
                     <Route path="payment/cancel" element={<PaymentResultPage outcome="cancel" />} />
 
