@@ -436,49 +436,65 @@ instinct in the original Option 1 sketch.
 
 ---
 
-## Series / multi-episode analysis
+## Series / multi-episode analysis — Phase 1 RESOLVED, shipped; UI polish + Phase 2 open
 
-**Status:** Not started — feature request.
+**Status:** Phase 1 (grouping/reporting layer) shipped 2026-07-22. Two
+follow-ups remain open: visual polish on the new pages, and Phase 2
+(cross-episode entity continuity), which was always deferred.
 
-**Context.** The data model is single-script-centric — one script upload,
-one set of scenes, one breakdown. There's no concept of a series or season
-grouping multiple related scripts (episodes) together. A production
-breaking down a season needs both to manage episodes as a set and, ideally,
-to have entity extraction (cast, locations) be consistent across episodes
-rather than independently guessed each time.
+**What shipped (Phase 1).** Brainstormed, designed, planned, and
+implemented via `superpowers:subagent-driven-development` across 8 tasks,
+merged to `main`. A `series` → `seasons` → episode (`scripts.season_id`/
+`episode_number`) hierarchy, assignable at upload time via a `SeriesPicker`
+component, with `GET/POST /api/series`, `GET/POST /api/series/:id/seasons`,
+`GET /api/seasons/:id/episodes`, `PATCH /api/scripts/:id/season`, and
+`GET /api/seasons/:id/cast` (combined cast view, exact-name-grouped,
+case-insensitive — explicitly not identity resolution). Access is
+inherited per-episode from existing script roles, no new permission
+system. Zero billing/entitlement impact by design. A same-day follow-up
+fix added the missing reassignment surface (a "Series" action in the My
+Scripts table, `SeriesAssignmentModal`) after live testing showed the
+original design's "fix a mis-assigned episode later" requirement had
+never actually been built.
 
-**Options (to brainstorm), as a two-phase idea.**
-1. **Phase 1 — grouping/reporting layer.** Episodes stay independently
-   uploaded and analyzed exactly as scripts are today (no change to the
-   extraction pipeline). A new `series`/`season` entity groups a set of
-   `script_id`s for shared views: a combined cast list across episodes, a
-   season-wide schedule/stripboard, cross-episode reports. Lowest risk —
-   additive on top of existing per-script analysis.
-2. **Phase 2 — cross-episode entity continuity.** Character/location/prop
-   identity carries across episodes, so "JOHN" extracted in episode 3
-   resolves to the same entity as "JOHN" in episode 1 rather than being
-   independently AI-guessed each time (risking inconsistent naming,
-   descriptions, or actor/casting notes per episode). Would likely extend
-   `backend/services/entity_resolver.py`'s existing duplicate-character
-   merging logic to operate across scripts within a series, not just within
-   one. Higher value but meaningfully harder — needs a cross-script identity
-   store and a strategy for when episode 5 legitimately introduces a
-   different "JOHN."
+Along the way, a real production bug was found and fixed: this repo's
+`postgrest` library raises on a zero-row `.single()` call instead of
+returning `None`, so every `if not result.data: return 404` built on
+`.single()` was unreachable — fixed via a `fetch_single()` helper
+(`backend/db/supabase_client.py`), retrofitted across `series_routes.py`
+and ~21 pre-existing call sites in `invite_routes.py`.
 
-**Also decide:** how a script is assigned to a series (at upload time vs.
-after the fact), whether series membership affects entitlement/billing (is a
-season priced differently than N independent scripts?), and whether
-Phase 2 identity matching is AI-assisted (embedding/fuzzy match against prior
-episodes' entities) or requires manual user confirmation before merging.
+**Open: style the Series/Season UI.** Found during live manual testing
+(2026-07-22, uploading two real "Die Testament" episodes) — the three new
+pages (`SeriesListPage`, `SeriesDetailPage`, `SeasonPage`) are functionally
+correct but visually undressed: plain default `<ul>`/`<li>` bullet lists
+with browser-default link styling, no card-based styling, no CSS file at
+all for any `.series-*` class. This was flagged during code review as a
+"future polish pass" and confirmed live — it doesn't match the rest of the
+app's dark, card-based design language (e.g. `BillingPage`/`ScriptLibrary`).
+Also two inconsistent loading/error UI conventions across the three pages
+(inline-above-content vs. early-return), inherited from different task
+briefs. `SeriesAssignmentModal`/`SeriesPicker` (the reassignment surface)
+are similarly unstyled — functional browser-default form controls only.
+
+**Open: Phase 2 — cross-episode entity continuity.** Character/location/
+prop identity carrying across episodes (so "JOHN" in episode 3 resolves to
+the same entity as "JOHN" in episode 1), rather than each episode's cast
+being independently extracted with only exact-string-match grouping in the
+combined cast view. Would extend `backend/services/entity_resolver.py`'s
+existing duplicate-character merging logic across scripts within a season.
+Higher value, meaningfully harder — needs a cross-script identity store and
+a strategy for when episode 5 legitimately introduces a different "JOHN."
+Also still open from the original brainstorm: whether identity matching is
+AI-assisted (embedding/fuzzy match) or requires manual confirmation.
 
 **References.**
-- `backend/services/entity_resolver.py` — existing single-script duplicate
-  character-name merging, the closest existing analog for cross-episode
-  identity matching
-- `backend/services/extraction_pipeline.py` — per-script upload/analysis
-  entry points that a series concept would need to group
-- Schedule/report surfaces that would gain a series-wide view:
-  `backend/services/report_service.py`, stripboard/schedule routes
+- Design: `docs/superpowers/specs/2026-07-22-series-multi-episode-phase1-design.md`
+- Plan: `docs/superpowers/plans/2026-07-22-series-multi-episode-phase1.md`
+- `backend/routes/series_routes.py`, `backend/db/migrations/045_series_seasons.sql`
+- `frontend/src/pages/SeriesListPage.jsx`, `SeriesDetailPage.jsx`, `SeasonPage.jsx`
+- `frontend/src/components/series/SeriesPicker.jsx`, `SeriesAssignmentModal.jsx`
+- Phase 2 starting point: `backend/services/entity_resolver.py`
 
 ---
 
