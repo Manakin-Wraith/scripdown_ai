@@ -8,11 +8,20 @@ import { listSeries, createSeries, listSeasons, createSeason } from '../../servi
  * season), 'new' (create a series, season defaults to 1).
  *
  * Calls onAssign(seasonId, episodeNumber) when the user has made a
- * complete selection; onAssign(null, null) if they pick 'none'. The
+ * complete selection; onAssign(null, null) for the 'none' state. The
  * caller (ScriptUpload or a reassignment surface) decides what to do with
  * that -- fire it immediately, or wait for a "confirm" action.
+ *
+ * autoFireNone (default true): in the upload flow, landing on 'none' means
+ * "the script simply isn't part of a series" and should report that the
+ * instant the user picks it (or on initial mount, since 'none' is the
+ * default). In a reassignment context (SeriesAssignmentModal), 'none' means
+ * "remove this script's existing assignment" -- a destructive action that
+ * must NOT fire just because the modal opened with 'none' as the initial
+ * mode. Pass autoFireNone={false} there; the 'none' panel then renders an
+ * explicit "Remove from series" button instead of firing automatically.
  */
-export default function SeriesPicker({ onAssign }) {
+export default function SeriesPicker({ onAssign, autoFireNone = true }) {
     const [mode, setMode] = useState('none');
     const [seriesList, setSeriesList] = useState([]);
     const [selectedSeriesId, setSelectedSeriesId] = useState('');
@@ -42,7 +51,7 @@ export default function SeriesPicker({ onAssign }) {
     }, [selectedSeriesId]);
 
     useEffect(() => {
-        if (mode === 'none') {
+        if (mode === 'none' && autoFireNone) {
             onAssign(null, null);
         }
     }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -87,6 +96,14 @@ export default function SeriesPicker({ onAssign }) {
             </div>
 
             {error && <p className="series-picker-error">{error}</p>}
+
+            {mode === 'none' && !autoFireNone && (
+                <div className="series-picker-none">
+                    <button type="button" onClick={() => onAssign(null, null)}>
+                        Remove from series
+                    </button>
+                </div>
+            )}
 
             {mode === 'existing' && (
                 <div className="series-picker-existing">

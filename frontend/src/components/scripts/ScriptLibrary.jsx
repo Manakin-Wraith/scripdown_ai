@@ -9,6 +9,7 @@ import { Spinner } from '../ui';
 import { useConfirmDialog } from '../../context/ConfirmDialogContext';
 import { useToast } from '../../context/ToastContext';
 import PageHeader from '../layout/PageHeader';
+import SeriesAssignmentModal from '../series/SeriesAssignmentModal';
 import './ScriptLibrary.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -19,6 +20,7 @@ const ScriptLibrary = () => {
     const [error, setError] = useState('');
     const [reanalyzing, setReanalyzing] = useState(null);
     const [locationHealthCounts, setLocationHealthCounts] = useState({});
+    const [assigningScript, setAssigningScript] = useState(null);
     const navigate = useNavigate();
     const { hasActiveAnalysis, globalStatus } = useAnalysis();
     const { confirm } = useConfirmDialog();
@@ -203,10 +205,18 @@ const ScriptLibrary = () => {
                     onDelete={handleDelete}
                     onRename={handleRename}
                     onUpdateWriter={handleUpdateWriter}
+                    onAssignSeries={setAssigningScript}
                     reanalyzingId={reanalyzing}
                     locationHealthCounts={locationHealthCounts}
                 />
             )}
+
+            <SeriesAssignmentModal
+                isOpen={!!assigningScript}
+                script={assigningScript}
+                onClose={() => setAssigningScript(null)}
+                onSaved={() => fetchScripts(false)}
+            />
         </div>
     );
 };
