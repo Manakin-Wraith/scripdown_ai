@@ -179,42 +179,34 @@ against a guessed shape risks silent wrong-parsing.
 
 ---
 
-## Script preview for FDX formats
+## Script preview for FDX formats — RESOLVED, already shipped
 
-**Status:** Deferred — real gap for `.fdx`-uploaded scripts.
+**Status:** Done. Discovered 2026-07-22 while scoping this entry for a
+brainstorm — it turned out to already be merged to `main` on 2026-07-09
+(`5ca0b03`, "faithful FDX screenplay preview with scene→page sync"),
+predating and superseding this backlog entry, which had gone stale.
 
-**Context.** The right-side viewer (`frontend/src/components/pdf/PdfViewerPanel.jsx`)
-fetches a `pdf_url` and renders the original **PDF**. FDX uploads have no PDF —
-the file is stored as `.fdx` with `application/xml` — so the preview panel has
-nothing to render for FDX-sourced scripts (empty/broken preview). PDF-sourced
-scripts are unaffected.
+**What shipped.** Combines and exceeds options 2 and 3 originally
+sketched here: `backend/services/fdx_preview.py` renders FDX scenes into
+a proper screenplay-formatted HTML/CSS document (scene headings, action,
+dialogue, parentheticals — 12pt Courier Prime, industry margins) and
+converts it to a real PDF via WeasyPrint. Each scene heading is embedded
+as a PDF anchor, so `generate_fdx_preview_pdf` also captures a genuine
+scene→page map, giving FDX scripts the same scene-list/preview-panel
+sync PDF-sourced scripts have. `get_pdf_url` (`supabase_routes.py`)
+lazily generates and caches the preview on first request
+(`preview_pdf_path` column, `scripts` storage bucket) — **no frontend
+changes were needed**, since `PdfViewerPanel.jsx` already just renders
+whatever PDF `getPdfUrl` returns, regardless of source format.
 
-**What exists to build on.** On FDX upload we already persist the reconstructed
-screenplay text: `scripts.full_text` and per-scene `scene_text` (with scene
-headings, action, character cues, and dialogue in order). So a preview does not
-require the original PDF.
-
-**Options (to brainstorm).**
-1. **Formatted text view (lowest effort).** Render `full_text` / assembled
-   `scene_text` in a read-only, screenplay-styled panel (monospace / element
-   styling). No new storage or conversion. Loses exact pagination/layout.
-2. **FDX → HTML render.** Parse the FDX structure into a formatted HTML
-   screenplay view (proper element styling: scene headings, action, dialogue,
-   parentheticals, dual dialogue). More faithful; more work.
-3. **FDX → PDF on upload.** Convert to PDF at upload time (e.g. WeasyPrint, which
-   the backend already uses for reports) and store it, so the existing PDF
-   viewer works unchanged. Most faithful to current UX; adds a conversion step,
-   storage, and layout-fidelity questions.
-
-**Also decide:** how the viewer picks a mode — detect source format from the
-script record (e.g. `file_name` extension / `file_path`) and route FDX scripts
-to the FDX preview, PDF scripts to the existing PDF viewer.
+**Verification.** `backend/tests/test_fdx_preview.py` (13 tests) and
+`backend/tests/test_fdx_route.py` pass.
 
 **References.**
-- Viewer: `frontend/src/components/pdf/PdfViewerPanel.jsx`
-- FDX text source: `backend/services/fdx_parser.py` (`parse_fdx_upload` →
-  `full_text`, per-scene `scene_text`)
-- Upload/persistence: `backend/routes/supabase_routes.py::upload_script`
+- `backend/services/fdx_preview.py` — HTML/CSS render + WeasyPrint PDF + page-anchor capture
+- `backend/routes/supabase_routes.py` — `_lazy_generate_fdx_preview`, `store_fdx_preview`, `get_pdf_url`
+- `frontend/src/components/pdf/PdfViewerPanel.jsx` — unchanged, format-agnostic
+- `backend/tests/test_fdx_preview.py`, `test_fdx_route.py`
 
 ---
 
