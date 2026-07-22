@@ -1,0 +1,207 @@
+/* Shared styling for SeriesListPage, SeriesDetailPage, SeasonPage --
+   row-list navigation, section headers, empty states, and the combined
+   cast table. All three pages import this single file rather than each
+   carrying their own near-identical CSS. */
+
+.series-page {
+    max-width: 900px;
+}
+
+.series-page-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+}
+
+.series-page-error {
+    color: var(--danger);
+    background: var(--danger-bg);
+    border: 1px solid var(--danger);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4);
+}
+
+/* Section headings within a page (e.g. "Episodes", "Combined Cast") */
+.series-section-title {
+    color: var(--text-primary);
+    font-size: var(--text-lg);
+    font-weight: 600;
+    margin: var(--space-6) 0 var(--space-3);
+}
+.series-section-title:first-of-type {
+    margin-top: 0;
+}
+
+/* Row list -- series / seasons / episodes all use this */
+.series-row-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.series-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: var(--space-3) var(--space-4);
+    text-decoration: none;
+    transition: border-color 0.15s ease;
+}
+.series-row:hover {
+    border-color: var(--primary-500);
+}
+
+.series-row-left {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-width: 0;
+}
+
+.series-row-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    border-radius: var(--radius-md);
+    background: var(--primary-alpha-15);
+    color: var(--primary-500);
+}
+
+.series-row-num {
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.series-row-title {
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 0.9375rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.series-row-meta {
+    color: var(--text-secondary);
+    font-size: 0.8125rem;
+}
+
+.series-row-chevron {
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+
+/* Combined cast table */
+.series-cast-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+.series-cast-table th {
+    text-align: left;
+    color: var(--text-secondary);
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--border-color);
+}
+.series-cast-table td {
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--border-subtle);
+    color: var(--text-primary);
+    font-size: 0.875rem;
+}
+.series-cast-table tr:last-child td {
+    border-bottom: none;
+}
+
+.series-episode-tag {
+    display: inline-block;
+    background: var(--gray-700);
+    color: var(--text-secondary);
+    font-size: 0.6875rem;
+    padding: 2px var(--space-2);
+    border-radius: var(--radius-full);
+    margin: 2px 4px 2px 0;
+}
+
+/* Empty state -- reused across all three pages, CTA varies per page */
+.series-empty-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-12) var(--space-8);
+    min-height: 280px;
+    background: var(--bg-card);
+    border-radius: var(--radius-2xl);
+    border: 1px solid var(--border-color);
+}
+
+.series-empty-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    max-width: 380px;
+}
+
+.series-empty-icon-wrapper {
+    width: 64px;
+    height: 64px;
+    background: var(--gray-700);
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto var(--space-4);
+    border: 1px solid var(--border-color);
+}
+
+.series-empty-icon {
+    color: var(--text-secondary);
+}
+
+.series-empty-content h2 {
+    font-size: 1.25rem;
+    color: var(--text-primary);
+    margin: 0 0 var(--space-2);
+}
+
+.series-empty-content p {
+    color: var(--text-secondary);
+    margin: 0 0 var(--space-6);
+    line-height: 1.6;
+    font-size: 0.875rem;
+}
+
+.series-empty-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
+    color: var(--gray-900);
+    padding: 10px 20px;
+    border-radius: var(--radius-lg);
+    font-weight: 600;
+    font-size: 0.875rem;
+    border: none;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.series-empty-cta:hover {
+    background: linear-gradient(135deg, var(--primary-400), var(--primary-500));
+    transform: translateY(-1px);
+}
