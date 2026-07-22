@@ -436,11 +436,13 @@ instinct in the original Option 1 sketch.
 
 ---
 
-## Series / multi-episode analysis — Phase 1 RESOLVED, shipped; UI polish + Phase 2 open
+## Series / multi-episode analysis — Phase 1 RESOLVED, shipped; UX/UI reassessment + Phase 2 open
 
-**Status:** Phase 1 (grouping/reporting layer) shipped 2026-07-22. Two
-follow-ups remain open: visual polish on the new pages, and Phase 2
-(cross-episode entity continuity), which was always deferred.
+**Status:** Phase 1 (grouping/reporting layer) shipped 2026-07-22,
+including a same-day reassignment-surface fix and a visual polish pass
+(both also 2026-07-22). Two follow-ups remain open: a holistic UX/UI
+reassessment of the whole feature now that it's live and styled, and
+Phase 2 (cross-episode entity continuity), which was always deferred.
 
 **What shipped (Phase 1).** Brainstormed, designed, planned, and
 implemented via `superpowers:subagent-driven-development` across 8 tasks,
@@ -464,18 +466,35 @@ returning `None`, so every `if not result.data: return 404` built on
 (`backend/db/supabase_client.py`), retrofitted across `series_routes.py`
 and ~21 pre-existing call sites in `invite_routes.py`.
 
-**Open: style the Series/Season UI.** Found during live manual testing
-(2026-07-22, uploading two real "Die Testament" episodes) — the three new
-pages (`SeriesListPage`, `SeriesDetailPage`, `SeasonPage`) are functionally
-correct but visually undressed: plain default `<ul>`/`<li>` bullet lists
-with browser-default link styling, no card-based styling, no CSS file at
-all for any `.series-*` class. This was flagged during code review as a
-"future polish pass" and confirmed live — it doesn't match the rest of the
-app's dark, card-based design language (e.g. `BillingPage`/`ScriptLibrary`).
-Also two inconsistent loading/error UI conventions across the three pages
-(inline-above-content vs. early-return), inherited from different task
-briefs. `SeriesAssignmentModal`/`SeriesPicker` (the reassignment surface)
-are similarly unstyled — functional browser-default form controls only.
+**Done: style the Series/Season UI — RESOLVED, shipped 2026-07-22.**
+Found during live manual testing (uploading two real "Die Testament"
+episodes) — the three pages were functionally correct but visually
+undressed (plain default `<ul>`/`<li>` lists, no CSS at all). Fixed via
+`superpowers:brainstorming` (visual companion mockups chose row-list over
+card-grid, and a styled table over character-cards for the cast view) →
+new shared `frontend/src/pages/SeriesPages.css`, consistent full-page
+loading/error handling across all three pages (previously two competing
+conventions), and icon+heading+description empty states. Verified live
+against real data. `SeriesAssignmentModal`/`SeriesPicker` (the
+reassignment surface) were explicitly left unstyled — deferred, not
+forgotten (browser-default form controls only).
+
+**Open: reassess the whole feature's UX/UI now that it's live.** Now that
+Phase 1 + the reassignment fix + visual polish have all shipped and been
+used against real data, do a holistic pass rather than more incremental
+fixes: is the upload-time `SeriesPicker` flow (3 buttons, inline
+series/season/episode-number entry) actually the easiest way for a user
+to assign an episode, or would a simpler default (e.g. auto-suggest the
+most-recently-used series) reduce friction? Is per-script "Series" icon
+button in My Scripts discoverable enough, or should assignment status
+show as a visible column/badge in that table instead of only a tooltip?
+Does the 3-level click-through (`/series` → series → season) feel right,
+or is it one hop too many for the common case of "one series, one
+season"? Should `SeriesPicker`/`SeriesAssignmentModal` get styled as part
+of this pass rather than as a separate item? No specifics decided yet —
+needs a proper `superpowers:brainstorming` pass, ideally informed by
+watching a real user (or the account owner) work through the assign →
+browse → re-assign flow cold, without guidance.
 
 **Open: Phase 2 — cross-episode entity continuity.** Character/location/
 prop identity carrying across episodes (so "JOHN" in episode 3 resolves to
@@ -492,8 +511,9 @@ AI-assisted (embedding/fuzzy match) or requires manual confirmation.
 - Design: `docs/superpowers/specs/2026-07-22-series-multi-episode-phase1-design.md`
 - Plan: `docs/superpowers/plans/2026-07-22-series-multi-episode-phase1.md`
 - `backend/routes/series_routes.py`, `backend/db/migrations/045_series_seasons.sql`
-- `frontend/src/pages/SeriesListPage.jsx`, `SeriesDetailPage.jsx`, `SeasonPage.jsx`
-- `frontend/src/components/series/SeriesPicker.jsx`, `SeriesAssignmentModal.jsx`
+- `frontend/src/pages/SeriesListPage.jsx`, `SeriesDetailPage.jsx`, `SeasonPage.jsx`, `SeriesPages.css`
+- `frontend/src/components/series/SeriesPicker.jsx`, `SeriesAssignmentModal.jsx` (unstyled — in scope for the reassessment)
+- `frontend/src/components/scripts/ScriptTable.jsx` — the "Series" per-row action, a candidate for the discoverability question above
 - Phase 2 starting point: `backend/services/entity_resolver.py`
 
 ---
