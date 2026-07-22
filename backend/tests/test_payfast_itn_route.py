@@ -116,8 +116,8 @@ def test_seats_grant_uses_intent_quantity(monkeypatch):
     _pass_all(monkeypatch, calls)
     monkeypatch.setattr(pr, "_load_intent",
                         lambda m: _intent(charge_type='tier_2_seats',
-                                          expected_amount='600.00', quantity=4))
-    _post({'amount_gross': '600.00', 'custom_int1': '99'})   # lying client
+                                          expected_amount='1000.00', quantity=4))
+    _post({'amount_gross': '1000.00', 'custom_int1': '99'})   # lying client
     assert calls == [('tier_2_seats', 'u1', 4)]       # intent quantity, not custom_int1
 
 

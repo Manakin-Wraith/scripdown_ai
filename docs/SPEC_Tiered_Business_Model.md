@@ -11,7 +11,7 @@ SlateOne will launch with a **two-tier subscription model** designed to serve bo
 | Attribute | **Tier 1 — Pay-Per-Breakdown** | **Tier 2 — Annual Team License** |
 | --- | --- | --- |
 | **Billing model** | Consumption / pay-as-you-go | Annual subscription + per-seat fee |
-| **Cost** | ZAR 450 per breakdown/analysis | ZAR 1,850 per year + ZAR 150 per seat/member |
+| **Cost** | ZAR 450 per breakdown/analysis | ZAR 1,850 per year + ZAR 250 per seat/member |
 | **Script uploads** | Unlimited | Unlimited |
 | **Teams / collaboration** | **Not enabled** | **Enabled** |
 | **Seat billing** | N/A | To be determined (see §5) |
@@ -30,7 +30,7 @@ SlateOne will launch with a **two-tier subscription model** designed to serve bo
 
 ### 3.2 Tier 2 — Annual Team License
 - **Base license:** ZAR 1,850 per year per account/organization.
-- **Per-seat fee:** ZAR 150 per team member (see §5 for payment responsibility options).
+- **Per-seat fee:** ZAR 250 per team member (see §5 for payment responsibility options).
 - **Includes:** Unlimited AI breakdowns for the account owner and all paid seats.
 - **Billing cycle:** Annual, paid upfront.
 - **Minimum seat count:** 1 (the owner).
@@ -105,7 +105,7 @@ Tier 1 users can still:
 
 ### 5.1 Option A: Account Owner Pays for All Seats
 
-**Description:** The Tier 2 account owner / script owner is billed ZAR 150 for every seat they invite, regardless of who accepts.
+**Description:** The Tier 2 account owner / script owner is billed ZAR 250 for every seat they invite, regardless of who accepts.
 
 **Pros:**
 - Simple billing relationship (owner = customer).
@@ -119,7 +119,7 @@ Tier 1 users can still:
 
 ### 5.2 Option B: Invited Member Pays for Their Own Seat
 
-**Description:** Each invited crew member pays ZAR 150 individually to activate their seat after accepting the invite.
+**Description:** Each invited crew member pays ZAR 250 individually to activate their seat after accepting the invite.
 
 **Pros:**
 - Distributes cost across the production team.
@@ -153,7 +153,7 @@ Tier 1 users can still:
 - Production companies, line producers, and heads of department are the natural customers for SlateOne.
 - Centralized billing aligns with how film/ TV productions budget software tools.
 - It minimizes drop-off in the invite flow and keeps support overhead low.
-- The UI should still show the per-seat cost (ZAR 150) so owners can internally allocate the expense.
+- The UI should still show the per-seat cost (ZAR 250) so owners can internally allocate the expense.
 
 **Decision:**
 - **The Tier 2 account owner pays for each seat.**
@@ -180,8 +180,8 @@ Tier 1 users can still:
 1. Production company subscribes to Tier 2.
 2. Base license: ZAR 1,850/year.
 3. Invites 4 crew members (producer, 1st AD, costume, locations).
-4. Seats: 4 × ZAR 150 = ZAR 600.
-5. **First-year cost:** ZAR 1,850 + ZAR 600 = **ZAR 2,450**.
+4. Seats: 4 × ZAR 250 = ZAR 1,000.
+5. **First-year cost:** ZAR 1,850 + ZAR 1,000 = **ZAR 2,850**.
 6. Team can run unlimited AI breakdowns and use department workspaces.
 
 ## 8. Billing & Enforcement
@@ -214,6 +214,6 @@ Tier 1 users can still:
 ## 10. Summary
 
 - **Tier 1** is a pure pay-per-analysis model for individuals: ZAR 450 per breakdown, unlimited uploads, no team features.
-- **Tier 2** is an annual team license: ZAR 1,850/year + ZAR 150 per seat, includes all analysis and full team collaboration.
+- **Tier 2** is an annual team license: ZAR 1,850/year + ZAR 250 per seat, includes all analysis and full team collaboration.
 - **Team seats are paid by the account owner** (recommended Option A) to minimize friction and align with production budgeting workflows.
 - **Script uploads and manual scene work are always free**; only AI-driven breakdowns trigger charges in Tier 1.

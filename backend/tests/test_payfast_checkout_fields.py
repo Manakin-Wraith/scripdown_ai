@@ -10,7 +10,7 @@ import services.payfast_service as pf
 
 def test_compute_amount_multiplies_by_quantity():
     assert pf.compute_amount('tier_1_credits', 3) == Decimal('1350.00')
-    assert pf.compute_amount('tier_2_seats', 4) == Decimal('600.00')
+    assert pf.compute_amount('tier_2_seats', 4) == Decimal('1000.00')
 
 
 def test_license_ignores_quantity():

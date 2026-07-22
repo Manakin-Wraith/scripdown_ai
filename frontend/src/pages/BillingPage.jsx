@@ -7,7 +7,7 @@ import { Spinner } from '../components/ui';
 import './BillingPage.css';
 
 // Display only. The server is the authority on price.
-const PRICE_ZAR = { tier_1_credits: 450, tier_2_license: 1850, tier_2_seats: 150 };
+const PRICE_ZAR = { tier_1_credits: 450, tier_2_license: 1850, tier_2_seats: 250 };
 
 const TIER_LABELS = {
     none: 'No active plan',

@@ -17,7 +17,7 @@ import requests
 PRICES = {
     'tier_1_credits': Decimal('450.00'),   # per breakdown
     'tier_2_license': Decimal('1850.00'),  # per year
-    'tier_2_seats': Decimal('150.00'),     # per seat
+    'tier_2_seats': Decimal('250.00'),     # per seat
 }
 
 
