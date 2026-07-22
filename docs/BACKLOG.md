@@ -379,59 +379,60 @@ surfaces in `ReportLibraryDrawer.jsx` (version history per report).
 
 ---
 
-## Script re-upload: detect and highlight what changed
+## Script re-upload: detect and highlight what changed — PARTIALLY BUILT, entry corrected
 
-**Status:** Not started — feature request.
+**Status:** Open, but narrower than originally scoped. Found 2026-07-22
+while checking the backlog for stale entries — the original premise
+below ("re-uploading means a brand-new `script_id`... discarding all
+prior breakdown work") is factually wrong; a substantial chunk of
+Option 1 already shipped as a **Revision Import** feature, apparently
+before this entry was written.
 
-**Context.** Today a new draft of a script has no relationship to the one
-already analyzed — re-uploading means a brand-new `script_id`, a full re-parse,
-and a full re-run of AI extraction, discarding all prior breakdown work even
-for scenes that didn't change. Production scripts get revised constantly
-(new drafts, "pink/blue pages" revision sets), and a user coming back with an
-updated draft has no way to carry forward what's already been broken down or
-see at a glance what's different.
+**What already exists (`git log`: `d36707c`, "Complete Phase 3 -
+Revision Import").** `backend/services/revision_service.py` +
+`/api/scripts/<id>/versions/import` (`supabase_routes.py`) let a user
+upload a revised PDF **against the same `script_id`**: `diff_script_versions`
+compares new-vs-old scenes and classifies each as added/modified/removed/
+unchanged; `apply_revision_changes` inserts new scenes, updates only the
+modified ones (bumping `revision_number`, writing a `scene_history` row),
+marks removed scenes `is_omitted` instead of deleting them, and — the
+core value prop this backlog item wanted — **leaves unchanged scenes,
+and therefore their breakdown data, completely untouched**. `script_versions`
+tracks version history per script. The frontend has a real entry point:
+`RevisionImportWizard.jsx`, wired into `SceneManager.jsx`, not a dead
+component. A preview mode (`apply_changes=false`) returns the diff
+without writing anything, matching the "review before committing"
+instinct in the original Option 1 sketch.
 
-**What exists to build on.** The extraction pipeline already content-hashes
-per page (`compute_content_hash`, `check_already_processed` in
-`backend/services/extraction_pipeline.py`) and stores per-page text in
-`script_pages` keyed by hash for upload-time idempotency — that's a diffing
-primitive, just not currently used across two different `script_id`s or
-surfaced to the user.
-
-**Options (to brainstorm).**
-1. **Full re-upload + diff.** User uploads the entire new draft as normal;
-   the system diffs the new `script_pages`/scene text against the prior
-   version's (via content hash / scene-header + text comparison), flags
-   changed/added/removed scenes, carries forward breakdown data for unchanged
-   scenes, and only re-queues AI analysis for scenes that actually changed.
-   Simplest for the user (no need to know what changed ahead of time) but
-   needs a real diffing pass and a UI to review "here's what changed."
-2. **Partial upload of changed scenes only.** Mirrors how productions
-   actually distribute revisions (a "pink pages" packet of just the changed
-   pages) — user uploads only the revised scenes/pages, and the system merges
-   them into the existing script in place, re-numbering/re-flagging only what
-   was touched. Less data to process and more true to how revisions are
-   communicated on real productions, but requires the user to correctly scope
-   what they upload, and a merge UI (matching revised pages to existing scene
-   numbers) that doesn't exist today.
-3. **Both, sequenced.** Ship (1) first since it needs no new user workflow —
-   upload works exactly as it does now, diffing happens automatically after.
-   Add (2) later as a faster path once diffing infrastructure exists, for
-   users who already know which scenes changed.
-
-**Also decide:** whether a re-upload creates a new script version under the
-same "script" concept (versioned, with history) or a wholly separate
-`script_id` that's merely linked to the prior one for diffing purposes — this
-affects schedules, reports, and team assignments that reference the old
-`script_id` and would otherwise silently go stale.
+**What's actually still missing.**
+- **PDF-only.** `import_revision` rejects anything not ending `.pdf`
+  (`supabase_routes.py`) — no FDX revision-import path, unlike FDX's own
+  upload/analysis flow.
+- **No test coverage at all.** `grep` across `backend/tests/` for
+  `revision_service`, `diff_script_versions`, `apply_revision_changes`,
+  or `import_revision` returns nothing — this entire feature has never
+  been exercised by an automated test.
+- **Selective AI re-analysis unconfirmed.** The backlog's "only re-queue
+  AI analysis for scenes that actually changed" isn't obviously wired
+  up in `apply_revision_changes` as read — needs tracing through to
+  confirm modified/added scenes actually get queued and unchanged ones
+  don't get needlessly re-billed/re-run.
+- **Discoverability.** This is a deliberate "Import Revision" action a
+  user has to find inside `SceneManager`, not something that happens
+  automatically when someone uses the normal top-level script upload
+  flow — worth deciding whether that's the intended UX or whether the
+  two paths should be unified.
+- Option 2 (partial "pink pages" upload of only changed scenes) was
+  never built and is still a legitimate future idea if wanted.
 
 **References.**
-- `backend/services/extraction_pipeline.py` — `compute_content_hash`,
-  `check_already_processed`, `script_pages` schema
-- Upload entry point: `backend/routes/supabase_routes.py::upload_script`
-- Scene identity: `backend/services/entity_resolver.py` (duplicate/merge logic
-  for character names — same kind of matching problem applies to
-  matching scenes across versions)
+- `backend/services/revision_service.py` — `diff_script_versions`,
+  `apply_revision_changes`, `create_version_record`, `get_version_history`
+- `backend/routes/supabase_routes.py` — `import_revision`,
+  `get_version_diff`, `get_version_details`, `get_script_versions`
+- `frontend/src/components/revisions/RevisionImportWizard.jsx`,
+  `frontend/src/components/scenes/SceneManager.jsx`
+- `script_versions`, `scene_history` tables
 
 ---
 
@@ -621,7 +622,7 @@ needs a proper brainstorming pass before writing.
 **Context.** Current pricing per `docs/SPEC_Tiered_Business_Model.md`:
 - **Tier 1 (Solo)** — ZAR 450 per AI breakdown/analysis, pay-per-use, no team
   features.
-- **Tier 2 (Teams)** — ZAR 1,850/year + ZAR 150 per seat, annual license,
+- **Tier 2 (Teams)** — ZAR 1,850/year + ZAR 250 per seat, annual license,
   full team collaboration.
 
 Pricing for both tiers needs to change; new numbers not yet decided —
