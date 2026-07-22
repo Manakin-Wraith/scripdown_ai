@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Product Overview
 
-ScripDown AI (branded **SlateOne**, live at app.slateone.studio) is an AI-powered screenplay breakdown and production-management SaaS: PDF script upload → scene detection → AI extraction of breakdown elements (cast, props, wardrobe, etc.) → scheduling (stripboard), team collaboration, and production reports. Pricing is a flat $49/month subscription via Wise — the old credit/pack system is deprecated (see `2026-04-07-pricing-simplification.md`); `credit_routes`/`credit_service` still exist but are unregistered.
+ScripDown AI (branded **SlateOne**, live at app.slateone.studio) is an AI-powered screenplay breakdown and production-management SaaS: PDF script upload → scene detection → AI extraction of breakdown elements (cast, props, wardrobe, etc.) → scheduling (stripboard), team collaboration, and production reports. Pricing is a two-tier PayFast subscription model (merged 2026-07-18; see `docs/SPEC_Tiered_Business_Model.md`): **Tier 1 — Pay-Per-Breakdown** (ZAR 450 per AI analysis, no team features) and **Tier 2 — Annual Team License** (ZAR 1,850/year + ZAR 150/seat, unlimited breakdowns, team collaboration). The old flat $49/month Wise subscription and the credit/pack system before that are both fully deprecated — `credit_routes`/`credit_service` are gone entirely, not just unregistered.
 
 ## Repo Layout
 
