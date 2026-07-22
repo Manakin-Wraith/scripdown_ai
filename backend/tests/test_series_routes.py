@@ -18,7 +18,7 @@ from postgrest.exceptions import APIError
 
 
 class MockTable:
-    """Chainable supabase-py stand-in supporting select/insert/eq/order/single."""
+    """Chainable supabase-py stand-in supporting select/insert/eq/order/single/limit."""
 
     def __init__(self, name, store):
         self.name = name
@@ -28,6 +28,7 @@ class MockTable:
         self._payload = None
         self._single = False
         self._order_col = None
+        self._limit = None
 
     def select(self, *_a, **_k):
         self._op = "select"
@@ -55,6 +56,10 @@ class MockTable:
         self._single = True
         return self
 
+    def limit(self, n):
+        self._limit = n
+        return self
+
     def _rows(self):
         return self.store.setdefault(self.name, [])
 
@@ -69,6 +74,8 @@ class MockTable:
     def execute(self):
         if self._op == "select":
             matches = self._filtered()
+            if self._limit is not None:
+                matches = matches[:self._limit]
             if self._single:
                 # Match real supabase-py behavior: .single() with zero matches
                 # makes PostgREST respond 406, which postgrest-py surfaces as
@@ -220,3 +227,110 @@ def test_list_seasons_nonexistent_series_returns_clean_error(monkeypatch):
     body = resp.get_json()
     assert "error" in body
     assert "not found" in body["error"].lower()
+
+
+def test_list_episodes_filters_to_accessible_scripts(monkeypatch):
+    """
+    The core access-control guarantee of this feature: a season's episode
+    list must never leak a script the caller can't otherwise see, even
+    though it's returned by season_id rather than the usual
+    /api/scripts/<script_id> path.
+    """
+    monkeypatch.setattr("middleware.auth.DEV_MODE", True)
+    store = _base_store()
+    store["scripts"] = [
+        {"id": "ep1", "user_id": DEV_USER_ID, "season_id": "sea1", "episode_number": 1, "title": "Ep 1"},
+        {"id": "ep2", "user_id": "someone-else", "season_id": "sea1", "episode_number": 2, "title": "Ep 2"},
+    ]
+    monkeypatch.setattr(sr, "get_supabase_admin", lambda: MockSupabase(store))
+    monkeypatch.setattr("middleware.authorization.get_supabase_client", lambda: MockSupabase(store))
+
+    resp = _client().get("/api/seasons/sea1/episodes")
+
+    assert resp.status_code == 200
+    episodes = resp.get_json()["episodes"]
+    assert [e["id"] for e in episodes] == ["ep1"]  # ep2 filtered out, not owner or member
+
+
+def test_list_episodes_orders_by_episode_number(monkeypatch):
+    monkeypatch.setattr("middleware.auth.DEV_MODE", True)
+    store = _base_store()
+    store["scripts"] = [
+        {"id": "ep2", "user_id": DEV_USER_ID, "season_id": "sea1", "episode_number": 2, "title": "Ep 2"},
+        {"id": "ep1", "user_id": DEV_USER_ID, "season_id": "sea1", "episode_number": 1, "title": "Ep 1"},
+    ]
+    monkeypatch.setattr(sr, "get_supabase_admin", lambda: MockSupabase(store))
+    monkeypatch.setattr("middleware.authorization.get_supabase_client", lambda: MockSupabase(store))
+
+    resp = _client().get("/api/seasons/sea1/episodes")
+
+    numbers = [e["episode_number"] for e in resp.get_json()["episodes"]]
+    assert numbers == [1, 2]
+
+
+def test_update_script_season_requires_series_ownership(monkeypatch):
+    """A member on the script cannot move it into a season on a series they
+    don't own -- prevents sneaking a script into someone else's series."""
+    monkeypatch.setattr("middleware.auth.DEV_MODE", True)
+    store = _base_store()
+    store["scripts"] = [{"id": "s1", "user_id": DEV_USER_ID, "season_id": None, "episode_number": None}]
+    store["series"] = [{"id": "ser1", "owner_id": "someone-else", "title": "Not Mine"}]
+    store["seasons"] = [{"id": "sea1", "series_id": "ser1", "season_number": 1}]
+    monkeypatch.setattr(sr, "get_supabase_admin", lambda: MockSupabase(store))
+    monkeypatch.setattr("middleware.authorization.get_supabase_client", lambda: MockSupabase(store))
+
+    resp = _client().patch("/api/scripts/s1/season", json={"season_id": "sea1", "episode_number": 3})
+
+    assert resp.status_code == 403
+    assert store["scripts"][0]["season_id"] is None
+
+
+def test_update_script_season_assigns_when_owned(monkeypatch):
+    monkeypatch.setattr("middleware.auth.DEV_MODE", True)
+    store = _base_store()
+    store["scripts"] = [{"id": "s1", "user_id": DEV_USER_ID, "season_id": None, "episode_number": None}]
+    store["series"] = [{"id": "ser1", "owner_id": DEV_USER_ID, "title": "Mine"}]
+    store["seasons"] = [{"id": "sea1", "series_id": "ser1", "season_number": 1}]
+    monkeypatch.setattr(sr, "get_supabase_admin", lambda: MockSupabase(store))
+    monkeypatch.setattr("middleware.authorization.get_supabase_client", lambda: MockSupabase(store))
+
+    resp = _client().patch("/api/scripts/s1/season", json={"season_id": "sea1", "episode_number": 3})
+
+    assert resp.status_code == 200
+    assert store["scripts"][0]["season_id"] == "sea1"
+    assert store["scripts"][0]["episode_number"] == 3
+
+
+def test_update_script_season_clears_assignment(monkeypatch):
+    """season_id: null removes a script from its season -- the reassignment
+    surface's 'None' state."""
+    monkeypatch.setattr("middleware.auth.DEV_MODE", True)
+    store = _base_store()
+    store["scripts"] = [{"id": "s1", "user_id": DEV_USER_ID, "season_id": "sea1", "episode_number": 3}]
+    monkeypatch.setattr(sr, "get_supabase_admin", lambda: MockSupabase(store))
+    monkeypatch.setattr("middleware.authorization.get_supabase_client", lambda: MockSupabase(store))
+
+    resp = _client().patch("/api/scripts/s1/season", json={"season_id": None})
+
+    assert resp.status_code == 200
+    assert store["scripts"][0]["season_id"] is None
+    assert store["scripts"][0]["episode_number"] is None
+
+
+def test_update_script_season_nonexistent_season_returns_404(monkeypatch):
+    """Verify that trying to assign a script to a nonexistent season returns
+    a clean 404 with error message, not a crash or leaked exception."""
+    monkeypatch.setattr("middleware.auth.DEV_MODE", True)
+    store = _base_store()
+    store["scripts"] = [{"id": "s1", "user_id": DEV_USER_ID, "season_id": None, "episode_number": None}]
+    monkeypatch.setattr(sr, "get_supabase_admin", lambda: MockSupabase(store))
+    monkeypatch.setattr("middleware.authorization.get_supabase_client", lambda: MockSupabase(store))
+
+    resp = _client().patch("/api/scripts/s1/season", json={"season_id": "nonexistent", "episode_number": 1})
+
+    assert resp.status_code == 404
+    body = resp.get_json()
+    assert "error" in body
+    assert "not found" in body["error"].lower()
+    # Verify script wasn't updated
+    assert store["scripts"][0]["season_id"] is None

@@ -19,7 +19,7 @@ owner-gated elsewhere in this codebase.
 from flask import Blueprint, request, jsonify
 from db.supabase_client import get_supabase_admin, fetch_single
 from middleware.auth import require_auth, get_user_id
-from middleware.authorization import get_script_role, SCRIPT_NOT_FOUND
+from middleware.authorization import get_script_role, SCRIPT_NOT_FOUND, require_script_role
 
 series_bp = Blueprint('series', __name__)
 
@@ -169,4 +169,81 @@ def list_seasons(series_id):
         return jsonify({'seasons': seasons})
     except Exception as e:
         print(f"Error listing seasons: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+def _visible_episode_scripts(supabase, season_id, user_id):
+    """Scripts in this season, filtered to ones the caller can access,
+    ordered by episode_number. Shared by list_episodes and (Task 4's)
+    get_season_cast."""
+    scripts_result = supabase.table('scripts').select('*').eq(
+        'season_id', season_id
+    ).order('episode_number').execute()
+
+    visible = []
+    for script in (scripts_result.data or []):
+        role = get_script_role(script['id'], user_id)
+        if role not in (None, SCRIPT_NOT_FOUND):
+            visible.append(script)
+    return visible
+
+
+@series_bp.route('/api/seasons/<season_id>/episodes', methods=['GET'])
+@require_auth
+def list_episodes(season_id):
+    """Episodes in a season, filtered to the caller's accessible scripts."""
+    try:
+        supabase = get_supabase_admin()
+        user_id = get_user_id()
+        episodes = _visible_episode_scripts(supabase, season_id, user_id)
+        return jsonify({'episodes': episodes})
+    except Exception as e:
+        print(f"Error listing episodes: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@series_bp.route('/api/scripts/<script_id>/season', methods=['PATCH'])
+@require_auth
+@require_script_role('member')
+def update_script_season(script_id):
+    """
+    Assign, reassign, or clear a script's season/episode-number.
+
+    Body: {"season_id": "<uuid>" | null, "episode_number": 3}
+    season_id: null clears the assignment (episode_number is cleared too,
+    regardless of what's in the body, since an episode number without a
+    season is meaningless).
+
+    Requires @require_script_role('member') on the script (the caller must
+    already have at least edit access to it) AND ownership of the target
+    season's series -- you can't move your own script into someone else's
+    series just because you can edit the script.
+    """
+    try:
+        supabase = get_supabase_admin()
+        user_id = get_user_id()
+        data = request.get_json(silent=True) or {}
+
+        season_id = data.get('season_id')
+        if season_id is None:
+            supabase.table('scripts').update({
+                'season_id': None, 'episode_number': None,
+            }).eq('id', script_id).execute()
+            return jsonify({'success': True, 'season_id': None, 'episode_number': None})
+
+        season = fetch_single(supabase.table('seasons').select('*').eq('id', season_id).single())
+        if not season:
+            return jsonify({'error': 'Season not found'}), 404
+
+        if not _user_owns_series(supabase, season['series_id'], user_id):
+            return jsonify({'error': 'Insufficient permissions'}), 403
+
+        episode_number = data.get('episode_number')
+        supabase.table('scripts').update({
+            'season_id': season_id, 'episode_number': episode_number,
+        }).eq('id', script_id).execute()
+
+        return jsonify({'success': True, 'season_id': season_id, 'episode_number': episode_number})
+    except Exception as e:
+        print(f"Error updating script season: {e}")
         return jsonify({'error': str(e)}), 500
