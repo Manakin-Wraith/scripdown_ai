@@ -156,6 +156,8 @@ def get_scripts():
                 'scene_count': total_scenes,
                 'analyzed_scenes': analyzed_scenes,
                 'analysis_status': script.get('analysis_status', 'pending'),
+                'season_id': script.get('season_id'),
+                'episode_number': script.get('episode_number'),
                 'is_owner': True,
                 'membership': None
             })
@@ -181,6 +183,8 @@ def get_scripts():
                 'scene_count': total_scenes,
                 'analyzed_scenes': analyzed_scenes,
                 'analysis_status': script.get('analysis_status', 'pending'),
+                'season_id': script.get('season_id'),
+                'episode_number': script.get('episode_number'),
                 'is_owner': False,
                 'membership': {
                     'department_code': membership['department_code'] if membership else None,

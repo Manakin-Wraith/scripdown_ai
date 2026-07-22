@@ -1,17 +1,18 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { 
-    Trash2, 
+import {
+    Trash2,
     ChevronDown,
     ChevronUp,
     Sparkles,
     Pencil,
     Check,
-    X
+    X,
+    Layers
 } from 'lucide-react';
 import AnalysisStatusBadge from '../common/AnalysisStatusBadge';
 import './ScriptTable.css';
 
-const ScriptTable = ({ scripts, onView, onDelete, onRename, onUpdateWriter, locationHealthCounts = {} }) => {
+const ScriptTable = ({ scripts, onView, onDelete, onRename, onUpdateWriter, onAssignSeries, locationHealthCounts = {} }) => {
     const [sortConfig, setSortConfig] = useState({ key: 'upload_date', direction: 'desc' });
     const [editingId, setEditingId] = useState(null);
     const [editingField, setEditingField] = useState(null); // 'name' or 'writer'
@@ -200,7 +201,19 @@ const ScriptTable = ({ scripts, onView, onDelete, onRename, onUpdateWriter, loca
                                 </span>
                             </td>
                             <td className="actions-cell">
-                                <button 
+                                {onAssignSeries && (
+                                    <button
+                                        className="action-icon-btn"
+                                        onClick={(e) => {
+                                            e.stopPropagation(); // Prevent row click
+                                            onAssignSeries(script);
+                                        }}
+                                        title={script.episode_number ? `Episode ${script.episode_number} of a series` : 'Assign to a series'}
+                                    >
+                                        <Layers size={18} />
+                                    </button>
+                                )}
+                                <button
                                     className="action-icon-btn danger"
                                     onClick={(e) => {
                                         e.stopPropagation(); // Prevent row click
