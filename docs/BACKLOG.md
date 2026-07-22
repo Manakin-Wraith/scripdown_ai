@@ -535,38 +535,32 @@ row for non-team accounts) is unchanged — it's a distinct action
 
 ---
 
-## Team seat price change: R150 → R250 per seat
+## Team seat price change: R150 → R250 per seat — RESOLVED, shipped
 
-**Status:** Not started — pricing change, numbers decided.
+**Status:** Done. Implemented, tested, and deployed to production 2026-07-22.
 
-**Context.** Team seat price (`tier_2_seats`) needs to go from R150/yr to
-R250/yr per seat. This value exists in two places and both must change
-together, or the frontend total shown to the user will disagree with what
-PayFast actually charges:
-- `backend/services/payfast_service.py:20` —
-  `'tier_2_seats': Decimal('150.00')` — the server-side source of truth
-  used to compute the actual PayFast charge amount.
-- `frontend/src/pages/BillingPage.jsx:10` —
-  `PRICE_ZAR = { ..., tier_2_seats: 150 }` — display-only, used for the
-  per-seat price shown and the running total as the user adjusts the
-  quantity stepper.
+**What shipped.** Both price sources updated from `150` to `250`:
+`backend/services/payfast_service.py`'s `PRICES['tier_2_seats']` (the
+server-side source of truth for the actual PayFast charge) and
+`frontend/src/pages/BillingPage.jsx`'s `PRICE_ZAR.tier_2_seats`
+(display-only). Updated the two tests asserting the old amount
+(`test_payfast_checkout_fields.py::test_compute_amount_multiplies_by_quantity`,
+`test_payfast_itn_route.py::test_seats_grant_uses_intent_quantity`) and
+recomputed every ZAR 150 reference and worked example in
+`docs/SPEC_Tiered_Business_Model.md` to ZAR 250.
 
-**Scope when picked up.**
-- Update both constants from `150` to `250`.
-- Check `backend/tests/` for any test asserting the old `150.00`/`R150`
-  amount for `tier_2_seats` (e.g. PayFast ITN/amount-verification tests)
-  and update expected values accordingly.
-- Check `docs/SPEC_Tiered_Business_Model.md` for the old per-seat figure
-  and update it to stay consistent with what's actually charged.
-- No brainstorm needed — this is a straightforward value change, not a
-  design decision — but should still go through the normal
-  implement → test → verify cycle given it touches real billing amounts.
+**Verification.** Full backend suite (422 tests) and frontend
+`npm run build` pass. Pushed to `main` (`b3d4d7c`) and confirmed live:
+Vercel auto-deployed via the GitHub webhook (`dpl_8reuQw8tpqAb1UWav7BesV7T168b`,
+aliased to `app.slateone.studio`) and Railway redeployed the backend
+from the same push.
 
 **References.**
-- `backend/services/payfast_service.py` — `compute_amount`, per-charge-type
-  price table
+- `backend/services/payfast_service.py` — `compute_amount`, `PRICES`
 - `frontend/src/pages/BillingPage.jsx` — `PRICE_ZAR`
-- `docs/SPEC_Tiered_Business_Model.md` — current documented per-seat price
+- `docs/SPEC_Tiered_Business_Model.md`
+- `backend/tests/test_payfast_checkout_fields.py`,
+  `backend/tests/test_payfast_itn_route.py`
 
 ---
 
@@ -788,6 +782,12 @@ deployment recorded since has the same healthy webhook pattern. No
 repeat across 10+ subsequent pushes. Treating this as a one-off GitHub
 App delivery glitch, not a systemic break — no fallback deploy hook
 needed unless it recurs.
+
+**Further confirmed 2026-07-22:** push `6ee161a` (bundling this entry's
+own update plus the R150→R250 seat price change) auto-deployed cleanly
+— `dpl_8reuQw8tpqAb1UWav7BesV7T168b` built and went `READY` via the
+GitHub webhook with no manual intervention, aliased to
+`app.slateone.studio`.
 
 **Context.** Every earlier push to `main` today (`503b61e`, `006ffad`,
 etc.) triggered an automatic Vercel production deployment within about a
