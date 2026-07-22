@@ -2251,4 +2251,121 @@ export const createInvite = async (scriptId, { email, departmentCode, role }) =>
     return response.data;
 };
 
+// ============================================
+// Series / Season / Episode Management
+// ============================================
+
+/**
+ * Create a series (plus its first season).
+ * @param {string} title
+ * @param {{season_number?: number, season_title?: string}} [options]
+ * @returns {Promise<{series: object, season: object}>}
+ */
+export const createSeries = async (title, options = {}) => {
+    try {
+        const response = await api.post('/api/series', { title, ...options });
+        return response.data;
+    } catch (error) {
+        console.error('Error creating series:', error);
+        throw error;
+    }
+};
+
+/**
+ * List series the current user owns.
+ * @returns {Promise<{series: object[]}>}
+ */
+export const listSeries = async () => {
+    try {
+        const response = await api.get('/api/series');
+        return response.data;
+    } catch (error) {
+        console.error('Error listing series:', error);
+        throw error;
+    }
+};
+
+/**
+ * Add a season to a series.
+ * @param {string} seriesId
+ * @param {number} seasonNumber
+ * @param {string} [title]
+ * @returns {Promise<{season: object}>}
+ */
+export const createSeason = async (seriesId, seasonNumber, title) => {
+    try {
+        const response = await api.post(`/api/series/${seriesId}/seasons`, {
+            season_number: seasonNumber, title,
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error creating season:', error);
+        throw error;
+    }
+};
+
+/**
+ * List a series' seasons.
+ * @param {string} seriesId
+ * @returns {Promise<{seasons: object[]}>}
+ */
+export const listSeasons = async (seriesId) => {
+    try {
+        const response = await api.get(`/api/series/${seriesId}/seasons`);
+        return response.data;
+    } catch (error) {
+        console.error('Error listing seasons:', error);
+        throw error;
+    }
+};
+
+/**
+ * List a season's episodes (filtered to the caller's accessible scripts).
+ * @param {string} seasonId
+ * @returns {Promise<{episodes: object[]}>}
+ */
+export const listEpisodes = async (seasonId) => {
+    try {
+        const response = await api.get(`/api/seasons/${seasonId}/episodes`);
+        return response.data;
+    } catch (error) {
+        console.error('Error listing episodes:', error);
+        throw error;
+    }
+};
+
+/**
+ * Get the combined (exact-name-grouped) cast view for a season.
+ * @param {string} seasonId
+ * @returns {Promise<{cast: {name: string, episodes: string[]}[]}>}
+ */
+export const getSeasonCast = async (seasonId) => {
+    try {
+        const response = await api.get(`/api/seasons/${seasonId}/cast`);
+        return response.data;
+    } catch (error) {
+        console.error('Error getting season cast:', error);
+        throw error;
+    }
+};
+
+/**
+ * Assign, reassign, or clear a script's season/episode-number.
+ * @param {string} scriptId
+ * @param {string|null} seasonId - null clears the assignment
+ * @param {number} [episodeNumber]
+ * @returns {Promise<{success: boolean, season_id: string|null, episode_number: number|null}>}
+ */
+export const updateScriptSeason = async (scriptId, seasonId, episodeNumber) => {
+    try {
+        const response = await api.patch(`/api/scripts/${scriptId}/season`, {
+            season_id: seasonId, episode_number: episodeNumber,
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error updating script season:', error);
+        throw error;
+    }
+};
+
 export default api;
