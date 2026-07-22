@@ -19,7 +19,7 @@ owner-gated elsewhere in this codebase.
 from flask import Blueprint, request, jsonify
 from db.supabase_client import get_supabase_admin
 from middleware.auth import require_auth, get_user_id
-from middleware.authorization import require_script_role, get_script_role, SCRIPT_NOT_FOUND
+from middleware.authorization import get_script_role, SCRIPT_NOT_FOUND
 
 series_bp = Blueprint('series', __name__)
 
@@ -43,30 +43,34 @@ def create_series():
     Body: {"title": "Show Name", "season_number": 1, "season_title": null}
     season_number/season_title are optional -- default to 1 / None.
     """
-    supabase = get_supabase_admin()
-    user_id = get_user_id()
-    data = request.get_json(silent=True) or {}
-    title = (data.get('title') or '').strip()
-    if not title:
-        return jsonify({'error': 'title is required'}), 400
+    try:
+        supabase = get_supabase_admin()
+        user_id = get_user_id()
+        data = request.get_json(silent=True) or {}
+        title = (data.get('title') or '').strip()
+        if not title:
+            return jsonify({'error': 'title is required'}), 400
 
-    season_number = data.get('season_number') or 1
-    season_title = data.get('season_title')
+        season_number = data.get('season_number') or 1
+        season_title = data.get('season_title')
 
-    series_result = supabase.table('series').insert({
-        'owner_id': user_id, 'title': title,
-    }).execute()
-    if not series_result.data:
-        return jsonify({'error': 'Failed to create series'}), 500
-    series = series_result.data[0]
+        series_result = supabase.table('series').insert({
+            'owner_id': user_id, 'title': title,
+        }).execute()
+        if not series_result.data:
+            return jsonify({'error': 'Failed to create series'}), 500
+        series = series_result.data[0]
 
-    season_result = supabase.table('seasons').insert({
-        'series_id': series['id'], 'season_number': season_number,
-        'title': season_title,
-    }).execute()
-    season = season_result.data[0] if season_result.data else None
+        season_result = supabase.table('seasons').insert({
+            'series_id': series['id'], 'season_number': season_number,
+            'title': season_title,
+        }).execute()
+        season = season_result.data[0] if season_result.data else None
 
-    return jsonify({'series': series, 'season': season}), 201
+        return jsonify({'series': series, 'season': season}), 201
+    except Exception as e:
+        print(f"Error creating series: {e}")
+        return jsonify({'error': str(e)}), 500
 
 
 @series_bp.route('/api/series', methods=['GET'])
@@ -82,38 +86,43 @@ def list_series():
     (see list_seasons, list_episodes, get_season_cast below); they just
     won't see that series in their own /api/series listing.
     """
-    supabase = get_supabase_admin()
-    user_id = get_user_id()
-    result = supabase.table('series').select('*').eq('owner_id', user_id).execute()
-    return jsonify({'series': result.data or []})
+    try:
+        supabase = get_supabase_admin()
+        user_id = get_user_id()
+        result = supabase.table('series').select('*').eq('owner_id', user_id).execute()
+        return jsonify({'series': result.data or []})
+    except Exception as e:
+        print(f"Error listing series: {e}")
+        return jsonify({'error': str(e)}), 500
 
 
 @series_bp.route('/api/series/<series_id>/seasons', methods=['POST'])
 @require_auth
 def create_season(series_id):
     """Add a season to a series. Series-owner only."""
-    supabase = get_supabase_admin()
-    user_id = get_user_id()
+    try:
+        supabase = get_supabase_admin()
+        user_id = get_user_id()
 
-    series = _get_series(supabase, series_id)
-    if not series:
-        return jsonify({'error': 'Series not found'}), 404
-    if series.get('owner_id') != user_id:
-        return jsonify({'error': 'Insufficient permissions'}), 403
+        if not _user_owns_series(supabase, series_id, user_id):
+            return jsonify({'error': 'Insufficient permissions'}), 403
 
-    data = request.get_json(silent=True) or {}
-    season_number = data.get('season_number')
-    if not season_number:
-        return jsonify({'error': 'season_number is required'}), 400
+        data = request.get_json(silent=True) or {}
+        season_number = data.get('season_number')
+        if not season_number:
+            return jsonify({'error': 'season_number is required'}), 400
 
-    result = supabase.table('seasons').insert({
-        'series_id': series_id, 'season_number': season_number,
-        'title': data.get('title'),
-    }).execute()
-    if not result.data:
-        return jsonify({'error': 'Failed to create season'}), 500
+        result = supabase.table('seasons').insert({
+            'series_id': series_id, 'season_number': season_number,
+            'title': data.get('title'),
+        }).execute()
+        if not result.data:
+            return jsonify({'error': 'Failed to create season'}), 500
 
-    return jsonify({'season': result.data[0]}), 201
+        return jsonify({'season': result.data[0]}), 201
+    except Exception as e:
+        print(f"Error creating season: {e}")
+        return jsonify({'error': str(e)}), 500
 
 
 @series_bp.route('/api/series/<series_id>/seasons', methods=['GET'])
@@ -126,33 +135,37 @@ def list_seasons(series_id):
     to at least one script inside any of this series' seasons -- so a team
     member following a shared season link can still see season structure.
     """
-    supabase = get_supabase_admin()
-    user_id = get_user_id()
+    try:
+        supabase = get_supabase_admin()
+        user_id = get_user_id()
 
-    series = _get_series(supabase, series_id)
-    if not series:
-        return jsonify({'error': 'Series not found'}), 404
+        series = _get_series(supabase, series_id)
+        if not series:
+            return jsonify({'error': 'Series not found'}), 404
 
-    is_owner = series.get('owner_id') == user_id
-    seasons_result = supabase.table('seasons').select('*').eq(
-        'series_id', series_id
-    ).order('season_number').execute()
-    seasons = seasons_result.data or []
+        is_owner = series.get('owner_id') == user_id
+        seasons_result = supabase.table('seasons').select('*').eq(
+            'series_id', series_id
+        ).order('season_number').execute()
+        seasons = seasons_result.data or []
 
-    if not is_owner:
-        visible = False
-        for season in seasons:
-            scripts_result = supabase.table('scripts').select('id').eq(
-                'season_id', season['id']
-            ).execute()
-            for script in (scripts_result.data or []):
-                role = get_script_role(script['id'], user_id)
-                if role not in (None, SCRIPT_NOT_FOUND):
-                    visible = True
+        if not is_owner:
+            visible = False
+            for season in seasons:
+                scripts_result = supabase.table('scripts').select('id').eq(
+                    'season_id', season['id']
+                ).execute()
+                for script in (scripts_result.data or []):
+                    role = get_script_role(script['id'], user_id)
+                    if role not in (None, SCRIPT_NOT_FOUND):
+                        visible = True
+                        break
+                if visible:
                     break
-            if visible:
-                break
-        if not visible:
-            return jsonify({'error': 'Insufficient permissions'}), 403
+            if not visible:
+                return jsonify({'error': 'Insufficient permissions'}), 403
 
-    return jsonify({'seasons': seasons})
+        return jsonify({'seasons': seasons})
+    except Exception as e:
+        print(f"Error listing seasons: {e}")
+        return jsonify({'error': str(e)}), 500

@@ -69,7 +69,10 @@ class MockTable:
         if self._op == "select":
             matches = self._filtered()
             if self._single:
-                return SimpleNamespace(data=matches[0] if matches else None)
+                # Match real supabase-py behavior: .single() raises if no match
+                if not matches:
+                    raise Exception("No rows returned")
+                return SimpleNamespace(data=matches[0])
             return SimpleNamespace(data=matches)
         if self._op == "insert":
             new_row = dict(self._payload)
@@ -174,3 +177,31 @@ def test_list_seasons_for_owned_series(monkeypatch):
     assert resp.status_code == 200
     numbers = [s["season_number"] for s in resp.get_json()["seasons"]]
     assert numbers == [1, 2]
+
+
+def test_create_season_nonexistent_series_returns_clean_error(monkeypatch):
+    """Verify that requesting a nonexistent series doesn't crash unhandled."""
+    monkeypatch.setattr("middleware.auth.DEV_MODE", True)
+    store = _base_store()
+    monkeypatch.setattr(sr, "get_supabase_admin", lambda: MockSupabase(store))
+
+    resp = _client().post("/api/series/nonexistent/seasons", json={"season_number": 2})
+
+    # Should return a clean error (500 or 404), not crash
+    assert resp.status_code in (404, 500)
+    body = resp.get_json()
+    assert "error" in body
+
+
+def test_list_seasons_nonexistent_series_returns_clean_error(monkeypatch):
+    """Verify that listing seasons for nonexistent series doesn't crash unhandled."""
+    monkeypatch.setattr("middleware.auth.DEV_MODE", True)
+    store = _base_store()
+    monkeypatch.setattr(sr, "get_supabase_admin", lambda: MockSupabase(store))
+
+    resp = _client().get("/api/series/nonexistent/seasons")
+
+    # Should return a clean error (500 or 404), not crash
+    assert resp.status_code in (404, 500)
+    body = resp.get_json()
+    assert "error" in body
