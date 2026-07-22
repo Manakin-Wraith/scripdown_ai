@@ -9,7 +9,8 @@ import {
   CreditCard,
   Film,
   LogIn,
-  Shield
+  Shield,
+  Layers
 } from 'lucide-react';
 import { Spinner } from '../ui';
 import { useAnalysis } from '../../context/AnalysisContext';
@@ -71,7 +72,15 @@ const TopBar = () => {
             <Library size={18} />
             <span>My Scripts</span>
           </NavLink>
-          
+
+          <NavLink
+            to="/series"
+            className={({ isActive }) => `topbar-nav-item ${isActive ? 'active' : ''}`}
+          >
+            <Layers size={18} />
+            <span>Series</span>
+          </NavLink>
+
           {/* Admin Button - only show for superusers */}
           {isSuperuser && (
             <NavLink 

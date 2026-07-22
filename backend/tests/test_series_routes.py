@@ -194,6 +194,51 @@ def test_list_seasons_for_owned_series(monkeypatch):
     assert numbers == [1, 2]
 
 
+def test_list_seasons_visible_to_non_owner_with_episode_access(monkeypatch):
+    """A non-owner who has access to at least one episode script inside one
+    of the series' seasons can still see the season list -- the shared-link
+    visibility path, not the owner path."""
+    monkeypatch.setattr("middleware.auth.DEV_MODE", True)
+    store = _base_store()
+    store["series"] = [{"id": "ser1", "owner_id": "someone-else", "title": "Not Mine"}]
+    store["seasons"] = [
+        {"id": "sea1", "series_id": "ser1", "season_number": 1, "title": None},
+    ]
+    store["scripts"] = [
+        {"id": "ep1", "user_id": DEV_USER_ID, "season_id": "sea1", "episode_number": 1, "title": "Ep 1"},
+    ]
+    monkeypatch.setattr(sr, "get_supabase_admin", lambda: MockSupabase(store))
+    monkeypatch.setattr("middleware.authorization.get_supabase_client", lambda: MockSupabase(store))
+
+    resp = _client().get("/api/series/ser1/seasons")
+
+    assert resp.status_code == 200
+    numbers = [s["season_number"] for s in resp.get_json()["seasons"]]
+    assert numbers == [1]
+
+
+def test_list_seasons_forbidden_for_non_owner_without_episode_access(monkeypatch):
+    """A non-owner with no accessible script in any season of the series
+    must be blocked -- season structure isn't discoverable by strangers."""
+    monkeypatch.setattr("middleware.auth.DEV_MODE", True)
+    store = _base_store()
+    store["series"] = [{"id": "ser1", "owner_id": "someone-else", "title": "Not Mine"}]
+    store["seasons"] = [
+        {"id": "sea1", "series_id": "ser1", "season_number": 1, "title": None},
+    ]
+    store["scripts"] = [
+        {"id": "ep1", "user_id": "someone-else", "season_id": "sea1", "episode_number": 1, "title": "Ep 1"},
+    ]
+    monkeypatch.setattr(sr, "get_supabase_admin", lambda: MockSupabase(store))
+    monkeypatch.setattr("middleware.authorization.get_supabase_client", lambda: MockSupabase(store))
+
+    resp = _client().get("/api/series/ser1/seasons")
+
+    assert resp.status_code == 403
+    body = resp.get_json()
+    assert "error" in body
+
+
 def test_create_season_nonexistent_series_returns_clean_error(monkeypatch):
     """Verify that requesting a nonexistent series doesn't crash unhandled."""
     monkeypatch.setattr("middleware.auth.DEV_MODE", True)
