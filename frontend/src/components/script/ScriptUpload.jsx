@@ -32,6 +32,7 @@ const ScriptUpload = () => {
     const [isAiDetecting, setIsAiDetecting] = useState(false);
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
     const [pendingSeasonAssignment, setPendingSeasonAssignment] = useState(null); // {seasonId, episodeNumber} | null
+    const [uploadAttempt, setUploadAttempt] = useState(0);
     const navigate = useNavigate();
     const toast = useToast();
 
@@ -143,6 +144,8 @@ const ScriptUpload = () => {
         setUploadProgress(0);
         setUploadResult(null);
         setError(null);
+        setPendingSeasonAssignment(null);
+        setUploadAttempt((prev) => prev + 1);
     };
 
     const goToSceneViewer = () => {
@@ -210,6 +213,7 @@ const ScriptUpload = () => {
                 {!uploading && !uploadResult ? (
                     <>
                         <SeriesPicker
+                            key={uploadAttempt}
                             onAssign={(seasonId, episodeNumber) =>
                                 setPendingSeasonAssignment(seasonId ? { seasonId, episodeNumber } : null)
                             }

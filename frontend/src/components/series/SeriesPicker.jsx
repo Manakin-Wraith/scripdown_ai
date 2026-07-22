@@ -31,6 +31,7 @@ export default function SeriesPicker({ onAssign }) {
     }, [mode]);
 
     useEffect(() => {
+        setSelectedSeasonId('');
         if (!selectedSeriesId) {
             setSeasons([]);
             return;
