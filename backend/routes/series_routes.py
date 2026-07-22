@@ -247,3 +247,43 @@ def update_script_season(script_id):
     except Exception as e:
         print(f"Error updating script season: {e}")
         return jsonify({'error': str(e)}), 500
+
+
+@series_bp.route('/api/seasons/<season_id>/cast', methods=['GET'])
+@require_auth
+def get_season_cast(season_id):
+    """
+    Combined cast view: one row per distinct character name across the
+    season's visible episodes, grouped by exact case-insensitive match
+    (the same .strip().upper() normalization merge_characters already
+    uses in supabase_routes.py, for consistency). This is explicitly NOT
+    identity resolution -- "JOHN" and "Jon" are two different rows. That
+    gap is Phase 2 (cross-episode entity continuity), out of scope here.
+    """
+    try:
+        supabase = get_supabase_admin()
+        user_id = get_user_id()
+
+        episodes = _visible_episode_scripts(supabase, season_id, user_id)
+        episode_titles_by_id = {ep['id']: ep.get('title', 'Untitled') for ep in episodes}
+
+        groups = {}  # normalized name -> set of episode titles
+        for script_id, title in episode_titles_by_id.items():
+            scenes_result = supabase.table('scenes').select('characters').eq(
+                'script_id', script_id
+            ).execute()
+            for scene in (scenes_result.data or []):
+                for raw_name in (scene.get('characters') or []):
+                    name = (raw_name or '').strip().upper()
+                    if not name:
+                        continue
+                    groups.setdefault(name, set()).add(title)
+
+        cast = [
+            {'name': name, 'episodes': sorted(titles)}
+            for name, titles in sorted(groups.items())
+        ]
+        return jsonify({'cast': cast})
+    except Exception as e:
+        print(f"Error getting season cast: {e}")
+        return jsonify({'error': str(e)}), 500

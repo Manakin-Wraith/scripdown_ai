@@ -334,3 +334,47 @@ def test_update_script_season_nonexistent_season_returns_404(monkeypatch):
     assert "not found" in body["error"].lower()
     # Verify script wasn't updated
     assert store["scripts"][0]["season_id"] is None
+
+
+def test_combined_cast_groups_exact_name_case_insensitive(monkeypatch):
+    monkeypatch.setattr("middleware.auth.DEV_MODE", True)
+    store = _base_store()
+    store["scripts"] = [
+        {"id": "ep1", "user_id": DEV_USER_ID, "season_id": "sea1", "episode_number": 1, "title": "Ep 1"},
+        {"id": "ep2", "user_id": DEV_USER_ID, "season_id": "sea1", "episode_number": 2, "title": "Ep 2"},
+    ]
+    store["scenes"] = [
+        {"id": "sc1", "script_id": "ep1", "characters": ["JOHN", "MARY"]},
+        {"id": "sc2", "script_id": "ep2", "characters": ["John", "SAM"]},  # case-only variant of JOHN
+    ]
+    monkeypatch.setattr(sr, "get_supabase_admin", lambda: MockSupabase(store))
+    monkeypatch.setattr("middleware.authorization.get_supabase_client", lambda: MockSupabase(store))
+
+    resp = _client().get("/api/seasons/sea1/cast")
+
+    assert resp.status_code == 200
+    cast = {row["name"]: row["episodes"] for row in resp.get_json()["cast"]}
+    assert set(cast.keys()) == {"JOHN", "MARY", "SAM"}
+    assert sorted(cast["JOHN"]) == ["Ep 1", "Ep 2"]  # grouped across both episodes
+    assert cast["MARY"] == ["Ep 1"]
+    assert cast["SAM"] == ["Ep 2"]
+
+
+def test_combined_cast_only_includes_accessible_episodes(monkeypatch):
+    monkeypatch.setattr("middleware.auth.DEV_MODE", True)
+    store = _base_store()
+    store["scripts"] = [
+        {"id": "ep1", "user_id": DEV_USER_ID, "season_id": "sea1", "episode_number": 1, "title": "Ep 1"},
+        {"id": "ep2", "user_id": "someone-else", "season_id": "sea1", "episode_number": 2, "title": "Ep 2"},
+    ]
+    store["scenes"] = [
+        {"id": "sc1", "script_id": "ep1", "characters": ["JOHN"]},
+        {"id": "sc2", "script_id": "ep2", "characters": ["SECRET"]},
+    ]
+    monkeypatch.setattr(sr, "get_supabase_admin", lambda: MockSupabase(store))
+    monkeypatch.setattr("middleware.authorization.get_supabase_client", lambda: MockSupabase(store))
+
+    resp = _client().get("/api/seasons/sea1/cast")
+
+    names = {row["name"] for row in resp.get_json()["cast"]}
+    assert names == {"JOHN"}  # SECRET (from the inaccessible ep2) never leaks
