@@ -14,6 +14,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import routes.series_routes as sr
 from middleware.auth import DEV_USER_ID
+from postgrest.exceptions import APIError
 
 
 class MockTable:
@@ -69,9 +70,16 @@ class MockTable:
         if self._op == "select":
             matches = self._filtered()
             if self._single:
-                # Match real supabase-py behavior: .single() raises if no match
+                # Match real supabase-py behavior: .single() with zero matches
+                # makes PostgREST respond 406, which postgrest-py surfaces as
+                # an APIError with code 'PGRST116' -- not a graceful data=None.
                 if not matches:
-                    raise Exception("No rows returned")
+                    raise APIError({
+                        "message": "JSON object requested, multiple (or no) rows returned",
+                        "code": "PGRST116",
+                        "hint": None,
+                        "details": None,
+                    })
                 return SimpleNamespace(data=matches[0])
             return SimpleNamespace(data=matches)
         if self._op == "insert":
@@ -187,8 +195,12 @@ def test_create_season_nonexistent_series_returns_clean_error(monkeypatch):
 
     resp = _client().post("/api/series/nonexistent/seasons", json={"season_number": 2})
 
-    # Should return a clean error (500 or 404), not crash
-    assert resp.status_code in (404, 500)
+    # create_season is ownership-gated via _user_owns_series, which folds
+    # "series doesn't exist" and "series exists but caller doesn't own it"
+    # into the same 403 -- by design (see series_routes.py module docstring),
+    # not a bug. What matters here is that the now-fixed .single() no longer
+    # leaks a raw 500 for a missing series; it resolves cleanly to 403.
+    assert resp.status_code == 403
     body = resp.get_json()
     assert "error" in body
 
@@ -201,7 +213,10 @@ def test_list_seasons_nonexistent_series_returns_clean_error(monkeypatch):
 
     resp = _client().get("/api/series/nonexistent/seasons")
 
-    # Should return a clean error (500 or 404), not crash
-    assert resp.status_code in (404, 500)
+    # list_seasons explicitly checks series existence via _get_series and
+    # returns a clean 404 -- must not leak a raw 500 from the underlying
+    # .single() APIError.
+    assert resp.status_code == 404
     body = resp.get_json()
     assert "error" in body
+    assert "not found" in body["error"].lower()

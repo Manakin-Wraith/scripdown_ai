@@ -17,7 +17,7 @@ mirrors how script structure changes (e.g. deleting a script) are
 owner-gated elsewhere in this codebase.
 """
 from flask import Blueprint, request, jsonify
-from db.supabase_client import get_supabase_admin
+from db.supabase_client import get_supabase_admin, fetch_single
 from middleware.auth import require_auth, get_user_id
 from middleware.authorization import get_script_role, SCRIPT_NOT_FOUND
 
@@ -25,8 +25,9 @@ series_bp = Blueprint('series', __name__)
 
 
 def _get_series(supabase, series_id):
-    result = supabase.table('series').select('*').eq('id', series_id).single().execute()
-    return result.data
+    return fetch_single(
+        supabase.table('series').select('*').eq('id', series_id).single()
+    )
 
 
 def _user_owns_series(supabase, series_id, user_id):
