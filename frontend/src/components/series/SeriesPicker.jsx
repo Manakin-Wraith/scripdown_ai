@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import { listSeries, createSeries, listSeasons, createSeason } from '../../services/apiService';
+import { listSeries, createSeries, listSeasons, createSeason, listEpisodes } from '../../services/apiService';
+import './SeriesPicker.css';
 
 /**
- * SeriesPicker - three-state picker for assigning a script to a series/season.
+ * SeriesPicker - three-state picker for assigning a script to a series/season,
+ * plus a compact "known series" view used when arriving via a deep link.
  *
  * States: 'none' (default, no assignment), 'existing' (pick a series +
  * season), 'new' (create a series, season defaults to 1).
@@ -24,10 +26,15 @@ import { listSeries, createSeries, listSeasons, createSeason } from '../../servi
  * initialSeriesId/initialSeasonId/initialEpisodeNumber: optional deep-link
  * prefill (used by the "+ Add episode" action on a season's group header in
  * ScriptTable, which navigates to /upload?seriesId=..&seasonId=..). When
- * initialSeasonId is set, the picker starts in 'existing' mode with that
- * series/season/episode-number pre-selected -- fully editable, not locked
- * in, matching the "assignment is always overridable" principle used
- * elsewhere in this component.
+ * both initialSeriesId and initialSeasonId are set, isKnownSeries is true
+ * and the picker renders a compact "known series" view (series shown as
+ * fixed context, season + episode number as live editable controls) instead
+ * of the classic 3-tab picker -- unless the user clicks "Not this series?",
+ * which sets overridden=true and reveals the classic tabs from a clean
+ * 'none' state. initialEpisodeNumber is accepted but unused on the
+ * known-series path -- the suggested episode number is now computed here
+ * from listEpisodes() whenever the selected season changes, since numbering
+ * is per-season and the season is a live dropdown in this view.
  */
 export default function SeriesPicker({
     onAssign,
@@ -36,9 +43,13 @@ export default function SeriesPicker({
     initialSeasonId = null,
     initialEpisodeNumber = null,
 }) {
-    const [mode, setMode] = useState(initialSeasonId ? 'existing' : 'none');
+    const isKnownSeries = !!(initialSeriesId && initialSeasonId);
+    const [overridden, setOverridden] = useState(false);
+    const showKnownView = isKnownSeries && !overridden;
+
+    const [mode, setMode] = useState(initialSeasonId && !isKnownSeries ? 'existing' : 'none');
     const [seriesList, setSeriesList] = useState([]);
-    const [selectedSeriesId, setSelectedSeriesId] = useState(initialSeriesId || '');
+    const [selectedSeriesId, setSelectedSeriesId] = useState(isKnownSeries ? initialSeriesId : '');
     const [seasons, setSeasons] = useState([]);
     const [selectedSeasonId, setSelectedSeasonId] = useState('');
     const [episodeNumber, setEpisodeNumber] = useState(
@@ -49,14 +60,59 @@ export default function SeriesPicker({
     const [error, setError] = useState(null);
     const appliedInitialSeason = useRef(false);
 
+    // Known-series view: fetch the series list once (to resolve the badge
+    // name) and the season list for the known series -- unconditionally,
+    // not gated behind mode === 'existing' like the classic view, since
+    // there's no tab click to gate it on here.
     useEffect(() => {
+        if (!showKnownView) return;
+        listSeries()
+            .then((data) => setSeriesList(data.series || []))
+            .catch((err) => setError(err.message || 'Failed to load series'));
+        listSeasons(initialSeriesId)
+            .then((data) => setSeasons(data.seasons || []))
+            .catch((err) => setError(err.message || 'Failed to load seasons'));
+        setSelectedSeasonId(initialSeasonId);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [showKnownView]);
+
+    // Known-series view: whenever the selected season changes, recompute the
+    // suggested next episode number (numbering is per-season) and fire
+    // onAssign so pendingSeasonAssignment in ScriptUpload stays in sync
+    // without the user touching anything.
+    useEffect(() => {
+        if (!showKnownView || !selectedSeasonId) return;
+        let cancelled = false;
+        listEpisodes(selectedSeasonId)
+            .then((data) => {
+                if (cancelled) return;
+                const episodes = data.episodes || [];
+                const nextNumber = episodes.reduce(
+                    (max, ep) => Math.max(max, ep.episode_number || 0),
+                    0
+                ) + 1;
+                setEpisodeNumber(String(nextNumber));
+                onAssign(selectedSeasonId, nextNumber);
+            })
+            .catch((err) => {
+                if (!cancelled) setError(err.message || 'Failed to load episodes');
+            });
+        return () => {
+            cancelled = true;
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [showKnownView, selectedSeasonId]);
+
+    useEffect(() => {
+        if (showKnownView) return;
         if (mode !== 'existing') return;
         listSeries()
             .then((data) => setSeriesList(data.series || []))
             .catch((err) => setError(err.message || 'Failed to load series'));
-    }, [mode]);
+    }, [mode, showKnownView]);
 
     useEffect(() => {
+        if (showKnownView) return;
         let cancelled = false;
         const isFirstRunWithPrefill = !appliedInitialSeason.current && !!initialSeasonId;
         if (isFirstRunWithPrefill) {
@@ -88,13 +144,15 @@ export default function SeriesPicker({
             cancelled = true;
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedSeriesId]);
+    }, [selectedSeriesId, showKnownView]);
 
     useEffect(() => {
+        if (showKnownView) return;
         if (mode === 'none' && autoFireNone) {
             onAssign(null, null);
         }
-    }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [mode, showKnownView]);
 
     const handleExistingConfirm = () => {
         if (!selectedSeasonId || !episodeNumber) {
@@ -120,6 +178,66 @@ export default function SeriesPicker({
             setLoading(false);
         }
     };
+
+    const handleOverride = () => {
+        setOverridden(true);
+        setMode('none');
+        setSelectedSeriesId('');
+        setSelectedSeasonId('');
+        setEpisodeNumber('');
+        setError(null);
+    };
+
+    const handleKnownSeasonChange = (e) => {
+        setSelectedSeasonId(e.target.value);
+    };
+
+    const handleKnownEpisodeNumberChange = (e) => {
+        const value = e.target.value;
+        setEpisodeNumber(value);
+        if (selectedSeasonId && value) {
+            onAssign(selectedSeasonId, Number(value));
+        }
+    };
+
+    if (showKnownView) {
+        const knownSeries = seriesList.find((s) => s.id === initialSeriesId);
+        const seriesLabel = knownSeries?.title || 'Series';
+
+        return (
+            <div className="series-picker">
+                {error && <p className="series-picker-error">{error}</p>}
+                <div className="series-picker-known">
+                    <div className="series-picker-known-badge">{seriesLabel}</div>
+                    <div className="series-picker-known-fields">
+                        <div className="series-picker-known-field">
+                            <label>Season</label>
+                            <select value={selectedSeasonId} onChange={handleKnownSeasonChange}>
+                                {seasons.map((s) => (
+                                    <option key={s.id} value={s.id}>{s.title || `Season ${s.season_number}`}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="series-picker-known-field">
+                            <label>Episode #</label>
+                            <input
+                                type="number"
+                                min="1"
+                                value={episodeNumber}
+                                onChange={handleKnownEpisodeNumberChange}
+                            />
+                        </div>
+                    </div>
+                    <p className="series-picker-known-hint">
+                        Suggested next — change to upload out of sequence
+                    </p>
+                    <button type="button" className="series-picker-override-btn" onClick={handleOverride}>
+                        Not this series?
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="series-picker">
