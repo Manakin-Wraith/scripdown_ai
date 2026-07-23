@@ -58,7 +58,14 @@ export default function SeriesPicker({
 
     useEffect(() => {
         const isFirstRunWithPrefill = !appliedInitialSeason.current && !!initialSeasonId;
-        if (!isFirstRunWithPrefill) {
+        if (isFirstRunWithPrefill) {
+            // Flip synchronously (not inside the .then() below) so a series
+            // change that fires a second effect run before this promise
+            // resolves sees the ref already set, and correctly treats
+            // itself as a normal (non-prefill) run instead of racing to
+            // apply the original prefill onto the newly selected series.
+            appliedInitialSeason.current = true;
+        } else {
             setSelectedSeasonId('');
         }
         if (!selectedSeriesId) {
@@ -70,7 +77,6 @@ export default function SeriesPicker({
                 setSeasons(data.seasons || []);
                 if (isFirstRunWithPrefill) {
                     setSelectedSeasonId(initialSeasonId);
-                    appliedInitialSeason.current = true;
                 }
             })
             .catch((err) => setError(err.message || 'Failed to load seasons'));
