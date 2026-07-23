@@ -280,3 +280,70 @@
     animation: spin 1s linear infinite;
     color: var(--primary-500);
 }
+
+/* Series/season grouping */
+.group-header-row {
+    cursor: pointer;
+    background-color: var(--gray-800);
+}
+
+.group-header-row:hover {
+    background-color: var(--gray-700);
+}
+
+.group-header-row td {
+    padding: 0.75rem 1.5rem;
+}
+
+.group-header-content {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    color: var(--text-primary);
+}
+
+.group-header-content.indent-1 {
+    padding-left: 1.5rem;
+}
+
+.group-title {
+    font-weight: 600;
+}
+
+.group-count {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+.group-header-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-left: auto;
+    background: none;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 4px 10px;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.group-header-link:hover {
+    background-color: var(--primary-alpha-10);
+    color: var(--primary-500);
+    border-color: var(--primary-alpha-30);
+}
+
+.episode-badge {
+    display: inline-flex;
+    align-items: center;
+    background-color: var(--primary-alpha-15);
+    color: var(--primary-500);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    flex-shrink: 0;
+}

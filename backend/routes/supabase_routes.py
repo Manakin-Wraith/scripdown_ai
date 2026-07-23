@@ -87,6 +87,44 @@ def ensure_dev_user():
 # Scripts Endpoints
 # ============================================
 
+def _attach_series_info(scripts):
+    """Enrich each script dict with series_id/series_title/season_number/season_title
+    by joining season_id -> seasons -> series. Scripts with no season_id (the common
+    case) get all four keys set to None, matching the existing null pattern used for
+    season_id/episode_number on unassigned scripts."""
+    season_ids = {s['season_id'] for s in scripts if s.get('season_id')}
+    season_map = {}
+    if season_ids and supabase:
+        seasons_result = supabase.table('seasons').select(
+            'id, series_id, season_number, title'
+        ).in_('id', list(season_ids)).execute()
+        for season in seasons_result.data or []:
+            season_map[season['id']] = season
+
+    series_ids = {season['series_id'] for season in season_map.values() if season.get('series_id')}
+    series_map = {}
+    if series_ids and supabase:
+        series_result = supabase.table('series').select('id, title').in_('id', list(series_ids)).execute()
+        for series in series_result.data or []:
+            series_map[series['id']] = series
+
+    for script in scripts:
+        season = season_map.get(script.get('season_id'))
+        if season:
+            series = series_map.get(season.get('series_id'))
+            script['series_id'] = season.get('series_id')
+            script['series_title'] = series.get('title') if series else None
+            script['season_number'] = season.get('season_number')
+            script['season_title'] = season.get('title')
+        else:
+            script['series_id'] = None
+            script['series_title'] = None
+            script['season_number'] = None
+            script['season_title'] = None
+
+    return scripts
+
+
 @supabase_bp.route('/api/scripts', methods=['GET'])
 @optional_auth
 def get_scripts():
@@ -191,7 +229,9 @@ def get_scripts():
                     'role': membership['role'] if membership else None
                 }
             })
-        
+
+        scripts = _attach_series_info(scripts)
+
         # Sort by created_at descending
         scripts.sort(key=lambda x: x['created_at'], reverse=True)
         

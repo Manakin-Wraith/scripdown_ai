@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import DropZone from './DropZone';
 import { AlertTriangle, X, CheckCircle, ArrowRight, Clapperboard, Sparkles, AlertCircle, FileText, Scissors, Lock, Zap } from 'lucide-react';
@@ -9,7 +9,7 @@ import { supabase } from '../../lib/supabase';
 import { UpgradeModal } from '../subscription';
 import PageHeader from '../layout/PageHeader';
 import SeriesPicker from '../series/SeriesPicker';
-import { updateScriptSeason } from '../../services/apiService';
+import { listEpisodes, updateScriptSeason } from '../../services/apiService';
 import './ScriptUpload.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -32,9 +32,38 @@ const ScriptUpload = () => {
     const [isAiDetecting, setIsAiDetecting] = useState(false);
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
     const [pendingSeasonAssignment, setPendingSeasonAssignment] = useState(null); // {seasonId, episodeNumber} | null
+    const [seriesPrefill, setSeriesPrefill] = useState(null); // {seriesId, seasonId, episodeNumber} | null
     const [uploadAttempt, setUploadAttempt] = useState(0);
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const toast = useToast();
+
+    // Deep-link from ScriptTable's season "Add episode" action
+    // (/upload?seriesId=..&seasonId=..): pre-fill the series picker with
+    // that season and the next sequential episode number. Re-runs on every
+    // reset (uploadAttempt change) so uploading several episodes in a row
+    // from the same link keeps suggesting the correct next number.
+    useEffect(() => {
+        const seasonId = searchParams.get('seasonId');
+        const seriesId = searchParams.get('seriesId');
+        if (!seasonId) return;
+
+        listEpisodes(seasonId)
+            .then((data) => {
+                const episodes = data.episodes || [];
+                const maxEpisodeNumber = episodes.reduce(
+                    (max, ep) => Math.max(max, ep.episode_number || 0),
+                    0
+                );
+                const nextEpisodeNumber = maxEpisodeNumber + 1;
+                setSeriesPrefill({ seriesId, seasonId, episodeNumber: nextEpisodeNumber });
+                setPendingSeasonAssignment({ seasonId, episodeNumber: nextEpisodeNumber });
+            })
+            .catch((err) => {
+                console.error('Failed to prefill season assignment:', err);
+            });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [uploadAttempt]);
 
     const [processingStage, setProcessingStage] = useState('');
 
@@ -214,6 +243,9 @@ const ScriptUpload = () => {
                     <>
                         <SeriesPicker
                             key={uploadAttempt}
+                            initialSeriesId={seriesPrefill?.seriesId || null}
+                            initialSeasonId={seriesPrefill?.seasonId || null}
+                            initialEpisodeNumber={seriesPrefill?.episodeNumber || null}
                             onAssign={(seasonId, episodeNumber) =>
                                 setPendingSeasonAssignment(seasonId ? { seasonId, episodeNumber } : null)
                             }
