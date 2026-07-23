@@ -1,0 +1,163 @@
+.series-picker {
+    background: var(--gray-800);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.series-picker-error {
+    color: #f87171;
+    font-size: 0.85rem;
+    margin: 0 0 0.75rem;
+}
+
+/* Classic 3-tab picker */
+.series-picker-modes {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.series-picker-modes button {
+    background: var(--gray-700);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 6px 12px;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.series-picker-modes button:hover {
+    color: var(--text-primary);
+}
+
+.series-picker-modes button.active {
+    background: var(--primary-alpha-15);
+    border-color: var(--primary-500);
+    color: var(--primary-500);
+}
+
+.series-picker-none,
+.series-picker-existing,
+.series-picker-new {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.series-picker-existing select,
+.series-picker-existing input,
+.series-picker-new select,
+.series-picker-new input {
+    background: var(--gray-700);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 6px 10px;
+    color: var(--text-primary);
+    font-size: 0.85rem;
+}
+
+.series-picker-existing input[type="number"],
+.series-picker-new input[type="number"] {
+    width: 90px;
+}
+
+.series-picker-existing button,
+.series-picker-new button,
+.series-picker-none button {
+    background: var(--primary-alpha-10);
+    border: 1px solid var(--primary-500);
+    border-radius: 6px;
+    padding: 6px 14px;
+    color: var(--primary-500);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.series-picker-existing button:hover,
+.series-picker-new button:hover:not(:disabled),
+.series-picker-none button:hover {
+    background: var(--primary-alpha-15);
+}
+
+.series-picker-new button:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
+/* Known-series compact view */
+.series-picker-known {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.series-picker-known-badge {
+    display: inline-flex;
+    align-self: flex-start;
+    background: var(--primary-alpha-15);
+    color: var(--primary-500);
+    border-radius: 10px;
+    padding: 4px 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.series-picker-known-fields {
+    display: flex;
+    gap: 1rem;
+}
+
+.series-picker-known-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.series-picker-known-field label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+
+.series-picker-known-field select,
+.series-picker-known-field input {
+    background: var(--gray-700);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 6px 10px;
+    color: var(--text-primary);
+    font-size: 0.85rem;
+}
+
+.series-picker-known-field input[type="number"] {
+    width: 90px;
+}
+
+.series-picker-known-hint {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+}
+
+.series-picker-override-btn {
+    align-self: flex-start;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 0;
+}
+
+.series-picker-override-btn:hover {
+    color: var(--primary-500);
+}
