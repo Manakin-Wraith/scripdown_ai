@@ -13,7 +13,6 @@ import {
     Plus,
     ExternalLink
 } from 'lucide-react';
-import AnalysisStatusBadge from '../common/AnalysisStatusBadge';
 import './ScriptTable.css';
 
 const EXPANDED_GROUPS_STORAGE_KEY = 'scriptTable.expandedGroups';

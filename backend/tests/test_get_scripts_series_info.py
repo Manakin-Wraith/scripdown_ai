@@ -146,3 +146,33 @@ def test_get_scripts_season_with_titled_season_and_multiple_episodes(monkeypatch
         assert scripts_by_id[script_id]["series_title"] == "Die Testament"
         assert scripts_by_id[script_id]["season_title"] == "The Beginning"
         assert scripts_by_id[script_id]["season_number"] == 1
+
+
+def test_get_scripts_orphaned_season_id_degrades_to_null_fields(monkeypatch):
+    """A script's season_id pointing at a season absent from the seasons table
+    (shouldn't normally happen given ON DELETE SET NULL, but is a documented
+    error-handling path) must degrade to null fields, not crash or leak a
+    partial join."""
+    monkeypatch.setattr("middleware.auth.DEV_MODE", True)
+    monkeypatch.setattr(sr, "get_user_id", lambda: "u1")
+    store = _store(
+        scripts=[
+            {
+                "id": "ep1", "user_id": "u1", "title": "Orphaned Episode",
+                "created_at": "2026-07-20T00:00:00Z",
+                "season_id": "sea-missing", "episode_number": 1,
+            },
+        ],
+        seasons=[],
+        series=[],
+    )
+    monkeypatch.setattr(sr, "supabase", FakeSupabase(store))
+
+    resp = _client().get("/api/scripts")
+
+    assert resp.status_code == 200
+    script = resp.get_json()["scripts"][0]
+    assert script["series_id"] is None
+    assert script["series_title"] is None
+    assert script["season_number"] is None
+    assert script["season_title"] is None
