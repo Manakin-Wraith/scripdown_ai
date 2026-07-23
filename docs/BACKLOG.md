@@ -436,13 +436,21 @@ instinct in the original Option 1 sketch.
 
 ---
 
-## Series / multi-episode analysis — Phase 1 RESOLVED, shipped; UX/UI reassessment + Phase 2 open
+## Series / multi-episode analysis — Phase 1 + My-Scripts grouping RESOLVED, shipped; further UX/UI reassessment + Phase 2 + Board/Schedule/Report integration open
 
 **Status:** Phase 1 (grouping/reporting layer) shipped 2026-07-22,
 including a same-day reassignment-surface fix and a visual polish pass
-(both also 2026-07-22). Two follow-ups remain open: a holistic UX/UI
-reassessment of the whole feature now that it's live and styled, and
-Phase 2 (cross-episode entity continuity), which was always deferred.
+(both also 2026-07-22). A first slice of the UX/UI reassessment —
+nesting episodes under series/season directly in the My Scripts table,
+plus an upload-flow deep link to skip the picker for the common
+"add the next episode" case — shipped 2026-07-23. Three follow-ups
+remain open: the rest of the UX/UI reassessment (SeriesPicker/
+SeriesAssignmentModal still unstyled, the 3-level `/series` click-through
+still exists), Phase 2 (cross-episode entity continuity), and whether/how
+Series should integrate with Board/Scheduling/Reporting (all three are
+strictly single-script-scoped today — confirmed via investigation
+2026-07-23, no `season_id`/`episode_number` touches those code paths
+anywhere).
 
 **What shipped (Phase 1).** Brainstormed, designed, planned, and
 implemented via `superpowers:subagent-driven-development` across 8 tasks,
@@ -479,22 +487,44 @@ against real data. `SeriesAssignmentModal`/`SeriesPicker` (the
 reassignment surface) were explicitly left unstyled — deferred, not
 forgotten (browser-default form controls only).
 
-**Open: reassess the whole feature's UX/UI now that it's live.** Now that
-Phase 1 + the reassignment fix + visual polish have all shipped and been
-used against real data, do a holistic pass rather than more incremental
-fixes: is the upload-time `SeriesPicker` flow (3 buttons, inline
-series/season/episode-number entry) actually the easiest way for a user
-to assign an episode, or would a simpler default (e.g. auto-suggest the
-most-recently-used series) reduce friction? Is per-script "Series" icon
-button in My Scripts discoverable enough, or should assignment status
-show as a visible column/badge in that table instead of only a tooltip?
-Does the 3-level click-through (`/series` → series → season) feel right,
-or is it one hop too many for the common case of "one series, one
-season"? Should `SeriesPicker`/`SeriesAssignmentModal` get styled as part
-of this pass rather than as a separate item? No specifics decided yet —
-needs a proper `superpowers:brainstorming` pass, ideally informed by
-watching a real user (or the account owner) work through the assign →
-browse → re-assign flow cold, without guidance.
+**Done: nest episodes under series/season in My Scripts, add upload
+deep-link — RESOLVED, shipped 2026-07-23.** Found via live use: assigning
+a script's series was already inline at upload (`SeriesPicker` embedded
+in `ScriptUpload.jsx`, not a separate page — contrary to the original
+complaint that prompted this), but *browsing* the library by series
+required leaving My Scripts for the `/series` pages, and there was no
+fast path to "add the next episode to a season I'm already working in."
+Brainstormed, designed, planned, and implemented via
+`superpowers:subagent-driven-development` across 4 tasks. `GET
+/api/scripts` now joins `season_id → seasons → series` and returns
+`series_id`/`series_title`/`season_number`/`season_title` (batched
+`in_()` queries, not N+1). `ScriptTable.jsx` groups scripts into
+collapsible series → season → episode rows (localStorage-persisted
+collapse state, collapsed by default; unassigned scripts still render
+flat and sortable below, unchanged). Each series header links to
+`/series/:id` ("View series" — the `/series` pages are kept, not
+replaced, for the combined cast view and deeper series management);
+each season header has an "Add episode" action that deep-links to
+`/upload?seriesId=..&seasonId=..`. `SeriesPicker.jsx` gained optional
+`initialSeriesId`/`initialSeasonId`/`initialEpisodeNumber` props (zero
+behavior change when omitted — `SeriesAssignmentModal.jsx`'s usage is
+unaffected) so `ScriptUpload.jsx` can pre-select that season and the
+next sequential episode number from the deep link, still fully editable
+before uploading. A real race condition in the prefill effect (a
+series-switch before the season list finished loading could silently
+apply the original prefill onto the newly selected series) was found in
+task review, needed two fix rounds to close (a synchronous ref flip
+alone was insufficient; the standard React effect-cancellation-flag
+pattern closed it fully) — independently re-verified by tracing the
+closure/cleanup semantics.
+
+**Still open: rest of the UX/UI reassessment.** `SeriesPicker`/
+`SeriesAssignmentModal` remain unstyled (browser-default form controls
+only — noted as in-scope back when the visual polish pass shipped
+2026-07-22, still not done). The `/series` pages' own 3-level
+click-through (`/series` → series → season) is unchanged by this
+shipment — the My Scripts table grouping is a parallel fast path, not a
+replacement, per explicit user decision during brainstorming.
 
 **Open: Phase 2 — cross-episode entity continuity.** Character/location/
 prop identity carrying across episodes (so "JOHN" in episode 3 resolves to
@@ -507,14 +537,40 @@ a strategy for when episode 5 legitimately introduces a different "JOHN."
 Also still open from the original brainstorm: whether identity matching is
 AI-assisted (embedding/fuzzy match) or requires manual confirmation.
 
+**Open: does/should Series integrate with Board, Scheduling, or
+Reporting?** Raised by the account owner 2026-07-23 — now that a season's
+episodes are easy to see grouped together, should scheduling or reporting
+gain any season-level concept, or make cross-episode work easier? Confirmed
+via investigation before scoping this session's brainstorm down to just the
+My Scripts table (above): today all three are strictly single-script-scoped
+with no exceptions — `shooting_schedules.script_id` is `NOT NULL REFERENCES
+scripts(id)` (`030_shooting_schedules.sql`), every schedule/stripboard route
+in `backend/routes/schedule_routes.py` and every call in
+`ShootingSchedulePage.jsx`/`ScheduleKanban.jsx` is scoped to one `scriptId`;
+`report_service.py`'s every method and `ReportStudio.jsx`'s every call
+likewise take one `script_id`. No `season_id`/`episode_number` reference
+exists anywhere in either code path. This is a genuinely undesigned
+question, not a partially-built feature — needs its own
+`superpowers:brainstorming` pass to decide whether a season-level rollup
+(e.g. a combined report across a season's episodes, or a shared
+stripboard spanning multiple episodes shot together) is worth the added
+complexity, or whether per-episode scoping should simply stay as-is.
+
 **References.**
-- Design: `docs/superpowers/specs/2026-07-22-series-multi-episode-phase1-design.md`
-- Plan: `docs/superpowers/plans/2026-07-22-series-multi-episode-phase1.md`
+- Phase 1 design: `docs/superpowers/specs/2026-07-22-series-multi-episode-phase1-design.md`
+- Phase 1 plan: `docs/superpowers/plans/2026-07-22-series-multi-episode-phase1.md`
+- My-Scripts-grouping design: `docs/superpowers/specs/2026-07-23-series-nested-script-table-design.md`
+- My-Scripts-grouping plan: `docs/superpowers/plans/2026-07-23-series-nested-script-table.md`
 - `backend/routes/series_routes.py`, `backend/db/migrations/045_series_seasons.sql`
+- `backend/routes/supabase_routes.py` — `_attach_series_info` (the `GET /api/scripts` join)
 - `frontend/src/pages/SeriesListPage.jsx`, `SeriesDetailPage.jsx`, `SeasonPage.jsx`, `SeriesPages.css`
-- `frontend/src/components/series/SeriesPicker.jsx`, `SeriesAssignmentModal.jsx` (unstyled — in scope for the reassessment)
-- `frontend/src/components/scripts/ScriptTable.jsx` — the "Series" per-row action, a candidate for the discoverability question above
+- `frontend/src/components/series/SeriesPicker.jsx`, `SeriesAssignmentModal.jsx` (unstyled — still in scope for the remaining reassessment)
+- `frontend/src/components/scripts/ScriptTable.jsx` — grouped series/season rendering, "View series"/"Add episode" actions
+- `frontend/src/components/script/ScriptUpload.jsx` — `?seriesId=&seasonId=` deep-link prefill
 - Phase 2 starting point: `backend/services/entity_resolver.py`
+- Board/Schedule/Report integration starting points: `backend/routes/schedule_routes.py`,
+  `backend/db/migrations/030_shooting_schedules.sql`, `backend/services/report_service.py`,
+  `frontend/src/components/schedule/`, `frontend/src/components/reports/ReportStudio.jsx`
 
 ---
 
