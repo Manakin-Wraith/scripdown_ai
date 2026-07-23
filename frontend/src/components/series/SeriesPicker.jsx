@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { listSeries, createSeries, listSeasons, createSeason } from '../../services/apiService';
 
 /**
@@ -20,17 +20,34 @@ import { listSeries, createSeries, listSeasons, createSeason } from '../../servi
  * must NOT fire just because the modal opened with 'none' as the initial
  * mode. Pass autoFireNone={false} there; the 'none' panel then renders an
  * explicit "Remove from series" button instead of firing automatically.
+ *
+ * initialSeriesId/initialSeasonId/initialEpisodeNumber: optional deep-link
+ * prefill (used by the "+ Add episode" action on a season's group header in
+ * ScriptTable, which navigates to /upload?seriesId=..&seasonId=..). When
+ * initialSeasonId is set, the picker starts in 'existing' mode with that
+ * series/season/episode-number pre-selected -- fully editable, not locked
+ * in, matching the "assignment is always overridable" principle used
+ * elsewhere in this component.
  */
-export default function SeriesPicker({ onAssign, autoFireNone = true }) {
-    const [mode, setMode] = useState('none');
+export default function SeriesPicker({
+    onAssign,
+    autoFireNone = true,
+    initialSeriesId = null,
+    initialSeasonId = null,
+    initialEpisodeNumber = null,
+}) {
+    const [mode, setMode] = useState(initialSeasonId ? 'existing' : 'none');
     const [seriesList, setSeriesList] = useState([]);
-    const [selectedSeriesId, setSelectedSeriesId] = useState('');
+    const [selectedSeriesId, setSelectedSeriesId] = useState(initialSeriesId || '');
     const [seasons, setSeasons] = useState([]);
     const [selectedSeasonId, setSelectedSeasonId] = useState('');
-    const [episodeNumber, setEpisodeNumber] = useState('');
+    const [episodeNumber, setEpisodeNumber] = useState(
+        initialEpisodeNumber != null ? String(initialEpisodeNumber) : ''
+    );
     const [newSeriesTitle, setNewSeriesTitle] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const appliedInitialSeason = useRef(false);
 
     useEffect(() => {
         if (mode !== 'existing') return;
@@ -40,14 +57,24 @@ export default function SeriesPicker({ onAssign, autoFireNone = true }) {
     }, [mode]);
 
     useEffect(() => {
-        setSelectedSeasonId('');
+        const isFirstRunWithPrefill = !appliedInitialSeason.current && !!initialSeasonId;
+        if (!isFirstRunWithPrefill) {
+            setSelectedSeasonId('');
+        }
         if (!selectedSeriesId) {
             setSeasons([]);
             return;
         }
         listSeasons(selectedSeriesId)
-            .then((data) => setSeasons(data.seasons || []))
+            .then((data) => {
+                setSeasons(data.seasons || []);
+                if (isFirstRunWithPrefill) {
+                    setSelectedSeasonId(initialSeasonId);
+                    appliedInitialSeason.current = true;
+                }
+            })
             .catch((err) => setError(err.message || 'Failed to load seasons'));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedSeriesId]);
 
     useEffect(() => {
