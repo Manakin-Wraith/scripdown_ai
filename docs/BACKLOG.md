@@ -551,15 +551,60 @@ changes; `SeriesAssignmentModal.jsx`'s classic-tabs usage is unaffected
 is always `false` there) — confirmed both in task review and the final
 whole-branch review.
 
-**Still open: rest of the UX/UI reassessment.** `SeriesAssignmentModal`
-remains unstyled (browser-default form controls only — noted as
-in-scope back when the visual polish pass shipped 2026-07-22, still not
-done; it reuses `SeriesPicker`'s classic tabs, which are now styled via
-the shipment above, but the modal's own chrome is not). The `/series`
-pages' own 3-level click-through (`/series` → series → season) is
-unchanged by this shipment — the My Scripts table grouping is a
-parallel fast path, not a replacement, per explicit user decision during
-brainstorming.
+**In progress (started 2026-07-23, paused mid-verification): `/series`
+3-level click-through collapsed to an accordion.** Brainstormed,
+designed, planned, and implemented via `superpowers:subagent-driven-development`
+in worktree branch `worktree-series-accordion` (not yet merged).
+`SeriesDetailPage.jsx` (the pure season-picker page) is deleted;
+`SeriesListPage.jsx` becomes an accordion — clicking a series expands
+its seasons inline instead of navigating to a separate page. The old
+`series/:seriesId` route now redirects to `/series?expand=<id>`
+(pre-expanding that series), and `ScriptTable.jsx`'s "View series"
+action links straight there. All 3 code tasks passed task review clean.
+
+Live verification against real production data (2026-07-23) surfaced
+four real issues the task reviews didn't catch, all fixed in a follow-up
+commit on the same branch:
+- The original lazy-fetch-on-expand design (a deliberate brainstorm
+  decision) felt clunky in practice — a spinner on every first expand.
+  Redesigned to batch-embed each series' seasons directly into
+  `GET /api/series` (one extra batched query, not N+1) so expand is a
+  pure instant UI toggle. New test coverage
+  (`test_list_series_embeds_seasons_ordered_and_scoped`,
+  `test_list_series_with_no_series_returns_empty_list`); 19/19 series
+  tests and 445/445 full backend suite pass.
+- Abrupt open/close snap replaced with a `max-height` transition (a
+  `grid-template-rows: 0fr` approach was tried first but doesn't
+  reliably collapse to a true zero height in practice — left a visible
+  sliver of the child row peeking through when collapsed).
+- The toggle `<button>` had unreset native browser chrome
+  (`appearance`/`outline`), rendering a stray border artifact under the
+  row — fixed.
+- **Alignment bug fixed as part of this work** (see the entry below,
+  now resolved): `.series-page` gained `margin: 0 auto`. While touching
+  that CSS, also found and fixed a real `:first-of-type` scoping bug on
+  `.series-section-title` — the pseudo-class is scoped per `<section>`
+  parent, so on `SeasonPage.jsx` (each heading in its own `<section>`)
+  it was zeroing the top margin on *every* section's heading instead of
+  just the page's first, collapsing the gap above "Combined Cast" against
+  the Episodes list above it. Spacing moved to the `<section>` boundary
+  instead.
+
+**Stopped here at user request, before finishing.** Two of the four live
+fixes (the collapse-sliver fix and the Combined Cast spacing fix) were
+made but not yet re-verified live in the browser — do that first on
+resume. Then still needed: final whole-branch code review and
+`superpowers:finishing-a-development-branch` (branch not yet merged to
+`main`). Progress ledger:
+`.claude/worktrees/series-accordion/.superpowers/sdd/progress.md` (that
+worktree, not this checkout).
+
+**Still open, unchanged by the above:** `SeriesAssignmentModal` remains
+unstyled (browser-default form controls only — noted as in-scope back
+when the visual polish pass shipped 2026-07-22, still not done; it
+reuses `SeriesPicker`'s classic tabs, which are now styled, but the
+modal's own chrome is not) — explicitly deferred out of this round's
+scope per user decision during brainstorming.
 
 **Open: Phase 2 — cross-episode entity continuity.** Character/location/
 prop identity carrying across episodes (so "JOHN" in episode 3 resolves to
@@ -623,17 +668,18 @@ of this is computed anywhere today — `get_season_cast`
 (`backend/routes/series_routes.py`) is the only season-level aggregate
 that currently exists.
 
-**Open bug (2026-07-23): Series/Season pages are left-aligned, not
-centered.** `frontend/src/pages/SeriesPages.css:6-8` — `.series-page`
-sets `max-width: 900px` but no `margin: 0 auto`, so on wide screens
-`SeriesListPage`, `SeriesDetailPage`, and `SeasonPage` all sit flush
-against the left edge of the content area instead of centering, unlike
-`BillingPage`'s `.billing-content` (`max-width: 640px; margin: 0 auto;`)
-which was fixed for the same complaint on 2026-07-21. Likely a one-line
-fix (`margin: 0 auto;` added to `.series-page`) but bundle it with
-whatever layout changes come out of the season-metrics brainstorm above
-rather than fixing in isolation, since a new metrics panel may change
-what "centered" should mean on `SeasonPage` specifically.
+**Bug (2026-07-23) — RESOLVED, fixed as part of the accordion work
+above.** Series/Season pages were left-aligned, not centered:
+`frontend/src/pages/SeriesPages.css:6-8` — `.series-page` set
+`max-width: 900px` but no `margin: 0 auto`, so on wide screens
+`SeriesListPage`/`SeasonPage` sat flush against the left edge instead of
+centering, unlike `BillingPage`'s `.billing-content` (fixed for the same
+complaint on 2026-07-21). Fixed as a one-line `margin: 0 auto;` addition
+while already touching this CSS for the accordion work (see above) —
+not yet merged to `main` (worktree branch `worktree-series-accordion`).
+Bundling with the season-metrics brainstorm turned out unnecessary; the
+metrics panel, whenever built, can adjust `.series-page`/`SeasonPage`
+layout further at that point same as any other page change would.
 
 **References.**
 - Phase 1 design: `docs/superpowers/specs/2026-07-22-series-multi-episode-phase1-design.md`
