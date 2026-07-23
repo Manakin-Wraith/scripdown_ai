@@ -591,6 +591,50 @@ question, not a partially-built feature — needs its own
 stripboard spanning multiple episodes shot together) is worth the added
 complexity, or whether per-episode scoping should simply stay as-is.
 
+**Open (expanded scope, 2026-07-23): Board/Schedule a series with
+numerous episodes.** Beyond the general integration question above, the
+account owner specifically wants to brainstorm how an AD/Line Producer
+would actually **Board and Schedule a whole series** (multiple episodes
+shot together, as is typical in TV production), not just view episodes
+grouped in a list. Open questions for that brainstorm: does a
+season/series get its own stripboard spanning all its episodes' scenes
+(cross-episode board), or does each episode keep its own board with a
+season-level view layered on top; how strip/scene ordering and day
+assignment should represent which episode a strip belongs to; whether
+`shooting_schedules.script_id` needs to become nullable/multi-script (a
+schema change) or a season-level board is a new, separate concept
+alongside the existing per-script one; and how this interacts with the
+existing single-`script_id` scoping confirmed above in
+`schedule_routes.py`/`ShootingSchedulePage.jsx`/`ScheduleKanban.jsx`.
+
+**Open (2026-07-23): key season-level metrics for the Series/Season
+page.** Separately, after a season's episodes have all been analyzed,
+what data points would an AD or Line Producer actually want to see when
+looking at a Season (on `SeasonPage.jsx`, which today only shows the
+combined cast table)? Needs a brainstorm to shortlist candidates before
+building anything — starting candidates to validate: total scene count
+and estimated total shoot days across the season; cast members ranked by
+episode-count/total-scene-count across the season (which actors span the
+most episodes); location reuse across episodes (which locations get
+shot at repeatedly, useful for company-move planning); total estimated
+runtime/page count across the season; and any per-episode breakdown
+counts (props/wardrobe/vehicles/SFX) rolled up to a season total. None
+of this is computed anywhere today — `get_season_cast`
+(`backend/routes/series_routes.py`) is the only season-level aggregate
+that currently exists.
+
+**Open bug (2026-07-23): Series/Season pages are left-aligned, not
+centered.** `frontend/src/pages/SeriesPages.css:6-8` — `.series-page`
+sets `max-width: 900px` but no `margin: 0 auto`, so on wide screens
+`SeriesListPage`, `SeriesDetailPage`, and `SeasonPage` all sit flush
+against the left edge of the content area instead of centering, unlike
+`BillingPage`'s `.billing-content` (`max-width: 640px; margin: 0 auto;`)
+which was fixed for the same complaint on 2026-07-21. Likely a one-line
+fix (`margin: 0 auto;` added to `.series-page`) but bundle it with
+whatever layout changes come out of the season-metrics brainstorm above
+rather than fixing in isolation, since a new metrics panel may change
+what "centered" should mean on `SeasonPage` specifically.
+
 **References.**
 - Phase 1 design: `docs/superpowers/specs/2026-07-22-series-multi-episode-phase1-design.md`
 - Phase 1 plan: `docs/superpowers/plans/2026-07-22-series-multi-episode-phase1.md`
@@ -609,6 +653,10 @@ complexity, or whether per-episode scoping should simply stay as-is.
 - Board/Schedule/Report integration starting points: `backend/routes/schedule_routes.py`,
   `backend/db/migrations/030_shooting_schedules.sql`, `backend/services/report_service.py`,
   `frontend/src/components/schedule/`, `frontend/src/components/reports/ReportStudio.jsx`
+- Season-level metrics starting point: `backend/routes/series_routes.py` — `get_season_cast`
+  (only existing season-level aggregate); `frontend/src/pages/SeasonPage.jsx`
+- Alignment bug: `frontend/src/pages/SeriesPages.css:6-8` (`.series-page`); prior fix pattern
+  at `frontend/src/pages/BillingPage.css` (`.billing-content`)
 
 ---
 
