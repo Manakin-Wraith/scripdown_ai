@@ -57,6 +57,7 @@ export default function SeriesPicker({
     }, [mode]);
 
     useEffect(() => {
+        let cancelled = false;
         const isFirstRunWithPrefill = !appliedInitialSeason.current && !!initialSeasonId;
         if (isFirstRunWithPrefill) {
             // Flip synchronously (not inside the .then() below) so a series
@@ -74,12 +75,18 @@ export default function SeriesPicker({
         }
         listSeasons(selectedSeriesId)
             .then((data) => {
+                if (cancelled) return;
                 setSeasons(data.seasons || []);
                 if (isFirstRunWithPrefill) {
                     setSelectedSeasonId(initialSeasonId);
                 }
             })
-            .catch((err) => setError(err.message || 'Failed to load seasons'));
+            .catch((err) => {
+                if (!cancelled) setError(err.message || 'Failed to load seasons');
+            });
+        return () => {
+            cancelled = true;
+        };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedSeriesId]);
 
