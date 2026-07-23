@@ -436,21 +436,23 @@ instinct in the original Option 1 sketch.
 
 ---
 
-## Series / multi-episode analysis — Phase 1 + My-Scripts grouping RESOLVED, shipped; further UX/UI reassessment + Phase 2 + Board/Schedule/Report integration open
+## Series / multi-episode analysis — Phase 1 + My-Scripts grouping + known-series picker RESOLVED, shipped; further UX/UI reassessment + Phase 2 + Board/Schedule/Report integration open
 
 **Status:** Phase 1 (grouping/reporting layer) shipped 2026-07-22,
 including a same-day reassignment-surface fix and a visual polish pass
 (both also 2026-07-22). A first slice of the UX/UI reassessment —
 nesting episodes under series/season directly in the My Scripts table,
 plus an upload-flow deep link to skip the picker for the common
-"add the next episode" case — shipped 2026-07-23. Three follow-ups
-remain open: the rest of the UX/UI reassessment (SeriesPicker/
-SeriesAssignmentModal still unstyled, the 3-level `/series` click-through
-still exists), Phase 2 (cross-episode entity continuity), and whether/how
-Series should integrate with Board/Scheduling/Reporting (all three are
-strictly single-script-scoped today — confirmed via investigation
-2026-07-23, no `season_id`/`episode_number` touches those code paths
-anywhere).
+"add the next episode" case — shipped 2026-07-23. A second slice —
+styling `SeriesPicker` and replacing its "pick from scratch" tabs with a
+compact known-series view when arriving via that deep link — also
+shipped 2026-07-23. Three follow-ups remain open: the rest of the UX/UI
+reassessment (`SeriesAssignmentModal` still unstyled, the 3-level
+`/series` click-through still exists), Phase 2 (cross-episode entity
+continuity), and whether/how Series should integrate with
+Board/Scheduling/Reporting (all three are strictly single-script-scoped
+today — confirmed via investigation 2026-07-23, no
+`season_id`/`episode_number` touches those code paths anywhere).
 
 **What shipped (Phase 1).** Brainstormed, designed, planned, and
 implemented via `superpowers:subagent-driven-development` across 8 tasks,
@@ -518,13 +520,46 @@ alone was insufficient; the standard React effect-cancellation-flag
 pattern closed it fully) — independently re-verified by tracing the
 closure/cleanup semantics.
 
-**Still open: rest of the UX/UI reassessment.** `SeriesPicker`/
-`SeriesAssignmentModal` remain unstyled (browser-default form controls
-only — noted as in-scope back when the visual polish pass shipped
-2026-07-22, still not done). The `/series` pages' own 3-level
-click-through (`/series` → series → season) is unchanged by this
-shipment — the My Scripts table grouping is a parallel fast path, not a
-replacement, per explicit user decision during brainstorming.
+**Done: known-series picker view + `SeriesPicker` styling — RESOLVED,
+shipped 2026-07-23.** Found via live use right after the My-Scripts
+deep link shipped (above): `SeriesPicker.jsx` had no CSS at all
+(raw browser-default controls floating on the dark page background),
+and landing on `/upload` via a season's "Add episode" link still showed
+the exact same "pick a series from scratch" 3-tab UI as a cold upload,
+just with values pre-filled — nothing in the UI reflected that the
+series was already known. Separately, the account owner flagged that
+episodes are sometimes uploaded out of sequence (e.g. episode 5 before
+episode 3) and the UI needed to make that as easy as accepting the
+suggested next number. Brainstormed, designed, planned, and implemented
+via `superpowers:subagent-driven-development` across 3 tasks.
+`SeriesPicker.jsx` gained a derived `isKnownSeries` flag (true only when
+both `initialSeriesId` and `initialSeasonId` are set) and an `overridden`
+escape hatch: when known, it renders a compact view (series-name badge,
+a live season `<select>`, an always-editable episode-number `<input>`
+explicitly supporting out-of-sequence numbers, a "Not this series?"
+button that reveals the classic tabs from a clean state) instead of the
+3-tab picker. The "next episode number" suggestion moved from
+`ScriptUpload.jsx` into `SeriesPicker` itself, recomputed via
+`listEpisodes()` whenever the season dropdown changes (numbering is
+per-season and the season is now live inside the picker) —
+`ScriptUpload.jsx` simplified accordingly, now just forwarding
+`seriesId`/`seasonId` from the URL. New `SeriesPicker.css` (first
+stylesheet for this component) styles both render paths against the
+same dark navy/amber tokens `ScriptTable.css` already uses. No backend
+changes; `SeriesAssignmentModal.jsx`'s classic-tabs usage is unaffected
+(it never passes `initialSeriesId`/`initialSeasonId`, so `isKnownSeries`
+is always `false` there) — confirmed both in task review and the final
+whole-branch review.
+
+**Still open: rest of the UX/UI reassessment.** `SeriesAssignmentModal`
+remains unstyled (browser-default form controls only — noted as
+in-scope back when the visual polish pass shipped 2026-07-22, still not
+done; it reuses `SeriesPicker`'s classic tabs, which are now styled via
+the shipment above, but the modal's own chrome is not). The `/series`
+pages' own 3-level click-through (`/series` → series → season) is
+unchanged by this shipment — the My Scripts table grouping is a
+parallel fast path, not a replacement, per explicit user decision during
+brainstorming.
 
 **Open: Phase 2 — cross-episode entity continuity.** Character/location/
 prop identity carrying across episodes (so "JOHN" in episode 3 resolves to
@@ -561,10 +596,13 @@ complexity, or whether per-episode scoping should simply stay as-is.
 - Phase 1 plan: `docs/superpowers/plans/2026-07-22-series-multi-episode-phase1.md`
 - My-Scripts-grouping design: `docs/superpowers/specs/2026-07-23-series-nested-script-table-design.md`
 - My-Scripts-grouping plan: `docs/superpowers/plans/2026-07-23-series-nested-script-table.md`
+- Known-series-picker design: `docs/superpowers/specs/2026-07-23-upload-known-series-picker-design.md`
+- Known-series-picker plan: `docs/superpowers/plans/2026-07-23-upload-known-series-picker.md`
 - `backend/routes/series_routes.py`, `backend/db/migrations/045_series_seasons.sql`
 - `backend/routes/supabase_routes.py` — `_attach_series_info` (the `GET /api/scripts` join)
 - `frontend/src/pages/SeriesListPage.jsx`, `SeriesDetailPage.jsx`, `SeasonPage.jsx`, `SeriesPages.css`
-- `frontend/src/components/series/SeriesPicker.jsx`, `SeriesAssignmentModal.jsx` (unstyled — still in scope for the remaining reassessment)
+- `frontend/src/components/series/SeriesPicker.jsx`, `SeriesPicker.css` (new) — known-series view + styling
+- `frontend/src/components/series/SeriesAssignmentModal.jsx` (still unstyled — remaining reassessment scope)
 - `frontend/src/components/scripts/ScriptTable.jsx` — grouped series/season rendering, "View series"/"Add episode" actions
 - `frontend/src/components/script/ScriptUpload.jsx` — `?seriesId=&seasonId=` deep-link prefill
 - Phase 2 starting point: `backend/services/entity_resolver.py`
