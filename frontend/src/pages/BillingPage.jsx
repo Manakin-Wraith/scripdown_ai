@@ -10,7 +10,7 @@ import './BillingPage.css';
 // Display only. The server is the authority on price. Annual is a
 // discounted prepay of the same license, not a separate product.
 const PRICE_ZAR = {
-    tier_1_credits: 450,
+    tier_1_credits: 2250,
     tier_2_license: { monthly: 1850, annual: 18500 },
     tier_2_seats: { monthly: 250, annual: 2500 },
 };

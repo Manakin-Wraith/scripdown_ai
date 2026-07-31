@@ -11,7 +11,7 @@ SlateOne will launch with a **two-tier subscription model** designed to serve bo
 | Attribute | **Tier 1 — Pay-Per-Breakdown** | **Tier 2 — Team License** |
 | --- | --- | --- |
 | **Billing model** | Consumption / pay-as-you-go | Monthly or annual subscription + per-seat fee |
-| **Cost** | ZAR 450 per breakdown/analysis | Monthly: ZAR 1,850/mo + ZAR 250/seat/mo · Annual: ZAR 18,500/yr + ZAR 2,500/seat/yr |
+| **Cost** | ZAR 2,250 per breakdown/analysis | Monthly: ZAR 1,850/mo + ZAR 250/seat/mo · Annual: ZAR 18,500/yr + ZAR 2,500/seat/yr |
 | **Script uploads** | Unlimited | Unlimited |
 | **Teams / collaboration** | **Not enabled** | **Enabled** |
 | **Seat billing** | N/A | To be determined (see §5) |
@@ -20,7 +20,7 @@ SlateOne will launch with a **two-tier subscription model** designed to serve bo
 ## 3. Pricing Details
 
 ### 3.1 Tier 1 — Pay-Per-Breakdown
-- **Price:** ZAR 450 per AI breakdown/analysis.
+- **Price:** ZAR 2,250 per AI breakdown/analysis.
 - **What counts as a breakdown:** Any request that triggers the AI pipeline to extract breakdown items (cast, props, wardrobe, vehicles, makeup & hair, SFX, sound, atmosphere) or narrative intelligence from a script.
 - **Scoping note:**
   - Scene detection and script parsing on upload are **not** charged.
@@ -82,7 +82,7 @@ All tiers get the following features without restriction:
 | Feature | Tier 1 | Tier 2 |
 | --- | --- | --- |
 | Unlimited script uploads | ✅ | ✅ |
-| AI breakdown / analysis | ✅ (ZAR 450 each) | ✅ (included) |
+| AI breakdown / analysis | ✅ (ZAR 2,250 each) | ✅ (included) |
 | Exporting & reporting | ✅ | ✅ |
 | Zoomable stripboard | ✅ | ✅ |
 | Narrative intelligence | ✅ | ✅ |
@@ -180,7 +180,7 @@ Tier 1 users can still:
 1. Signs up for free / Tier 1.
 2. Uploads 5 scripts over 3 months.
 3. Runs AI breakdown on 2 scripts.
-4. **Cost:** 2 × ZAR 450 = **ZAR 900**.
+4. **Cost:** 2 × ZAR 2,250 = **ZAR 4,500**.
 5. Cannot invite a producer or AD to collaborate.
 
 ### 7.2 Tier 2 Example — Small Production (Annual)
@@ -227,7 +227,7 @@ Tier 1 users can still:
 
 ## 10. Summary
 
-- **Tier 1** is a pure pay-per-analysis model for individuals: ZAR 450 per breakdown, unlimited uploads, no team features.
+- **Tier 1** is a pure pay-per-analysis model for individuals: ZAR 2,250 per breakdown, unlimited uploads, no team features.
 - **Tier 2** is a team license with monthly or annual cadence (ZAR 1,850/mo + ZAR 250/seat/mo, or ZAR 18,500/yr + ZAR 2,500/seat/yr — annual is a ~17% discounted prepay of the same product), includes all analysis and full team collaboration.
 - **Team seats are paid by the account owner** (recommended Option A) to minimize friction and align with production budgeting workflows.
 - **Script uploads and manual scene work are always free**; only AI-driven breakdowns trigger charges in Tier 1.

@@ -18,7 +18,7 @@ import requests
 # discounted prepay of the same product, not a separate offering (roughly
 # 10 months' worth for 12).
 PRICES = {
-    'tier_1_credits': Decimal('450.00'),  # per breakdown
+    'tier_1_credits': Decimal('2250.00'),  # per breakdown
     'tier_2_license': {
         'monthly': Decimal('1850.00'),
         'annual': Decimal('18500.00'),

@@ -28,7 +28,7 @@ def test_checkout_creates_intent_with_server_amount(monkeypatch):
     resp = _client().post("/api/billing/checkout",
                           json={'charge_type': 'tier_1_credits', 'quantity': 3})
     assert resp.status_code == 200
-    assert saved['amount'] == Decimal('1350.00')    # 3 x 450, computed server-side
+    assert saved['amount'] == Decimal('6750.00')    # 3 x 2250, computed server-side
     assert saved['user'] == 'u1'
 
 
@@ -40,7 +40,7 @@ def test_client_supplied_amount_is_ignored(monkeypatch):
                         lambda uid, ct, q, amt, mpid, cycle=None: saved.update(amount=amt))
     _client().post("/api/billing/checkout",
                    json={'charge_type': 'tier_1_credits', 'quantity': 1, 'amount': '1.00'})
-    assert saved['amount'] == Decimal('450.00')     # not 1.00
+    assert saved['amount'] == Decimal('2250.00')     # not 1.00
 
 
 def test_response_carries_signed_fields(monkeypatch):
@@ -126,4 +126,4 @@ def test_tier_1_credits_ignores_billing_cycle(monkeypatch):
     resp = _client().post("/api/billing/checkout",
                           json={'charge_type': 'tier_1_credits', 'quantity': 1, 'billing_cycle': 'weekly'})
     assert resp.status_code == 200
-    assert saved == {'amount': Decimal('450.00'), 'cycle': None}
+    assert saved == {'amount': Decimal('2250.00'), 'cycle': None}
