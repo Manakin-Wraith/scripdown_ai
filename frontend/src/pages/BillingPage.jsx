@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { CreditCard, Wallet, Users, Crown } from 'lucide-react';
 import { createCheckout } from '../services/apiService';
 import { useEntitlement } from '../hooks/useEntitlement';
+import { isNeverSubscribedTeamIntent } from '../utils/billingIntent';
 import PageHeader from '../components/layout/PageHeader';
 import { Spinner } from '../components/ui';
 import './BillingPage.css';
@@ -80,9 +81,7 @@ export default function BillingPage() {
     // subscribe, subscription_plan/status move off 'none' permanently
     // (see entitlement_service.activate_license), so this self-clears —
     // no separate "has ever subscribed" bookkeeping needed.
-    const neverSubscribed = entitlement.tier === 'none' && entitlement.status === 'none';
-    const isTeamIntent = entitlement.signup_plan === 'tier_2_annual_team';
-    const hideBreakdownDefault = isTeamIntent && neverSubscribed && !isActiveTeam;
+    const hideBreakdownDefault = isNeverSubscribedTeamIntent(entitlement) && !isActiveTeam;
     const showBreakdownCard = !hideBreakdownDefault || showBreakdownAnyway;
 
     const purchaseCardSection = (
