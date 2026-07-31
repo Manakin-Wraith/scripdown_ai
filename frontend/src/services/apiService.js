@@ -85,16 +85,21 @@ api.interceptors.request.use(async (config) => {
 api.interceptors.response.use(
     (response) => response,
     async (error) => {
-        if (error.response?.status === 401) {
-            // Clear cache and try to refresh
+        // Only ever retry once per request — a 401 that persists after a
+        // fresh token means the backend is rejecting this call for a
+        // reason other than an expired token, and retrying blindly loops
+        // forever (each retry re-fires refreshSession, and enough of those
+        // in a row gets rate-limited by Supabase and forces a sign-out).
+        if (error.response?.status === 401 && !error.config?._retriedAfterRefresh) {
+            error.config._retriedAfterRefresh = true;
             clearAuthCache();
-            
+
             try {
                 const { data: { session }, error: refreshError } = await supabase.auth.refreshSession();
                 if (session && !refreshError) {
                     cachedToken = session.access_token;
                     tokenExpiry = session.expires_at ? session.expires_at * 1000 : Date.now() + 3600000;
-                    
+
                     // Retry the original request with new token
                     error.config.headers.Authorization = `Bearer ${session.access_token}`;
                     return api.request(error.config);

@@ -161,16 +161,12 @@ def require_auth(f):
             return jsonify({'error': 'Missing or invalid Authorization header'}), 401
         
         token = auth_header.split(' ')[1]
-        
+
+        # Only token verification is wrapped here — errors raised by the
+        # wrapped view itself must propagate as their real type (e.g. a 500
+        # from a DB constraint violation), not get relabeled as a 401.
         try:
-            # Verify the token
             payload = verify_supabase_token(token)
-            
-            # Store user info in Flask's g object
-            g.current_user = payload
-            
-            return f(*args, **kwargs)
-            
         except ValueError as e:
             # In dev mode, allow fallback
             if DEV_MODE:
@@ -180,12 +176,50 @@ def require_auth(f):
                     'role': 'authenticated'
                 }
                 return f(*args, **kwargs)
-            
+
             return jsonify({'error': str(e)}), 401
         except Exception as e:
             return jsonify({'error': f'Authentication failed: {str(e)}'}), 401
-    
+
+        g.current_user = payload
+        _ensure_profile_exists(payload)
+        return f(*args, **kwargs)
+
     return decorated_function
+
+
+def _ensure_profile_exists(payload: dict) -> None:
+    """
+    Best-effort safety net: create a minimal `profiles` row for this user if
+    one doesn't exist yet.
+
+    Profile creation today happens exactly once, client-side, via
+    `/api/auth/set-plan` gated on a one-shot localStorage flag in the
+    signup browser session (see routes/auth_routes.py::set_plan). Any
+    account that reaches this decorator without ever hitting that path
+    (different browser/tab for email verification, account created
+    directly, cleared localStorage, etc.) has no profiles row, which then
+    surfaces later as a foreign-key violation in whatever unrelated route
+    first tries to write a row referencing profiles(id) — e.g. billing
+    checkout's `payfast_transactions.user_id` FK.
+
+    Never raises — a failure here must not block the actual request.
+    """
+    user_id = payload.get('sub') or payload.get('id')
+    if not user_id:
+        return
+    try:
+        from db.supabase_client import get_supabase_admin
+        admin = get_supabase_admin()
+        existing = admin.table('profiles').select('id').eq('id', user_id).execute()
+        if existing.data:
+            return
+        admin.table('profiles').insert({
+            'id': user_id,
+            'email': payload.get('email'),
+        }).execute()
+    except Exception as e:
+        logger.warning(f"Could not ensure profile exists for {user_id}: {e}")
 
 
 def optional_auth(f):
