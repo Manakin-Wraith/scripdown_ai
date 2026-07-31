@@ -141,9 +141,10 @@ export const AuthProvider = ({ children }) => {
                                     fetch(`${API_BASE_URL}/api/auth/welcome-email`, {
                                         method: 'POST',
                                         headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({ 
-                                            email: session.user.email, 
-                                            full_name: pendingName 
+                                        body: JSON.stringify({
+                                            email: session.user.email,
+                                            full_name: pendingName,
+                                            plan: data.signup_plan
                                         })
                                     }).catch(err => console.error('Welcome email error:', err));
                                     

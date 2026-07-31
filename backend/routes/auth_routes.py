@@ -31,7 +31,8 @@ def send_welcome_email_route():
         
         email = data.get('email')
         full_name = data.get('full_name', '')
-        
+        signup_plan = data.get('plan')
+
         if not email:
             return jsonify({'error': 'Email is required'}), 400
         
@@ -62,7 +63,8 @@ def send_welcome_email_route():
         result = send_welcome_email(
             to_email=email,
             full_name=full_name,
-            has_paid=has_paid
+            has_paid=has_paid,
+            signup_plan=signup_plan
         )
         
         if 'error' in result:
