@@ -11,7 +11,8 @@ import {
     X,
     Layers,
     Plus,
-    ExternalLink
+    ExternalLink,
+    Users
 } from 'lucide-react';
 import './ScriptTable.css';
 
@@ -194,6 +195,14 @@ const ScriptTable = ({ scripts, onView, onDelete, onRename, onUpdateWriter, onAs
                             <span className="episode-badge">Ep {script.episode_number}</span>
                         )}
                         <div className="script-name">{script.script_name}</div>
+                        {script.is_owner === false && (
+                            <span
+                                className="shared-badge"
+                                title={script.membership?.role ? `Shared with you — role: ${script.membership.role}` : 'Shared with you'}
+                            >
+                                <Users size={12} /> Shared
+                            </span>
+                        )}
                         {locationHealthCounts[script.script_id] > 0 && (
                             <span
                                 className="location-health-badge"

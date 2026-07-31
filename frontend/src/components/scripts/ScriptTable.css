@@ -347,3 +347,16 @@
     font-weight: 600;
     flex-shrink: 0;
 }
+
+.shared-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background-color: var(--gray-700);
+    color: var(--gray-300);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    flex-shrink: 0;
+}
