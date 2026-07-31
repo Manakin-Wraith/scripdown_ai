@@ -362,3 +362,55 @@
 .drawer-error {
     color: var(--danger);
 }
+
+.team-drawer-locked {
+    text-align: center;
+    padding: 2rem 0.5rem;
+}
+
+.team-drawer-locked .locked-icon {
+    width: 72px;
+    height: 72px;
+    background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+    color: var(--gray-900);
+}
+
+.team-drawer-locked h3 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 0.75rem 0;
+}
+
+.team-drawer-locked p {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    margin: 0 0 1.5rem 0;
+    line-height: 1.5;
+}
+
+.team-drawer-locked .upgrade-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1.5rem;
+    background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
+    color: var(--gray-900);
+    border: none;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.team-drawer-locked .upgrade-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px var(--primary-alpha-30);
+}

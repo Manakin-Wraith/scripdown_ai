@@ -9,6 +9,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import {
     Crown,
     Shield,
@@ -20,10 +21,12 @@ import {
     UserPlus,
     Link as LinkIcon,
     ChevronDown,
-    ChevronUp
+    ChevronUp,
+    Sparkles
 } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 import { useConfirmDialog } from '../../context/ConfirmDialogContext';
+import { useEntitlement } from '../../hooks/useEntitlement';
 import InviteModal from './InviteModal';
 import { Spinner, Drawer } from '../ui';
 import { readPendingSeatInviteDraft, clearPendingSeatInviteDraft } from '../../utils/pendingSeatInviteDraft';
@@ -42,6 +45,8 @@ const TeamDrawer = ({
 }) => {
     const toast = useToast();
     const { confirm } = useConfirmDialog();
+    const { entitlement } = useEntitlement();
+    const hasTeamAccess = entitlement?.can_use_teams ?? false;
 
     const [owner, setOwner] = useState(null);
     const [members, setMembers] = useState([]);
@@ -72,7 +77,7 @@ const TeamDrawer = ({
 
     // Fetch team data when drawer opens
     useEffect(() => {
-        if (!isOpen || !scriptId) return;
+        if (!isOpen || !scriptId || !hasTeamAccess) return;
 
         const fetchTeamData = async () => {
             setLoading(true);
@@ -122,7 +127,7 @@ const TeamDrawer = ({
         };
 
         fetchTeamData();
-    }, [isOpen, scriptId, isOwner]);
+    }, [isOpen, scriptId, isOwner, hasTeamAccess]);
 
     const handleRemoveMember = async (memberId, memberName) => {
         try {
@@ -290,7 +295,19 @@ const TeamDrawer = ({
                 subtitle={scriptTitle}
             >
                 <div className="team-drawer-body">
-                    {loading ? (
+                    {!hasTeamAccess ? (
+                        <div className="team-drawer-locked">
+                            <div className="locked-icon">
+                                <Users size={32} />
+                            </div>
+                            <h3>Team Collaboration Locked</h3>
+                            <p>Team features require the Annual Team License. Subscribe to invite members and collaborate on this script.</p>
+                            <Link to="/billing" className="upgrade-btn" onClick={onClose}>
+                                <Sparkles size={18} />
+                                Get the Annual Team License
+                            </Link>
+                        </div>
+                    ) : loading ? (
                         <div className="drawer-loading">
                             <Spinner size={24} />
                             <span>Loading team...</span>
