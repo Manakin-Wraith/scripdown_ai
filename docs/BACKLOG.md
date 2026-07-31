@@ -127,14 +127,19 @@ ledger shows a correctly-linked `+10` row; `account_seats` shows a
 correctly-linked `9`-seat grant with a proper `term_expires_at`. Backend
 suite (422 tests) passes after the IP-check removal.
 
-**Outstanding follow-up.** Four transactions created during the diagnosis
-window are permanently stuck `pending` (PayFast will not retry an ITN
-indefinitely) and need a manual grant: two from before any fix landed
-(`pf_payment_id: NULL`, `reject_reason: NULL` — ITN never reached
-production at all) and two from mid-diagnosis (`reject_reason: 'untrusted
-source ip ...'`). No admin manual-approval UI/route currently exists in
-`backend/routes/admin_routes.py` for this — needs building or a one-off
-manual grant via `entitlement_service.py`'s `grant_credits`/`grant_seats`.
+**Outstanding follow-up — corrected 2026-07-31.** The four stuck-`pending`
+transactions from the diagnosis window were PayFast **sandbox** test
+transactions, not real customer payments — no manual grant needed, nothing
+to repair. The real remaining follow-up: production is still configured
+against **PayFast sandbox credentials**, not live. Needs switching to real
+PayFast merchant credentials (merchant ID/key, live passphrase, live
+API host) in Railway's env vars before any real customer traffic can be
+processed. Check `backend/services/payfast_service.py` /
+`backend/routes/payfast_routes.py` for where sandbox vs. live host/creds
+are read from, and confirm `PAYFAST_API_URL`/webhook config still points
+at the correct (now-live) merchant settings after the switch — re-verify
+with a real low-value live transaction once switched, same pattern used to
+verify the sandbox flow.
 
 **References.**
 - `backend/Dockerfile`, `backend/railway.json` — `$PORT` binding fix
@@ -681,6 +686,20 @@ Bundling with the season-metrics brainstorm turned out unnecessary; the
 metrics panel, whenever built, can adjust `.series-page`/`SeasonPage`
 layout further at that point same as any other page change would.
 
+**Done: document Series in `docs/SLATEONE_FEATURES.md` — RESOLVED, fixed
+2026-07-28.** The feature had shipped across four merged rounds (Phase 1
+grouping, My-Scripts nesting, known-series picker, accordion pages) but
+was never added to the product capability doc — zero mentions of
+"series" in `SLATEONE_FEATURES.md` despite being live in production.
+Added as new "Currently Available" section 6, "Series & Multi-Episode
+Management" (old section 6, Exporting & Reporting, renumbered to 7),
+covering Series → Season → Episode grouping, the grouped My-Scripts
+view, the Series/Season pages with combined cast view, and the
+no-billing-impact guarantee. Deliberately left out the still-open items
+above (unstyled `SeriesAssignmentModal`, Board/Schedule/Report
+integration, Phase 2 identity resolution) since those aren't shipped —
+add them to the Roadmap section instead if/when scoped.
+
 **References.**
 - Phase 1 design: `docs/superpowers/specs/2026-07-22-series-multi-episode-phase1-design.md`
 - Phase 1 plan: `docs/superpowers/plans/2026-07-22-series-multi-episode-phase1.md`
@@ -819,23 +838,42 @@ visible "Cancel"/"Downgrade to Solo" control — currently absent).
 
 ---
 
-## Landing page copy — reword
+## Landing page copy — reword — V1 RESOLVED, shipped; FAQ page still open
 
-**Status:** Not started — feature request.
+**Status:** V1 done. Brainstormed and designed
+(`docs/superpowers/specs/2026-07-28-landing-page-redesign-design.md`),
+planned (`docs/superpowers/plans/2026-07-28-landing-page-redesign.md`),
+and implemented in the separate `~/slateone` marketing-site repo (not
+this repo — see below), merged via PR #2 ("landing-redesign") to that
+repo's `main` 2026-07-28.
 
-**Context.** The landing page copy (marketing framing, FAQ, tier
-descriptions) needs a rewrite. No specifics captured yet on what's wrong
-with the current copy or what tone/positioning it should move toward —
-needs a proper brainstorming pass before writing.
+**What shipped.** Reskinned every section of the marketing site from its
+charcoal/neon-green/Space-Grotesk identity to the same slate/amber/Inter
+visual system as the actual product app (stock Tailwind `slate-*`/
+`amber-*` utilities, exact hex matches for `ScripDown_AI/frontend/src/index.css`'s
+`--gray-*`/`--primary-*` variables — no custom Tailwind theme needed).
+Hero copy was rewritten; nav, footer, `IndustryReality`, `BuiltFor`,
+`Pricing`, `TierSelectionModal`, `LegalDocument` were reskinned (copy
+unchanged on most — only Hero got a copy rewrite); `SystemArchitecture`
+was deleted and folded into `OperatingLayer`. A follow-up commit
+(`f6b30d8`) also visually separated the license fee from the per-seat
+fee in the pricing card/modal.
+
+**Still open:** a FAQ page. `docs/landing-faq.md` — the old FAQ copy
+referencing the deprecated flat "$49/month" model — was never reconciled
+with the two-tier model; a design spec for a new FAQ page
+(`~/slateone` commit `18022e5`, "docs: add FAQ page design spec") exists
+but is not yet implemented. Track that as the remainder of this item.
 
 **References.**
-- `docs/landing-faq.md` — current FAQ copy (references the old flat "$49/month"
-  framing, which predates the two-tier model on this branch and needs to be
-  reconciled with it either way)
+- `~/slateone` (separate repo, not `ScripDown_AI`) — PR #2 "landing-redesign",
+  merged to `main`; commit `18022e5` has the pending FAQ page design spec
+- `docs/superpowers/specs/2026-07-28-landing-page-redesign-design.md`,
+  `docs/superpowers/plans/2026-07-28-landing-page-redesign.md` (this repo)
+- `docs/landing-faq.md` — stale FAQ copy, still needs the two-tier rewrite
 - `docs/SPEC_Tiered_Business_Model.md` — current tier names/positioning
-  ("Tier 1 — Pay-Per-Breakdown", "Tier 2 — Annual Team License") that landing
-  copy would need to reflect if SOLO/TEAMS naming and pricing (see below)
-  change
+  ("Tier 1 — Pay-Per-Breakdown", "Tier 2 — Annual Team License") that FAQ
+  copy needs to reflect
 
 ---
 

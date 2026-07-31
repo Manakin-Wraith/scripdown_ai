@@ -28,7 +28,13 @@
 - **Item Tracking:** Tag breakdown items with statuses, assign priorities, and leave department-specific notes via a slide-out drawer.
 - **Access Control:** Script owners can manage team invites, revoke access, and assign view/edit permissions.
 
-### 6. Exporting & Reporting
+### 6. Series & Multi-Episode Management
+- **Series → Season → Episode Grouping:** Organize related episode scripts under a Series and Season, either inline at upload via a Series/Season picker or by reassigning an existing script from My Scripts.
+- **Grouped My-Scripts View:** My Scripts nests episodes under collapsible Series → Season rows alongside the regular flat/sortable list, with quick links to view the series or add another episode.
+- **Series Pages:** Dedicated Series list (accordion) and Season pages show episode order and a combined cast view — one row per distinct character name across the season's visible episodes.
+- **Zero Impact on Billing or Parsing:** Series/season membership is purely organizational — each episode is uploaded, parsed, and billed exactly as a standalone script.
+
+### 7. Exporting & Reporting
 - **Customizable Reports:** Generate 7+ standard production reports (Scene Breakdown, Day Out of Days (DOOD), Location, Props, Wardrobe, One-Liner, Full Binder).
 - **Advanced Filtering:** Filter reports across 9 dimensions (location, character, timeline code, etc.) and save custom filter presets.
 - **Highlighted Script PDF:** Export a script PDF with color-coded, industry-standard text highlights for every extracted breakdown item.
