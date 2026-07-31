@@ -8,10 +8,10 @@ SlateOne will launch with a **two-tier subscription model** designed to serve bo
 
 ## 2. Tier Overview
 
-| Attribute | **Tier 1 — Pay-Per-Breakdown** | **Tier 2 — Annual Team License** |
+| Attribute | **Tier 1 — Pay-Per-Breakdown** | **Tier 2 — Team License** |
 | --- | --- | --- |
-| **Billing model** | Consumption / pay-as-you-go | Annual subscription + per-seat fee |
-| **Cost** | ZAR 450 per breakdown/analysis | ZAR 1,850 per year + ZAR 250 per seat/member |
+| **Billing model** | Consumption / pay-as-you-go | Monthly or annual subscription + per-seat fee |
+| **Cost** | ZAR 450 per breakdown/analysis | Monthly: ZAR 1,850/mo + ZAR 250/seat/mo · Annual: ZAR 18,500/yr + ZAR 2,500/seat/yr |
 | **Script uploads** | Unlimited | Unlimited |
 | **Teams / collaboration** | **Not enabled** | **Enabled** |
 | **Seat billing** | N/A | To be determined (see §5) |
@@ -28,11 +28,18 @@ SlateOne will launch with a **two-tier subscription model** designed to serve bo
   - Each AI analysis request (single scene or bulk "Analyze All") is a billable event.
   - Re-analysis of the same script after edits counts as a new breakdown.
 
-### 3.2 Tier 2 — Annual Team License
-- **Base license:** ZAR 1,850 per year per account/organization.
-- **Per-seat fee:** ZAR 250 per team member (see §5 for payment responsibility options).
-- **Includes:** Unlimited AI breakdowns for the account owner and all paid seats.
-- **Billing cycle:** Annual, paid upfront.
+### 3.2 Tier 2 — Team License
+One product, two billing cadences — annual is a discounted prepay of the
+same license (~17% off vs. paying monthly for a year), not a separate
+offering.
+
+| Cadence | Base license | Per-seat fee |
+| --- | --- | --- |
+| **Monthly** | ZAR 1,850/month per account/organization | ZAR 250/seat/month |
+| **Annual** | ZAR 18,500/year per account/organization | ZAR 2,500/seat/year |
+
+- **Includes:** Unlimited AI breakdowns for the account owner and all paid seats, on either cadence.
+- **Seat term:** A seat's term always matches the license's own term/cadence — seats don't pick a separate cycle from the license they belong to.
 - **Minimum seat count:** 1 (the owner).
 
 ## 4. Feature Matrix
@@ -105,7 +112,7 @@ Tier 1 users can still:
 
 ### 5.1 Option A: Account Owner Pays for All Seats
 
-**Description:** The Tier 2 account owner / script owner is billed ZAR 250 for every seat they invite, regardless of who accepts.
+**Description:** The Tier 2 account owner / script owner is billed the per-seat fee (matching the license's own cadence — ZAR 250/mo or ZAR 2,500/yr) for every seat they invite, regardless of who accepts.
 
 **Pros:**
 - Simple billing relationship (owner = customer).
@@ -119,7 +126,7 @@ Tier 1 users can still:
 
 ### 5.2 Option B: Invited Member Pays for Their Own Seat
 
-**Description:** Each invited crew member pays ZAR 250 individually to activate their seat after accepting the invite.
+**Description:** Each invited crew member pays the per-seat fee individually (matching the license's cadence) to activate their seat after accepting the invite.
 
 **Pros:**
 - Distributes cost across the production team.
@@ -153,11 +160,11 @@ Tier 1 users can still:
 - Production companies, line producers, and heads of department are the natural customers for SlateOne.
 - Centralized billing aligns with how film/ TV productions budget software tools.
 - It minimizes drop-off in the invite flow and keeps support overhead low.
-- The UI should still show the per-seat cost (ZAR 250) so owners can internally allocate the expense.
+- The UI should still show the per-seat cost for the account's chosen cadence so owners can internally allocate the expense.
 
 **Decision:**
 - **The Tier 2 account owner pays for each seat.**
-- Seats are billed annually alongside the base license.
+- Seats are billed on the same cadence as the base license (monthly or annual — a seat never has its own separate cycle).
 - Owners can invite / remove seats at any time; prorated credits/refunds for removed seats can be a Phase 2 enhancement.
 
 ## 6. Script Upload Policy
@@ -176,13 +183,19 @@ Tier 1 users can still:
 4. **Cost:** 2 × ZAR 450 = **ZAR 900**.
 5. Cannot invite a producer or AD to collaborate.
 
-### 7.2 Tier 2 Example — Small Production
-1. Production company subscribes to Tier 2.
-2. Base license: ZAR 1,850/year.
+### 7.2 Tier 2 Example — Small Production (Annual)
+1. Production company subscribes to Tier 2, annual cadence.
+2. Base license: ZAR 18,500/year.
 3. Invites 4 crew members (producer, 1st AD, costume, locations).
-4. Seats: 4 × ZAR 250 = ZAR 1,000.
-5. **First-year cost:** ZAR 1,850 + ZAR 1,000 = **ZAR 2,850**.
+4. Seats: 4 × ZAR 2,500 = ZAR 10,000.
+5. **First-year cost:** ZAR 18,500 + ZAR 10,000 = **ZAR 28,500**.
 6. Team can run unlimited AI breakdowns and use department workspaces.
+
+### 7.3 Tier 2 Example — Small Production (Monthly)
+1. Same production, monthly cadence instead.
+2. Base license: ZAR 1,850/month.
+3. Seats: 4 × ZAR 250 = ZAR 1,000/month.
+4. **Monthly cost:** ZAR 1,850 + ZAR 1,000 = **ZAR 2,850/month** (ZAR 34,200/year if never switched to annual).
 
 ## 8. Billing & Enforcement
 
@@ -193,8 +206,9 @@ Tier 1 users can still:
 - Failed payment blocks further analysis until resolved.
 
 ### 8.2 Tier 2 Billing
-- Annual subscription with automatic renewal.
+- Monthly or annual subscription (customer's choice at signup), with automatic renewal.
 - Seat count can be changed mid-cycle; changes apply at next renewal unless prorating is implemented.
+- A seat's term always matches its license's own cadence — switching the license's cadence is a new subscription, not a seat-level setting.
 - Failed renewal downgrades the account to Tier 1; team features become read-only or inaccessible.
 
 ### 8.3 Feature Gating
@@ -214,6 +228,6 @@ Tier 1 users can still:
 ## 10. Summary
 
 - **Tier 1** is a pure pay-per-analysis model for individuals: ZAR 450 per breakdown, unlimited uploads, no team features.
-- **Tier 2** is an annual team license: ZAR 1,850/year + ZAR 250 per seat, includes all analysis and full team collaboration.
+- **Tier 2** is a team license with monthly or annual cadence (ZAR 1,850/mo + ZAR 250/seat/mo, or ZAR 18,500/yr + ZAR 2,500/seat/yr — annual is a ~17% discounted prepay of the same product), includes all analysis and full team collaboration.
 - **Team seats are paid by the account owner** (recommended Option A) to minimize friction and align with production budgeting workflows.
 - **Script uploads and manual scene work are always free**; only AI-driven breakdowns trigger charges in Tier 1.

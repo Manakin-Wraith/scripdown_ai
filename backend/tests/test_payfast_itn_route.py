@@ -30,7 +30,7 @@ def _pass_all(monkeypatch, calls):
     monkeypatch.setattr(pr, "_already_processed", lambda pf: False)
 
     def _fake_claim_and_grant(txn_id, pf_payment_id, payload, charge_type,
-                               user_id, quantity, payfast_token):
+                               user_id, quantity, payfast_token, billing_cycle):
         calls.append((charge_type, user_id, quantity))
         return 'granted'
 

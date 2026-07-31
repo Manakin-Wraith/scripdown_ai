@@ -10,12 +10,20 @@ import services.payfast_service as pf
 
 def test_compute_amount_multiplies_by_quantity():
     assert pf.compute_amount('tier_1_credits', 3) == Decimal('1350.00')
-    assert pf.compute_amount('tier_2_seats', 4) == Decimal('1000.00')
+    assert pf.compute_amount('tier_2_seats', 4, 'monthly') == Decimal('1000.00')
+    assert pf.compute_amount('tier_2_seats', 4, 'annual') == Decimal('10000.00')
 
 
 def test_license_ignores_quantity():
-    # An annual licence is one licence regardless of what the client asks for.
-    assert pf.compute_amount('tier_2_license', 7) == Decimal('1850.00')
+    # A licence is one licence regardless of what the client asks for.
+    # Annual is a discounted prepay of the same product, not a separate one.
+    assert pf.compute_amount('tier_2_license', 7, 'monthly') == Decimal('1850.00')
+    assert pf.compute_amount('tier_2_license', 7, 'annual') == Decimal('18500.00')
+
+
+def test_invalid_billing_cycle_raises():
+    with pytest.raises(ValueError):
+        pf.compute_amount('tier_2_license', 1, 'weekly')
 
 
 def test_unknown_charge_type_raises():
@@ -88,7 +96,9 @@ def test_no_ai_wording_in_customer_facing_copy(monkeypatch):
     monkeypatch.setattr(pf, "MERCHANT_KEY", "key123")
     monkeypatch.setattr(pf, "PASSPHRASE", "pass")
     for ct in ('tier_1_credits', 'tier_2_license', 'tier_2_seats'):
-        fields = pf.build_checkout_fields(ct, 'u1', 'm1', pf.PRICES[ct])
+        price = pf.PRICES[ct]
+        amount = price['annual'] if isinstance(price, dict) else price
+        fields = pf.build_checkout_fields(ct, 'u1', 'm1', amount, 'annual')
         copy = f"{fields['item_name']} {fields['item_description']}".lower()
         assert 'ai' not in copy.split()
 

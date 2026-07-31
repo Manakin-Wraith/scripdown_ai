@@ -2239,10 +2239,11 @@ export const getEntitlement = async () => {
     return response.data;
 };
 
-export const createCheckout = async (chargeType, quantity = 1) => {
+export const createCheckout = async (chargeType, quantity = 1, billingCycle = 'annual') => {
     const response = await api.post('/api/billing/checkout', {
         charge_type: chargeType,
         quantity,
+        billing_cycle: billingCycle,
     });
     return response.data;
 };

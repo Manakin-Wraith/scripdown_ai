@@ -14,10 +14,19 @@ from urllib.parse import quote_plus
 import requests
 
 # ZAR, VAT-inclusive. The only authority on price — never take an amount from a client.
+# tier_2_license/tier_2_seats are priced per billing_cycle: annual is a
+# discounted prepay of the same product, not a separate offering (roughly
+# 10 months' worth for 12).
 PRICES = {
-    'tier_1_credits': Decimal('450.00'),   # per breakdown
-    'tier_2_license': Decimal('1850.00'),  # per year
-    'tier_2_seats': Decimal('250.00'),     # per seat
+    'tier_1_credits': Decimal('450.00'),  # per breakdown
+    'tier_2_license': {
+        'monthly': Decimal('1850.00'),
+        'annual': Decimal('18500.00'),
+    },
+    'tier_2_seats': {
+        'monthly': Decimal('250.00'),
+        'annual': Decimal('2500.00'),
+    },
 }
 
 
@@ -119,28 +128,43 @@ PROCESS_URL = (
 APP_URL = os.getenv('PAYFAST_APP_URL', 'https://app.slateone.studio')
 API_URL = os.getenv('PAYFAST_API_URL', 'https://api.slateone.studio')
 
+BILLING_CYCLES = ('monthly', 'annual')
+
 # Customer-facing copy. Product-owner directive: no "AI" wording.
 CHARGE_COPY = {
     'tier_1_credits': ('Script Breakdown', 'Pay-per-breakdown'),
-    'tier_2_license': ('Annual Team License', 'Annual team licence'),
-    'tier_2_seats': ('Team Member Seat', 'Additional team seat'),
+    'tier_2_license': {
+        'monthly': ('Team License (Monthly)', 'Monthly team licence'),
+        'annual': ('Team License (Annual)', 'Annual team licence'),
+    },
+    'tier_2_seats': {
+        'monthly': ('Team Member Seat (Monthly)', 'Additional team seat — monthly'),
+        'annual': ('Team Member Seat (Annual)', 'Additional team seat — annual'),
+    },
 }
 
 
-def compute_amount(charge_type: str, quantity: int) -> Decimal:
+def compute_amount(charge_type: str, quantity: int, billing_cycle: str = 'annual') -> Decimal:
     """The only authority on what a purchase costs."""
     if charge_type not in PRICES:
         raise ValueError(f"Unknown charge_type: {charge_type}")
     if quantity < 1:
         raise ValueError(f"quantity must be >= 1, got {quantity}")
+
+    price = PRICES[charge_type]
+    if isinstance(price, dict):
+        if billing_cycle not in price:
+            raise ValueError(f"billing_cycle must be one of {BILLING_CYCLES}, got {billing_cycle!r}")
+        price = price[billing_cycle]
+
     # A licence is one licence — quantity applies to credits and seats only.
     if charge_type == 'tier_2_license':
-        return PRICES[charge_type]
-    return PRICES[charge_type] * quantity
+        return price
+    return price * quantity
 
 
 def build_checkout_fields(charge_type: str, user_id: str, m_payment_id: str,
-                          amount: Decimal) -> dict:
+                          amount: Decimal, billing_cycle: str = 'annual') -> dict:
     """
     Build the signed form fields for PayFast's process endpoint.
 
@@ -151,7 +175,8 @@ def build_checkout_fields(charge_type: str, user_id: str, m_payment_id: str,
     it is never sent to PayFast; the ITN handler reads it from our own
     intent row and must never trust request fields.
     """
-    item_name, item_description = CHARGE_COPY[charge_type]
+    copy = CHARGE_COPY[charge_type]
+    item_name, item_description = copy[billing_cycle] if isinstance(copy, dict) else copy
 
     fields = {
         'merchant_id': MERCHANT_ID,

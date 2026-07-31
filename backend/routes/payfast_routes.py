@@ -42,11 +42,11 @@ def _already_processed(pf_payment_id: str) -> bool:
 
 def _claim_and_grant(txn_id: str, pf_payment_id: str, payload: dict,
                       charge_type: str, user_id: str, quantity: int,
-                      payfast_token: str | None) -> str:
+                      payfast_token: str | None, billing_cycle: str | None) -> str:
     """
-    Calls the payfast_claim_and_grant Postgres function (migration 043),
-    which claims the intent row and performs its grant atomically in one
-    transaction. Returns 'granted' or 'duplicate'.
+    Calls the payfast_claim_and_grant Postgres function (migrations 043,
+    046), which claims the intent row and performs its grant atomically in
+    one transaction. Returns 'granted' or 'duplicate'.
     """
     resp = get_supabase_admin().rpc('payfast_claim_and_grant', {
         'p_txn_id': txn_id,
@@ -56,6 +56,7 @@ def _claim_and_grant(txn_id: str, pf_payment_id: str, payload: dict,
         'p_user_id': user_id,
         'p_quantity': quantity,
         'p_payfast_token': payfast_token,
+        'p_billing_cycle': billing_cycle or 'annual',
     }).execute()
     return resp.data
 
@@ -125,7 +126,8 @@ def payfast_notify():
     # row 'complete' with nothing granted.
     try:
         result = _claim_and_grant(txn_id, pf_payment_id, form, charge_type,
-                                   user_id, quantity, form.get('token'))
+                                   user_id, quantity, form.get('token'),
+                                   intent.get('billing_cycle'))
     except Exception as exc:
         # DB-side failure (RPC error, constraint violation, etc). The
         # function's exception already rolled back any partial writes,
@@ -138,7 +140,7 @@ def payfast_notify():
     return jsonify({'status': 'ok'}), 200
 
 
-def _create_intent(user_id, charge_type, quantity, amount, m_payment_id):
+def _create_intent(user_id, charge_type, quantity, amount, m_payment_id, billing_cycle=None):
     get_supabase_admin().table('payfast_transactions').insert({
         'm_payment_id': m_payment_id,
         'user_id': user_id,
@@ -146,6 +148,7 @@ def _create_intent(user_id, charge_type, quantity, amount, m_payment_id):
         'expected_amount': float(amount),
         'quantity': quantity,
         'status': 'pending',
+        'billing_cycle': billing_cycle,
     }).execute()
 
 
@@ -169,15 +172,19 @@ def create_checkout():
     except (TypeError, ValueError):
         return jsonify({'error': 'quantity must be an integer'}), 400
 
+    # Only meaningful for tier_2_license/tier_2_seats — annual is a
+    # discounted prepay of the same product, not a separate offering.
+    billing_cycle = body.get('billing_cycle', 'annual') if charge_type != 'tier_1_credits' else None
+
     try:
-        amount = compute_amount(charge_type, quantity)
+        amount = compute_amount(charge_type, quantity, billing_cycle or 'annual')
     except ValueError as exc:
         return jsonify({'error': str(exc)}), 400
 
     m_payment_id = str(uuid.uuid4())
-    _create_intent(user_id, charge_type, quantity, amount, m_payment_id)
+    _create_intent(user_id, charge_type, quantity, amount, m_payment_id, billing_cycle)
 
-    fields = build_checkout_fields(charge_type, user_id, m_payment_id, amount)
+    fields = build_checkout_fields(charge_type, user_id, m_payment_id, amount, billing_cycle or 'annual')
     return jsonify({'process_url': PROCESS_URL, 'fields': fields}), 200
 
 
