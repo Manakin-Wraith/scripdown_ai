@@ -14,6 +14,7 @@ import { useStoryDayListener, useStoryDayNotify } from '../../context/StoryDayCo
 import SegmentManager from './SegmentManager';
 import { analyzeBulkScenes, analyzeScene, getPageMapping, reorderScenes, omitScene, getSegments } from '../../services/apiService';
 import { useEntitlement } from '../../hooks/useEntitlement';
+import { isNeverSubscribedTeamIntent } from '../../utils/billingIntent';
 import './SceneViewer.css';
 
 const SceneViewer = () => {
@@ -239,6 +240,11 @@ const SceneViewer = () => {
     const handleAnalyzeScene = async (sceneId) => {
         // Breakdown entitlement gate: block analysis with no credits/plan
         if (!canRunBreakdown) {
+            if (isNeverSubscribedTeamIntent(entitlement)) {
+                toast.info('Subscribe to continue', 'You signed up for the Team License — subscribe to run unlimited breakdowns.');
+            } else {
+                toast.info('Buy breakdown credits', 'Purchase breakdown credits to continue analyzing this script.');
+            }
             navigate('/billing');
             return;
         }
@@ -309,6 +315,11 @@ const SceneViewer = () => {
     const handleBulkAnalyze = async () => {
         // Breakdown entitlement gate: block analysis with no credits/plan
         if (!canRunBreakdown) {
+            if (isNeverSubscribedTeamIntent(entitlement)) {
+                toast.info('Subscribe to continue', 'You signed up for the Team License — subscribe to run unlimited breakdowns.');
+            } else {
+                toast.info('Buy breakdown credits', 'Purchase breakdown credits to continue analyzing this script.');
+            }
             navigate('/billing');
             return;
         }
