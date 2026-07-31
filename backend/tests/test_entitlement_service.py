@@ -8,9 +8,10 @@ import pytest
 import services.entitlement_service as es
 
 
-def _profile(plan='tier_1_pay_per_breakdown', status='active'):
+def _profile(plan='tier_1_pay_per_breakdown', status='active', signup_plan=None):
     return {'subscription_plan': plan, 'subscription_status': status,
-            'subscription_expires_at': '2099-01-01T00:00:00Z'}
+            'subscription_expires_at': '2099-01-01T00:00:00Z',
+            'signup_plan': signup_plan}
 
 
 def test_tier2_active_can_run_breakdown_with_zero_balance(monkeypatch):
@@ -59,6 +60,22 @@ def test_unknown_user_fails_closed(monkeypatch):
     ent = es.get_entitlement('ghost')
     assert ent['can_run_breakdown'] is False
     assert ent['can_use_teams'] is False
+
+
+def test_get_entitlement_includes_signup_plan(monkeypatch):
+    monkeypatch.setattr(es, "_fetch_profile",
+                         lambda uid: _profile('none', 'none', signup_plan='tier_2_annual_team'))
+    monkeypatch.setattr(es, "_fetch_balance", lambda uid: 0)
+    monkeypatch.setattr(es, "_fetch_seats_paid", lambda uid: 0)
+    monkeypatch.setattr(es, "_fetch_seats_used", lambda uid: 0)
+    ent = es.get_entitlement('u1')
+    assert ent['signup_plan'] == 'tier_2_annual_team'
+
+
+def test_unknown_user_signup_plan_is_none(monkeypatch):
+    monkeypatch.setattr(es, "_fetch_profile", lambda uid: None)
+    ent = es.get_entitlement('ghost')
+    assert ent['signup_plan'] is None
 
 
 def test_consume_is_noop_for_tier2(monkeypatch):

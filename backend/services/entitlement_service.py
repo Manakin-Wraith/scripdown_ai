@@ -20,10 +20,17 @@ from middleware.auth import get_user_id
 TIER_1 = 'tier_1_pay_per_breakdown'
 TIER_2 = 'tier_2_annual_team'
 
-# One-year term length. Using a fixed-day advance rather than
-# `datetime.replace(year=year + 1)`, which raises ValueError when `now` is
-# 29 Feb and next year is not a leap year.
+# Using fixed-day advances rather than `datetime.replace(year=year + 1)`,
+# which raises ValueError when `now` is 29 Feb and next year is not a leap
+# year.
 ONE_YEAR = timedelta(days=365)
+ONE_MONTH = timedelta(days=30)
+
+# Annual is a discounted prepay of the same license, not a separate product.
+LICENSE_TERMS = {
+    'monthly': (ONE_MONTH, 1850.00),
+    'annual': (ONE_YEAR, 18500.00),
+}
 
 
 class InsufficientCredits(Exception):
@@ -32,7 +39,8 @@ class InsufficientCredits(Exception):
 
 def _fetch_profile(user_id: str):
     resp = get_supabase_admin().table('profiles').select(
-        'subscription_plan, subscription_status, subscription_expires_at'
+        'subscription_plan, subscription_status, subscription_expires_at, '
+        'subscription_billing_cycle, signup_plan'
     ).eq('id', user_id).limit(1).execute()
     return resp.data[0] if resp.data else None
 
@@ -124,7 +132,8 @@ def get_entitlement(user_id: str) -> dict:
     if not profile:
         # Unknown user: deny everything.
         return {'tier': 'none', 'status': 'none', 'breakdown_balance': 0,
-                'seats_paid': 0, 'seats_used': 0,
+                'seats_paid': 0, 'seats_used': 0, 'billing_cycle': None,
+                'signup_plan': None,
                 'can_run_breakdown': False, 'can_use_teams': False}
 
     tier = profile.get('subscription_plan') or 'none'
@@ -141,6 +150,8 @@ def get_entitlement(user_id: str) -> dict:
         'breakdown_balance': balance,
         'seats_paid': seats_paid,
         'seats_used': seats_used,
+        'billing_cycle': profile.get('subscription_billing_cycle'),
+        'signup_plan': profile.get('signup_plan'),
         # Tier 2 active is unlimited; everyone else needs credits.
         'can_run_breakdown': tier2_active or balance > 0,
         # Expired tier 2 loses team writes (failed renewal => downgrade).
@@ -179,22 +190,30 @@ def grant_credits(user_id: str, n: int, txn_id: str) -> None:
     }).execute()
 
 
-def activate_license(user_id: str, txn_id: str, payfast_token: str | None = None) -> None:
+def activate_license(user_id: str, txn_id: str, payfast_token: str | None = None,
+                      billing_cycle: str = 'annual') -> None:
     """
     payfast_token: the tokenization token PayFast's ITN returns on this
     charge (subscription_type=2 — see payfast_service.build_checkout_fields
     for why tier_2_license uses tokenization, not true recurring billing).
-    Needed to charge next year's renewal via PayFast's Recurring Billing
-    API; None from the admin manual-approval path, which has no ITN.
+    Needed to charge the next renewal via PayFast's Recurring Billing API;
+    None from the admin manual-approval path, which has no ITN.
+
+    billing_cycle: 'monthly' or 'annual' — selects the term length and
+    amount recorded. Defaults to 'annual' for backward compatibility with
+    the admin manual-approval callers in routes/admin_routes.py, which
+    predate the monthly option and don't pass one.
     """
-    expires = datetime.now(timezone.utc) + ONE_YEAR
+    term_delta, amount = LICENSE_TERMS.get(billing_cycle, LICENSE_TERMS['annual'])
+    expires = datetime.now(timezone.utc) + term_delta
     update = {
         'subscription_plan': TIER_2,
         'subscription_status': 'active',
         'subscription_expires_at': expires.isoformat(),
         'subscription_payment_provider': 'payfast',
-        'subscription_amount': 1850.00,
+        'subscription_amount': amount,
         'subscription_currency': 'ZAR',
+        'subscription_billing_cycle': billing_cycle,
     }
     if payfast_token:
         update['subscription_payfast_token'] = payfast_token
