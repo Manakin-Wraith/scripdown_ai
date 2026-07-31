@@ -33,7 +33,11 @@ from typing import Dict, List, Optional, Tuple
 
 import pdfplumber
 
-from services.text_normalizer import normalize_screenplay_text, resolve_speaker_name
+from services.text_normalizer import (
+    finalize_scene_text,
+    normalize_screenplay_text,
+    resolve_speaker_name,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -271,7 +275,7 @@ def _parse_with_grammar(
         page_end = _char_pos_to_page(max(char_end - 1, char_start), page_offsets)
 
         # Content hash
-        scene_text = normalized_text[char_start:char_end]
+        scene_text = finalize_scene_text(normalized_text[char_start:char_end])
         from services.extraction_pipeline import compute_content_hash
         content_hash = compute_content_hash(scene_text)
 
@@ -320,11 +324,14 @@ def _parse_with_regex(
     pages: List[Dict],
 ) -> List[ParsedScene]:
     """
-    Regex fallback — operates on raw_text (NOT normalized).
-
-    Uses the existing detect_scene_headers + assign_scene_numbers logic
-    from extraction_pipeline.py, then wraps results in ParsedScene with
-    empty ScreenPy enrichment fields.
+    Regex fallback — header DETECTION operates on raw_text (NOT
+    normalized), to avoid the Fallback Paradox (normalizing before the
+    regex has found scene boundaries can shift the positions it depends
+    on). Once boundaries are known, the sliced scene_text itself IS run
+    through normalize_screenplay_text before being stored/displayed/sent
+    to the AI — otherwise page-number and CONTINUED/MORE artifacts,
+    kerning splits, and smart-quote glitches leak straight into the
+    breakdown text the grammar path already strips.
     """
     from services.extraction_pipeline import (
         detect_scene_headers,
@@ -348,7 +355,7 @@ def _parse_with_regex(
         else:
             text_end = len(raw_text)
 
-        scene_text = raw_text[text_start:text_end]
+        scene_text = finalize_scene_text(normalize_screenplay_text(raw_text[text_start:text_end]))
         page_start = _char_pos_to_page(text_start, page_offsets)
         page_end = _char_pos_to_page(max(text_end - 1, text_start), page_offsets)
 

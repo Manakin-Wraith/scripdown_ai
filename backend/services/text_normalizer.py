@@ -28,7 +28,7 @@ _CONTINUED_PATTERN = re.compile(
     r"^\s*\(?\s*CONTINUED\s*\)?\s*$", re.IGNORECASE
 )
 _MORE_PATTERN = re.compile(r"^\s*\(MORE\)\s*$", re.IGNORECASE)
-_PAGE_NUMBER_PATTERN = re.compile(r"^\s*\d{1,3}\s*\.?\s*$")
+_PAGE_NUMBER_PATTERN = re.compile(r"^\s*\d{1,3}\s*\.*\s*$")
 
 # Smart quotes and typographic characters
 _SMART_REPLACEMENTS = [
@@ -150,6 +150,24 @@ def _normalize_whitespace(line: str) -> str:
     content = re.sub(r"  +", " ", content)
 
     return " " * leading + content
+
+
+def finalize_scene_text(text: str) -> str:
+    """
+    Final cleanup for a scene's text after its boundaries are already
+    known (grammar and regex paths both call this once slicing is done).
+
+    normalize_screenplay_text deliberately preserves leading indentation
+    because the grammar parser's indent-based classification runs BEFORE
+    scene boundaries exist. Once a scene is sliced out, that positional
+    information no longer does anything useful — it just leaks pdfplumber
+    layout artifacts (e.g. a wrapped scene-heading word rendered on its
+    own heavily-indented line to preserve its original centered position)
+    into the text shown to users and sent to the AI. Stripping per-line
+    whitespace here removes that without affecting parsing, which has
+    already happened.
+    """
+    return "\n".join(line.strip() for line in text.split("\n"))
 
 
 def resolve_speaker_name(raw_name: str) -> str:
