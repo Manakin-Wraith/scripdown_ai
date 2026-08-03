@@ -7,18 +7,29 @@ import PageHeader from '../components/layout/PageHeader';
 import { Spinner } from '../components/ui';
 import './BillingPage.css';
 
-// Display only. The server is the authority on price. Annual is a
-// discounted prepay of the same license, not a separate product.
+// Display only. The server is the authority on price. Longer cadences are
+// a discounted prepay of the same license, not a separate product. Extra
+// seats beyond the cadence's included count are always a flat R250/month.
 const PRICE_ZAR = {
     tier_1_credits: 2250,
-    tier_2_license: { monthly: 1850, annual: 18500 },
-    tier_2_seats: { monthly: 250, annual: 2500 },
+    tier_2_license: { monthly: 1850, '3month': 5500, '6month': 9500, annual: 18500 },
+    tier_2_seats: { monthly: 250, '3month': 750, '6month': 1500, annual: 3000 },
 };
+
+// Seats bundled free with each cadence (entitlement_service.INCLUDED_SEATS).
+const INCLUDED_SEATS = { monthly: 0, '3month': 1, '6month': 2, annual: 3 };
+
+const CYCLE_LABELS = { monthly: 'Monthly', '3month': '3-Month', '6month': '6-Month', annual: 'Annual' };
+const CYCLE_UNITS = { monthly: '/mo', '3month': '/3mo', '6month': '/6mo', annual: '/yr' };
+const CYCLE_SEAT_UNITS = { monthly: '/seat/mo', '3month': '/seat (3mo)', '6month': '/seat (6mo)', annual: '/seat/yr' };
+// Savings vs. the monthly baseline, on a true monthly-equivalent basis.
+// 3-month's equivalent (~R1,833/mo) isn't a meaningful discount, so no badge.
+const CYCLE_BADGES = { '6month': 'Save ~14%', annual: 'Save ~17%' };
 
 const TIER_LABELS = {
     none: 'No active plan',
     tier_1_pay_per_breakdown: 'Pay-per-breakdown',
-    tier_2_annual_team: 'Annual Team License',
+    tier_2_annual_team: 'Team License',
 };
 
 const postToPayFast = ({ process_url, fields }) => {
@@ -117,15 +128,20 @@ export default function BillingPage() {
             {isActiveTeam && (() => {
                 // Seats always follow the license's own cycle — they
                 // share its term, they don't pick a separate one.
-                const seatCycle = entitlement.billing_cycle === 'monthly' ? 'monthly' : 'annual';
+                const seatCycle = entitlement.billing_cycle in PRICE_ZAR.tier_2_seats
+                    ? entitlement.billing_cycle : 'annual';
                 const seatPrice = PRICE_ZAR.tier_2_seats[seatCycle];
-                const seatUnit = seatCycle === 'monthly' ? '/seat/mo' : '/seat/yr';
+                const seatUnit = CYCLE_SEAT_UNITS[seatCycle];
+                const included = INCLUDED_SEATS[seatCycle];
                 return (
                     <div className="purchase-row">
                         <div className="purchase-row-icon"><Users size={20} /></div>
                         <div className="purchase-row-text">
                             <h3>Team seats</h3>
-                            <p>{entitlement.seats_used} of {entitlement.seats_paid} in use · R{seatPrice}{seatUnit}</p>
+                            <p>
+                                {entitlement.seats_used} of {entitlement.seats_paid} in use
+                                {included > 0 && ` (${included} included)`} · R{seatPrice}{seatUnit} extra
+                            </p>
                         </div>
                         <div className="quantity-stepper">
                             <button
@@ -158,26 +174,30 @@ export default function BillingPage() {
             <h2><Crown size={20} /> Team License</h2>
             {hideBreakdownDefault && <span className="billing-recommended-badge">Your selected plan</span>}
             <div className="billing-cycle-toggle" role="group" aria-label="Billing cycle">
-                <button
-                    type="button"
-                    className={licenseCycle === 'monthly' ? 'cycle-btn active' : 'cycle-btn'}
-                    onClick={() => setLicenseCycle('monthly')}
-                >
-                    Monthly
-                </button>
-                <button
-                    type="button"
-                    className={licenseCycle === 'annual' ? 'cycle-btn active' : 'cycle-btn'}
-                    onClick={() => setLicenseCycle('annual')}
-                >
-                    Annual <span className="cycle-badge">Save ~17%</span>
-                </button>
+                {Object.keys(CYCLE_LABELS).map((cycle) => (
+                    <button
+                        key={cycle}
+                        type="button"
+                        className={licenseCycle === cycle ? 'cycle-btn active' : 'cycle-btn'}
+                        onClick={() => setLicenseCycle(cycle)}
+                    >
+                        {CYCLE_LABELS[cycle]}
+                        {CYCLE_BADGES[cycle] && <span className="cycle-badge">{CYCLE_BADGES[cycle]}</span>}
+                    </button>
+                ))}
             </div>
-            {licenseCycle === 'annual' ? (
-                <p>R{PRICE_ZAR.tier_2_license.annual}/yr + R{PRICE_ZAR.tier_2_seats.annual}/seat/yr — unlimited breakdowns for you and your team.</p>
-            ) : (
-                <p>R{PRICE_ZAR.tier_2_license.monthly}/mo + R{PRICE_ZAR.tier_2_seats.monthly}/seat/mo — unlimited breakdowns for you and your team.</p>
-            )}
+            {(() => {
+                const included = INCLUDED_SEATS[licenseCycle];
+                const seatsCopy = included > 0
+                    ? `includes ${included} seat${included > 1 ? 's' : ''}`
+                    : 'no seats included';
+                return (
+                    <p>
+                        R{PRICE_ZAR.tier_2_license[licenseCycle]}{CYCLE_UNITS[licenseCycle]} — {seatsCopy}, unlimited breakdowns.
+                        {' '}Extra seats R{PRICE_ZAR.tier_2_seats[licenseCycle]}{CYCLE_SEAT_UNITS[licenseCycle]}.
+                    </p>
+                );
+            })()}
             <button className="billing-buy-btn" disabled={busy} onClick={() => buy('tier_2_license', 1, licenseCycle)}>
                 Subscribe
             </button>
@@ -216,7 +236,7 @@ export default function BillingPage() {
                             <>
                                 <div className="plan-summary-row">
                                     <span>Billing cycle</span>
-                                    <span>{entitlement.billing_cycle === 'monthly' ? 'Monthly' : 'Annual'}</span>
+                                    <span>{CYCLE_LABELS[entitlement.billing_cycle] || 'Annual'}</span>
                                 </div>
                                 <div className="plan-summary-row">
                                     <span>Team seats</span>

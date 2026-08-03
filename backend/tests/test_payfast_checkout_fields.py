@@ -11,13 +11,18 @@ import services.payfast_service as pf
 def test_compute_amount_multiplies_by_quantity():
     assert pf.compute_amount('tier_1_credits', 3) == Decimal('6750.00')
     assert pf.compute_amount('tier_2_seats', 4, 'monthly') == Decimal('1000.00')
-    assert pf.compute_amount('tier_2_seats', 4, 'annual') == Decimal('10000.00')
+    assert pf.compute_amount('tier_2_seats', 4, '3month') == Decimal('3000.00')
+    assert pf.compute_amount('tier_2_seats', 4, '6month') == Decimal('6000.00')
+    assert pf.compute_amount('tier_2_seats', 4, 'annual') == Decimal('12000.00')
 
 
 def test_license_ignores_quantity():
     # A licence is one licence regardless of what the client asks for.
-    # Annual is a discounted prepay of the same product, not a separate one.
+    # Longer cadences are a discounted prepay of the same product, not a
+    # separate one.
     assert pf.compute_amount('tier_2_license', 7, 'monthly') == Decimal('1850.00')
+    assert pf.compute_amount('tier_2_license', 7, '3month') == Decimal('5500.00')
+    assert pf.compute_amount('tier_2_license', 7, '6month') == Decimal('9500.00')
     assert pf.compute_amount('tier_2_license', 7, 'annual') == Decimal('18500.00')
 
 

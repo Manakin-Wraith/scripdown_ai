@@ -9,6 +9,7 @@ Every decorator here fails CLOSED. The old one read `g.user_id`, which
 middleware/auth.py never sets, so it passed every request through.
 """
 
+import uuid
 from functools import wraps
 from datetime import datetime, timezone, timedelta
 
@@ -25,11 +26,25 @@ TIER_2 = 'tier_2_annual_team'
 # year.
 ONE_YEAR = timedelta(days=365)
 ONE_MONTH = timedelta(days=30)
+THREE_MONTHS = timedelta(days=90)
+SIX_MONTHS = timedelta(days=180)
 
-# Annual is a discounted prepay of the same license, not a separate product.
+# Longer cadences are a discounted prepay of the same license, not a
+# separate product.
 LICENSE_TERMS = {
     'monthly': (ONE_MONTH, 1850.00),
+    '3month': (THREE_MONTHS, 5500.00),
+    '6month': (SIX_MONTHS, 9500.00),
     'annual': (ONE_YEAR, 18500.00),
+}
+
+# Seats bundled free with each cadence. Any seat beyond this count is a
+# paid add-on (see grant_seats) at a flat R250/month, no discount.
+INCLUDED_SEATS = {
+    'monthly': 0,
+    '3month': 1,
+    '6month': 2,
+    'annual': 3,
 }
 
 
@@ -199,10 +214,11 @@ def activate_license(user_id: str, txn_id: str, payfast_token: str | None = None
     Needed to charge the next renewal via PayFast's Recurring Billing API;
     None from the admin manual-approval path, which has no ITN.
 
-    billing_cycle: 'monthly' or 'annual' — selects the term length and
-    amount recorded. Defaults to 'annual' for backward compatibility with
-    the admin manual-approval callers in routes/admin_routes.py, which
-    predate the monthly option and don't pass one.
+    billing_cycle: 'monthly', '3month', '6month', or 'annual' — selects the
+    term length and amount recorded. Defaults to 'annual' for backward
+    compatibility with the admin manual-approval callers in
+    routes/admin_routes.py, which predate the monthly option and don't
+    pass one.
     """
     term_delta, amount = LICENSE_TERMS.get(billing_cycle, LICENSE_TERMS['annual'])
     expires = datetime.now(timezone.utc) + term_delta
@@ -218,6 +234,24 @@ def activate_license(user_id: str, txn_id: str, payfast_token: str | None = None
     if payfast_token:
         update['subscription_payfast_token'] = payfast_token
     get_supabase_admin().table('profiles').update(update).eq('id', user_id).execute()
+
+    # Seats bundled with this cadence, granted as part of the same purchase.
+    # account_seats.seats_granted has a CHECK (seats_granted > 0), so the
+    # monthly cadence (0 included) inserts nothing. account_seats.
+    # payfast_transaction_id is a real FK to payfast_transactions(id) —
+    # the admin manual-approval callers above pass a free-text Wise/beta
+    # reference as txn_id, not a row id, so only attach it when it's
+    # actually a UUID (the ITN path always passes one).
+    included = INCLUDED_SEATS.get(billing_cycle, 0)
+    if included > 0:
+        try:
+            seat_txn_id = str(uuid.UUID(str(txn_id)))
+        except (ValueError, AttributeError, TypeError):
+            seat_txn_id = None
+        get_supabase_admin().table('account_seats').insert({
+            'owner_id': user_id, 'seats_granted': included,
+            'payfast_transaction_id': seat_txn_id, 'term_expires_at': expires.isoformat(),
+        }).execute()
 
 
 def grant_seats(owner_id: str, n: int, txn_id: str) -> None:
@@ -255,7 +289,7 @@ def require_team_tier(f):
             return jsonify({'error': 'Authentication required'}), 401
         if not get_entitlement(user_id)['can_use_teams']:
             return jsonify({
-                'error': 'Team features require an Annual Team License',
+                'error': 'Team features require a Team License',
                 'code': 'tier_2_required',
             }), 403
         return f(*args, **kwargs)

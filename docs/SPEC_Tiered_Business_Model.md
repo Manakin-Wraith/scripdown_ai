@@ -10,8 +10,8 @@ SlateOne will launch with a **two-tier subscription model** designed to serve bo
 
 | Attribute | **Tier 1 — Pay-Per-Breakdown** | **Tier 2 — Team License** |
 | --- | --- | --- |
-| **Billing model** | Consumption / pay-as-you-go | Monthly or annual subscription + per-seat fee |
-| **Cost** | ZAR 2,250 per breakdown/analysis | Monthly: ZAR 1,850/mo + ZAR 250/seat/mo · Annual: ZAR 18,500/yr + ZAR 2,500/seat/yr |
+| **Billing model** | Consumption / pay-as-you-go | Monthly, 3-month, 6-month, or annual subscription + flat per-seat fee beyond the cadence's included seats |
+| **Cost** | ZAR 2,250 per breakdown/analysis | Monthly: ZAR 1,850/mo (0 seats incl.) · 3-Month: ZAR 5,500 (1 seat incl.) · 6-Month: ZAR 9,500 (2 seats incl.) · Annual: ZAR 18,500/yr (3 seats incl.) — extra seats ZAR 250/mo flat |
 | **Script uploads** | Unlimited | Unlimited |
 | **Teams / collaboration** | **Not enabled** | **Enabled** |
 | **Seat billing** | N/A | To be determined (see §5) |
@@ -29,18 +29,23 @@ SlateOne will launch with a **two-tier subscription model** designed to serve bo
   - Re-analysis of the same script after edits counts as a new breakdown.
 
 ### 3.2 Tier 2 — Team License
-One product, two billing cadences — annual is a discounted prepay of the
-same license (~17% off vs. paying monthly for a year), not a separate
-offering.
+One product, four billing cadences — longer cadences are a discounted
+prepay of the same license, not a separate offering. Each cadence bundles
+a number of seats for free; any seat beyond that bundle is always a flat
+ZAR 250/month, with no long-term discount.
 
-| Cadence | Base license | Per-seat fee |
-| --- | --- | --- |
-| **Monthly** | ZAR 1,850/month per account/organization | ZAR 250/seat/month |
-| **Annual** | ZAR 18,500/year per account/organization | ZAR 2,500/seat/year |
+| Cadence | Base license | Included seats | Extra seat fee |
+| --- | --- | --- | --- |
+| **Monthly** | ZAR 1,850/month | 0 | ZAR 250/seat/month |
+| **3-Month** | ZAR 5,500 | 1 | ZAR 750/seat (flat, = ZAR 250 × 3) |
+| **6-Month** | ZAR 9,500 | 2 | ZAR 1,500/seat (flat, = ZAR 250 × 6) |
+| **Annual** | ZAR 18,500/year | 3 | ZAR 3,000/seat/year (flat, = ZAR 250 × 12) |
 
-- **Includes:** Unlimited AI breakdowns for the account owner and all paid seats, on either cadence.
-- **Seat term:** A seat's term always matches the license's own term/cadence — seats don't pick a separate cycle from the license they belong to.
-- **Minimum seat count:** 1 (the owner).
+- **Includes:** Unlimited AI breakdowns for the account owner and all seats (included + purchased), on any cadence.
+- **Included seats:** Granted automatically as part of the license purchase itself — no separate transaction. The owner's own seat counts against this bundle.
+- **Extra seats:** Priced as a flat rate per the cadence length above (no discount for longer terms, unlike the license itself).
+- **Seat term:** A seat's term (included or purchased) always matches the license's own term/cadence — seats don't pick a separate cycle from the license they belong to.
+- **Minimum seat count:** 1 (the owner) — guaranteed from the monthly cadence upward once the owner's own membership is counted; only the monthly cadence bundles 0 *additional* seats.
 
 ## 4. Feature Matrix
 
@@ -163,8 +168,8 @@ Tier 1 users can still:
 - The UI should still show the per-seat cost for the account's chosen cadence so owners can internally allocate the expense.
 
 **Decision:**
-- **The Tier 2 account owner pays for each seat.**
-- Seats are billed on the same cadence as the base license (monthly or annual — a seat never has its own separate cycle).
+- **The Tier 2 account owner pays for each seat beyond the cadence's included bundle.**
+- Seats are billed on the same cadence as the base license (monthly, 3-month, 6-month, or annual — a seat never has its own separate cycle).
 - Owners can invite / remove seats at any time; prorated credits/refunds for removed seats can be a Phase 2 enhancement.
 
 ## 6. Script Upload Policy
@@ -185,17 +190,24 @@ Tier 1 users can still:
 
 ### 7.2 Tier 2 Example — Small Production (Annual)
 1. Production company subscribes to Tier 2, annual cadence.
-2. Base license: ZAR 18,500/year.
-3. Invites 4 crew members (producer, 1st AD, costume, locations).
-4. Seats: 4 × ZAR 2,500 = ZAR 10,000.
-5. **First-year cost:** ZAR 18,500 + ZAR 10,000 = **ZAR 28,500**.
+2. Base license: ZAR 18,500/year, includes 3 seats.
+3. Invites 4 crew members (producer, 1st AD, costume, locations) — 3 fit the included bundle, 1 is extra.
+4. Extra seat: 1 × ZAR 3,000 = ZAR 3,000.
+5. **First-year cost:** ZAR 18,500 + ZAR 3,000 = **ZAR 21,500**.
 6. Team can run unlimited AI breakdowns and use department workspaces.
 
 ### 7.3 Tier 2 Example — Small Production (Monthly)
-1. Same production, monthly cadence instead.
+1. Same production, monthly cadence instead (0 seats included).
 2. Base license: ZAR 1,850/month.
 3. Seats: 4 × ZAR 250 = ZAR 1,000/month.
 4. **Monthly cost:** ZAR 1,850 + ZAR 1,000 = **ZAR 2,850/month** (ZAR 34,200/year if never switched to annual).
+
+### 7.4 Tier 2 Example — Small Production (6-Month)
+1. Same production, 6-month cadence, includes 2 seats.
+2. Base license: ZAR 9,500, includes 2 seats.
+3. Invites the same 4 crew members — 2 fit the included bundle, 2 are extra.
+4. Extra seats: 2 × ZAR 1,500 = ZAR 3,000.
+5. **6-month cost:** ZAR 9,500 + ZAR 3,000 = **ZAR 12,500**.
 
 ## 8. Billing & Enforcement
 
@@ -206,7 +218,8 @@ Tier 1 users can still:
 - Failed payment blocks further analysis until resolved.
 
 ### 8.2 Tier 2 Billing
-- Monthly or annual subscription (customer's choice at signup), with automatic renewal.
+- Monthly, 3-month, 6-month, or annual subscription (customer's choice at signup), with automatic renewal.
+- Included seats are granted automatically at activation/renewal, sized to the cadence (0/1/2/3 — see §3.2); extra seats are purchased separately at the cadence's flat per-seat rate.
 - Seat count can be changed mid-cycle; changes apply at next renewal unless prorating is implemented.
 - A seat's term always matches its license's own cadence — switching the license's cadence is a new subscription, not a seat-level setting.
 - Failed renewal downgrades the account to Tier 1; team features become read-only or inaccessible.
@@ -228,6 +241,6 @@ Tier 1 users can still:
 ## 10. Summary
 
 - **Tier 1** is a pure pay-per-analysis model for individuals: ZAR 2,250 per breakdown, unlimited uploads, no team features.
-- **Tier 2** is a team license with monthly or annual cadence (ZAR 1,850/mo + ZAR 250/seat/mo, or ZAR 18,500/yr + ZAR 2,500/seat/yr — annual is a ~17% discounted prepay of the same product), includes all analysis and full team collaboration.
+- **Tier 2** is a team license sold on 4 cadences — monthly (ZAR 1,850/mo, 0 seats included), 3-month (ZAR 5,500, 1 seat), 6-month (ZAR 9,500, 2 seats), annual (ZAR 18,500/yr, 3 seats) — where longer cadences are a discounted prepay of the same product. Extra seats beyond the included bundle are always a flat ZAR 250/month (ZAR 750/1,500/3,000 for 3-month/6-month/annual). Includes all analysis and full team collaboration.
 - **Team seats are paid by the account owner** (recommended Option A) to minimize friction and align with production budgeting workflows.
 - **Script uploads and manual scene work are always free**; only AI-driven breakdowns trigger charges in Tier 1.

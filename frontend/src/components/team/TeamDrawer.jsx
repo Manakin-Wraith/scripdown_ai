@@ -301,10 +301,10 @@ const TeamDrawer = ({
                                 <Users size={32} />
                             </div>
                             <h3>Team Collaboration Locked</h3>
-                            <p>Team features require the Annual Team License. Subscribe to invite members and collaborate on this script.</p>
+                            <p>Team features require the Team License. Subscribe to invite members and collaborate on this script.</p>
                             <Link to="/billing" className="upgrade-btn" onClick={onClose}>
                                 <Sparkles size={18} />
-                                Get the Annual Team License
+                                Get the Team License
                             </Link>
                         </div>
                     ) : loading ? (

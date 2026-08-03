@@ -104,7 +104,7 @@ def test_billing_cycle_defaults_to_annual(monkeypatch):
                         lambda uid, ct, q, amt, mpid, cycle=None: saved.update(amount=amt, cycle=cycle))
     _client().post("/api/billing/checkout",
                    json={'charge_type': 'tier_2_seats', 'quantity': 2})
-    assert saved == {'amount': Decimal('5000.00'), 'cycle': 'annual'}
+    assert saved == {'amount': Decimal('6000.00'), 'cycle': 'annual'}
 
 
 def test_invalid_billing_cycle_is_400(monkeypatch):

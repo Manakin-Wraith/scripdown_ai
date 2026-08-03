@@ -265,18 +265,32 @@ def test_activate_license_handles_leap_day_now(monkeypatch):
         def execute(self):
             return None
 
+    class FakeInsertQuery:
+        def execute(self):
+            return None
+
     class FakeTable:
+        def __init__(self, name):
+            self.name = name
         def update(self, payload):
             captured['payload'] = payload
             return FakeUpdateQuery()
+        def insert(self, payload):
+            captured['seats_payload'] = payload
+            return FakeInsertQuery()
 
     class FakeAdmin:
         def table(self, name):
-            assert name == 'profiles'
-            return FakeTable()
+            assert name in ('profiles', 'account_seats')
+            return FakeTable(name)
 
     monkeypatch.setattr(es, "get_supabase_admin", lambda: FakeAdmin())
 
-    # Must not raise.
+    # Must not raise. Default cadence is 'annual' (3 included seats), so
+    # this also exercises the included-seats account_seats insert.
     es.activate_license('u1', 'txn1')
     assert 'subscription_expires_at' in captured['payload']
+    assert captured['seats_payload']['seats_granted'] == 3
+    # 'txn1' isn't a real UUID (admin manual-approval reference) -- must
+    # not be attached as the FK.
+    assert captured['seats_payload']['payfast_transaction_id'] is None

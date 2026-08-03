@@ -14,18 +14,25 @@ from urllib.parse import quote_plus
 import requests
 
 # ZAR, VAT-inclusive. The only authority on price — never take an amount from a client.
-# tier_2_license/tier_2_seats are priced per billing_cycle: annual is a
-# discounted prepay of the same product, not a separate offering (roughly
-# 10 months' worth for 12).
+# tier_2_license is priced per billing_cycle: longer cadences are a
+# discounted prepay of the same product, not a separate offering. Each
+# cadence bundles a number of included seats (see
+# entitlement_service.INCLUDED_SEATS) — tier_2_seats is what an ADDITIONAL
+# seat beyond that bundle costs, always a flat R250/month with no
+# long-term discount.
 PRICES = {
     'tier_1_credits': Decimal('2250.00'),  # per breakdown
     'tier_2_license': {
         'monthly': Decimal('1850.00'),
+        '3month': Decimal('5500.00'),
+        '6month': Decimal('9500.00'),
         'annual': Decimal('18500.00'),
     },
     'tier_2_seats': {
         'monthly': Decimal('250.00'),
-        'annual': Decimal('2500.00'),
+        '3month': Decimal('750.00'),
+        '6month': Decimal('1500.00'),
+        'annual': Decimal('3000.00'),
     },
 }
 
@@ -128,17 +135,21 @@ PROCESS_URL = (
 APP_URL = os.getenv('PAYFAST_APP_URL', 'https://app.slateone.studio')
 API_URL = os.getenv('PAYFAST_API_URL', 'https://api.slateone.studio')
 
-BILLING_CYCLES = ('monthly', 'annual')
+BILLING_CYCLES = ('monthly', '3month', '6month', 'annual')
 
 # Customer-facing copy. Product-owner directive: no "AI" wording.
 CHARGE_COPY = {
     'tier_1_credits': ('Script Breakdown', 'Pay-per-breakdown'),
     'tier_2_license': {
         'monthly': ('Team License (Monthly)', 'Monthly team licence'),
+        '3month': ('Team License (3-Month)', '3-month team licence'),
+        '6month': ('Team License (6-Month)', '6-month team licence'),
         'annual': ('Team License (Annual)', 'Annual team licence'),
     },
     'tier_2_seats': {
         'monthly': ('Team Member Seat (Monthly)', 'Additional team seat — monthly'),
+        '3month': ('Team Member Seat (3-Month)', 'Additional team seat — 3-month'),
+        '6month': ('Team Member Seat (6-Month)', 'Additional team seat — 6-month'),
         'annual': ('Team Member Seat (Annual)', 'Additional team seat — annual'),
     },
 }

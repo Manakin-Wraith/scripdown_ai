@@ -536,7 +536,7 @@ def approve_payment(purchase_id):
 
             return jsonify({
                 'success': True,
-                'message': 'Annual Team License activated'
+                'message': 'Team License activated'
             }), 200
         
         elif payment_type == 'beta_access':
@@ -567,7 +567,7 @@ def approve_payment(purchase_id):
 
             return jsonify({
                 'success': True,
-                'message': 'Annual Team License activated from legacy beta payment'
+                'message': 'Team License activated from legacy beta payment'
             }), 200
         
         else:

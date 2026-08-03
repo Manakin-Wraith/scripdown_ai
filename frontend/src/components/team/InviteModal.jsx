@@ -129,7 +129,10 @@ const InviteModal = ({ isOpen, onClose, scriptId, scriptTitle, initialDraft = nu
                 role,
                 seatsPaidBaseline: entitlement.seats_paid,
             });
-            const checkout = await createCheckout('tier_2_seats', seatQuantity);
+            // Seats always follow the license's own cycle — without this,
+            // the request silently defaults server-side to 'annual'
+            // pricing regardless of the owner's actual cadence.
+            const checkout = await createCheckout('tier_2_seats', seatQuantity, entitlement.billing_cycle || 'annual');
             postToPayFast(checkout);
         } catch (error) {
             console.error('Error starting seat checkout:', error);
@@ -183,10 +186,10 @@ const InviteModal = ({ isOpen, onClose, scriptId, scriptTitle, initialDraft = nu
                             <Lock size={32} />
                         </div>
                         <h3>Team Collaboration Locked</h3>
-                        <p>Team invites require the Annual Team License. Subscribe to invite members and collaborate on your scripts.</p>
+                        <p>Team invites require the Team License. Subscribe to invite members and collaborate on your scripts.</p>
                         <Link to="/billing" className="upgrade-btn">
                             <Sparkles size={18} />
-                            Get the Annual Team License
+                            Get the Team License
                         </Link>
                     </div>
                 </div>
