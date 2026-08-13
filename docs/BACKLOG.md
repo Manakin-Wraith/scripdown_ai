@@ -1083,3 +1083,55 @@ webhook) is worth adding as a fallback.
 - Vercel dashboard: Project → Settings → Git (integration config)
 - `gh api repos/Manakin-Wraith/scripdown_ai/commits/<sha>/status` — how
   the missing Vercel status was confirmed
+
+---
+
+## Separate Location (production element) from Sets (creative element)
+
+**Status:** Not started — feature request, needs brainstorming.
+
+**Context.** The breakdown currently conflates two distinct concepts under
+one "location" idea: the physical shooting **Location** (a production/
+logistics concern — where the crew actually goes, used for scheduling and
+company moves) and the **Set** (a creative/story concern — the fictional
+place a scene is set, e.g. "INT. KITCHEN" vs. the real house that kitchen is
+shot in). Today's extraction and breakdown UI treat these as one field.
+
+**Scope when picked up.** Brainstorm before implementing — open questions:
+whether this needs a schema change (a `sets` table separate from
+`locations`/`scenes.setting`) or just a UI/labeling split over existing data;
+how AI extraction should populate both (a scene heading gives the Set
+directly, but Location requires either user input or an AI guess); and how
+this interacts with location-based scheduling/stripboard grouping, which
+currently keys off the single conflated field.
+
+**References.**
+- `backend/services/entity_resolver.py` — existing location dedup/merge logic
+- `backend/routes/supabase_routes.py` — `merge_locations`
+- Scene extraction pipeline: `backend/services/extraction_pipeline.py`
+
+---
+
+## Breakdown UI/UX drill-down (CRUD) for elements
+
+**Status:** Not started — feature request, needs brainstorming.
+
+**Context.** Today's breakdown view surfaces AI-extracted elements
+(characters, props, wardrobe, etc.) largely as read-only lists tied to
+scenes. There's no dedicated drill-down surface for a single element (e.g.
+a character) showing all its appearances, notes, or metadata in one place,
+and no direct create/edit/delete affordance for individual elements outside
+scene-level editing.
+
+**Scope when picked up.** Brainstorm before implementing — open questions:
+which element types get drill-down first (characters/props are likely
+highest value); whether CRUD operates on the element identity itself
+(rename/merge, already partially covered by `merge_characters`/
+`merge_locations`) vs. per-scene appearance data; and where this surfaces in
+the UI (a dedicated detail panel/modal vs. an expanded row in the existing
+breakdown table).
+
+**References.**
+- `frontend/src/components/breakdown/` — existing breakdown UI components
+- `backend/routes/supabase_routes.py` — `merge_characters`, `merge_locations`
+  (existing identity-level CRUD to build on)
