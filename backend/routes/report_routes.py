@@ -429,6 +429,38 @@ def download_pdf(report_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@report_bp.route('/reports/<report_id>/csv', methods=['GET'])
+@require_auth
+@require_script_role('viewer', resolver=from_report)
+def download_csv(report_id):
+    """Download report as CSV."""
+    denied = _check_report(report_id)
+    if denied:
+        return denied
+    try:
+        report = report_service.get_report(report_id)
+        if not report:
+            return jsonify({'success': False, 'error': 'Report not found'}), 404
+
+        csv_content = report_service.generate_csv(report_id)
+
+        title = report.get('title', 'report').replace(' ', '_')
+        filename = f"{title}.csv"
+
+        return Response(
+            csv_content,
+            mimetype='text/csv',
+            headers={
+                'Content-Disposition': f'attachment; filename="{filename}"',
+                'Content-Type': 'text/csv'
+            }
+        )
+    except ValueError as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @report_bp.route('/reports/<report_id>/print', methods=['GET'])
 @require_auth
 @require_script_role('viewer', resolver=from_report)
@@ -577,6 +609,37 @@ def download_shared_pdf(share_token):
             'success': False,
             'error': 'PDF generation not available'
         }), 501
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@report_bp.route('/shared/<share_token>/csv', methods=['GET'])
+def download_shared_csv(share_token):
+    """Download shared report as CSV."""
+    try:
+        report = report_service.get_report_by_token(share_token)
+
+        if not report:
+            return jsonify({
+                'success': False,
+                'error': 'Report not found or link has expired'
+            }), 404
+
+        csv_content = report_service.generate_csv(report['id'])
+
+        title = report.get('title', 'report').replace(' ', '_')
+        filename = f"{title}.csv"
+
+        return Response(
+            csv_content,
+            mimetype='text/csv',
+            headers={
+                'Content-Disposition': f'attachment; filename="{filename}"',
+                'Content-Type': 'text/csv'
+            }
+        )
+    except ValueError as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 

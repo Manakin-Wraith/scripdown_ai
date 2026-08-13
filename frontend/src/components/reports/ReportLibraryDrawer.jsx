@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { X, Search, Download, Share2, Trash2 } from 'lucide-react';
+import { X, Search, Download, FileSpreadsheet, Share2, Trash2 } from 'lucide-react';
 import { Badge } from '../ui';
 import { reportIcon } from './reportIcons';
 import './ReportLibraryDrawer.css';
 
-const ReportLibraryDrawer = ({ open, reports, onClose, onReopen, onDownload, onShare, onDelete }) => {
+const ReportLibraryDrawer = ({ open, reports, onClose, onReopen, onDownload, onDownloadCsv, onShare, onDelete }) => {
     const [query, setQuery] = useState('');
 
     const filtered = (reports || []).filter((r) => {
@@ -51,7 +51,10 @@ const ReportLibraryDrawer = ({ open, reports, onClose, onReopen, onDownload, onS
                                     </span>
                                 </button>
                                 <div className="library-item-actions">
-                                    <button className="lib-action" onClick={() => onDownload(report)} title="Download"><Download size={15} /></button>
+                                    <button className="lib-action" onClick={() => onDownload(report)} title="Download PDF"><Download size={15} /></button>
+                                    {report.report_type !== 'full_breakdown' && (
+                                        <button className="lib-action" onClick={() => onDownloadCsv(report)} title="Download CSV"><FileSpreadsheet size={15} /></button>
+                                    )}
                                     <button className="lib-action" onClick={() => onShare(report)} title="Share"><Share2 size={15} /></button>
                                     <button className="lib-action danger" onClick={() => onDelete(report)} title="Delete"><Trash2 size={15} /></button>
                                 </div>

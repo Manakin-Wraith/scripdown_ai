@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
-import { FileText, LibraryBig, Plus, Download, Printer, Share2 } from 'lucide-react';
+import { FileText, LibraryBig, Plus, Download, FileSpreadsheet, Printer, Share2 } from 'lucide-react';
 import { Spinner, Button } from '../ui';
 import { useToast } from '../../context/ToastContext';
 import { useConfirmDialog } from '../../context/ConfirmDialogContext';
@@ -10,7 +10,7 @@ import { SubscriptionGate } from '../subscription';
 import PageHeader from '../layout/PageHeader';
 import {
     getReportTypes, generateReport, getScriptReports, deleteReport,
-    fetchReportPrintUrl, getScriptMetadata, getFilterOptions, getFilterPresets,
+    fetchReportPrintUrl, downloadReportCsv, getScriptMetadata, getFilterOptions, getFilterPresets,
     saveFilterPreset, deleteFilterPreset, previewReportHtml, getSchedules,
 } from '../../services/apiService';
 import ReportRail from './ReportRail';
@@ -224,6 +224,14 @@ const ReportStudio = () => {
     const handleDownload = (report) => openPrintable(report);
     const handlePrint = (report) => openPrintable(report);
 
+    const handleDownloadCsv = async (report) => {
+        try {
+            await downloadReportCsv(report.id, report.title);
+        } catch (e) {
+            toast.error('Error', 'Could not download CSV');
+        }
+    };
+
     const handleDelete = async (report) => {
         const ok = await confirm({ title: 'Delete Report?', message: 'This report will be permanently deleted.', variant: 'danger' });
         if (!ok) return;
@@ -296,6 +304,7 @@ const ReportStudio = () => {
     }
 
     const hasActive = Boolean(activeReport);
+    const canDownloadCsv = hasActive && activeReport.report_type !== 'full_breakdown';
 
     return (
         <div className="report-studio">
@@ -308,7 +317,8 @@ const ReportStudio = () => {
                     <Button variant="primary" onClick={handleGenerate} disabled={isGenerating}>
                         {isGenerating ? <Spinner size={16} /> : <Plus size={16} />} Generate
                     </Button>
-                    <button className="studio-icon-btn" disabled={!hasActive} onClick={() => hasActive && handleDownload(activeReport)} title="Download"><Download size={16} /></button>
+                    <button className="studio-icon-btn" disabled={!hasActive} onClick={() => hasActive && handleDownload(activeReport)} title="Download PDF"><Download size={16} /></button>
+                    <button className="studio-icon-btn" disabled={!canDownloadCsv} onClick={() => canDownloadCsv && handleDownloadCsv(activeReport)} title="Download CSV"><FileSpreadsheet size={16} /></button>
                     <button className="studio-icon-btn" disabled={!hasActive} onClick={() => hasActive && handlePrint(activeReport)} title="Print"><Printer size={16} /></button>
                     <button className="studio-icon-btn" disabled={!hasActive} onClick={() => hasActive && setShareModalReport(activeReport)} title="Share"><Share2 size={16} /></button>
                 </div>
@@ -346,6 +356,7 @@ const ReportStudio = () => {
                 onClose={() => setLibraryOpen(false)}
                 onReopen={handleReopen}
                 onDownload={handleDownload}
+                onDownloadCsv={handleDownloadCsv}
                 onShare={(report) => setShareModalReport(report)}
                 onDelete={handleDelete}
             />

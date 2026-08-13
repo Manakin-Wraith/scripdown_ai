@@ -6,9 +6,11 @@ Supports multiple report types: scene breakdown, day-out-of-days,
 location reports, props lists, and one-liner/stripboard views.
 """
 
+import csv
 import os
 import re
 import secrets
+from io import StringIO
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
 from collections import defaultdict
@@ -429,6 +431,10 @@ class ReportService:
     # Mirrors ReportConfig.VALID_REPORT_TYPES so callers can validate against
     # a single ReportService instance without reaching into ReportConfig.
     VALID_REPORT_TYPES = ReportConfig.VALID_REPORT_TYPES
+
+    # Report types with a row-based CSV export. full_breakdown is a narrative
+    # multi-section document, not a table, so it's excluded.
+    CSV_EXPORTABLE_TYPES = [t for t in REPORT_TYPES if t != 'full_breakdown']
 
     def __init__(self):
         self.db = db
@@ -1143,7 +1149,218 @@ class ReportService:
         css = CSS(string=self._get_report_css())
         
         return html.write_pdf(stylesheets=[css])
-    
+
+    def generate_csv(self, report_id: str) -> str:
+        """
+        Generate a CSV export from a report's stored data snapshot.
+        Reuses the exact data_snapshot the PDF/preview render from, so the
+        CSV always matches whatever filters/config the report was generated
+        with. Returns CSV content as a string.
+        """
+        report = self.get_report(report_id)
+        if not report:
+            raise ValueError(f"Report not found: {report_id}")
+
+        report_type = report.get('report_type')
+        if report_type not in self.CSV_EXPORTABLE_TYPES:
+            raise ValueError(f"CSV export not supported for report type: {report_type}")
+
+        data = report.get('data_snapshot', {})
+        headers, rows = self._csv_rows_for_report(report_type, data)
+
+        output = StringIO()
+        writer = csv.writer(output)
+        writer.writerow(headers)
+        writer.writerows(rows)
+        return output.getvalue()
+
+    def _csv_rows_for_report(self, report_type: str, data: Dict) -> tuple:
+        """Dispatch to the row-builder for a given report type. Returns (headers, rows)."""
+        builders = {
+            'scene_breakdown': self._csv_scene_breakdown,
+            'day_out_of_days': self._csv_day_out_of_days,
+            'location': self._csv_location_report,
+            'props': self._csv_props_report,
+            'wardrobe': self._csv_wardrobe_department,
+            'one_liner': self._csv_one_liner,
+            'shooting_schedule': self._csv_shooting_schedule,
+        }
+        return builders[report_type](data)
+
+    @staticmethod
+    def _csv_merge_items(ai_items, user_list) -> str:
+        combined = list(ai_items or []) + list(user_list or [])
+        return ', '.join(
+            item if isinstance(item, str) else item.get('name', str(item))
+            for item in combined
+        )
+
+    def _csv_scene_breakdown(self, data: Dict) -> tuple:
+        headers = ['Scene', 'INT/EXT', 'Setting', 'Time', 'Story Day', 'Length',
+                   'Characters', 'Props', 'Wardrobe', 'Makeup', 'Special FX',
+                   'Vehicles', 'Animals', 'Extras', 'Stunts', 'Description']
+        user_items_map = data.get('user_items_by_scene', {})
+        rows = []
+        for scene in data.get('scenes', []):
+            scene_id = scene.get('id') or scene.get('scene_id')
+            scene_user = user_items_map.get(scene_id, {})
+            story_day = scene.get('story_day')
+            rows.append([
+                scene.get('scene_number', ''),
+                scene.get('int_ext', ''),
+                scene.get('setting', ''),
+                scene.get('time_of_day', ''),
+                f'D{story_day}' if story_day else '',
+                format_eighths(scene.get('page_length_eighths', 8)),
+                self._csv_merge_items(scene.get('characters'), scene_user.get('characters')),
+                self._csv_merge_items(scene.get('props'), scene_user.get('props')),
+                self._csv_merge_items(scene.get('wardrobe'), scene_user.get('wardrobe')),
+                self._csv_merge_items(scene.get('makeup'), scene_user.get('makeup')),
+                self._csv_merge_items(scene.get('special_effects'), scene_user.get('special_effects', scene_user.get('special_fx'))),
+                self._csv_merge_items(scene.get('vehicles'), scene_user.get('vehicles')),
+                self._csv_merge_items(scene.get('animals'), scene_user.get('animals')),
+                self._csv_merge_items(scene.get('extras'), scene_user.get('extras')),
+                self._csv_merge_items(scene.get('stunts'), scene_user.get('stunts')),
+                scene.get('description', '') or scene.get('action_description', ''),
+            ])
+        return headers, rows
+
+    def _csv_one_liner(self, data: Dict) -> tuple:
+        headers = ['Day', 'Date', 'Scene', 'INT/EXT', 'Setting', 'Time', 'Story Day', 'Cast', 'Length']
+        days = data.get('days')
+        rows = []
+        if days:
+            for d in days:
+                for s in d.get('scenes', []):
+                    chars = ', '.join(
+                        c if isinstance(c, str) else c.get('name', '')
+                        for c in (s.get('characters') or [])
+                    )
+                    rows.append([
+                        d.get('day_number', ''),
+                        d.get('shoot_date') or '',
+                        s.get('scene_number', ''),
+                        s.get('int_ext', ''),
+                        s.get('location_canonical') or s.get('setting', ''),
+                        s.get('time_of_day', ''),
+                        '',
+                        chars,
+                        format_eighths(s.get('page_length_eighths', 8)),
+                    ])
+            return headers, rows
+
+        if 'days' not in data:
+            for scene in data.get('scenes', []):
+                story_day = scene.get('story_day')
+                chars = ', '.join(scene.get('characters') or [])
+                rows.append([
+                    '',
+                    '',
+                    scene.get('scene_number', ''),
+                    scene.get('int_ext', ''),
+                    scene.get('setting', ''),
+                    scene.get('time_of_day', ''),
+                    f'D{story_day}' if story_day else '',
+                    chars,
+                    format_eighths(scene.get('page_length_eighths', 8)),
+                ])
+        return headers, rows
+
+    def _csv_shooting_schedule(self, data: Dict) -> tuple:
+        headers = ['Day', 'Date', 'Scene', 'INT/EXT', 'Setting', 'Time', 'Length', 'Cast']
+        rows = []
+        for d in (data.get('days') or []):
+            for s in d.get('scenes', []):
+                chars = ', '.join(
+                    c if isinstance(c, str) else c.get('name', '')
+                    for c in (s.get('characters') or [])
+                )
+                rows.append([
+                    d.get('day_number', ''),
+                    d.get('shoot_date') or '',
+                    s.get('scene_number', ''),
+                    s.get('int_ext', ''),
+                    s.get('location_canonical') or s.get('setting', ''),
+                    s.get('time_of_day', ''),
+                    format_eighths(s.get('page_length_eighths', 8)),
+                    chars,
+                ])
+        return headers, rows
+
+    def _csv_day_out_of_days(self, data: Dict) -> tuple:
+        if 'days' in data:
+            dood = compute_dood(data.get('days') or [])
+            day_numbers = dood['day_numbers']
+            headers = ['Cast'] + [f'Day {dn}' for dn in day_numbers] + ['Work', 'Hold', 'Span']
+            rows = [
+                [c['name']] + [c['cells'].get(dn, '') for dn in day_numbers] +
+                [c['work_days'], c['hold_days'], c['span']]
+                for c in dood['cast']
+            ]
+            return headers, rows
+
+        headers = ['Character', 'Scenes', 'Pages', 'Story Days', 'Scene Numbers']
+        characters = data.get('characters', {})
+        sorted_chars = sorted(characters.items(), key=lambda x: x[1]['count'], reverse=True)
+        rows = [
+            [
+                name,
+                info['count'],
+                info.get('pages', info['count']),
+                ', '.join(f'D{d}' for d in sorted(info.get('story_days', []))),
+                ', '.join(info['scenes']),
+            ]
+            for name, info in sorted_chars
+        ]
+        return headers, rows
+
+    def _csv_location_report(self, data: Dict) -> tuple:
+        headers = ['Location', 'INT/EXT', 'Time', 'Scenes', 'Story Days', 'Scene Numbers']
+        locations = data.get('locations', {})
+        sorted_locs = sorted(locations.items(), key=lambda x: x[1]['count'], reverse=True)
+        rows = [
+            [
+                name,
+                '/'.join(info.get('int_ext', [])),
+                '/'.join(info.get('time_of_day', [])),
+                info['count'],
+                ', '.join(f'D{d}' for d in sorted(info.get('story_days', []))),
+                ', '.join(info['scenes']),
+            ]
+            for name, info in sorted_locs
+        ]
+        return headers, rows
+
+    def _csv_props_report(self, data: Dict) -> tuple:
+        headers = ['Prop', 'Appearances', 'Story Days', 'Scenes']
+        props = data.get('props', {})
+        sorted_props = sorted(props.items(), key=lambda x: x[1]['count'], reverse=True)
+        rows = [
+            [
+                name,
+                info['count'],
+                ', '.join(f'D{d}' for d in sorted(info.get('story_days', []))),
+                ', '.join(info['scenes']),
+            ]
+            for name, info in sorted_props
+        ]
+        return headers, rows
+
+    def _csv_wardrobe_department(self, data: Dict) -> tuple:
+        headers = ['Item', 'Character(s)', 'Appearances', 'Scenes']
+        wardrobe = data.get('wardrobe', {})
+        sorted_items = sorted(wardrobe.items(), key=lambda x: x[1]['count'], reverse=True)
+        rows = [
+            [
+                name,
+                ', '.join(info.get('characters', [])),
+                info['count'],
+                ', '.join(info['scenes']),
+            ]
+            for name, info in sorted_items
+        ]
+        return headers, rows
+
     def _render_report_html(self, report: Dict) -> str:
         """Render report data as HTML with enhanced metadata."""
         report_type = report.get('report_type')

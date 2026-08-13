@@ -337,27 +337,99 @@ asserts every script-scoped route in this blueprint (including
 
 ---
 
-## Report Studio: CSV export
+## Report Studio: CSV export — RESOLVED, shipped
 
-**Status:** Not started — feature request.
+**Status:** Done. Brainstormed and implemented 2026-08-13.
 
-**Context.** Report Studio (`frontend/src/components/reports/ReportStudio.jsx`,
-`ReportPreviewPane.jsx`) and the backend `services/report_service.py` currently
-only produce the WeasyPrint-rendered PDF/HTML report. There is no CSV export
-path — grep of `report_service.py` / `report_routes.py` turns up nothing CSV-
-related today.
+**What shipped.** `ReportService.generate_csv(report_id)`
+(`backend/services/report_service.py`) reads a saved report's existing
+`data_snapshot` — the exact same aggregate the PDF/preview render from — and
+dispatches to a per-type row builder for the 7 tabular report types
+(`scene_breakdown`, `one_liner`, `shooting_schedule`, `day_out_of_days`,
+`location`, `props`, `wardrobe`); `full_breakdown` is excluded (narrative
+document, not a table) and raises `ValueError`. New route
+`GET /api/reports/reports/<report_id>/csv`, mirroring the existing `/pdf`
+route's auth/ownership checks (`@require_auth` +
+`@require_script_role('viewer', resolver=from_report)`), plus a matching
+public `GET /api/reports/shared/<share_token>/csv` for share links. Frontend
+`downloadReportCsv(reportId, title)` (`apiService.js`) follows the existing
+`downloadStripboardPdf` blob-download pattern. A "Download CSV" button sits
+next to the existing PDF download in both `ReportStudio.jsx`'s toolbar and
+`ReportLibraryDrawer.jsx`'s per-report row actions, disabled/hidden for
+`full_breakdown`.
 
-**Scope when picked up.** Brainstorm before implementing (see
-`superpowers:brainstorming`) — open questions: which report types get a CSV
-export (stripboard, breakdown, all of them?), whether it reuses the same
-filtered/configured view the PDF export uses (`report_config` column,
-`029_report_filter_presets.sql`), and where the download entry point lives in
-the UI (`ReportRail.jsx` / `ReportPreviewPane.jsx`).
+**Verification.** `backend/tests/test_report_csv.py` (new, 17 tests): route
+auth/forbidden/ok/404/400 cases (mirroring `test_report_auth.py`'s pattern),
+shared-link CSV, and header/row-shape assertions for every exportable report
+type including both the schedule-based and scene-fallback branches of
+`one_liner`/`day_out_of_days`. Full backend suite (467 tests) and frontend
+`npm run build` pass.
 
 **References.**
-- `backend/services/report_service.py`, `backend/routes/report_routes.py`
+- `backend/services/report_service.py` — `generate_csv`,
+  `_csv_rows_for_report`, `_csv_*` per-type builders
+- `backend/routes/report_routes.py` — `download_csv`, `download_shared_csv`
+- `backend/tests/test_report_csv.py`
+- `frontend/src/services/apiService.js` — `downloadReportCsv`
 - `frontend/src/components/reports/ReportStudio.jsx`,
-  `ReportPreviewPane.jsx`, `ReportRail.jsx`
+  `ReportLibraryDrawer.jsx`
+
+---
+
+## Department-specific reporting — needs investigation
+
+**Status:** Not started — needs investigation before scoping.
+
+**Context.** Found 2026-08-13 while implementing CSV export.
+`ReportService._render_report_html` (`backend/services/report_service.py`)
+dispatches on six department report types beyond `wardrobe` —
+`makeup`, `sfx`/`special_effects`, `stunts`, `vehicles`, `animals`,
+`extras` — each with its own `_render_*_department` renderer (item name,
+associated character(s) where relevant, scene count, scene numbers). But
+`REPORT_TYPES` (the dict `generate_report`/`generate_report`'s route
+validation actually checks against — `backend/routes/report_routes.py:240`)
+only contains 8 keys: `scene_breakdown`, `day_out_of_days`, `location`,
+`props`, `wardrobe`, `one_liner`, `shooting_schedule`, `full_breakdown`.
+`wardrobe` is reachable as a real report type; the other six are not — a
+request for `report_type: "makeup"` (etc.) is rejected with 400 by the route
+before `generate_report` ever runs, so those renderers are currently dead
+code, unreachable from the UI or API. `ReportRail.jsx`'s type picker only
+ever offers whatever `GET /report-types` returns, which is sourced from the
+same 8-key `REPORT_TYPES` dict.
+
+**Why it matters.** Wardrobe already gets its own dedicated department
+report (item → character(s) → scenes); makeup, SFX, stunts, vehicles,
+animals, and extras data is all aggregated the same way in
+`aggregate_scene_data` (`data['makeup']`, `data['special_effects']`,
+`data['stunts']`, `data['vehicles']`, `data['animals']`, `data['extras']` —
+same `{count, scenes, ...}` shape as wardrobe/props) and the render code to
+turn it into a report already exists — it's just not wired up to be
+generatable. A production AD/department head would plausibly want a
+standalone SFX or stunts breakdown the same way they'd want a props or
+wardrobe one.
+
+**Scope when picked up.** Brainstorm before implementing (see
+`superpowers:brainstorming`) — open questions: is exposing the six existing
+renderers as real, generatable report types the right scope, or does each
+department warrant a different shape than what's already written (the
+existing renderers were written speculatively and never validated against
+real production use); whether `REPORT_TYPES` should just gain the six
+missing keys (cheap) plus corresponding CSV builders
+(`ReportService._csv_rows_for_report`, which currently only covers the 7
+CSV-exportable types) if CSV export should cover them too; and whether
+`ReportRail.jsx`'s UI needs any department-specific grouping/iconography
+beyond just listing six more options.
+
+**References.**
+- `backend/services/report_service.py` — `REPORT_TYPES` (reachable types),
+  `ReportConfig.VALID_REPORT_TYPES` (broader list, includes the six),
+  `_render_makeup_department`, `_render_sfx_department`,
+  `_render_stunts_department`, `_render_vehicles_department`,
+  `_render_animals_department`, `_render_extras_department` (existing but
+  unreachable renderers), `aggregate_scene_data` (already aggregates all six)
+- `backend/routes/report_routes.py:240` — route-level validation against
+  `REPORT_TYPES`, the actual gate
+- `frontend/src/components/reports/ReportRail.jsx` — report type picker
 
 ---
 

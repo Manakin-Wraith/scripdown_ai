@@ -848,6 +848,33 @@ export const fetchReportPrintUrl = async (reportId) => {
 };
 
 /**
+ * Download a report as CSV.
+ * @param {string} reportId - The report UUID
+ * @param {string} title - The report title, used for the downloaded filename
+ * @returns {Promise<void>} Downloads the CSV file
+ */
+export const downloadReportCsv = async (reportId, title = 'Report') => {
+    try {
+        const response = await api.get(`/api/reports/reports/${reportId}/csv`, {
+            responseType: 'blob'
+        });
+
+        const blob = new Blob([response.data], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${title.replace(/[^a-zA-Z0-9]/g, '_')}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error('Error downloading report CSV:', error);
+        throw error;
+    }
+};
+
+/**
  * Create a share link for a report
  * @param {string} reportId - The report UUID
  * @param {number} expiresInDays - Days until link expires (default 7)
