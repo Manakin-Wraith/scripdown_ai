@@ -33,7 +33,7 @@ const TOD_ICONS = {
     'DUSK': Sunset
 };
 
-const ReportFilterPanel = ({ filterOptions, filters, onFilterChange, isCollapsed, onToggleCollapse, presets, onLoadPreset, onSavePreset, onDeletePreset }) => {
+const ReportFilterPanel = ({ filterOptions, filters, onFilterChange, isCollapsed, onToggleCollapse, presets, onLoadPreset, onSavePreset, onDeletePreset, activePreset, onClearActivePreset }) => {
     const [locationSearch, setLocationSearch] = useState('');
     const [characterSearch, setCharacterSearch] = useState('');
     const [locationDropdownOpen, setLocationDropdownOpen] = useState(false);
@@ -207,6 +207,24 @@ const ReportFilterPanel = ({ filterOptions, filters, onFilterChange, isCollapsed
                                 </div>
                             )}
                         </div>
+                        {activePreset && (
+                            <div className="active-preset-badge">
+                                <Bookmark size={12} />
+                                <span className="active-preset-name">
+                                    {activePreset.name}
+                                    {activePreset.modified && <span className="active-preset-modified"> (modified)</span>}
+                                </span>
+                                {onClearActivePreset && (
+                                    <button
+                                        className="active-preset-clear"
+                                        onClick={onClearActivePreset}
+                                        title="Clear active preset"
+                                    >
+                                        <X size={12} />
+                                    </button>
+                                )}
+                            </div>
+                        )}
                         {/* Save current as preset */}
                         {onSavePreset && (
                             <div className="save-preset-area">

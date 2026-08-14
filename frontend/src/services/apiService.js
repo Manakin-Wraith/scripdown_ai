@@ -713,7 +713,7 @@ export const deleteFilterPreset = async (presetId) => {
  * @param {Array} categories - Optional list of breakdown categories to include
  * @returns {Promise<Object>} Generated report
  */
-export const generateReport = async (scriptId, reportType, title = null, config = null, filters = null, groupBy = null, categories = null, scheduleId = null) => {
+export const generateReport = async (scriptId, reportType, title = null, config = null, filters = null, groupBy = null, categories = null, scheduleId = null, presetName = null) => {
     try {
         const response = await api.post(`/api/reports/scripts/${scriptId}/reports/generate`, {
             report_type: reportType,
@@ -722,7 +722,8 @@ export const generateReport = async (scriptId, reportType, title = null, config 
             filters,
             group_by: groupBy,
             categories,
-            ...(scheduleId ? { schedule_id: scheduleId } : {})
+            ...(scheduleId ? { schedule_id: scheduleId } : {}),
+            ...(presetName ? { preset_name: presetName } : {})
         });
         return response.data;
     } catch (error) {
@@ -758,7 +759,7 @@ export const previewReport = async (scriptId, reportType, filters = null, groupB
 /**
  * Render report HTML from unsaved config for live preview (no DB write).
  */
-export const previewReportHtml = async (scriptId, reportType, filters = null, groupBy = null, categories = null, title = null, scheduleId = null) => {
+export const previewReportHtml = async (scriptId, reportType, filters = null, groupBy = null, categories = null, title = null, scheduleId = null, presetName = null) => {
     try {
         const response = await api.post(`/api/reports/scripts/${scriptId}/reports/preview-html`, {
             report_type: reportType,
@@ -766,7 +767,8 @@ export const previewReportHtml = async (scriptId, reportType, filters = null, gr
             group_by: groupBy,
             categories,
             title,
-            ...(scheduleId ? { schedule_id: scheduleId } : {})
+            ...(scheduleId ? { schedule_id: scheduleId } : {}),
+            ...(presetName ? { preset_name: presetName } : {})
         });
         return response.data;
     } catch (error) {

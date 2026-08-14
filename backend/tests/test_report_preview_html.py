@@ -89,6 +89,65 @@ def test_preview_html_returns_html_and_counts(monkeypatch):
     assert calls["insert"] == 0
 
 
+def test_preview_html_passes_preset_name_into_config(monkeypatch):
+    monkeypatch.setattr("middleware.auth.DEV_MODE", True)
+    monkeypatch.setattr(rr, "script_access", lambda c, sid, uid: "ok")
+    import middleware.authorization as authz
+    monkeypatch.setattr(authz, "get_script_role", lambda sid, uid: "owner")
+
+    captured = {}
+
+    def _fake_render_preview_html(script_id, report_type, config=None, title=None, filters=None, schedule_id=None):
+        captured["config"] = config
+        return {"html": "<html></html>", "match_count": 0, "total_count": 0}
+
+    monkeypatch.setattr(rr.report_service, "render_preview_html", _fake_render_preview_html)
+
+    from app import app
+    app.config["TESTING"] = True
+    resp = app.test_client().post(
+        "/api/reports/scripts/scr-1/reports/preview-html",
+        json={"report_type": "scene_breakdown", "preset_name": "Weekly Interiors"},
+    )
+    assert resp.status_code == 200
+    assert captured["config"]["preset_name"] == "Weekly Interiors"
+
+
+def test_render_report_html_shows_filter_preset_when_set():
+    from services.report_service import report_service
+    report = {
+        "title": "Test", "report_type": "props", "generated_at": "2026-08-14",
+        "config": {"preset_name": "Weekly Interiors"},
+        "data_snapshot": {"script": {}, "props": {}},
+    }
+    html = report_service._render_report_html(report)
+    assert "Filter Preset:" in html
+    assert "Weekly Interiors" in html
+
+
+def test_render_report_html_escapes_filter_preset_name():
+    from services.report_service import report_service
+    report = {
+        "title": "Test", "report_type": "props", "generated_at": "2026-08-14",
+        "config": {"preset_name": "<script>alert(1)</script>"},
+        "data_snapshot": {"script": {}, "props": {}},
+    }
+    html = report_service._render_report_html(report)
+    assert "<script>alert(1)</script>" not in html
+    assert "&lt;script&gt;" in html
+
+
+def test_render_report_html_omits_filter_preset_when_unset():
+    from services.report_service import report_service
+    report = {
+        "title": "Test", "report_type": "props", "generated_at": "2026-08-14",
+        "config": {},
+        "data_snapshot": {"script": {}, "props": {}},
+    }
+    html = report_service._render_report_html(report)
+    assert "Filter Preset:" not in html
+
+
 def test_preview_html_invalid_type_returns_400(monkeypatch):
     monkeypatch.setattr("middleware.auth.DEV_MODE", True)
     monkeypatch.setattr(rr, "script_access", lambda c, sid, uid: "ok")

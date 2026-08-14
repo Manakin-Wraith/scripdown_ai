@@ -7,6 +7,7 @@ location reports, props lists, and one-liner/stripboard views.
 """
 
 import csv
+import html as html_escape
 import os
 import re
 import secrets
@@ -1527,7 +1528,11 @@ class ReportService:
         
         if script.get('additional_credits'):
             metadata_items.append(f"<p><strong>Credits:</strong> {script.get('additional_credits')}</p>")
-        
+
+        preset_name = report.get('config', {}).get('preset_name')
+        if preset_name:
+            metadata_items.append(f"<p><strong>Filter Preset:</strong> {html_escape.escape(preset_name)}</p>")
+
         metadata_items.append(f"<p><strong>Generated:</strong> {report.get('generated_at', '')[:10]}</p>")
         
         # Common header with enhanced metadata

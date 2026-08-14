@@ -229,12 +229,15 @@ def generate_report(script_id):
         group_by = data.get('group_by')
         categories = data.get('categories')
         schedule_id = data.get('schedule_id')
+        preset_name = data.get('preset_name')
 
         # Merge group_by and categories into config for rendering
         if group_by:
             config['group_by'] = group_by
         if categories:
             config['categories'] = categories
+        if preset_name:
+            config['preset_name'] = preset_name
 
         # Validate report type
         if report_type not in report_service.REPORT_TYPES:
@@ -314,12 +317,15 @@ def preview_report_html(script_id):
         categories = data.get('categories')
         title = data.get('title')
         schedule_id = data.get('schedule_id')
+        preset_name = data.get('preset_name')
 
         config = {}
         if group_by:
             config['group_by'] = group_by
         if categories:
             config['categories'] = categories
+        if preset_name:
+            config['preset_name'] = preset_name
 
         if report_type not in report_service.REPORT_TYPES:
             return jsonify({

@@ -577,6 +577,51 @@
     color: var(--danger);
 }
 
+.active-preset-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.5rem;
+    padding: 0.35rem 0.55rem;
+    background: rgba(245, 158, 11, 0.12);
+    border: 1px solid var(--primary-500);
+    border-radius: 6px;
+    color: var(--primary-300);
+}
+
+.active-preset-name {
+    font-size: 0.75rem;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.active-preset-modified {
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.active-preset-clear {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: inherit;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.15s ease;
+}
+
+.active-preset-clear:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
 /* Save Preset */
 .save-preset-area {
     margin-top: 0.5rem;

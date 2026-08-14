@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { FileText, LibraryBig, Plus, Download, FileSpreadsheet, Printer, Share2 } from 'lucide-react';
 import { Spinner, Button } from '../ui';
@@ -59,6 +59,7 @@ const ReportStudio = () => {
     const [filterOptions, setFilterOptions] = useState(null);
     const [filterPresets, setFilterPresets] = useState([]);
     const [filters, setFilters] = useState(EMPTY_FILTERS);
+    const [loadedPreset, setLoadedPreset] = useState(null); // { id, name, filters, categories, group_by }
 
     const [scheduleId, setScheduleId] = useState(null);
     const [schedules, setSchedules] = useState([]);
@@ -79,6 +80,7 @@ const ReportStudio = () => {
     const typeRef = useRef(selectedType);
     const titleRef = useRef(customTitle);
     const scheduleIdRef = useRef(scheduleId);
+    const presetNameRef = useRef(null);
     filtersRef.current = filters;
     typeRef.current = selectedType;
     titleRef.current = customTitle;
@@ -132,6 +134,22 @@ const ReportStudio = () => {
 
     const buildActiveFilters = useCallback(() => computeActiveFilters(filters), [filters]);
 
+    // Whether the current filters/categories/group_by still exactly match the preset
+    // that was loaded, so the UI can flag "(modified)" once the user diverges from it.
+    const activePreset = useMemo(() => {
+        if (!loadedPreset) return null;
+        const isModified = (
+            JSON.stringify(buildActiveFilters() || {}) !== JSON.stringify(loadedPreset.filters || {}) ||
+            JSON.stringify(filters.categories || []) !== JSON.stringify(loadedPreset.categories || []) ||
+            (filters.group_by || 'scene_number') !== (loadedPreset.group_by || 'scene_number')
+        );
+        return { id: loadedPreset.id, name: loadedPreset.name, modified: isModified };
+    }, [loadedPreset, filters, buildActiveFilters]);
+
+    presetNameRef.current = activePreset
+        ? (activePreset.modified ? `${activePreset.name} (modified)` : activePreset.name)
+        : null;
+
     // Stable ([] deps): always reads the latest config via refs, so it is safe to
     // fire from the button, from onSelectType, or synchronously after a reopen.
     const handleUpdatePreview = useCallback(async () => {
@@ -149,7 +167,7 @@ const ReportStudio = () => {
             const activeFilters = computeActiveFilters(f);
             const groupBy = f.group_by !== 'scene_number' ? f.group_by : null;
             const categories = f.categories?.length > 0 ? f.categories : null;
-            const res = await previewReportHtml(scriptId, typeRef.current, activeFilters, groupBy, categories, titleRef.current || null, scheduleIdRef.current);
+            const res = await previewReportHtml(scriptId, typeRef.current, activeFilters, groupBy, categories, titleRef.current || null, scheduleIdRef.current, presetNameRef.current);
             if (res.success) {
                 setPreviewHtml(res.html);
                 setPreviewCounts({ match: res.match_count, total: res.total_count });
@@ -177,7 +195,7 @@ const ReportStudio = () => {
             const activeFilters = buildActiveFilters();
             const groupBy = filters.group_by !== 'scene_number' ? filters.group_by : null;
             const categories = filters.categories?.length > 0 ? filters.categories : null;
-            const res = await generateReport(scriptId, selectedType, customTitle || null, null, activeFilters, groupBy, categories, scheduleId);
+            const res = await generateReport(scriptId, selectedType, customTitle || null, null, activeFilters, groupBy, categories, scheduleId, presetNameRef.current);
             if (res.success) {
                 toast.success('Report Generated', 'Your report is ready!');
                 setExistingReports((prev) => [res.report, ...prev]);
@@ -203,6 +221,7 @@ const ReportStudio = () => {
         });
         setCustomTitle(report.title || '');
         setActiveReport(report);
+        setLoadedPreset(null);
         setLibraryOpen(false);
         // Refs update during the re-render these setStates cause; the nonce effect then
         // reads the restored config. Works for both same-type and cross-type reopens.
@@ -258,8 +277,15 @@ const ReportStudio = () => {
                 categories: preset.categories || [],
                 group_by: preset.group_by || 'scene_number',
             });
+            setLoadedPreset({
+                id: preset.id, name: preset.name,
+                filters: preset.filters || {}, categories: preset.categories || [],
+                group_by: preset.group_by || 'scene_number',
+            });
             toast.success('Preset Loaded', `Applied "${preset.name}"`);
         },
+        activePreset,
+        onClearActivePreset: () => setLoadedPreset(null),
         onSavePreset: async (name) => {
             try {
                 const res = await saveFilterPreset(scriptId, {
@@ -276,6 +302,7 @@ const ReportStudio = () => {
             try {
                 await deleteFilterPreset(presetId);
                 setFilterPresets((prev) => prev.filter((p) => p.id !== presetId));
+                if (loadedPreset?.id === presetId) setLoadedPreset(null);
                 toast.success('Deleted', 'Preset deleted');
             } catch (e) { toast.error('Error', 'Failed to delete preset'); }
         },
