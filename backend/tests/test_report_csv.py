@@ -252,6 +252,102 @@ def test_generate_csv_wardrobe_report(monkeypatch):
     assert rows[0] == ["Red Dress", "MARY", "2", "1, 2"]
 
 
+def test_generate_csv_makeup_report(monkeypatch):
+    report = {
+        "id": "r1", "title": "Makeup", "report_type": "makeup",
+        "data_snapshot": {
+            "makeup": {"Scar": {"count": 1, "scenes": ["1"], "characters": ["JOHN"], "story_days": [1]}},
+        },
+    }
+    monkeypatch.setattr(report_service, "get_report", lambda rid: report)
+    headers, rows = _rows(report_service.generate_csv("r1"))
+    assert headers == ["Item", "Character(s)", "Appearances", "Story Days", "Scenes"]
+    assert rows[0] == ["Scar", "JOHN", "1", "D1", "1"]
+
+
+def test_generate_csv_sfx_report(monkeypatch):
+    report = {
+        "id": "r1", "title": "SFX", "report_type": "sfx",
+        "data_snapshot": {
+            "special_effects": {"Explosion": {"count": 1, "scenes": ["3"], "type": ["practical"], "story_days": []}},
+        },
+    }
+    monkeypatch.setattr(report_service, "get_report", lambda rid: report)
+    headers, rows = _rows(report_service.generate_csv("r1"))
+    assert headers == ["Effect", "Type", "Appearances", "Story Days", "Scenes"]
+    assert rows[0] == ["Explosion", "practical", "1", "", "3"]
+
+
+def test_generate_csv_stunts_report(monkeypatch):
+    report = {
+        "id": "r1", "title": "Stunts", "report_type": "stunts",
+        "data_snapshot": {
+            "stunts": {"Car chase": {"count": 1, "scenes": ["5"], "story_days": [2]}},
+        },
+    }
+    monkeypatch.setattr(report_service, "get_report", lambda rid: report)
+    headers, rows = _rows(report_service.generate_csv("r1"))
+    assert headers == ["Stunt", "Appearances", "Story Days", "Scenes"]
+    assert rows[0] == ["Car chase", "1", "D2", "5"]
+
+
+def test_generate_csv_vehicles_report(monkeypatch):
+    report = {
+        "id": "r1", "title": "Vehicles", "report_type": "vehicles",
+        "data_snapshot": {
+            "vehicles": {"Police car": {"count": 1, "scenes": ["2"], "story_days": []}},
+        },
+    }
+    monkeypatch.setattr(report_service, "get_report", lambda rid: report)
+    headers, rows = _rows(report_service.generate_csv("r1"))
+    assert headers == ["Vehicle", "Appearances", "Story Days", "Scenes"]
+    assert rows[0] == ["Police car", "1", "", "2"]
+
+
+def test_generate_csv_animals_report(monkeypatch):
+    report = {
+        "id": "r1", "title": "Animals", "report_type": "animals",
+        "data_snapshot": {
+            "animals": {"Dog": {"count": 1, "scenes": ["4"], "story_days": []}},
+        },
+    }
+    monkeypatch.setattr(report_service, "get_report", lambda rid: report)
+    headers, rows = _rows(report_service.generate_csv("r1"))
+    assert headers == ["Animal", "Appearances", "Story Days", "Scenes"]
+    assert rows[0] == ["Dog", "1", "", "4"]
+
+
+def test_generate_csv_extras_report(monkeypatch):
+    report = {
+        "id": "r1", "title": "Extras", "report_type": "extras",
+        "data_snapshot": {
+            "extras": {"Bar patrons": {"count": 1, "scenes": ["6"], "story_days": []}},
+        },
+    }
+    monkeypatch.setattr(report_service, "get_report", lambda rid: report)
+    headers, rows = _rows(report_service.generate_csv("r1"))
+    assert headers == ["Extras", "Appearances", "Story Days", "Scenes"]
+    assert rows[0] == ["Bar patrons", "1", "", "6"]
+
+
+def test_department_types_are_valid_and_render_html():
+    for report_type, snapshot_key in [
+        ("makeup", "makeup"), ("sfx", "special_effects"), ("stunts", "stunts"),
+        ("vehicles", "vehicles"), ("animals", "animals"), ("extras", "extras"),
+    ]:
+        assert report_type in report_service.REPORT_TYPES
+        assert report_type in report_service.CSV_EXPORTABLE_TYPES
+        report = {
+            "title": "Dept Report", "report_type": report_type, "generated_at": "2026-08-13",
+            "data_snapshot": {
+                "script": {},
+                snapshot_key: {"Item A": {"count": 1, "scenes": ["1"], "story_days": []}},
+            },
+        }
+        html = report_service._render_report_html(report)
+        assert "<table" in html
+
+
 def test_generate_csv_rejects_full_breakdown(monkeypatch):
     report = {"id": "r1", "title": "Full", "report_type": "full_breakdown", "data_snapshot": {}}
     monkeypatch.setattr(report_service, "get_report", lambda rid: report)

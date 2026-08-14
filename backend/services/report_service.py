@@ -412,6 +412,30 @@ class ReportService:
             'name': 'Wardrobe Report',
             'description': 'Wardrobe items by character'
         },
+        'makeup': {
+            'name': 'Makeup & Hair',
+            'description': 'Makeup requirements by character'
+        },
+        'sfx': {
+            'name': 'Special Effects',
+            'description': 'VFX and practical effects breakdown'
+        },
+        'stunts': {
+            'name': 'Stunts Department',
+            'description': 'Stunt requirements by scene'
+        },
+        'vehicles': {
+            'name': 'Vehicles & Transportation',
+            'description': 'Vehicle requirements by scene'
+        },
+        'animals': {
+            'name': 'Animals & Wranglers',
+            'description': 'Animal requirements by scene'
+        },
+        'extras': {
+            'name': 'Extras & Background',
+            'description': 'Background actor requirements'
+        },
         'one_liner': {
             'name': 'One-Liner / Stripboard',
             'description': 'Compact scene list in shooting order',
@@ -657,12 +681,12 @@ class ReportService:
         locations = defaultdict(lambda: {'count': 0, 'scenes': [], 'int_ext': set(), 'time_of_day': set(), 'story_days': set()})
         props = defaultdict(lambda: {'count': 0, 'scenes': [], 'story_days': set()})
         wardrobe_items = defaultdict(lambda: {'count': 0, 'scenes': [], 'characters': set()})
-        makeup_items = defaultdict(lambda: {'count': 0, 'scenes': [], 'characters': set()})
-        special_effects = defaultdict(lambda: {'count': 0, 'scenes': [], 'type': set()})
-        vehicles = defaultdict(lambda: {'count': 0, 'scenes': []})
-        animals = defaultdict(lambda: {'count': 0, 'scenes': []})
-        extras = defaultdict(lambda: {'count': 0, 'scenes': []})
-        stunts = defaultdict(lambda: {'count': 0, 'scenes': []})
+        makeup_items = defaultdict(lambda: {'count': 0, 'scenes': [], 'characters': set(), 'story_days': set()})
+        special_effects = defaultdict(lambda: {'count': 0, 'scenes': [], 'type': set(), 'story_days': set()})
+        vehicles = defaultdict(lambda: {'count': 0, 'scenes': [], 'story_days': set()})
+        animals = defaultdict(lambda: {'count': 0, 'scenes': [], 'story_days': set()})
+        extras = defaultdict(lambda: {'count': 0, 'scenes': [], 'story_days': set()})
+        stunts = defaultdict(lambda: {'count': 0, 'scenes': [], 'story_days': set()})
         
         total_eighths = 0
         analyzed_scenes = 0
@@ -726,7 +750,9 @@ class ReportService:
                 makeup_items[item_name]['scenes'].append(scene_num)
                 if char_ref:
                     makeup_items[item_name]['characters'].add(char_ref)
-            
+                if scene_story_day:
+                    makeup_items[item_name]['story_days'].add(scene_story_day)
+
             # Special Effects (SFX/VFX)
             for item in (scene.get('special_effects') or []):
                 item_name = item if isinstance(item, str) else item.get('effect', str(item))
@@ -734,30 +760,40 @@ class ReportService:
                 special_effects[item_name]['count'] += 1
                 special_effects[item_name]['scenes'].append(scene_num)
                 special_effects[item_name]['type'].add(item_type)
-            
+                if scene_story_day:
+                    special_effects[item_name]['story_days'].add(scene_story_day)
+
             # Vehicles
             for item in (scene.get('vehicles') or []):
                 item_name = item if isinstance(item, str) else item.get('type', str(item))
                 vehicles[item_name]['count'] += 1
                 vehicles[item_name]['scenes'].append(scene_num)
-            
+                if scene_story_day:
+                    vehicles[item_name]['story_days'].add(scene_story_day)
+
             # Animals
             for item in (scene.get('animals') or []):
                 item_name = item if isinstance(item, str) else item.get('type', str(item))
                 animals[item_name]['count'] += 1
                 animals[item_name]['scenes'].append(scene_num)
-            
+                if scene_story_day:
+                    animals[item_name]['story_days'].add(scene_story_day)
+
             # Extras
             for item in (scene.get('extras') or []):
                 item_name = item if isinstance(item, str) else item.get('type', str(item))
                 extras[item_name]['count'] += 1
                 extras[item_name]['scenes'].append(scene_num)
-            
+                if scene_story_day:
+                    extras[item_name]['story_days'].add(scene_story_day)
+
             # Stunts
             for item in (scene.get('stunts') or []):
                 item_name = item if isinstance(item, str) else item.get('type', str(item))
                 stunts[item_name]['count'] += 1
                 stunts[item_name]['scenes'].append(scene_num)
+                if scene_story_day:
+                    stunts[item_name]['story_days'].add(scene_story_day)
             
             # Merge user-added items from department_items for this scene
             scene_id = scene.get('id') or scene.get('scene_id')
@@ -888,12 +924,12 @@ class ReportService:
                          for k, v in locations.items()},
             'props': {k: {**v, 'story_days': sorted(v['story_days'])} for k, v in props.items()},
             'wardrobe': {k: {**v, 'characters': list(v['characters'])} for k, v in wardrobe_items.items()},
-            'makeup': {k: {**v, 'characters': list(v['characters'])} for k, v in makeup_items.items()},
-            'special_effects': {k: {**v, 'type': list(v['type'])} for k, v in special_effects.items()},
-            'vehicles': dict(vehicles),
-            'animals': dict(animals),
-            'extras': dict(extras),
-            'stunts': dict(stunts),
+            'makeup': {k: {**v, 'characters': list(v['characters']), 'story_days': sorted(v['story_days'])} for k, v in makeup_items.items()},
+            'special_effects': {k: {**v, 'type': list(v['type']), 'story_days': sorted(v['story_days'])} for k, v in special_effects.items()},
+            'vehicles': {k: {**v, 'story_days': sorted(v['story_days'])} for k, v in vehicles.items()},
+            'animals': {k: {**v, 'story_days': sorted(v['story_days'])} for k, v in animals.items()},
+            'extras': {k: {**v, 'story_days': sorted(v['story_days'])} for k, v in extras.items()},
+            'stunts': {k: {**v, 'story_days': sorted(v['story_days'])} for k, v in stunts.items()},
             'filter_summary': {
                 'total_scenes_unfiltered': len(all_scenes),
                 'total_scenes_filtered': len(scenes),
@@ -1184,6 +1220,12 @@ class ReportService:
             'wardrobe': self._csv_wardrobe_department,
             'one_liner': self._csv_one_liner,
             'shooting_schedule': self._csv_shooting_schedule,
+            'makeup': self._csv_makeup_department,
+            'sfx': self._csv_sfx_department,
+            'stunts': self._csv_stunts_department,
+            'vehicles': self._csv_vehicles_department,
+            'animals': self._csv_animals_department,
+            'extras': self._csv_extras_department,
         }
         return builders[report_type](data)
 
@@ -1358,6 +1400,98 @@ class ReportService:
                 ', '.join(info['scenes']),
             ]
             for name, info in sorted_items
+        ]
+        return headers, rows
+
+    def _csv_makeup_department(self, data: Dict) -> tuple:
+        headers = ['Item', 'Character(s)', 'Appearances', 'Story Days', 'Scenes']
+        makeup = data.get('makeup', {})
+        sorted_items = sorted(makeup.items(), key=lambda x: x[1]['count'], reverse=True)
+        rows = [
+            [
+                name,
+                ', '.join(info.get('characters', [])),
+                info['count'],
+                ', '.join(f'D{d}' for d in sorted(info.get('story_days', []))),
+                ', '.join(info['scenes']),
+            ]
+            for name, info in sorted_items
+        ]
+        return headers, rows
+
+    def _csv_sfx_department(self, data: Dict) -> tuple:
+        headers = ['Effect', 'Type', 'Appearances', 'Story Days', 'Scenes']
+        sfx = data.get('special_effects', {})
+        sorted_sfx = sorted(sfx.items(), key=lambda x: x[1]['count'], reverse=True)
+        rows = [
+            [
+                name,
+                ', '.join(info.get('type', [])),
+                info['count'],
+                ', '.join(f'D{d}' for d in sorted(info.get('story_days', []))),
+                ', '.join(info['scenes']),
+            ]
+            for name, info in sorted_sfx
+        ]
+        return headers, rows
+
+    def _csv_stunts_department(self, data: Dict) -> tuple:
+        headers = ['Stunt', 'Appearances', 'Story Days', 'Scenes']
+        stunts = data.get('stunts', {})
+        sorted_stunts = sorted(stunts.items(), key=lambda x: x[1]['count'], reverse=True)
+        rows = [
+            [
+                name,
+                info['count'],
+                ', '.join(f'D{d}' for d in sorted(info.get('story_days', []))),
+                ', '.join(info['scenes']),
+            ]
+            for name, info in sorted_stunts
+        ]
+        return headers, rows
+
+    def _csv_vehicles_department(self, data: Dict) -> tuple:
+        headers = ['Vehicle', 'Appearances', 'Story Days', 'Scenes']
+        vehicles = data.get('vehicles', {})
+        sorted_vehicles = sorted(vehicles.items(), key=lambda x: x[1]['count'], reverse=True)
+        rows = [
+            [
+                name,
+                info['count'],
+                ', '.join(f'D{d}' for d in sorted(info.get('story_days', []))),
+                ', '.join(info['scenes']),
+            ]
+            for name, info in sorted_vehicles
+        ]
+        return headers, rows
+
+    def _csv_animals_department(self, data: Dict) -> tuple:
+        headers = ['Animal', 'Appearances', 'Story Days', 'Scenes']
+        animals = data.get('animals', {})
+        sorted_animals = sorted(animals.items(), key=lambda x: x[1]['count'], reverse=True)
+        rows = [
+            [
+                name,
+                info['count'],
+                ', '.join(f'D{d}' for d in sorted(info.get('story_days', []))),
+                ', '.join(info['scenes']),
+            ]
+            for name, info in sorted_animals
+        ]
+        return headers, rows
+
+    def _csv_extras_department(self, data: Dict) -> tuple:
+        headers = ['Extras', 'Appearances', 'Story Days', 'Scenes']
+        extras = data.get('extras', {})
+        sorted_extras = sorted(extras.items(), key=lambda x: x[1]['count'], reverse=True)
+        rows = [
+            [
+                name,
+                info['count'],
+                ', '.join(f'D{d}' for d in sorted(info.get('story_days', []))),
+                ', '.join(info['scenes']),
+            ]
+            for name, info in sorted_extras
         ]
         return headers, rows
 

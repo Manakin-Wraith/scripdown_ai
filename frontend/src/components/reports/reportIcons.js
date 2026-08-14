@@ -1,6 +1,6 @@
 import {
     FileText, Users, MapPin, Package, Shirt, Film, List, BookOpen,
-    UserPlus, Zap, Flame,
+    UserPlus, Zap, Flame, Sparkles, Car, PawPrint,
 } from 'lucide-react';
 
 export const REPORT_ICONS = {
@@ -15,6 +15,9 @@ export const REPORT_ICONS = {
     sfx: Zap,
     special_effects: Zap,
     stunts: Flame,
+    makeup: Sparkles,
+    vehicles: Car,
+    animals: PawPrint,
 };
 
 export const reportIcon = (type) => REPORT_ICONS[type] || FileText;
