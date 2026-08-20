@@ -6,7 +6,7 @@ This module answers: may THIS user act on THIS script, at what role?
 Enforcement is app-layer because the backend uses the service-role key.
 """
 import logging
-from db.supabase_client import get_supabase_client
+from db.supabase_client import get_supabase_admin
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +28,7 @@ def get_script_role(script_id, user_id):
     if not script_id or not user_id:
         return None
 
-    supabase = get_supabase_client()
+    supabase = get_supabase_admin()
     script = (supabase.table('scripts')
               .select('user_id').eq('id', script_id).limit(1).execute())
     if not script.data:
@@ -51,7 +51,7 @@ def _lookup_script_id(table, id_value, id_col='id', script_col='script_id'):
     """Fetch a single row by id and return its script_id (or None)."""
     if not id_value:
         return None
-    supabase = get_supabase_client()
+    supabase = get_supabase_admin()
     res = (supabase.table(table)
            .select(script_col).eq(id_col, id_value).limit(1).execute())
     return res.data[0].get(script_col) if res.data else None

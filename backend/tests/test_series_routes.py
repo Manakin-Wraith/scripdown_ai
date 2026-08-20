@@ -208,7 +208,7 @@ def test_list_seasons_visible_to_non_owner_with_episode_access(monkeypatch):
         {"id": "ep1", "user_id": DEV_USER_ID, "season_id": "sea1", "episode_number": 1, "title": "Ep 1"},
     ]
     monkeypatch.setattr(sr, "get_supabase_admin", lambda: MockSupabase(store))
-    monkeypatch.setattr("middleware.authorization.get_supabase_client", lambda: MockSupabase(store))
+    monkeypatch.setattr("middleware.authorization.get_supabase_admin", lambda: MockSupabase(store))
 
     resp = _client().get("/api/series/ser1/seasons")
 
@@ -230,7 +230,7 @@ def test_list_seasons_forbidden_for_non_owner_without_episode_access(monkeypatch
         {"id": "ep1", "user_id": "someone-else", "season_id": "sea1", "episode_number": 1, "title": "Ep 1"},
     ]
     monkeypatch.setattr(sr, "get_supabase_admin", lambda: MockSupabase(store))
-    monkeypatch.setattr("middleware.authorization.get_supabase_client", lambda: MockSupabase(store))
+    monkeypatch.setattr("middleware.authorization.get_supabase_admin", lambda: MockSupabase(store))
 
     resp = _client().get("/api/series/ser1/seasons")
 
@@ -288,7 +288,7 @@ def test_list_episodes_filters_to_accessible_scripts(monkeypatch):
         {"id": "ep2", "user_id": "someone-else", "season_id": "sea1", "episode_number": 2, "title": "Ep 2"},
     ]
     monkeypatch.setattr(sr, "get_supabase_admin", lambda: MockSupabase(store))
-    monkeypatch.setattr("middleware.authorization.get_supabase_client", lambda: MockSupabase(store))
+    monkeypatch.setattr("middleware.authorization.get_supabase_admin", lambda: MockSupabase(store))
 
     resp = _client().get("/api/seasons/sea1/episodes")
 
@@ -305,7 +305,7 @@ def test_list_episodes_orders_by_episode_number(monkeypatch):
         {"id": "ep1", "user_id": DEV_USER_ID, "season_id": "sea1", "episode_number": 1, "title": "Ep 1"},
     ]
     monkeypatch.setattr(sr, "get_supabase_admin", lambda: MockSupabase(store))
-    monkeypatch.setattr("middleware.authorization.get_supabase_client", lambda: MockSupabase(store))
+    monkeypatch.setattr("middleware.authorization.get_supabase_admin", lambda: MockSupabase(store))
 
     resp = _client().get("/api/seasons/sea1/episodes")
 
@@ -322,7 +322,7 @@ def test_update_script_season_requires_series_ownership(monkeypatch):
     store["series"] = [{"id": "ser1", "owner_id": "someone-else", "title": "Not Mine"}]
     store["seasons"] = [{"id": "sea1", "series_id": "ser1", "season_number": 1}]
     monkeypatch.setattr(sr, "get_supabase_admin", lambda: MockSupabase(store))
-    monkeypatch.setattr("middleware.authorization.get_supabase_client", lambda: MockSupabase(store))
+    monkeypatch.setattr("middleware.authorization.get_supabase_admin", lambda: MockSupabase(store))
 
     resp = _client().patch("/api/scripts/s1/season", json={"season_id": "sea1", "episode_number": 3})
 
@@ -337,7 +337,7 @@ def test_update_script_season_assigns_when_owned(monkeypatch):
     store["series"] = [{"id": "ser1", "owner_id": DEV_USER_ID, "title": "Mine"}]
     store["seasons"] = [{"id": "sea1", "series_id": "ser1", "season_number": 1}]
     monkeypatch.setattr(sr, "get_supabase_admin", lambda: MockSupabase(store))
-    monkeypatch.setattr("middleware.authorization.get_supabase_client", lambda: MockSupabase(store))
+    monkeypatch.setattr("middleware.authorization.get_supabase_admin", lambda: MockSupabase(store))
 
     resp = _client().patch("/api/scripts/s1/season", json={"season_id": "sea1", "episode_number": 3})
 
@@ -353,7 +353,7 @@ def test_update_script_season_clears_assignment(monkeypatch):
     store = _base_store()
     store["scripts"] = [{"id": "s1", "user_id": DEV_USER_ID, "season_id": "sea1", "episode_number": 3}]
     monkeypatch.setattr(sr, "get_supabase_admin", lambda: MockSupabase(store))
-    monkeypatch.setattr("middleware.authorization.get_supabase_client", lambda: MockSupabase(store))
+    monkeypatch.setattr("middleware.authorization.get_supabase_admin", lambda: MockSupabase(store))
 
     resp = _client().patch("/api/scripts/s1/season", json={"season_id": None})
 
@@ -369,7 +369,7 @@ def test_update_script_season_nonexistent_season_returns_404(monkeypatch):
     store = _base_store()
     store["scripts"] = [{"id": "s1", "user_id": DEV_USER_ID, "season_id": None, "episode_number": None}]
     monkeypatch.setattr(sr, "get_supabase_admin", lambda: MockSupabase(store))
-    monkeypatch.setattr("middleware.authorization.get_supabase_client", lambda: MockSupabase(store))
+    monkeypatch.setattr("middleware.authorization.get_supabase_admin", lambda: MockSupabase(store))
 
     resp = _client().patch("/api/scripts/s1/season", json={"season_id": "nonexistent", "episode_number": 1})
 
@@ -393,7 +393,7 @@ def test_combined_cast_groups_exact_name_case_insensitive(monkeypatch):
         {"id": "sc2", "script_id": "ep2", "characters": ["John", "SAM"]},  # case-only variant of JOHN
     ]
     monkeypatch.setattr(sr, "get_supabase_admin", lambda: MockSupabase(store))
-    monkeypatch.setattr("middleware.authorization.get_supabase_client", lambda: MockSupabase(store))
+    monkeypatch.setattr("middleware.authorization.get_supabase_admin", lambda: MockSupabase(store))
 
     resp = _client().get("/api/seasons/sea1/cast")
 
@@ -417,7 +417,7 @@ def test_combined_cast_only_includes_accessible_episodes(monkeypatch):
         {"id": "sc2", "script_id": "ep2", "characters": ["SECRET"]},
     ]
     monkeypatch.setattr(sr, "get_supabase_admin", lambda: MockSupabase(store))
-    monkeypatch.setattr("middleware.authorization.get_supabase_client", lambda: MockSupabase(store))
+    monkeypatch.setattr("middleware.authorization.get_supabase_admin", lambda: MockSupabase(store))
 
     resp = _client().get("/api/seasons/sea1/cast")
 

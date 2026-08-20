@@ -3,7 +3,7 @@ from middleware.authorization import get_script_role, SCRIPT_NOT_FOUND, ROLE_RAN
 
 
 def _patch_client(monkeypatch, fake):
-    monkeypatch.setattr(authz, "get_supabase_client", lambda: fake)
+    monkeypatch.setattr(authz, "get_supabase_admin", lambda: fake)
 
 
 def test_owner_role(monkeypatch, fake_supabase):
