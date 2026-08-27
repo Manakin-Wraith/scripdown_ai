@@ -103,3 +103,28 @@ def add_unavailability(casting_id):
 def delete_unavailability(unavail_id):
     casting_service.delete_unavailability(unavail_id)
     return jsonify({"success": True}), 200
+
+
+@casting_bp.route("/api/casting/<casting_id>/headshot", methods=["POST"])
+@require_auth
+@require_script_role("admin", resolver=from_casting)
+def upload_headshot(casting_id):
+    file = request.files.get("file")
+    if not file:
+        return jsonify({"error": "No file provided"}), 400
+    blob = file.read()
+    if file.mimetype not in casting_service._HEADSHOT_TYPES:
+        return jsonify({"error": "Use a JPG, PNG, or WebP image."}), 400
+    if len(blob) > casting_service.MAX_HEADSHOT_BYTES:
+        return jsonify({"error": "That image is over 5 MB. Use a smaller file."}), 413
+    row = casting_service.get_casting(casting_id)
+    if not row:
+        return jsonify({"error": "Not found"}), 404
+    try:
+        path = casting_service.store_headshot(
+            casting_id, row["script_id"], blob, file.mimetype
+        )
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    updated = casting_service.update_casting(casting_id, {"headshot_path": path})
+    return jsonify({"casting": _serialize_one(updated)}), 200

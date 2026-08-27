@@ -150,6 +150,22 @@ def _headshot_url(path):
         return None
 
 
+_HEADSHOT_TYPES = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp"}
+MAX_HEADSHOT_BYTES = 5 * 1024 * 1024
+
+
+def store_headshot(casting_id, script_id, file_bytes, content_type):
+    ext = _HEADSHOT_TYPES.get(content_type)
+    if not ext:
+        raise ValueError("Use a JPG, PNG, or WebP image.")
+    path = f"casting/{script_id}/{casting_id}.{ext}"
+    _client().storage.from_(HEADSHOT_BUCKET).upload(
+        path, file_bytes,
+        {"content-type": content_type, "upsert": "true"},
+    )
+    return path
+
+
 def serialize(row, *, include_contact, breakdown_names=None):
     out = {
         "id": row["id"],

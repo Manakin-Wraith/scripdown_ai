@@ -2,6 +2,7 @@
 import os, sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 import pytest
+import io
 import routes.casting_routes as cr
 import middleware.authorization as authz
 
@@ -163,3 +164,42 @@ def test_delete_unavailability_ok_for_admin(monkeypatch):
     monkeypatch.setattr(cr.casting_service, "delete_unavailability", lambda uid: None)
     resp = _client().delete("/api/casting/unavailability/u1")
     assert resp.status_code == 200
+
+
+def test_headshot_rejects_wrong_type(monkeypatch):
+    _as_role(monkeypatch, "admin")
+    monkeypatch.setattr(authz, "_lookup_script_id", lambda *a, **k: "s1")
+    data = {"file": (io.BytesIO(b"GIF89a"), "x.gif", "image/gif")}
+    resp = _client().post("/api/casting/c1/headshot", data=data,
+                          content_type="multipart/form-data")
+    assert resp.status_code == 400
+
+
+def test_headshot_rejects_oversize(monkeypatch):
+    _as_role(monkeypatch, "admin")
+    monkeypatch.setattr(authz, "_lookup_script_id", lambda *a, **k: "s1")
+    big = io.BytesIO(b"\xff\xd8\xff" + b"0" * (5 * 1024 * 1024 + 10))
+    data = {"file": (big, "x.jpg", "image/jpeg")}
+    resp = _client().post("/api/casting/c1/headshot", data=data,
+                          content_type="multipart/form-data")
+    assert resp.status_code == 413
+
+
+def test_headshot_ok(monkeypatch):
+    _as_role(monkeypatch, "admin")
+    monkeypatch.setattr(authz, "_lookup_script_id", lambda *a, **k: "s1")
+    monkeypatch.setattr(cr.casting_service, "get_casting",
+                        lambda cid: {"id": cid, "script_id": "s1", "character_name": "JOHN"})
+    monkeypatch.setattr(cr.casting_service, "store_headshot",
+                        lambda cid, sid, b, ct: "casting/s1/c1.jpg")
+    monkeypatch.setattr(cr.casting_service, "update_casting",
+                        lambda cid, fields: {"id": cid, "script_id": "s1",
+                        "character_name": "JOHN", "status": "wishlist", "actor_name": None,
+                        "headshot_path": fields["headshot_path"], "notes": None,
+                        "unavailability": []})
+    monkeypatch.setattr(cr.casting_service, "_headshot_url", lambda p: "https://signed/x.jpg")
+    data = {"file": (io.BytesIO(b"\xff\xd8\xffdata"), "x.jpg", "image/jpeg")}
+    resp = _client().post("/api/casting/c1/headshot", data=data,
+                          content_type="multipart/form-data")
+    assert resp.status_code == 200
+    assert resp.get_json()["casting"]["headshot_url"] == "https://signed/x.jpg"
