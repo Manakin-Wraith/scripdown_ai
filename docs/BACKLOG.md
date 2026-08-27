@@ -1522,3 +1522,74 @@ details.
 - `backend/routes/supabase_routes.py` — `merge_characters` (character
   identity system casting would key off)
 - `frontend/src/components/schedule/` — stripboard / schedule UI
+
+---
+
+## Production data model — what a production needs, and how it's uploaded/managed — brainstorm
+
+**Status:** Not started — needs brainstorming. Umbrella item; the
+scheduling/call-sheet, crew/cast, and department-workspace entries above
+are slices of this.
+
+**Context.** Everything the app holds today is derived from the script (AI
+extraction) or generated from it (breakdown, schedule, reports). A real
+production also runs on a large body of *production data* that has no home
+in the app: company/project setup (production company, title, format,
+shoot dates, unit(s), budget tier), people (cast attached to characters,
+full crew by department with contacts and rates, agents/reps, emergency
+contacts), locations as real places (addresses, contacts, permits,
+parking, load-in, restrictions, photos), logistics (equipment/vehicle/
+kit lists, catering, accommodation, travel), and per-shoot-day operational
+detail (call times, weather, sunrise/sunset, hospital, map links). None of
+it is modelled, and there's no ingestion path.
+
+**Why it matters.** This is the connective tissue between the breakdown
+tool and an actual production-management product — call sheets, sides,
+realistic scheduling, DOOD conflict-checking, and department workspaces all
+depend on some subset of it. Deciding the data model and the
+upload/management UX once, up front, avoids each downstream feature
+inventing its own half-schema.
+
+**Scope when picked up.** Brainstorm before implementing (see
+`superpowers:brainstorming`) — open questions:
+- **Inventory.** Enumerate the full set of production data categories and,
+  per category, which fields are v1 vs. later. Reference real call-sheet /
+  production-book templates and (ideally) a working line producer / 1st AD.
+- **Data model.** New tables (`productions`/`project_settings`,
+  `cast_members`, `crew_members`, `contacts`, real-`locations`,
+  per-shoot-day detail) and how they attach — to a `script`, a `season`,
+  or a new top-level `production` entity that scripts belong to. How this
+  reconciles with the existing `series`→`seasons`→`scripts` hierarchy.
+- **Identity links.** Cast → `characters` identity (surviving
+  `merge_characters` alias merges); real-location → `scenes.setting` /
+  the location-manager entities; crew → departments (ties to Department
+  Workspaces above).
+- **Upload / management UX.** Manual entry forms vs. bulk import (CSV/XLSX
+  crew & cast lists are how this data actually circulates on set) vs.
+  parsing an uploaded call sheet / production book PDF with AI. Which of
+  those is v1. Where it lives in the app (a "Production" settings area, per
+  script vs. per production).
+- **Storage & permissions.** Headshots/location photos/documents —
+  confirm the app's existing object-storage pattern and reuse it. Team
+  License seat/role rules for who can see/edit contact details, rates, and
+  other sensitive fields.
+- **Sequencing.** Which downstream feature (call sheets, auto-scheduling,
+  DOOD conflicts, department workspaces) drives the first concrete slice,
+  so the model is built against a real consumer rather than speculatively.
+
+**References.**
+- "Add CREW, CAST and production detail for scheduling + call sheets /
+  sides — brainstorm" (above) — the scheduling-driven slice of this
+- "Department Workspaces — brainstorm" (above) — crew-by-department consumer
+- "Auto AI scheduling (first pass) — brainstorm" (above) — needs shoot
+  dates, cast availability, day parameters
+- "Real production data for scheduling — cast contacts, headshots,
+  availability" (above) — the original narrow cast slice
+- "Series / multi-episode analysis" (above) — the `series`→`seasons`→
+  `scripts` hierarchy a `production` entity has to fit alongside
+- `backend/db/migrations/030_shooting_schedules.sql`,
+  `045_series_seasons.sql` — existing schema to extend
+- `backend/routes/supabase_routes.py` — `merge_characters`,
+  `merge_locations` (identity systems to key off)
+- `backend/services/report_service.py` — WeasyPrint pipeline (call sheets /
+  sides / production reports)
