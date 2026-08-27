@@ -6,6 +6,51 @@ implementing (see `superpowers:brainstorming`).
 
 ---
 
+# CURRENT PRIORITY — path to real revenue
+
+**Decided 2026-08-27.** Near-term goal: get to a state where real customers
+can be charged, and kept, with no silent lapses. Everything below this
+header is deferred until steps 1–5 are done. Detailed context for each step
+lives in its full entry further down this file (linked).
+
+**1. PayFast: sandbox → live credentials.** *Blocks all revenue — nothing
+earns until this is done.* Swap Railway env vars to live merchant creds
+(merchant ID/key, live passphrase, live API host); confirm `PAYFAST_API_URL`
+/ `notify_url` still point at the live-registered domain; verify with one
+real low-value live transaction. **Blocked on:** live PayFast merchant
+credentials from the account owner. See "Production billing was fully broken
+for 3 days" → "Outstanding follow-up".
+
+**2. SOLO / TEAMS pricing change.** *Do before more billing code lands on
+top.* Update `payfast_service.py::PRICES`, `BillingPage.jsx::PRICE_ZAR`, the
+2–3 affected tests, and recompute worked examples in
+`SPEC_Tiered_Business_Model.md`; deploy; verify live. **Blocked on:** new
+numbers being decided (`docs/PRICING_CHANGE_BRIEF_FOR_DESIGN.md` is drafted;
+numbers are not). See "SOLO / TEAMS pricing — change pricing".
+
+**3. Renewal automation.** *The real gap — annual `tier_2_license` accounts
+currently lapse silently at year one.* Scheduled job (Supabase `pg_cron` or
+cron route) that finds licenses nearing expiry, charges the stored PayFast
+token, and writes `subscription_status` from the result. Brainstorm first
+(cadence, retry policy, grace window). Longest pole — can start its
+brainstorm while 1 and 2 are blocked on input. See "Renewal automation not
+built".
+
+**4. Failed-renewal downgrade.** *Falls out of step 3.* Write
+`subscription_status = 'expired'` when a renewal charge fails —
+`get_entitlement` already denies access on non-active status, so this is
+only the writer side. See "Failed-renewal downgrade gap".
+
+**5. Teams → Solo downgrade path.** *Urgent the moment step 3 ships — the
+renewal job would otherwise auto-charge another year with no opt-out.*
+Self-serve "cancel / don't renew" control in `BillingPage.jsx`; clear/void
+`profiles.subscription_payfast_token` so the renewal job skips it; decide
+lapse-at-term vs. immediate switch and what happens to already-granted
+seats/members. See "No way for a user to downgrade from Teams (annual) back
+to Solo".
+
+---
+
 ## Backend test suite has no CI gate — RESOLVED, shipped
 
 **Status:** Done. `.github/workflows/backend-tests.yml` merged via PR #8
