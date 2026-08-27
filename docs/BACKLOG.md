@@ -376,11 +376,29 @@ type including both the schedule-based and scene-fallback branches of
 
 ---
 
-## Department-specific reporting — needs investigation
+## Department-specific reporting — RESOLVED, shipped
 
-**Status:** Not started — needs investigation before scoping.
+**Status:** Done. Brainstormed and implemented 2026-08-13/14.
 
-**Context.** Found 2026-08-13 while implementing CSV export.
+**What shipped.** All six previously-unreachable renderers
+(`makeup`, `sfx`, `stunts`, `vehicles`, `animals`, `extras`) are now
+real, generatable report types: added to `REPORT_TYPES`
+(`backend/services/report_service.py`), each with a matching
+`_csv_*_department` builder registered in `_csv_rows_for_report` (so
+`CSV_EXPORTABLE_TYPES`, which derives from `REPORT_TYPES`, picks them
+up automatically). `aggregate_scene_data`'s six per-category loops
+gained `story_days` tracking (matching props/wardrobe) so their CSV
+exports have the same "Story Days" column. `reportIcons.js` gained
+real icons for `makeup`/`vehicles`/`animals` (`sfx`/`stunts`/`extras`
+already had icons). No route or `ReportRail.jsx` changes were needed —
+both already render/validate off `REPORT_TYPES`'s keys, so the six new
+entries "fell out for free" once added.
+
+**Verification.** 12 new tests in `backend/tests/test_report_csv.py`
+(CSV header/row shape per type, plus a combined valid-type/renders-HTML
+check). Full backend suite (474/474) and `npm run build` pass.
+
+**Original context (kept for history).** Found 2026-08-13 while implementing CSV export.
 `ReportService._render_report_html` (`backend/services/report_service.py`)
 dispatches on six department report types beyond `wardrobe` —
 `makeup`, `sfx`/`special_effects`, `stunts`, `vehicles`, `animals`,
@@ -430,6 +448,8 @@ beyond just listing six more options.
 - `backend/routes/report_routes.py:240` — route-level validation against
   `REPORT_TYPES`, the actual gate
 - `frontend/src/components/reports/ReportRail.jsx` — report type picker
+- `backend/tests/test_report_csv.py` — new coverage for the six shipped types
+- `frontend/src/components/reports/reportIcons.js` — makeup/vehicles/animals icons
 
 ---
 
@@ -1207,3 +1227,298 @@ breakdown table).
 - `frontend/src/components/breakdown/` — existing breakdown UI components
 - `backend/routes/supabase_routes.py` — `merge_characters`, `merge_locations`
   (existing identity-level CRUD to build on)
+
+---
+
+## Extras / background artists — needs CRUD editing
+
+**Status:** Not started — needs brainstorming.
+
+**Context.** Found 2026-08-14 while shipping department-specific reporting.
+Extras/background-artist entries are AI-extracted per scene
+(`scene.get('extras')`, aggregated into `data['extras']` by
+`aggregate_scene_data` in `backend/services/report_service.py`) and are now
+reportable (see "Department-specific reporting" above), but there's no
+user-facing way to create, edit, rename, split, or delete an extras entry —
+same read-only-list gap as the general breakdown CRUD item above, but
+extras/background artists specifically haven't been scoped at all yet.
+
+**Why it matters.** AI extraction of background/extras counts and
+descriptions is inherently approximate (e.g. "bar patrons" vs. "3 bar
+patrons" vs. "background diners") — a production AD needs to correct,
+consolidate, or add entries by hand, the same way props/wardrobe/cast
+already need occasional manual correction elsewhere in the breakdown UI.
+
+**Scope when picked up.** Brainstorm before implementing (see
+`superpowers:brainstorming`) — open questions: does this ride on the
+general "Breakdown UI/UX drill-down (CRUD) for elements" item above (same
+mechanism, extras as the first/a concrete element type) or get its own
+surface; whether edits apply at the identity level (rename/merge an extras
+group across all its scenes) vs. per-scene appearance edits; whether a
+count/quantity field belongs on each entry (distinct from most other
+breakdown categories, which are just item + scenes); and how edits should
+interact with re-analysis (does a manual edit survive an AI re-run on that
+scene, or an FDX/PDF revision import).
+
+**References.**
+- `backend/services/report_service.py` — `aggregate_scene_data`'s `extras`
+  loop, `_render_extras_department`, `_csv_extras_department`
+- Related, broader-scoped item: "Breakdown UI/UX drill-down (CRUD) for
+  elements" (above) — likely the mechanism this should build on
+- `frontend/src/components/breakdown/` — existing breakdown UI components
+
+---
+
+## CSV export format isn't industry-standard
+
+**Status:** Not started — needs brainstorming.
+
+**Context.** Found 2026-08-20. The CSV export shipped in "Report Studio:
+CSV export" (above) writes each report type's own ad hoc column set
+straight from `data_snapshot` — it was designed to mirror the PDF/preview
+layout, not to match what production software (Movie Magic Scheduling,
+Gorilla, StudioBinder, etc.) or a line producer/1st AD expects when they
+import a stripboard/schedule/breakdown CSV into their own tooling. No
+audit has been done yet of where today's columns/headers/ordering/date
+formats diverge from what's actually treated as "standard" in the
+industry.
+
+**Scope when picked up.** Brainstorm before implementing (see
+`superpowers:brainstorming`) — open questions: what "industry standard"
+concretely means per report type (there may be no single standard —
+Movie Magic and Gorilla export formats differ from each other); whether
+to match an existing tool's column schema for interop (so a CSV round-trips
+into that tool) or just clean up general CSV hygiene (consistent scene
+numbering, INT/EXT and D/N codes, page-eighths formatting, UTF-8 BOM for
+Excel, date formats); whether this varies per report type (`scene_breakdown`
+vs `shooting_schedule` vs `day_out_of_days` likely need different
+conventions) or is one global format pass; and whether it's worth an actual
+interview/reference pull from a working AD/scheduler on what they currently
+import CSVs into.
+
+**References.**
+- `backend/services/report_service.py` — `generate_csv`,
+  `_csv_rows_for_report`, per-type `_csv_*` builders (current formats to
+  audit against)
+- `backend/tests/test_report_csv.py` — current header/row-shape assertions,
+  will need updating alongside any format change
+- "Report Studio: CSV export — RESOLVED, shipped" (above) — what shipped
+  and why, for context on the current column choices
+
+---
+
+## Real production data for scheduling — cast contacts, headshots, availability
+
+**Status:** Not started — feature request, needs brainstorming.
+
+**Context.** Raised 2026-08-20. Today's breakdown/schedule only carries
+AI-extracted *script* data (character names, scene appearances, etc.) —
+there's no way to attach real-world production data to a character/cast
+member: who's actually cast in the role, contact details, a headshot, and
+— most relevant to scheduling — their availability/unavailable dates. A
+1st AD building a shooting schedule needs to know an actor's blackout
+dates to avoid double-booking or scheduling around a conflict, and today
+that's entirely outside the app (spreadsheet/memory), disconnected from
+the stripboard/day-out-of-days views that already show which days each
+character/scene is on.
+
+**Why it matters.** This is the single biggest gap between "breakdown tool"
+and "actual scheduling tool" — Day Out of Days already computes which days
+a character works; without availability data there's no way to catch a
+conflict inside the app itself, which is presumably where a lot of the
+real value of a scheduling feature would come from.
+
+**Scope when picked up.** Brainstorm before implementing (see
+`superpowers:brainstorming`) — open questions: data model (a new
+`cast_members`/`character_casting` table linking a `characters` identity to
+a real person — name, contact info, headshot, agent/rep details, and one or
+more unavailable-date ranges); how this ties into the existing character
+identity/merge system (`merge_characters`) so casting survives a
+name-alias merge; whether this generalizes beyond cast to crew/vendor
+scheduling data too, or stays cast-specific for v1; how availability
+conflicts should surface (a warning on Day Out of Days / the stripboard
+when a day is scheduled against a blocked date, vs. just informational
+display); where headshots get stored (likely the same object-storage
+pattern as other file assets in the app, need to confirm what that is);
+and how this interacts with Team License seats/permissions — who's allowed
+to enter/edit sensitive contact details.
+
+**References.**
+- `backend/db/migrations/030_shooting_schedules.sql` — shooting
+  days/schedule schema this would need to read availability against
+- `backend/services/report_service.py` — Day Out of Days computation
+  (`day_out_of_days` report type), the natural place a conflict warning
+  would surface
+- `backend/routes/supabase_routes.py` — `merge_characters` (existing
+  character identity system this would need to key off)
+- `frontend/src/components/schedule/` — Shooting Schedule / stripboard UI
+
+---
+
+## Redesign the Series page UI/UX — brainstorm
+
+**Status:** Not started — needs brainstorming.
+
+**Context.** The Series/Season surface has grown by accretion across four
+merged rounds (Phase 1 grouping, My-Scripts nesting, known-series picker,
+the paused accordion branch) plus a visual polish pass — see "Series /
+multi-episode analysis" above for the full history. The result is a set of
+pages (`SeriesListPage.jsx`, `SeasonPage.jsx`, the deleted-but-not-merged
+`SeriesDetailPage.jsx`) that were each styled in isolation rather than
+designed as one coherent workspace. `SeasonPage.jsx` today shows only the
+combined cast table; there is no series/season dashboard, no at-a-glance
+sense of episode status, and `SeriesAssignmentModal` is still unstyled.
+
+**Why it matters.** As soon as a user has more than a couple of episodes,
+the Series page is where they'll live to navigate and manage the season —
+but it currently offers less than the grouped My Scripts table does. It
+needs to be a real destination, not a thin index.
+
+**Scope when picked up.** Brainstorm before implementing (see
+`superpowers:brainstorming`) — open questions: what the Series page's job
+actually is (navigation hub vs. season dashboard vs. both); what belongs on
+a Season view beyond the cast table (ties directly into "key season-level
+metrics" below); whether the paused `worktree-series-accordion` branch
+should be finished/merged first or folded into this redesign; how episode
+status (uploaded / analyzing / analyzed / scheduled) should be surfaced;
+navigation model (accordion vs. dedicated pages vs. nested in My Scripts);
+and finishing `SeriesAssignmentModal`/`SeriesPicker` styling as part of the
+same visual system.
+
+**References.**
+- "Series / multi-episode analysis" (above) — full feature history, open
+  sub-items (Phase 2, Board/Schedule integration, season metrics, unstyled
+  modal), and the paused `worktree-series-accordion` branch
+- `frontend/src/pages/SeriesListPage.jsx`, `SeasonPage.jsx`, `SeriesPages.css`
+- `frontend/src/components/series/SeriesPicker.jsx`, `SeriesAssignmentModal.jsx`
+- `frontend/src/components/scripts/ScriptTable.jsx` — the grouped My-Scripts view
+
+---
+
+## Department Workspaces — brainstorm
+
+**Status:** Not started — needs brainstorming.
+
+**Context.** Breakdown data is aggregated by department (props, wardrobe,
+makeup, SFX, stunts, vehicles, animals, extras, cast, locations) and each
+now has a reportable/CSV-exportable view — see "Department-specific
+reporting" above. But there is no per-department *working surface*: a place
+where (e.g.) the props master sees only props, across all scenes, with the
+notes/status/CRUD they need, separate from the full breakdown view. Today
+every department shares the one scene-centric breakdown UI.
+
+**Why it matters.** On a real production each department head works their
+own slice. A dedicated workspace per department is the natural home for the
+element CRUD gap ("Breakdown UI/UX drill-down (CRUD) for elements" and
+"Extras / background artists" above), per-element status tracking, and
+department-scoped permissions.
+
+**Scope when picked up.** Brainstorm before implementing (see
+`superpowers:brainstorming`) — open questions: which departments get a
+workspace first (props/wardrobe likely highest value); what a workspace
+contains beyond a filtered element list (status, notes, quantities,
+sourcing, attachments/photos); how it relates to the department *reports*
+that already exist (is the report just an export of the workspace?);
+whether workspaces need their own permission scope tied to Team License
+seats (a props coordinator who can only see/edit props); and how this
+overlaps with the general element-CRUD backlog item — likely the same
+mechanism, workspaces as the container.
+
+**References.**
+- "Department-specific reporting — RESOLVED, shipped" (above) — the six
+  department renderers + `aggregate_scene_data` per-category aggregation
+- "Breakdown UI/UX drill-down (CRUD) for elements" (above) — the CRUD
+  mechanism this would build on
+- "Extras / background artists — needs CRUD editing" (above)
+- `backend/services/report_service.py` — `aggregate_scene_data`
+- `frontend/src/components/breakdown/` — existing breakdown UI
+
+---
+
+## "Auto" AI scheduling (first pass) — brainstorm
+
+**Status:** Not started — needs brainstorming.
+
+**Context.** Scheduling today is entirely manual: the user builds a
+stripboard / shooting schedule by hand in `ScheduleKanban.jsx` /
+`ShootingSchedulePage.jsx`, assigning scenes to shoot days themselves. All
+the inputs a scheduler uses are already computed — scene INT/EXT and D/N,
+location/setting, cast per scene, page-eighths (`utils/scene_calculations.py`),
+and Day Out of Days (`report_service.py`). Nothing yet proposes a draft
+day-by-day schedule from those inputs.
+
+**Why it matters.** An AI-generated first-pass schedule (group by location,
+cluster INT/EXT, respect D/N, balance page count per day, minimise company
+moves and cast hold days) that the user then hand-adjusts would be a major
+step from "breakdown tool" toward "scheduling tool" — and pairs directly
+with cast availability data (below) once that exists.
+
+**Scope when picked up.** Brainstorm before implementing (see
+`superpowers:brainstorming`) — open questions: rules/heuristics engine vs.
+LLM vs. hybrid for the first pass; what constraints v1 respects (location
+grouping, D/N, page-count-per-day target, cast availability if present) and
+which are deferred; how the draft is presented (fills an empty stripboard
+the user then edits vs. a side-by-side suggestion); whether it re-runs
+incrementally as the user locks days; how it scopes (single script now;
+whole-series scheduling is its own open item above); and where the target
+shoot-days/hours-per-day and other production parameters get entered.
+
+**References.**
+- `frontend/src/components/schedule/` — `ScheduleKanban.jsx`,
+  `ShootingSchedulePage.jsx` (manual stripboard today)
+- `backend/routes/schedule_routes.py`, `backend/db/migrations/030_shooting_schedules.sql`
+- `backend/utils/scene_calculations.py` — page-eighths / scene math
+- `backend/services/report_service.py` — Day Out of Days, `aggregate_scene_data`
+- Related open items: "Real production data for scheduling" and the
+  crew/cast/production-detail item below (availability as a scheduling
+  constraint); "Board/Schedule a series with numerous episodes" (above)
+
+---
+
+## Add CREW, CAST and production detail for scheduling + call sheets / sides — brainstorm
+
+**Status:** Not started — needs brainstorming. Supersedes and broadens
+"Real production data for scheduling — cast contacts, headshots,
+availability" (above).
+
+**Context.** The app carries only AI-extracted *script* data. To produce a
+call sheet or scene sides — and to schedule realistically — it also needs
+real production data that lives entirely outside the app today: the crew
+list (name, role/department, contact, call time), the cast list (actor
+attached to each character identity, contact, agent, headshot,
+availability/blackout dates), and shoot-day production detail (unit/base
+camp, location addresses and parking, weather/sunrise-sunset, hospital,
+general crew call, meal times, key personnel).
+
+**Why it matters.** Call sheets and sides are the daily deliverable of a
+1st AD — generating them from data already in the app (schedule, scene
+breakdown, cast/scene mapping) plus this production layer would be a
+headline feature. Cast availability is also the missing constraint for
+"Auto" AI scheduling (above) and the only way to catch a booking conflict
+inside the app.
+
+**Scope when picked up.** Brainstorm before implementing (see
+`superpowers:brainstorming`) — open questions: data model (`cast_members` /
+`character_casting` linking a `characters` identity to a real person;
+`crew_members`; per-shoot-day production-detail fields on
+`shooting_schedules`/shoot days); how casting survives a `merge_characters`
+name-alias merge; headshot/photo storage (confirm the app's existing
+object-storage pattern); call-sheet and sides generation (reuse the
+WeasyPrint report pipeline in `report_service.py`? industry call-sheet
+layout); how availability conflicts surface on Day Out of Days / the
+stripboard; whether v1 is cast-only or includes crew; and Team
+License seat/permission rules for who can enter/edit sensitive contact
+details.
+
+**References.**
+- "Real production data for scheduling — cast contacts, headshots,
+  availability" (above) — the narrower cast-availability version this
+  replaces; keep its references
+- "Auto AI scheduling (first pass)" (above) — availability is its key
+  missing constraint
+- `backend/db/migrations/030_shooting_schedules.sql` — shoot-day schema
+- `backend/services/report_service.py` — WeasyPrint pipeline (call sheet /
+  sides generation), Day Out of Days
+- `backend/routes/supabase_routes.py` — `merge_characters` (character
+  identity system casting would key off)
+- `frontend/src/components/schedule/` — stripboard / schedule UI
