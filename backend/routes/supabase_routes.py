@@ -4804,6 +4804,28 @@ def merge_characters(script_id):
             except Exception as alias_err:
                 print(f"Warning: Failed to store alias '{alias}': {alias_err}")
         
+        # 5. Carry any casting rows from an alias name to the canonical name.
+        #    See docs/superpowers/specs/2026-08-27-cast-casting-v1-design.md §5.6.
+        try:
+            existing_canon = supabase.table('casting').select('id') \
+                .eq('script_id', script_id).eq('character_name', canonical_name) \
+                .execute()
+            canon_taken = bool(existing_canon.data)
+            for alias in aliases:
+                alias_rows = supabase.table('casting').select('id') \
+                    .eq('script_id', script_id).eq('character_name', alias).execute()
+                if not alias_rows.data:
+                    continue
+                if canon_taken:
+                    supabase.table('casting').delete() \
+                        .eq('script_id', script_id).eq('character_name', alias).execute()
+                else:
+                    supabase.table('casting').update({'character_name': canonical_name}) \
+                        .eq('script_id', script_id).eq('character_name', alias).execute()
+                    canon_taken = True
+        except Exception as casting_err:
+            print(f"Warning: casting merge-carry failed: {casting_err}")
+
         return jsonify({
             'success': True,
             'canonical_name': canonical_name,
