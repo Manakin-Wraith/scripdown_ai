@@ -186,3 +186,78 @@ def serialize(row, *, include_contact, breakdown_names=None):
     if breakdown_names is not None:
         out["orphaned"] = row["character_name"] not in breakdown_names
     return out
+
+
+def active_schedule_id(script_id):
+    rows = (_client().table("shooting_schedules").select("id, status, updated_at")
+            .eq("script_id", script_id).eq("status", "active")
+            .order("updated_at", desc=True).execute()).data or []
+    return rows[0]["id"] if rows else None
+
+
+def _alias_map(script_id):
+    rows = (_client().table("character_aliases").select("alias, canonical_name")
+            .eq("script_id", script_id).execute()).data or []
+    return {norm_name(r["alias"]): norm_name(r["canonical_name"]) for r in rows}
+
+
+def compute_conflicts(script_id, schedule_id):
+    c = _client()
+    days = [d for d in (c.table("shooting_days").select("id, day_number, shoot_date")
+            .eq("schedule_id", schedule_id).order("day_number").execute()).data or []
+            if d.get("shoot_date")]
+    if not days:
+        return []
+    day_ids = [d["id"] for d in days]
+    dps = (c.table("shooting_day_scenes").select("shooting_day_id, scene_id")
+           .in_("shooting_day_id", day_ids).execute()).data or []
+    scene_ids = list({p["scene_id"] for p in dps})
+    if not scene_ids:
+        return []
+    scenes = (c.table("scenes").select("id, characters")
+              .in_("id", scene_ids).execute()).data or []
+    amap = _alias_map(script_id)
+    scene_chars = {
+        s["id"]: {amap.get(norm_name(x), norm_name(x)) for x in (s.get("characters") or [])}
+        for s in scenes
+    }
+    # day -> set of canonical character names
+    day_chars = {}
+    for p in dps:
+        day_chars.setdefault(p["shooting_day_id"], set()).update(
+            scene_chars.get(p["scene_id"], set())
+        )
+
+    casting_rows = [r for r in (c.table("casting")
+                    .select("id, character_name, actor_name, status")
+                    .eq("script_id", script_id).execute()).data or []
+                    if r.get("status") in CONFLICT_STATUSES]
+    if not casting_rows:
+        return []
+    casting_by_name = {r["character_name"]: r for r in casting_rows}
+    unavail = (c.table("casting_unavailability")
+               .select("casting_id, start_date, end_date, reason")
+               .in_("casting_id", [r["id"] for r in casting_rows]).execute()).data or []
+    ranges_by_casting = {}
+    for u in unavail:
+        ranges_by_casting.setdefault(u["casting_id"], []).append(u)
+
+    out = []
+    for d in days:
+        sd = str(d["shoot_date"])
+        for cname in day_chars.get(d["id"], set()):
+            row = casting_by_name.get(cname)
+            if not row:
+                continue
+            for rng in ranges_by_casting.get(row["id"], []):
+                if str(rng["start_date"]) <= sd <= str(rng["end_date"]):
+                    out.append({
+                        "shooting_day_id": d["id"],
+                        "day_number": d["day_number"],
+                        "shoot_date": sd,
+                        "character_name": cname,
+                        "actor_name": row.get("actor_name"),
+                        "reason": rng.get("reason"),
+                    })
+                    break
+    return out

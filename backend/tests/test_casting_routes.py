@@ -203,3 +203,11 @@ def test_headshot_ok(monkeypatch):
                           content_type="multipart/form-data")
     assert resp.status_code == 200
     assert resp.get_json()["casting"]["headshot_url"] == "https://signed/x.jpg"
+
+
+def test_conflicts_no_active_schedule_returns_empty(monkeypatch):
+    _as_role(monkeypatch, "viewer")
+    monkeypatch.setattr(cr.casting_service, "active_schedule_id", lambda sid: None)
+    resp = _client().get("/api/scripts/s1/casting/conflicts")
+    assert resp.status_code == 200
+    assert resp.get_json() == {"conflicts": [], "schedule_id": None}
