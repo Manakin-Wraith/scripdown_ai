@@ -10,23 +10,24 @@ implementing (see `superpowers:brainstorming`).
 
 **Decided 2026-08-27.** Near-term goal: get to a state where real customers
 can be charged, and kept, with no silent lapses. Everything below this
-header is deferred until steps 1–5 are done. Detailed context for each step
-lives in its full entry further down this file (linked).
+header is deferred until the remaining steps are done. Detailed context for
+each step lives in its full entry further down this file (linked).
 
-**1. PayFast: sandbox → live credentials.** *Blocks all revenue — nothing
-earns until this is done.* Swap Railway env vars to live merchant creds
-(merchant ID/key, live passphrase, live API host); confirm `PAYFAST_API_URL`
-/ `notify_url` still point at the live-registered domain; verify with one
-real low-value live transaction. **Blocked on:** live PayFast merchant
-credentials from the account owner. See "Production billing was fully broken
-for 3 days" → "Outstanding follow-up".
+**1. PayFast: sandbox → live credentials. — DONE (outbound verified 2026-08-27).**
+Live merchant creds set in Railway, `PAYFAST_SANDBOX` effectively off. Verified
+outbound: a real checkout POSTs to `https://payment.payfast.io/eng/process`
+(live, not sandbox) and live PayFast returns `302` (merchant ID / key /
+passphrase mutually valid). *Residual:* the inbound ITN → grant path has not
+been exercised on live — close it opportunistically with the first real
+completed transaction (check `payfast_transactions` row goes `complete` with a
+real `pf_payment_id`, `reject_reason` null, grant lands).
 
-**2. SOLO / TEAMS pricing change.** *Do before more billing code lands on
-top.* Update `payfast_service.py::PRICES`, `BillingPage.jsx::PRICE_ZAR`, the
-2–3 affected tests, and recompute worked examples in
-`SPEC_Tiered_Business_Model.md`; deploy; verify live. **Blocked on:** new
-numbers being decided (`docs/PRICING_CHANGE_BRIEF_FOR_DESIGN.md` is drafted;
-numbers are not). See "SOLO / TEAMS pricing — change pricing".
+**2. SOLO / TEAMS pricing change. — DROPPED 2026-08-27.** Current prices
+(Solo R2,250/breakdown; Team License R1,850 / R5,500 / R9,500 / R18,500 per
+cadence with 0/1/2/3 seats; extra seat flat R250/mo) are being kept as-is.
+The "SOLO / TEAMS pricing — change pricing" entry below is stale (references
+old R450 / R1,850-per-year numbers) — retained for history only, not
+actionable.
 
 **3. Renewal automation.** *The real gap — annual `tier_2_license` accounts
 currently lapse silently at year one.* Scheduled job (Supabase `pg_cron` or
