@@ -192,8 +192,10 @@ once per request from the value `require_script_role` already resolved
    scenes assigned to the day (`shooting_day_scenes` → `scenes`), union of
    each scene's `characters`, each resolved to its canonical name via
    `character_aliases`.
-3. Load `casting` + `casting_unavailability` for the script.
-4. For each (day, character) pair where a `casting` row exists for that
+3. Load `casting` + `casting_unavailability` for the script. Only consider
+   casting rows whose `status` is `booked` or `offer` — `wishlist`,
+   `declined`, and `released` rows have no committed actor and are skipped.
+4. For each (day, character) pair where such a `casting` row exists for that
    character **and** an unavailable range covers `shoot_date`
    (`start_date <= shoot_date <= end_date`), emit:
    `{shooting_day_id, day_number, shoot_date, character_name, actor_name,
