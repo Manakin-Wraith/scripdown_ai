@@ -8,10 +8,13 @@ implementing (see `superpowers:brainstorming`).
 
 # CURRENT PRIORITY — path to real revenue
 
-**Decided 2026-08-27.** Near-term goal: get to a state where real customers
-can be charged, and kept, with no silent lapses. Everything below this
-header is deferred until the remaining steps are done. Detailed context for
-each step lives in its full entry further down this file (linked).
+**Decided 2026-08-27.** Near-term goal was to get to a state where real
+customers can be charged. **Reached** — checkout is live (step 1). The
+remaining billing-lifecycle steps (renewal, downgrade) are deferred until
+scale; at current volume the account owner handles renewals and
+cancellations manually. Next priority beyond this section is undecided —
+likely product depth (see the P2 cluster: production data model, call
+sheets, auto-scheduling, department workspaces).
 
 **1. PayFast: sandbox → live credentials. — DONE (outbound verified 2026-08-27).**
 Live merchant creds set in Railway, `PAYFAST_SANDBOX` effectively off. Verified
@@ -29,26 +32,20 @@ The "SOLO / TEAMS pricing — change pricing" entry below is stale (references
 old R450 / R1,850-per-year numbers) — retained for history only, not
 actionable.
 
-**3. Renewal automation.** *The real gap — annual `tier_2_license` accounts
-currently lapse silently at year one.* Scheduled job (Supabase `pg_cron` or
-cron route) that finds licenses nearing expiry, charges the stored PayFast
-token, and writes `subscription_status` from the result. Brainstorm first
-(cadence, retry policy, grace window). Longest pole — can start its
-brainstorm while 1 and 2 are blocked on input. See "Renewal automation not
-built".
+**3. Renewal automation. — DEFERRED until scale 2026-08-27.** Brainstorm
+started and stopped: the account owner will handle Team License renewals
+manually (charge the stored PayFast token via the dashboard / adhoc API by
+hand) while volume is low. Pick this up when manual renewal tracking
+becomes a burden. Full context in "Renewal automation not built" below.
 
-**4. Failed-renewal downgrade.** *Falls out of step 3.* Write
-`subscription_status = 'expired'` when a renewal charge fails —
-`get_entitlement` already denies access on non-active status, so this is
-only the writer side. See "Failed-renewal downgrade gap".
+**4. Failed-renewal downgrade. — DEFERRED (blocked on step 3).** No
+automated renewal means no automated failure to react to. Manual for now.
+See "Failed-renewal downgrade gap".
 
-**5. Teams → Solo downgrade path.** *Urgent the moment step 3 ships — the
-renewal job would otherwise auto-charge another year with no opt-out.*
-Self-serve "cancel / don't renew" control in `BillingPage.jsx`; clear/void
-`profiles.subscription_payfast_token` so the renewal job skips it; decide
-lapse-at-term vs. immediate switch and what happens to already-granted
-seats/members. See "No way for a user to downgrade from Teams (annual) back
-to Solo".
+**5. Teams → Solo downgrade path. — DEFERRED until scale 2026-08-27.** With
+manual renewals, a customer who wants out is simply not re-charged; no
+self-serve control needed yet. Revisit alongside step 3. See "No way for a
+user to downgrade from Teams (annual) back to Solo".
 
 ---
 
