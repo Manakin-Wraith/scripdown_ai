@@ -117,3 +117,49 @@ def test_delete_ok_for_admin(monkeypatch):
     resp = _client().delete("/api/casting/c1")
     assert resp.status_code == 200
     assert resp.get_json()["success"] is True
+
+
+def test_add_unavailability_forbidden_for_viewer(monkeypatch):
+    _as_role(monkeypatch, "viewer")
+    monkeypatch.setattr(authz, "_lookup_script_id", lambda *a, **k: "s1")
+    resp = _client().post("/api/casting/c1/unavailability",
+                          json={"start_date": "2026-03-01", "end_date": "2026-03-05"})
+    assert resp.status_code == 403
+
+
+def test_add_unavailability_ok_for_admin(monkeypatch):
+    _as_role(monkeypatch, "admin")
+    monkeypatch.setattr(authz, "_lookup_script_id", lambda *a, **k: "s1")
+    monkeypatch.setattr(cr.casting_service, "add_unavailability",
+                        lambda cid, s, e, r: {"id": "u1", "casting_id": cid,
+                        "start_date": s, "end_date": e, "reason": r})
+    resp = _client().post("/api/casting/c1/unavailability",
+                          json={"start_date": "2026-03-01", "end_date": "2026-03-05",
+                                "reason": "Other shoot"})
+    assert resp.status_code == 201
+    assert resp.get_json()["unavailability"]["reason"] == "Other shoot"
+
+
+def test_add_unavailability_bad_range_returns_400(monkeypatch):
+    _as_role(monkeypatch, "admin")
+    monkeypatch.setattr(authz, "_lookup_script_id", lambda *a, **k: "s1")
+    def _boom(cid, s, e, r): raise ValueError("end_date must be on or after start_date")
+    monkeypatch.setattr(cr.casting_service, "add_unavailability", _boom)
+    resp = _client().post("/api/casting/c1/unavailability",
+                          json={"start_date": "2026-03-10", "end_date": "2026-03-01"})
+    assert resp.status_code == 400
+
+
+def test_add_unavailability_missing_dates_returns_400(monkeypatch):
+    _as_role(monkeypatch, "admin")
+    monkeypatch.setattr(authz, "_lookup_script_id", lambda *a, **k: "s1")
+    resp = _client().post("/api/casting/c1/unavailability", json={"reason": "x"})
+    assert resp.status_code == 400
+
+
+def test_delete_unavailability_ok_for_admin(monkeypatch):
+    _as_role(monkeypatch, "admin")
+    monkeypatch.setattr(authz, "_lookup_script_id", lambda *a, **k: "s1")
+    monkeypatch.setattr(cr.casting_service, "delete_unavailability", lambda uid: None)
+    resp = _client().delete("/api/casting/unavailability/u1")
+    assert resp.status_code == 200

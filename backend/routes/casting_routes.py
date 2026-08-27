@@ -80,3 +80,26 @@ def delete_casting(casting_id):
         except Exception:
             pass
     return jsonify({"success": True}), 200
+
+
+@casting_bp.route("/api/casting/<casting_id>/unavailability", methods=["POST"])
+@require_auth
+@require_script_role("admin", resolver=from_casting)
+def add_unavailability(casting_id):
+    data = request.get_json(silent=True) or {}
+    start, end = data.get("start_date"), data.get("end_date")
+    if not start or not end:
+        return jsonify({"error": "start_date and end_date are required"}), 400
+    try:
+        row = casting_service.add_unavailability(casting_id, start, end, data.get("reason"))
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    return jsonify({"unavailability": row}), 201
+
+
+@casting_bp.route("/api/casting/unavailability/<unavail_id>", methods=["DELETE"])
+@require_auth
+@require_script_role("admin", resolver=from_casting_unavailability)
+def delete_unavailability(unavail_id):
+    casting_service.delete_unavailability(unavail_id)
+    return jsonify({"success": True}), 200
