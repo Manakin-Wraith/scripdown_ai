@@ -9,7 +9,7 @@ import { formatEighths, getSceneEighths } from '../../utils/sceneUtils';
 import { locationKey } from '../../utils/locationKey';
 import { useToast } from '../../context/ToastContext';
 
-const DayColumn = ({ day, hasConflict, refreshDays, selectedSceneIds, onToggleSelect }) => {
+const DayColumn = ({ day, hasConflict, conflictScenes, refreshDays, selectedSceneIds, onToggleSelect }) => {
     const [editingDate, setEditingDate] = useState(false);
     const [localDate, setLocalDate] = useState(day.shoot_date || '');
     const dateInputRef = useRef(null);
@@ -162,6 +162,7 @@ const DayColumn = ({ day, hasConflict, refreshDays, selectedSceneIds, onToggleSe
                                 onRemove={() => handleRemoveScene(ds.scene_id)}
                                 isSelected={selectedSceneIds?.has(ds.scene_id)}
                                 onToggleSelect={() => onToggleSelect?.(ds.scene_id)}
+                                conflict={conflictScenes?.get(ds.scene_id)}
                             />
                         ))
                     )}

@@ -242,6 +242,11 @@ def compute_conflicts(script_id, schedule_id):
     for u in unavail:
         ranges_by_casting.setdefault(u["casting_id"], []).append(u)
 
+    # day -> {scene_id: canonical character set} for the scenes on that day
+    day_scene_ids = {}
+    for p in dps:
+        day_scene_ids.setdefault(p["shooting_day_id"], []).append(p["scene_id"])
+
     out = []
     for d in days:
         sd = str(d["shoot_date"])
@@ -251,6 +256,10 @@ def compute_conflicts(script_id, schedule_id):
                 continue
             for rng in ranges_by_casting.get(row["id"], []):
                 if str(rng["start_date"]) <= sd <= str(rng["end_date"]):
+                    scene_ids_for = [
+                        sid for sid in day_scene_ids.get(d["id"], [])
+                        if cname in scene_chars.get(sid, set())
+                    ]
                     out.append({
                         "shooting_day_id": d["id"],
                         "day_number": d["day_number"],
@@ -258,6 +267,7 @@ def compute_conflicts(script_id, schedule_id):
                         "character_name": cname,
                         "actor_name": row.get("actor_name"),
                         "reason": rng.get("reason"),
+                        "scene_ids": scene_ids_for,
                     })
                     break
     return out

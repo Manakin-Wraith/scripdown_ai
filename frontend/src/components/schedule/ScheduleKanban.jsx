@@ -74,7 +74,7 @@ function moveBetweenDays(days, sourceDayId, targetDayId, activeId, targetIndex) 
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-const ScheduleKanban = ({ scheduleId, days: propDays, refreshDays, zoomApiRef, conflictDayIds }) => {
+const ScheduleKanban = ({ scheduleId, days: propDays, refreshDays, zoomApiRef, conflictDayIds, conflictScenes }) => {
     const toast = useToast();
     // Mirror prop days into local state so we can apply optimistic updates instantly
     const [localDays, setLocalDays] = useState(propDays);
@@ -263,6 +263,7 @@ const ScheduleKanban = ({ scheduleId, days: propDays, refreshDays, zoomApiRef, c
                                     key={day.id}
                                     day={day}
                                     hasConflict={conflictDayIds?.has(day.id)}
+                                    conflictScenes={conflictScenes}
                                     refreshDays={refreshDays}
                                     selectedSceneIds={selectedSceneIds}
                                     onToggleSelect={toggleSelect}
@@ -284,7 +285,12 @@ const ScheduleKanban = ({ scheduleId, days: propDays, refreshDays, zoomApiRef, c
             <DragOverlay dropAnimation={null}>
                 {activeItem ? (
                     <div className="schedule-scene-card-overlay">
-                        <ScheduleSceneCard dayScene={activeItem} onRemove={() => {}} isDragOverlay />
+                        <ScheduleSceneCard
+                            dayScene={activeItem}
+                            onRemove={() => {}}
+                            isDragOverlay
+                            conflict={conflictScenes?.get(activeItem.scene_id)}
+                        />
                     </div>
                 ) : null}
             </DragOverlay>

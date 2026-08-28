@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Sun, Moon, Sunrise, Sunset, GripVertical, MapPin, Users, FileText, Clock, Clapperboard, Tag } from 'lucide-react';
+import { X, Sun, Moon, Sunrise, Sunset, GripVertical, MapPin, Users, FileText, Clock, Clapperboard, Tag, TriangleAlert } from 'lucide-react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { formatEighths, getSceneEighths } from '../../utils/sceneUtils';
@@ -13,7 +13,7 @@ const TIME_ICONS = {
     DUSK: Sunset,
 };
 
-const ScheduleSceneCard = ({ dayScene, onRemove, isDragOverlay = false, isSelected = false, onToggleSelect }) => {
+const ScheduleSceneCard = ({ dayScene, onRemove, isDragOverlay = false, isSelected = false, onToggleSelect, conflict }) => {
     const scene = dayScene.scene || dayScene.scenes || {};
     const sceneId = dayScene.scene_id;
     const cardRef = useRef(null);
@@ -45,6 +45,12 @@ const ScheduleSceneCard = ({ dayScene, onRemove, isDragOverlay = false, isSelect
     const storyDay = scene.story_day || '';
 
     const isOmitted = scene.is_omitted || false;
+    const conflictRows = Array.isArray(conflict) ? conflict : [];
+    const hasConflict = conflictRows.length > 0;
+    const conflictNames = conflictRows
+        .map(c => c.actor_name || c.character_name)
+        .filter(Boolean)
+        .join(', ');
     const intExtClass = intExt === 'INT' ? 'int' : intExt === 'EXT' ? 'ext' : '';
     const TimeIcon = TIME_ICONS[timeOfDay] || null;
 
@@ -83,7 +89,7 @@ const ScheduleSceneCard = ({ dayScene, onRemove, isDragOverlay = false, isSelect
         <div
             ref={(el) => { setNodeRef(el); cardRef.current = el; }}
             style={style}
-            className={`schedule-scene-card ${intExtClass} ${isDragging ? 'dragging' : ''} ${isDragOverlay ? 'overlay' : ''} ${isSelected ? 'selected' : ''} ${isOmitted ? 'omitted' : ''}`}
+            className={`schedule-scene-card ${intExtClass} ${isDragging ? 'dragging' : ''} ${isDragOverlay ? 'overlay' : ''} ${isSelected ? 'selected' : ''} ${isOmitted ? 'omitted' : ''} ${hasConflict ? 'conflict' : ''}`}
             onClick={handleCardClick}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
@@ -114,6 +120,13 @@ const ScheduleSceneCard = ({ dayScene, onRemove, isDragOverlay = false, isSelect
                 )}
                 {castCount > 0 && <span className="ssc-cast">{castCount} cast</span>}
             </div>
+
+            {hasConflict && (
+                <div className="ssc-conflict-note" title={`Unavailable on this day: ${conflictNames}`}>
+                    <TriangleAlert size={11} />
+                    <span>{conflictNames} unavailable</span>
+                </div>
+            )}
 
             {/* Tooltip rendered via portal — see bottom of component */}
         </div>

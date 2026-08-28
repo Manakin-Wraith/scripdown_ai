@@ -74,6 +74,22 @@ def test_conflict_on_dated_day_for_booked_character(wired):
     assert c["day_number"] == 1
     assert c["shoot_date"] == "2026-03-12"
     assert c["reason"] == "Other shoot"
+    assert c["scene_ids"] == ["sc1"]
+
+
+def test_conflict_scene_ids_only_include_scenes_with_the_character(wired):
+    # Add a second scene to day 1 that does NOT feature JOHN.
+    wired["shooting_day_scenes"].append({"shooting_day_id": "d1", "scene_id": "sc3"})
+    wired["scenes"].append({"id": "sc3", "script_id": "s1", "characters": ["MARY"]})
+    conflicts = cs.compute_conflicts("s1", "sch1")
+    assert len(conflicts) == 1
+    assert conflicts[0]["scene_ids"] == ["sc1"]  # sc3 excluded — no JOHN
+
+
+def test_conflict_scene_ids_resolve_aliases(wired):
+    # JOHN only appears in day 1 via the alias "JOHNNY" on sc1.
+    conflicts = cs.compute_conflicts("s1", "sch1")
+    assert conflicts[0]["scene_ids"] == ["sc1"]
 
 
 def test_wishlist_character_never_conflicts(wired):

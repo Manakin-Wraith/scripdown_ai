@@ -23,6 +23,7 @@ const ShootingSchedulePage = () => {
     const [schedules, setSchedules] = useState([]);
     const [activeScheduleId, setActiveScheduleId] = useState(null);
     const [conflictDayIds, setConflictDayIds] = useState(new Set());
+    const [conflictScenes, setConflictScenes] = useState(new Map());
     const [days, setDays] = useState([]);
     const [loading, setLoading] = useState(true);
     const [metadata, setMetadata] = useState(null);
@@ -289,6 +290,7 @@ const ShootingSchedulePage = () => {
                 scriptId={scriptId}
                 scheduleId={activeScheduleId}
                 onConflictDays={setConflictDayIds}
+                onConflictScenes={setConflictScenes}
             />
 
             {/* Kanban body */}
@@ -299,6 +301,7 @@ const ShootingSchedulePage = () => {
                     refreshDays={refreshDays}
                     zoomApiRef={zoomApiRef}
                     conflictDayIds={conflictDayIds}
+                    conflictScenes={conflictScenes}
                 />
             ) : (
                 <EmptyState

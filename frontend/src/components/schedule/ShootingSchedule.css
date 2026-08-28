@@ -807,6 +807,33 @@
     font-weight: 500;
 }
 
+/* Availability conflict — a cast member on this scene is unavailable on the day */
+.schedule-scene-card.conflict {
+    border-color: var(--danger);
+    box-shadow: inset 3px 0 0 var(--danger);
+}
+
+.ssc-conflict-note {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-top: 0.35rem;
+    color: var(--danger);
+    font-size: 0.62rem;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.ssc-conflict-note svg {
+    flex-shrink: 0;
+}
+
+.ssc-conflict-note span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 /* ============================================
    Scene Card Hover Tooltip
    ============================================ */
