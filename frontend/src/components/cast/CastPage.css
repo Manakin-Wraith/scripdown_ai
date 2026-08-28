@@ -1,0 +1,54 @@
+/* frontend/src/components/cast/CastPage.css */
+.cast-page { max-width: var(--container-max); margin: 0 auto; padding: var(--space-8) var(--edge-padding); }
+.cast-page-head h1 { font-size: var(--text-2xl); color: var(--text-primary); margin: 0; }
+.cast-summary { font-size: var(--text-sm); color: var(--text-secondary); margin: var(--space-2) 0 0; }
+.cast-summary-conflict { color: var(--danger); }
+.cast-filterbar {
+    position: sticky; top: var(--header-height); z-index: var(--z-sticky);
+    display: flex; gap: var(--space-3); padding: var(--space-4) 0;
+    background: var(--bg-app);
+}
+.cast-search { flex: 1; max-width: 320px; padding: var(--space-2) var(--space-3);
+    background: var(--bg-card); border: 1px solid var(--border-color);
+    border-radius: var(--radius-md); color: var(--text-primary); }
+.cast-filterbar select { padding: var(--space-2) var(--space-3); background: var(--bg-card);
+    border: 1px solid var(--border-color); border-radius: var(--radius-md); color: var(--text-primary); }
+.cast-list { border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); overflow: hidden; }
+.cast-divider { padding: var(--space-3) var(--space-4); font-size: var(--text-xs);
+    text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted);
+    background: var(--bg-app); border-top: 1px solid var(--border-subtle); }
+.cast-error, .cast-nomatch { padding: var(--space-6); color: var(--text-secondary); }
+.cast-error button, .cast-nomatch button {
+    margin-left: var(--space-2); color: var(--primary-400); background: none; border: none; cursor: pointer; }
+
+.status-badge--released { background: transparent; border: 1px dashed var(--gray-600); color: var(--text-muted); }
+
+.cast-row { display: flex; align-items: center; gap: var(--space-3); width: 100%;
+    padding: var(--space-3) var(--space-4); background: var(--bg-card);
+    border: none; border-bottom: 1px solid var(--border-subtle); cursor: pointer;
+    text-align: left; color: var(--text-primary); }
+.cast-row:last-child { border-bottom: none; }
+.cast-row:hover { background: var(--bg-elevated); }
+.cast-row:focus-visible { outline: 2px solid var(--primary-500); outline-offset: -2px; }
+.cast-row-avatar { width: 40px; height: 40px; border-radius: var(--radius-md);
+    object-fit: cover; flex-shrink: 0; display: grid; place-items: center;
+    background: var(--gray-700); font-size: var(--text-xs); color: var(--text-secondary); }
+.cast-row-avatar--empty { border: 1px solid var(--gray-600); background: transparent; border-radius: var(--radius-full); }
+.cast-row-main { display: flex; flex-direction: column; min-width: 160px; }
+.cast-row-name { font-size: var(--text-sm); font-weight: 600; text-transform: uppercase; letter-spacing: 0.02em; }
+.cast-row-sub { font-size: var(--text-xs); color: var(--text-secondary); }
+.cast-row-actor { flex: 1; font-size: var(--text-sm); }
+.cast-row-addcta { color: var(--primary-400); }
+.cast-row-conflict { display: inline-flex; align-items: center; gap: 4px;
+    font-size: var(--text-xs); color: var(--danger); white-space: nowrap; }
+.cast-row-tag { font-size: var(--text-2xs); color: var(--text-muted);
+    border: 1px solid var(--gray-600); border-radius: var(--radius-full); padding: 1px 8px; }
+.cast-row-chev { color: var(--text-muted); flex-shrink: 0; }
+
+@media (max-width: 720px) {
+    .cast-page { padding: var(--space-5) var(--space-4); }
+    .cast-search { max-width: none; }
+    .cast-row { flex-wrap: wrap; }
+    .cast-row-sub, .cast-row-chev { display: none; }
+    .cast-row-actor { flex-basis: 100%; padding-left: 52px; }
+}

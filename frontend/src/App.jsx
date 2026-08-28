@@ -42,6 +42,7 @@ import SharedReportView from './components/reports/SharedReportView';
 import InvitePage from './pages/InvitePage';
 import BillingPage from './pages/BillingPage';
 import PaymentResultPage from './pages/PaymentResultPage';
+import CastPage from './components/cast/CastPage';
 import SeriesListPage from './pages/SeriesListPage';
 import SeriesDetailPage from './pages/SeriesDetailPage';
 import SeasonPage from './pages/SeasonPage';
@@ -71,6 +72,7 @@ function App() {
                     <Route path="scripts/:scriptId/reports" element={<ReportStudio />} />
                     <Route path="scripts/:scriptId/board" element={<ZoomableStripboard />} />
                     <Route path="scripts/:scriptId/schedule" element={<ShootingSchedulePage />} />
+                    <Route path="scripts/:scriptId/cast" element={<CastPage />} />
                     <Route path="profile" element={<ProfilePage />} />
                     <Route path="billing" element={<BillingPage />} />
                     <Route path="series" element={<SeriesListPage />} />

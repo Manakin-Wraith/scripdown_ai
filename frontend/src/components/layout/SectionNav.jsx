@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { List, ClipboardList, LayoutGrid, FileText, CalendarDays } from 'lucide-react';
+import { List, ClipboardList, LayoutGrid, FileText, CalendarDays, Contact } from 'lucide-react';
 import './SectionNav.css';
 
 // `group` pairs consecutive tabs into a bordered segment (Board + Schedule
@@ -8,6 +8,7 @@ import './SectionNav.css';
 // last, after the scheduling cluster.
 const SECTIONS = [
   { key: 'scenes', label: 'Scenes', icon: List, to: (id) => `/scenes/${id}` },
+  { key: 'cast', label: 'Cast', icon: Contact, to: (id) => `/scripts/${id}/cast` },
   { key: 'stripboard', label: 'Stripboard', icon: ClipboardList, to: (id) => `/scripts/${id}/stripboard` },
   { key: 'board', label: 'Board', icon: LayoutGrid, to: (id) => `/scripts/${id}/board`, group: 'plan' },
   { key: 'schedule', label: 'Schedule', icon: CalendarDays, to: (id) => `/scripts/${id}/schedule`, group: 'plan' },
@@ -30,7 +31,7 @@ const groupSections = (sections) =>
 // Active section derived from the URL only (not from ScriptContext).
 const activeKey = (pathname) => {
   if (/^\/scenes\/[^/]+$/.test(pathname)) return 'scenes';
-  const m = pathname.match(/^\/scripts\/[^/]+\/(stripboard|board|reports|schedule)/);
+  const m = pathname.match(/^\/scripts\/[^/]+\/(stripboard|board|reports|schedule|cast)/);
   return m ? m[1] : null;
 };
 
