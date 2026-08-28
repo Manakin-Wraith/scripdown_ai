@@ -11,7 +11,7 @@ const FULL_BLEED_PATTERNS = [/\/board$/, /\/schedule$/];
 const deriveScriptId = (pathname) => {
   const scenes = pathname.match(/^\/scenes\/([^/]+)$/);
   if (scenes) return scenes[1];
-  const section = pathname.match(/^\/scripts\/([^/]+)\/(?:stripboard|board|reports|schedule)/);
+  const section = pathname.match(/^\/scripts\/([^/]+)\/(?:stripboard|board|reports|schedule|cast)/);
   return section ? section[1] : null;
 };
 

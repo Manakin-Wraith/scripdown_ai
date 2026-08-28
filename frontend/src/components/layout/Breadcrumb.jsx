@@ -11,6 +11,7 @@ import './Breadcrumb.css';
 const ROUTE_CONFIG = {
     '/scripts': { label: 'My Scripts', parent: null },
     '/scenes/:scriptId': { label: 'Scene Breakdown', parent: '/scripts' },
+    '/scripts/:scriptId/cast': { label: 'Cast', parent: '/scripts' },
     '/scripts/:scriptId/stripboard': { label: 'Stripboard', parent: '/scripts' },
     '/scripts/:scriptId/board': { label: 'Board', parent: '/scripts' },
     '/scripts/:scriptId/reports': { label: 'Reports', parent: '/scripts' },
