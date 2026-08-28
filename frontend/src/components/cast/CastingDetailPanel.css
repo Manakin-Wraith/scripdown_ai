@@ -1,0 +1,38 @@
+/* frontend/src/components/cast/CastingDetailPanel.css */
+.cd-savestate { font-size: var(--text-2xs); color: var(--text-muted); }
+.cd-label { display: block; font-size: var(--text-2xs); text-transform: uppercase;
+    letter-spacing: 0.06em; color: var(--text-muted); margin: var(--space-4) 0 var(--space-1); }
+.cd-section { font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--text-secondary); margin: var(--space-6) 0 0; border-top: 1px solid var(--border-subtle);
+    padding-top: var(--space-4); }
+.ui-drawer-body input[type=text], .ui-drawer-body input[type=tel],
+.ui-drawer-body input[type=email], .ui-drawer-body input[type=date],
+.ui-drawer-body textarea {
+    width: 100%; padding: var(--space-2) var(--space-3); background: var(--bg-app);
+    border: 1px solid var(--border-color); border-radius: var(--radius-md);
+    color: var(--text-primary); font: inherit; }
+.cd-status { display: flex; flex-wrap: wrap; gap: var(--space-1); }
+.cd-status button { padding: var(--space-1) var(--space-2); font-size: var(--text-xs);
+    background: var(--bg-app); border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm); color: var(--text-secondary); cursor: pointer; }
+.cd-status button.active { background: var(--primary-alpha-15); border-color: var(--primary-500); color: var(--primary-300); }
+.cd-headshot { display: flex; align-items: center; gap: var(--space-3); }
+.cd-headshot img { width: 88px; height: 88px; object-fit: cover; border-radius: var(--radius-md); }
+.cd-headshot-empty { width: 88px; height: 88px; display: grid; place-items: center;
+    border: 1px dashed var(--gray-600); border-radius: var(--radius-md);
+    font-size: var(--text-2xs); color: var(--text-muted); }
+.cd-headshot-btn { font-size: var(--text-sm); color: var(--primary-400); cursor: pointer; }
+.cd-conflict-callout { display: flex; flex-direction: column; gap: 2px;
+    padding: var(--space-3); margin-top: var(--space-4);
+    background: var(--danger-bg); border-left: 3px solid var(--danger); border-radius: var(--radius-sm);
+    font-size: var(--text-xs); color: var(--text-primary); }
+.cd-muted { font-size: var(--text-xs); color: var(--text-muted); }
+.cd-err { color: var(--danger); font-size: var(--text-xs); }
+.cd-delete { color: var(--danger); background: none; border: none; cursor: pointer; font-size: var(--text-sm); }
+.cd-range { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-xs);
+    padding: var(--space-1) 0; }
+.cd-range-reason { color: var(--text-secondary); flex: 1; }
+.cd-range button, .cd-add, .cd-range-actions button {
+    background: none; border: none; color: var(--primary-400); cursor: pointer; }
+.cd-add { display: inline-flex; align-items: center; gap: 4px; font-size: var(--text-xs); margin-top: var(--space-2); }
+.cd-range-form { display: flex; flex-direction: column; gap: var(--space-2); margin-top: var(--space-2); }
