@@ -51,8 +51,10 @@ export default function CastPage() {
     const refresh = useCallback(async () => {
         try {
             await fetchData();
-        } catch {
-            /* keep showing stale data; the drawer stays open */
+        } catch (e) {
+            // Keep showing stale data; the drawer stays open and its own
+            // optimistic state covers the just-made change.
+            console.error('Cast refresh failed:', e);
         }
     }, [fetchData]);
 
