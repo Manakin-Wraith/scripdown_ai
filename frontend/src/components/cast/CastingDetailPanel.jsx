@@ -11,28 +11,40 @@ const STATUSES = ['wishlist', 'offer', 'booked', 'declined', 'released'];
 const LABEL = { wishlist: 'Wishlist', offer: 'Offer', booked: 'Booked', declined: 'Declined', released: 'Released' };
 
 export default function CastingDetailPanel({
-    scriptId, casting, characterName, conflicts, onClose, onChanged,
+    scriptId, casting, characterName, conflicts, onClose, onChanged, onCreated,
 }) {
     const [row, setRow] = useState(casting);
     const [saveState, setSaveState] = useState('idle'); // idle | saving | error
     const [canEdit, setCanEdit] = useState(true);
     const rowIdRef = useRef(casting?.id || null);
+    const createPromiseRef = useRef(null);
 
     useEffect(() => { setRow(casting); rowIdRef.current = casting?.id || null; }, [casting]);
 
     const myConflicts = conflicts.filter((c) => c.character_name === (row?.character_name || characterName));
 
+    // Lazily create the casting row, de-duping concurrent callers so two quick
+    // edits on a brand-new record don't both POST (the second would 409).
+    const ensureRow = () => {
+        if (rowIdRef.current) return Promise.resolve(rowIdRef.current);
+        if (!createPromiseRef.current) {
+            createPromiseRef.current = createCasting(scriptId, characterName)
+                .then((created) => {
+                    rowIdRef.current = created.casting.id;
+                    setRow(created.casting);
+                    onCreated?.(created.casting.id);
+                    return created.casting.id;
+                })
+                .catch((e) => { createPromiseRef.current = null; throw e; });
+        }
+        return createPromiseRef.current;
+    };
+
     // Ensure a casting row exists, then apply `fields`. Returns updated row.
     const persist = async (fields) => {
         setSaveState('saving');
         try {
-            let id = rowIdRef.current;
-            if (!id) {
-                const created = await createCasting(scriptId, characterName);
-                id = created.casting.id;
-                rowIdRef.current = id;
-                setRow(created.casting);
-            }
+            const id = await ensureRow();
             const res = await updateCasting(id, fields);
             setRow(res.casting);
             setSaveState('idle');
@@ -57,8 +69,7 @@ export default function CastingDetailPanel({
         if (file.size > 5 * 1024 * 1024) { setSaveState('error'); return; }
         setSaveState('saving');
         try {
-            let id = rowIdRef.current;
-            if (!id) { const c = await createCasting(scriptId, characterName); id = c.casting.id; rowIdRef.current = id; }
+            const id = await ensureRow();
             const res = await uploadHeadshot(id, file);
             setRow(res.casting); setSaveState('idle'); onChanged();
         } catch { setSaveState('error'); }

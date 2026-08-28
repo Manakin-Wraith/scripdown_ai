@@ -22,25 +22,39 @@ export default function CastPage() {
     const [statusFilter, setStatusFilter] = useState('all');
     const [openId, setOpenId] = useState(null); // casting id OR `new:<CHARACTER>`
 
+    const fetchData = useCallback(async () => {
+        const data = await getCasting(scriptId);
+        setCasting(data.casting || []);
+        setCharacters(data.characters || []);
+        try {
+            const conf = await getCastingConflicts(scriptId);
+            setConflicts(conf.conflicts || []);
+        } catch {
+            setConflicts([]);
+        }
+    }, [scriptId]);
+
     const load = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
-            const data = await getCasting(scriptId);
-            setCasting(data.casting || []);
-            setCharacters(data.characters || []);
-            try {
-                const conf = await getCastingConflicts(scriptId);
-                setConflicts(conf.conflicts || []);
-            } catch {
-                setConflicts([]);
-            }
+            await fetchData();
         } catch (e) {
             setError('Couldn’t load casting. Check your connection and try again.');
         } finally {
             setLoading(false);
         }
-    }, [scriptId]);
+    }, [fetchData]);
+
+    // Silent refetch for post-save updates from the detail drawer — never toggles
+    // `loading`, so the drawer stays mounted and keeps its local state.
+    const refresh = useCallback(async () => {
+        try {
+            await fetchData();
+        } catch {
+            /* keep showing stale data; the drawer stays open */
+        }
+    }, [fetchData]);
 
     useEffect(() => { load(); }, [load]);
 
@@ -135,7 +149,7 @@ export default function CastPage() {
                     {characters.length} characters &middot; {bookedCount} booked
                     {conflictCharCount > 0 && (
                         <span className="cast-summary-conflict">
-                            {' '}&middot; {conflictCharCount} availability conflicts
+                            {' '}&middot; {conflictCharCount} availability {conflictCharCount === 1 ? 'conflict' : 'conflicts'}
                         </span>
                     )}
                 </p>
@@ -190,7 +204,8 @@ export default function CastPage() {
                         : (casting.find((c) => c.id === openId)?.character_name)}
                     conflicts={conflicts}
                     onClose={() => setOpenId(null)}
-                    onChanged={load}
+                    onChanged={refresh}
+                    onCreated={(id) => setOpenId(id)}
                 />
             )}
         </div>

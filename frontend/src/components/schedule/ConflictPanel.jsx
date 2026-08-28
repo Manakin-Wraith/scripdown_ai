@@ -32,8 +32,8 @@ export default function ConflictPanel({ scriptId, scheduleId, onConflictDays }) 
             </button>
             {open && (
                 <ul className="conflict-panel-list">
-                    {conflicts.map((c, i) => (
-                        <li key={i}>
+                    {conflicts.map((c) => (
+                        <li key={`${c.shooting_day_id}:${c.character_name}`}>
                             Day {c.day_number} &middot; {c.shoot_date} &mdash;{' '}
                             {c.actor_name || 'Actor'} ({c.character_name}) unavailable
                             {c.reason ? ` · ${c.reason}` : ''}
