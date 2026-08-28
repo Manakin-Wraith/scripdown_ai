@@ -2403,4 +2403,52 @@ export const updateScriptSeason = async (scriptId, seasonId, episodeNumber) => {
     }
 };
 
+// ── Cast & casting ─────────────────────────────────────────────
+export const getCasting = async (scriptId) => {
+    const response = await api.get(`/api/scripts/${scriptId}/casting`);
+    return response.data;
+};
+
+export const createCasting = async (scriptId, characterName) => {
+    const response = await api.post(`/api/scripts/${scriptId}/casting`, {
+        character_name: characterName,
+    });
+    return response.data;
+};
+
+export const updateCasting = async (castingId, fields) => {
+    const response = await api.patch(`/api/casting/${castingId}`, fields);
+    return response.data;
+};
+
+export const deleteCasting = async (castingId) => {
+    const response = await api.delete(`/api/casting/${castingId}`);
+    return response.data;
+};
+
+export const addUnavailability = async (castingId, range) => {
+    const response = await api.post(`/api/casting/${castingId}/unavailability`, range);
+    return response.data;
+};
+
+export const removeUnavailability = async (unavailId) => {
+    const response = await api.delete(`/api/casting/unavailability/${unavailId}`);
+    return response.data;
+};
+
+export const uploadHeadshot = async (castingId, file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post(`/api/casting/${castingId}/headshot`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+};
+
+export const getCastingConflicts = async (scriptId, scheduleId) => {
+    const params = scheduleId ? { schedule_id: scheduleId } : {};
+    const response = await api.get(`/api/scripts/${scriptId}/casting/conflicts`, { params });
+    return response.data;
+};
+
 export default api;
