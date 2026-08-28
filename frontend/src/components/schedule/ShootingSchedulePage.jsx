@@ -289,6 +289,7 @@ const ShootingSchedulePage = () => {
             <ConflictPanel
                 scriptId={scriptId}
                 scheduleId={activeScheduleId}
+                days={days}
                 onConflictDays={setConflictDayIds}
                 onConflictScenes={setConflictScenes}
             />

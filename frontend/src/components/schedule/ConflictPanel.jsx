@@ -1,6 +1,6 @@
 // frontend/src/components/schedule/ConflictPanel.jsx
-import { useEffect, useState } from 'react';
-import { TriangleAlert, ChevronDown, ChevronRight } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { TriangleAlert, ChevronDown, ChevronRight, Loader2 } from 'lucide-react';
 import { getCastingConflicts } from '../../services/apiService';
 import './ConflictPanel.css';
 
@@ -16,9 +16,26 @@ function sceneMapFromConflicts(conflicts) {
     return m;
 }
 
-export default function ConflictPanel({ scriptId, scheduleId, onConflictDays, onConflictScenes }) {
+// A stable string that changes only when something conflict-relevant about the
+// schedule changes: a day's date, or which scenes sit on which day. Scene order
+// within a day is irrelevant, so it's sorted out.
+function scheduleSignature(days) {
+    return JSON.stringify(
+        (days || []).map((d) => [
+            d.id,
+            d.shoot_date || null,
+            (d.scenes || []).map((s) => s.scene_id).sort(),
+        ]),
+    );
+}
+
+export default function ConflictPanel({ scriptId, scheduleId, days, onConflictDays, onConflictScenes }) {
     const [conflicts, setConflicts] = useState([]);
     const [open, setOpen] = useState(true);
+    const [checking, setChecking] = useState(false);
+    const firstLoadDone = useRef(false);
+
+    const daysSig = useMemo(() => scheduleSignature(days), [days]);
 
     useEffect(() => {
         let cancelled = false;
@@ -28,6 +45,9 @@ export default function ConflictPanel({ scriptId, scheduleId, onConflictDays, on
             onConflictScenes?.(new Map());
             return;
         }
+        // Only surface the "re-checking" indicator for updates after the first
+        // load — the initial fetch is covered by the board's own loading state.
+        if (firstLoadDone.current) setChecking(true);
         getCastingConflicts(scriptId, scheduleId)
             .then((data) => {
                 if (cancelled) return;
@@ -41,11 +61,28 @@ export default function ConflictPanel({ scriptId, scheduleId, onConflictDays, on
                 setConflicts([]);
                 onConflictDays?.(new Set());
                 onConflictScenes?.(new Map());
+            })
+            .finally(() => {
+                if (cancelled) return;
+                firstLoadDone.current = true;
+                setChecking(false);
             });
         return () => { cancelled = true; };
-    }, [scriptId, scheduleId, onConflictDays, onConflictScenes]);
+    }, [scriptId, scheduleId, daysSig, onConflictDays, onConflictScenes]);
 
-    if (conflicts.length === 0) return null;
+    // Nothing to show and nothing in flight — stay out of the way.
+    if (conflicts.length === 0 && !checking) return null;
+
+    if (conflicts.length === 0 && checking) {
+        return (
+            <div className="conflict-panel conflict-panel--checking">
+                <span className="conflict-panel-checking">
+                    <Loader2 size={13} className="conflict-panel-spin" />
+                    Checking availability…
+                </span>
+            </div>
+        );
+    }
 
     return (
         <div className="conflict-panel">
@@ -53,6 +90,12 @@ export default function ConflictPanel({ scriptId, scheduleId, onConflictDays, on
                 {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                 <TriangleAlert size={14} />
                 Availability conflicts ({conflicts.length})
+                {checking && (
+                    <span className="conflict-panel-checking conflict-panel-checking--inline">
+                        <Loader2 size={12} className="conflict-panel-spin" />
+                        updating…
+                    </span>
+                )}
             </button>
             {open && (
                 <ul className="conflict-panel-list">
