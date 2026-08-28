@@ -9,7 +9,7 @@ import { formatEighths, getSceneEighths } from '../../utils/sceneUtils';
 import { locationKey } from '../../utils/locationKey';
 import { useToast } from '../../context/ToastContext';
 
-const DayColumn = ({ day, refreshDays, selectedSceneIds, onToggleSelect }) => {
+const DayColumn = ({ day, hasConflict, refreshDays, selectedSceneIds, onToggleSelect }) => {
     const [editingDate, setEditingDate] = useState(false);
     const [localDate, setLocalDate] = useState(day.shoot_date || '');
     const dateInputRef = useRef(null);
@@ -106,7 +106,12 @@ const DayColumn = ({ day, refreshDays, selectedSceneIds, onToggleSelect }) => {
             {/* Column header */}
             <div className="kanban-col-header">
                 <div className="kanban-col-title">
-                    <span className="kanban-day-number">Day {day.day_number}</span>
+                    <span className="kanban-day-number">
+                        Day {day.day_number}
+                        {hasConflict && (
+                            <span className="day-conflict-dot" aria-label="Has an availability conflict" />
+                        )}
+                    </span>
                     {editingDate ? (
                         <input
                             ref={dateInputRef}

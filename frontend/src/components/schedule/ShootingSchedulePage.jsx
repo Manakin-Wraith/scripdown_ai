@@ -10,6 +10,7 @@ import {
     getScriptMetadata, deleteSchedule, updateSchedule,
 } from '../../services/apiService';
 import ScheduleKanban from './ScheduleKanban';
+import ConflictPanel from './ConflictPanel';
 import './ShootingSchedule.css';
 
 const ShootingSchedulePage = () => {
@@ -21,6 +22,7 @@ const ShootingSchedulePage = () => {
 
     const [schedules, setSchedules] = useState([]);
     const [activeScheduleId, setActiveScheduleId] = useState(null);
+    const [conflictDayIds, setConflictDayIds] = useState(new Set());
     const [days, setDays] = useState([]);
     const [loading, setLoading] = useState(true);
     const [metadata, setMetadata] = useState(null);
@@ -283,6 +285,12 @@ const ShootingSchedulePage = () => {
                 </div>
             </div>
 
+            <ConflictPanel
+                scriptId={scriptId}
+                scheduleId={activeScheduleId}
+                onConflictDays={setConflictDayIds}
+            />
+
             {/* Kanban body */}
             {activeScheduleId ? (
                 <ScheduleKanban
@@ -290,6 +298,7 @@ const ShootingSchedulePage = () => {
                     days={days}
                     refreshDays={refreshDays}
                     zoomApiRef={zoomApiRef}
+                    conflictDayIds={conflictDayIds}
                 />
             ) : (
                 <EmptyState

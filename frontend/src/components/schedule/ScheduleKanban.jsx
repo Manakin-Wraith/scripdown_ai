@@ -74,7 +74,7 @@ function moveBetweenDays(days, sourceDayId, targetDayId, activeId, targetIndex) 
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-const ScheduleKanban = ({ scheduleId, days: propDays, refreshDays, zoomApiRef }) => {
+const ScheduleKanban = ({ scheduleId, days: propDays, refreshDays, zoomApiRef, conflictDayIds }) => {
     const toast = useToast();
     // Mirror prop days into local state so we can apply optimistic updates instantly
     const [localDays, setLocalDays] = useState(propDays);
@@ -262,6 +262,7 @@ const ScheduleKanban = ({ scheduleId, days: propDays, refreshDays, zoomApiRef })
                                 <DayColumn
                                     key={day.id}
                                     day={day}
+                                    hasConflict={conflictDayIds?.has(day.id)}
                                     refreshDays={refreshDays}
                                     selectedSceneIds={selectedSceneIds}
                                     onToggleSelect={toggleSelect}
