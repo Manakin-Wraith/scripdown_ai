@@ -12,9 +12,12 @@ implementing (see `superpowers:brainstorming`).
 customers can be charged. **Reached** — checkout is live (step 1). The
 remaining billing-lifecycle steps (renewal, downgrade) are deferred until
 scale; at current volume the account owner handles renewals and
-cancellations manually. Next priority beyond this section is undecided —
-likely product depth (see the P2 cluster: production data model, call
-sheets, auto-scheduling, department workspaces).
+cancellations manually. Product-depth work has since started on the P2
+cluster: **Cast & Casting v1 shipped 2026-08-28** (cast contacts,
+headshots, availability + schedule conflict detection — the first slice
+of the production data model; see its entry below). Still ahead in that
+cluster: crew + call sheets + sides, auto-scheduling, department
+workspaces.
 
 **1. PayFast: sandbox → live credentials. — DONE (outbound verified 2026-08-27).**
 Live merchant creds set in Railway, `PAYFAST_SANDBOX` effectively off. Verified
@@ -1350,51 +1353,105 @@ import CSVs into.
 
 ---
 
-## Real production data for scheduling — cast contacts, headshots, availability
+## Cast & Casting v1 (cast contacts, headshots, availability + conflicts) — SHIPPED, verified in production; Task 13 + polish open
 
-**Status:** Not started — feature request, needs brainstorming.
+**Status:** v1 shipped and verified end-to-end in production 2026-08-28.
+Brainstormed → designed → planned → built via
+`superpowers:subagent-driven-development` across 12 tasks (Tasks 1–7
+backend, 8–12 frontend), plus a whole-branch review and four follow-up
+fixes/features the same day. This is the **cast slice** of the broader
+"Add CREW, CAST and production detail…" backlog entry below — crew, call
+sheets, sides, and per-shoot-day production detail are still unbuilt.
 
-**Context.** Raised 2026-08-20. Today's breakdown/schedule only carries
-AI-extracted *script* data (character names, scene appearances, etc.) —
-there's no way to attach real-world production data to a character/cast
-member: who's actually cast in the role, contact details, a headshot, and
-— most relevant to scheduling — their availability/unavailable dates. A
-1st AD building a shooting schedule needs to know an actor's blackout
-dates to avoid double-booking or scheduling around a conflict, and today
-that's entirely outside the app (spreadsheet/memory), disconnected from
-the stripboard/day-out-of-days views that already show which days each
-character/scene is on.
+**Context (kept for history).** Raised 2026-08-20. Before this, the
+breakdown/schedule carried only AI-extracted *script* data — no way to
+attach who's cast, contact details, a headshot, or blackout dates, so a
+1st AD couldn't catch a scheduling conflict inside the app.
 
-**Why it matters.** This is the single biggest gap between "breakdown tool"
-and "actual scheduling tool" — Day Out of Days already computes which days
-a character works; without availability data there's no way to catch a
-conflict inside the app itself, which is presumably where a lot of the
-real value of a scheduling feature would come from.
+**What shipped.**
+- **Schema** (`migration 048`): `casting` (one row per script × character
+  — `actor_name`, `status` ∈ wishlist/offer/booked/declined/released,
+  contact phone/email/agent, `headshot_path`, `notes`) and
+  `casting_unavailability` (`casting_id`, `start_date`, `end_date`,
+  `reason`).
+- **Backend** (`services/casting_service.py`, `routes/casting_routes.py`):
+  CRUD at `GET/POST /api/scripts/:id/casting`,
+  `PATCH/DELETE /api/casting/:id`, unavailability add/remove, headshot
+  upload (`POST /api/casting/:id/headshot` → Supabase `scripts` bucket at
+  `casting/<script_id>/<casting_id>.<ext>`, 1h signed URLs, type/size
+  validated server-side), and `GET /api/scripts/:id/casting/conflicts`.
+  Auth via `@require_script_role` (viewer to read, admin to edit). A merge
+  hook carries casting rows to the canonical name when characters merge.
+- **Conflict engine** (`casting_service.compute_conflicts`): a conflict is
+  a `booked`/`offer` casting whose unavailability range overlaps a **dated**
+  shoot day that contains a scene featuring that character (alias-resolved
+  via the same `character_aliases` map). Each conflict row carries
+  `scene_ids` so the UI can pinpoint the exact cards.
+- **Frontend**: Cast section (`/scripts/:id/cast`, `CastPage` + `CastRow` +
+  `StatusBadge`), a detail drawer (`CastingDetailPanel` + autosave on blur
+  + `UnavailabilityEditor`), 8 `apiService.js` methods, and schedule
+  integration — `ConflictPanel` banner, red day-header dots
+  (`DayColumn`), and per-scene-card danger rings + "⚠ <actor> unavailable"
+  notes (`ScheduleSceneCard`). Conflicts **re-check automatically** on any
+  schedule composition change (scene moved between days, shoot date
+  changed, day added/removed) with an "updating…" indicator; stale rings
+  hold until the fresh backend result lands (no wrong-way flash).
 
-**Scope when picked up.** Brainstorm before implementing (see
-`superpowers:brainstorming`) — open questions: data model (a new
-`cast_members`/`character_casting` table linking a `characters` identity to
-a real person — name, contact info, headshot, agent/rep details, and one or
-more unavailable-date ranges); how this ties into the existing character
-identity/merge system (`merge_characters`) so casting survives a
-name-alias merge; whether this generalizes beyond cast to crew/vendor
-scheduling data too, or stays cast-specific for v1; how availability
-conflicts should surface (a warning on Day Out of Days / the stripboard
-when a day is scheduled against a blocked date, vs. just informational
-display); where headshots get stored (likely the same object-storage
-pattern as other file assets in the app, need to confirm what that is);
-and how this interacts with Team License seats/permissions — who's allowed
-to enter/edit sensitive contact details.
+**Follow-up commits (all 2026-08-28, on `main`).**
+- `e2388d1` — review fix: detail drawer unmounted on every autosave
+  (`onChanged` reused the loading-toggling `load`); split into a silent
+  `refresh`, added `onCreated` + an in-flight create guard.
+- `180247a` — conflicted scene-card highlighting (the `scene_ids`
+  addition + rings/notes) + 3 backend tests.
+- `a003324` — unavailability list wasn't updating after add:
+  `CastPage.refresh` swallowed refetch errors and had ~1.5s latency;
+  `UnavailabilityEditor` now renders from optimistic local state
+  (append on add, remove-with-restore, "Adding…" state).
+- `3d21b9c` — Cast page had no breadcrumb / section tabs: the
+  `/scripts/:id/cast` route was never added to `MainLayout.deriveScriptId`
+  or `Breadcrumb.ROUTE_CONFIG`.
+- `9e56770` — the schedule conflict re-check + "updating…" indicator.
+
+**Verification.** Backend `pytest tests/` green (511+). Frontend `npm run
+build` green. Live in production against a real script: casting CRUD,
+status change, headshot upload, unavailability add (appears instantly),
+and the full conflict flow — banner + day dots + scene-card rings all
+propagate correctly when a scene is dragged between days or a shoot date
+changes.
+
+**Still open.**
+- **Task 13 (optional, never built): Day Out of Days conflict overlay.**
+  Full step-by-step spec is in the plan (`Task 13`) — thread
+  `compute_conflicts` output into `_render_day_out_of_days` /
+  `_render_day_out_of_days_from_scenes` and ring the conflicted
+  `(character, day)` work-mark cell in the DOOD PDF/preview, plus a
+  footnote. Deferred because the Schedule panel is the primary surface.
+- **Review Important #3 (minor):** `CastingDetailPanel`'s text fields use
+  uncontrolled `defaultValue`, so a server-side normalized value isn't
+  reflected until the drawer remounts. Low impact (editable fields are
+  free text).
+- **Minor:** new casting code uses `TriangleAlert` / `Contact` icons; the
+  rest of the repo uses `AlertTriangle`. Cosmetic.
+- **Phase 2 ideas** (from the specs, not scoped): bulk status actions,
+  richer filtering, cast rollup on reports, and extending the same
+  pattern to crew.
+- **Docs:** not yet in `docs/SLATEONE_FEATURES.md` (the product
+  capability overview) — add a "Cast & Casting" section the way Series
+  was added after it shipped.
 
 **References.**
-- `backend/db/migrations/030_shooting_schedules.sql` — shooting
-  days/schedule schema this would need to read availability against
-- `backend/services/report_service.py` — Day Out of Days computation
-  (`day_out_of_days` report type), the natural place a conflict warning
-  would surface
-- `backend/routes/supabase_routes.py` — `merge_characters` (existing
-  character identity system this would need to key off)
-- `frontend/src/components/schedule/` — Shooting Schedule / stripboard UI
+- Plan: `docs/superpowers/plans/2026-08-27-cast-casting-v1.md`
+- Specs: `docs/superpowers/specs/2026-08-27-cast-casting-v1-design.md`,
+  `…-cast-casting-v1-ui-ux.md`
+- SDD ledger: `.superpowers/sdd/2026-08-27-cast-casting-v1/progress.md`
+  (Tasks 1–7 + the 2026-08-28 follow-ups)
+- `backend/db/migrations/048_*.sql`, `backend/services/casting_service.py`,
+  `backend/routes/casting_routes.py`, `backend/tests/test_casting_*.py`
+- `frontend/src/components/cast/`, `frontend/src/components/schedule/`
+  (`ConflictPanel`, `DayColumn`, `ScheduleKanban`, `ScheduleSceneCard`,
+  `ShootingSchedulePage`), `frontend/src/services/apiService.js`
+- `backend/services/report_service.py` — Day Out of Days, the Task 13
+  target
 
 ---
 
@@ -1512,26 +1569,27 @@ shoot-days/hours-per-day and other production parameters get entered.
 - `backend/routes/schedule_routes.py`, `backend/db/migrations/030_shooting_schedules.sql`
 - `backend/utils/scene_calculations.py` — page-eighths / scene math
 - `backend/services/report_service.py` — Day Out of Days, `aggregate_scene_data`
-- Related open items: "Real production data for scheduling" and the
-  crew/cast/production-detail item below (availability as a scheduling
-  constraint); "Board/Schedule a series with numerous episodes" (above)
+- Related open items: "Cast & Casting v1" (above — cast availability now
+  exists and can be consumed as a scheduling constraint) and the
+  "Add CREW and production detail…" item below; "Board/Schedule a series
+  with numerous episodes" (above)
 
 ---
 
-## Add CREW, CAST and production detail for scheduling + call sheets / sides — brainstorm
+## Add CREW and production detail for scheduling + call sheets / sides — brainstorm
 
-**Status:** Not started — needs brainstorming. Supersedes and broadens
-"Real production data for scheduling — cast contacts, headshots,
-availability" (above).
+**Status:** Not started — needs brainstorming. The **cast** slice
+(actor, contact, agent, headshot, availability + schedule conflict
+detection) shipped 2026-08-28 — see "Cast & Casting v1" above. What
+remains here is crew, per-shoot-day production detail, and call
+sheet / sides generation.
 
-**Context.** The app carries only AI-extracted *script* data. To produce a
-call sheet or scene sides — and to schedule realistically — it also needs
-real production data that lives entirely outside the app today: the crew
-list (name, role/department, contact, call time), the cast list (actor
-attached to each character identity, contact, agent, headshot,
-availability/blackout dates), and shoot-day production detail (unit/base
-camp, location addresses and parking, weather/sunrise-sunset, hospital,
-general crew call, meal times, key personnel).
+**Context.** The app now carries cast production data (via Cast & Casting
+v1) but still lacks the rest of what a call sheet or scene sides need:
+the crew list (name, role/department, contact, call time) and shoot-day
+production detail (unit/base camp, location addresses and parking,
+weather/sunrise-sunset, hospital, general crew call, meal times, key
+personnel).
 
 **Why it matters.** Call sheets and sides are the daily deliverable of a
 1st AD — generating them from data already in the app (schedule, scene
@@ -1541,24 +1599,22 @@ headline feature. Cast availability is also the missing constraint for
 inside the app.
 
 **Scope when picked up.** Brainstorm before implementing (see
-`superpowers:brainstorming`) — open questions: data model (`cast_members` /
-`character_casting` linking a `characters` identity to a real person;
-`crew_members`; per-shoot-day production-detail fields on
-`shooting_schedules`/shoot days); how casting survives a `merge_characters`
-name-alias merge; headshot/photo storage (confirm the app's existing
-object-storage pattern); call-sheet and sides generation (reuse the
-WeasyPrint report pipeline in `report_service.py`? industry call-sheet
-layout); how availability conflicts surface on Day Out of Days / the
-stripboard; whether v1 is cast-only or includes crew; and Team
+`superpowers:brainstorming`) — open questions: data model (`crew_members`;
+per-shoot-day production-detail fields on `shooting_schedules`/shoot
+days); whether crew attaches to a `production`/`season` or per-script;
+call-sheet and sides generation (reuse the WeasyPrint report pipeline in
+`report_service.py`? industry call-sheet layout — pull cast/scene data
+from the schedule + the new `casting` table); the still-open Task 13
+(Day Out of Days conflict overlay) from Cast & Casting v1; and Team
 License seat/permission rules for who can enter/edit sensitive contact
 details.
 
 **References.**
-- "Real production data for scheduling — cast contacts, headshots,
-  availability" (above) — the narrower cast-availability version this
-  replaces; keep its references
-- "Auto AI scheduling (first pass)" (above) — availability is its key
-  missing constraint
+- "Cast & Casting v1" (above) — the shipped cast slice; the `casting` /
+  `casting_unavailability` tables and `casting_service` are the pattern
+  crew data should follow
+- "Auto AI scheduling (first pass)" (above) — cast availability (now
+  present) is a key constraint it can use
 - `backend/db/migrations/030_shooting_schedules.sql` — shoot-day schema
 - `backend/services/report_service.py` — WeasyPrint pipeline (call sheet /
   sides generation), Day Out of Days
@@ -1571,20 +1627,24 @@ details.
 ## Production data model — what a production needs, and how it's uploaded/managed — brainstorm
 
 **Status:** Not started — needs brainstorming. Umbrella item; the
-scheduling/call-sheet, crew/cast, and department-workspace entries above
-are slices of this.
+scheduling/call-sheet, crew, and department-workspace entries above are
+slices of this. The **cast** slice shipped 2026-08-28 as an independent
+feature ("Cast & Casting v1" above) rather than waiting on this umbrella
+design — worth deciding whether the rest follows the same
+ship-a-slice-at-a-time path or gets a unifying `production` entity first.
 
 **Context.** Everything the app holds today is derived from the script (AI
-extraction) or generated from it (breakdown, schedule, reports). A real
-production also runs on a large body of *production data* that has no home
-in the app: company/project setup (production company, title, format,
-shoot dates, unit(s), budget tier), people (cast attached to characters,
-full crew by department with contacts and rates, agents/reps, emergency
-contacts), locations as real places (addresses, contacts, permits,
-parking, load-in, restrictions, photos), logistics (equipment/vehicle/
-kit lists, catering, accommodation, travel), and per-shoot-day operational
-detail (call times, weather, sunrise/sunset, hospital, map links). None of
-it is modelled, and there's no ingestion path.
+extraction) or generated from it (breakdown, schedule, reports) — plus,
+now, cast production data (`casting` / `casting_unavailability`). A real
+production also runs on a large body of *other* production data that has
+no home in the app: company/project setup (production company, title,
+format, shoot dates, unit(s), budget tier), crew by department with
+contacts and rates, locations as real places (addresses, contacts,
+permits, parking, load-in, restrictions, photos), logistics
+(equipment/vehicle/kit lists, catering, accommodation, travel), and
+per-shoot-day operational detail (call times, weather, sunrise/sunset,
+hospital, map links). None of that is modelled, and there's no ingestion
+path.
 
 **Why it matters.** This is the connective tissue between the breakdown
 tool and an actual production-management product — call sheets, sides,
@@ -1621,13 +1681,14 @@ inventing its own half-schema.
   so the model is built against a real consumer rather than speculatively.
 
 **References.**
-- "Add CREW, CAST and production detail for scheduling + call sheets /
-  sides — brainstorm" (above) — the scheduling-driven slice of this
+- "Cast & Casting v1" (above) — the shipped cast slice; its `casting` /
+  `casting_unavailability` tables + `casting_service` are the pattern
+  the rest of this data should follow
+- "Add CREW and production detail for scheduling + call sheets / sides —
+  brainstorm" (above) — the scheduling-driven slice of this
 - "Department Workspaces — brainstorm" (above) — crew-by-department consumer
 - "Auto AI scheduling (first pass) — brainstorm" (above) — needs shoot
   dates, cast availability, day parameters
-- "Real production data for scheduling — cast contacts, headshots,
-  availability" (above) — the original narrow cast slice
 - "Series / multi-episode analysis" (above) — the `series`→`seasons`→
   `scripts` hierarchy a `production` entity has to fit alongside
 - `backend/db/migrations/030_shooting_schedules.sql`,
