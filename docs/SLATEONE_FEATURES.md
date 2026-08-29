@@ -34,7 +34,15 @@
 - **Series Pages:** Dedicated Series list (accordion) and Season pages show episode order and a combined cast view — one row per distinct character name across the season's visible episodes.
 - **Zero Impact on Billing or Parsing:** Series/season membership is purely organizational — each episode is uploaded, parsed, and billed exactly as a standalone script.
 
-### 7. Exporting & Reporting
+### 7. Cast & Casting
+- **Per-Character Casting Record:** Capture actor name, engagement status (wishlist, offer, booked, declined, released), contact details (phone, email, agent), and production notes for every named character in the script.
+- **Cast Tiers & Role Organization:** Organize cast by role weight — leads, supporting, featured, and background — with collapsible tier grouping on the Cast tab, persistence per script, and tier-aware conflict detection.
+- **Multi-Photo Gallery:** Upload and manage multiple reference photos per cast member (headshots, full-body shots, continuity references) with kind-tagging, primary-selection, and 1-hour signed URLs for secure Supabase storage.
+- **Background Talent as Groups:** Track background artists by headcount and scene assignment rather than one row per individual (12 pedestrians, 4 restaurant patrons, etc.), with status, day rates, and multi-scene targeting.
+- **Availability Blackout Dates:** Define date ranges when a cast member is unavailable (location shoots, other projects, unavailable dates), automatically flagged against the production schedule.
+- **Schedule Conflict Detection & In-App Resolution:** Automatically detect when a booked or offer-status cast member's unavailability overlaps a dated shoot day containing their scene. Resolve conflicts directly in the app by moving the scene to a suggested conflict-free day, unassigning it, or acknowledging with a reason.
+
+### 8. Exporting & Reporting
 - **Customizable Reports:** Generate 7+ standard production reports (Scene Breakdown, Day Out of Days (DOOD), Location, Props, Wardrobe, One-Liner, Full Binder).
 - **Advanced Filtering:** Filter reports across 9 dimensions (location, character, timeline code, etc.) and save custom filter presets.
 - **Highlighted Script PDF:** Export a script PDF with color-coded, industry-standard text highlights for every extracted breakdown item.

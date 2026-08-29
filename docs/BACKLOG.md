@@ -13,12 +13,13 @@ customers can be charged. **Reached** — checkout is live (step 1). The
 remaining billing-lifecycle steps (renewal, downgrade) are deferred until
 scale; at current volume the account owner handles renewals and
 cancellations manually. Product-depth work has since started on the P2
-cluster: **Cast & Casting v1 shipped 2026-08-28** (cast contacts,
-headshots, availability + schedule conflict detection — the first slice
-of the production data model; see its entry below). Still ahead in that
-cluster: Cast tab v2 (full-body photos, cast tiers, extras as groups,
-conflict resolution), crew + call sheets + sides, auto-scheduling,
-department workspaces.
+cluster: **Cast & Casting v1 shipped 2026-08-28** and **Cast tab v2 shipped
+2026-08-29** (see entries below for what shipped and verification). Both
+implement cast production data: v1 has cast contacts, headshots, availability
+tracking, and schedule conflict detection; v2 adds full-body/multi-photo
+gallery, cast tiers (leads/supporting/featured/background), background groups
+by headcount, and in-app conflict resolution. Still ahead in that cluster:
+crew + call sheets + sides, auto-scheduling, department workspaces.
 
 ## Priority snapshot — 2026-08-29
 
@@ -29,18 +30,14 @@ the 2026-08-27 decision; the active thrust is production-management depth.
 1. **Production data model — umbrella brainstorm.** Decide `production`
    entity vs. keep shipping slices. Gates crew, call sheets, department
    workspaces, auto-scheduling. One brainstorm pass, no code.
-2. **Cast & Casting v1 closeout** (cheap, ~1 session): docs entry in
-   `SLATEONE_FEATURES.md`, `TriangleAlert`→`AlertTriangle` icon
-   consistency, `CastingDetailPanel` uncontrolled-field fix; Task 13
-   (DOOD conflict overlay) optional.
-3. **Cast tab v2 — brainstorm.** Full-body photo alongside the headshot;
-   cast role tiers (leads / supporting / extras); extras handled as
-   groups, not one row each; and the availability-conflict resolution
-   workflow (what happens after a scheduled scene is flagged — removing
-   or reassigning it). See "Cast tab v2" entry below.
-4. **Crew + production detail + call sheets / sides — brainstorm.** The
+2. **Cast & Casting v1 closeout** (cheap, ~1 session): `TriangleAlert`→`AlertTriangle`
+   icon consistency (cosmetic); v1 "Review Important #3" uncontrolled-field
+   issue now resolved via Task 9's controlled-input migration. Task 13 (DOOD
+   conflict overlay) remains open but not blocking v1. Docs entry now complete
+   via Cast tab v2 SLATEONE_FEATURES.md section.
+3. **Crew + production detail + call sheets / sides — brainstorm.** The
    headline next slice; scope falls out of #1.
-5. **Auto AI scheduling (first pass) — brainstorm.** Cast availability now
+4. **Auto AI scheduling (first pass) — brainstorm.** Cast availability now
    exists as a real constraint; biggest "breakdown tool → scheduling
    tool" jump.
 
@@ -1510,107 +1507,103 @@ changes.
 
 ---
 
-## Cast tab v2 — full-body photo, cast tiers, extras as groups, conflict resolution — brainstorm
+## Cast tab v2 — full-body photo, cast tiers, extras as groups, conflict resolution — SHIPPED, verified
 
-**Status:** Not started — needs brainstorming. Builds directly on the
-shipped "Cast & Casting v1" entry above (the `casting` /
-`casting_unavailability` tables, `casting_service`, `CastPage` +
-`CastingDetailPanel`, and the schedule conflict engine). Four threads,
-all centred on the Cast tab; brainstorm together since they touch the
-same schema and UI.
+**Status:** v2 shipped and verified 2026-08-29. Brainstormed → designed → planned
+→ built via `superpowers:subagent-driven-development` across 14 tasks (Tasks
+1–14 distributed backend/frontend/db), all merged to `main`. Builds directly on
+the shipped "Cast & Casting v1" entry (the `casting` / `casting_unavailability`
+tables, `casting_service`, `CastPage`, and the schedule conflict engine);
+extends and reshapes the Cast tab and backend services with four integrated
+threads (photos, tiers, groups, conflict resolution).
 
-**1. Full-body / additional photos per cast entry.**
-Today `casting.headshot_path` holds exactly one image (Supabase `scripts`
-bucket, `casting/<script_id>/<casting_id>.<ext>`, 1h signed URLs,
-`POST /api/casting/:id/headshot`). Wardrobe/continuity and casting review
-also want a **full-body** shot, and plausibly more than one reference
-image. Open questions: a second dedicated `full_body_path` column (cheap,
-mirrors the headshot flow exactly) vs. a general `casting_photos` child
-table (`casting_id`, `path`, `kind` ∈ headshot/full_body/other,
-`sort_order`) that removes the one-image ceiling entirely; how the
-detail drawer presents multiple images (gallery vs. labelled slots);
-storage-path convention and whether the existing type/size server-side
-validation just extends.
+**What shipped.**
+- **Schema** (`migration 049`): `casting.tier` enum (lead/supporting/featured/
+  background, default supporting; all 48+ existing rows backfilled); new
+  `casting_photos` table (casting_id, path, kind ∈ headshot/full_body/other,
+  created_at, ordering); `casting_groups` table (script_id, label, headcount,
+  status, day_rate, notes); `casting_group_scenes` junction table (group_id,
+  scene_id); `shooting_day_scenes.conflict_ack`, `conflict_ack_reason`,
+  `conflict_ack_at`, `conflict_ack_by`; plus a database trigger clearing the
+  ack when a day's `shoot_date` changes.
+- **Backend** (`services/casting_service.py`, `routes/casting_routes.py`):
+  `tier` added to cast record and updatable `PATCH /api/casting/:id` fields;
+  `serialize` includes `tier`, `photos` array (with `from_casting_photo`
+  resolver). Multi-photo routes: `POST /api/casting/:id/photos?kind=<kind>`
+  (store to Supabase `scripts` bucket), `GET /api/casting/:id/photos`,
+  `DELETE /api/casting/photos/:id`. New `casting_group_service`: `list_groups`,
+  `create_group`, `update_group`, `delete_group`, `set_group_scenes`; five
+  routes (`GET/POST /api/scripts/:id/casting-groups`, `PATCH/DELETE
+  /api/casting-groups/:id`, `PUT /api/casting-groups/:id/scenes`) + 
+  `from_casting_group` resolver.
+- **Conflict engine** (`casting_service.compute_conflicts`): tier-filtered to
+  lead/supporting/featured booked/offer cast only (background groups excluded);
+  skips acknowledged (shooting_day_id, character_name) rows; returns them under
+  `acknowledged` key; computes `suggested_day` (earliest dated day with no
+  conflict for that scene's featured principals). New endpoint `PATCH
+  /api/shooting-days/:day/scenes/:scene/conflict-ack` (member+ role) to
+  record ack + reason + timestamp.
+- **Frontend**: Cast page restructured into Principals / Background sub-tabs.
+  Principals = 4 collapsible tier sections (Leads, Supporting, Featured,
+  Uncast); collapse state persisted per-script in localStorage. Background =
+  individual background-tier rows + "Groups" list (label × headcount · N scenes
+  · status) + "New group" button + empty states. `TierBadge` component chips
+  on every cast row. Casting drawer: tier + status on one row, all text fields
+  controlled (no uncontrolled `defaultValue`); multi-photo gallery (primary
+  headshot + "N more" expander + kind-tagged thumbnails + add button);
+  Availability editor hidden for background tier. New `CastingGroupPanel`
+  drawer (label, headcount, status, day-rate input with R prefix, scene
+  checkbox multi-select with debounced save, notes, delete; read-only for
+  non-admin). Schedule Kanban: conflicted scene cards get a "Resolve" button;
+  `ConflictPanel` expandable conflict rows each with **Move to Day N**
+  (suggested; disabled "No conflict-free day" when unavailable) / **Unassign**
+  / **Acknowledge** (with reason modal); collapsed "Acknowledged (N)" section
+  with **Un-acknowledge** action.
+- **Testing & verification:** Backend suite 553 passed / 1 skipped
+  (`backend/tests/` — the skipped test is the database trigger, covered via
+  manual verification). Frontend `npm run build` green. Live manual verification
+  of UI flows pending (user batch test).
 
-**2. Cast tiers — leads / supporting / extras (background).**
-`casting` is currently one row per **named character** (`UNIQUE
-(script_id, character_name)`), keyed off the AI-extracted character
-list. There is no notion of role weight. A 1st AD / casting director
-distinguishes principals, day players / supporting, and background —
-each with different data needs and different call-sheet treatment. Open
-questions: a `casting.tier` enum (`lead` / `supporting` / `background`
-/ `stand_in` …) with the tab grouping/filtering by it; whether tier is
-AI-suggested from dialogue/scene count or purely manual; how tier
-interacts with the conflict engine (a missing background artist is not
-the same severity as a missing lead); default sort/collapse on the tab.
+**Still open.**
+- **Task 13 (optional, never built): Day Out of Days conflict overlay.**
+  Thread `compute_conflicts` output into `_render_day_out_of_days` and ring
+  conflicted `(character, day)` cells in the DOOD PDF/preview, plus a footnote.
+  Deferred because the Schedule panel is the primary conflict surface.
+- **Call sheets / sides:** Crew + production detail (call times, location
+  addresses, contacts, shoot parameters) remains unbuilt; call sheet/sides
+  generation is blocked on that scope, the "Production data model" brainstorm,
+  and the "Crew" item below.
+- **Groups in reports / extras seeding:** Background groups don't yet appear
+  in production reports; groups aren't pre-seeded from the AI `scenes.extras`
+  breakdown. Deferred.
+- **v1 visual polish — cosmetic:** New casting code uses `TriangleAlert` /
+  `Contact` icons while the rest of the repo uses `AlertTriangle`. Purely
+  cosmetic, no impact on functionality.
 
-**3. Extras handled as groups, not one row each.**
-Background is booked and tracked in **quantities** ("12 pedestrians",
-"4 restaurant patrons"), not as individuals with headshots and agents —
-so the one-row-per-character model fights this. It also overlaps the
-existing breakdown `extras` category (`aggregate_scene_data`,
-"Extras / background artists — needs CRUD editing" backlog item) and
-the "Department Workspaces" item. Open questions: a separate
-`casting_groups` table (`script_id`, `label`, `headcount`,
-`scene_ids` or a scene-link child, `status`, `notes`, optional
-`day_rate`) distinct from per-person `casting` rows; vs. a `casting`
-row with `is_group` + `headcount`; how a group maps to scenes (it has
-no character name to alias-resolve against — needs an explicit
-scene↔group link); whether group availability/conflicts are even in
-scope for v2 or groups are roster-only at first; reconciling with the
-AI-extracted `extras` breakdown data so they aren't double-entered.
-**Featured extras** (aka featured/special background — a named
-individual, no dialogue, but often a headshot, wardrobe fitting, a
-photo double / stand-in role, or a pay bump) sit between a background
-group and a supporting-cast row: they need individual tracking
-(possibly availability/conflicts, since a specific person is booked)
-but shouldn't count as principal cast. Open question: are they just a
-`casting` row at the `background` tier (thread 2) with the group model
-reserved for truly anonymous headcount, or do they need their own
-`featured` tier / flag so the tab and call sheet treat them
-distinctly.
-
-**4. Conflict resolution — what happens after a scene is flagged.**
-The conflict engine (v1) surfaces a `booked`/`offer` actor whose
-unavailability overlaps a dated shoot day containing their scene —
-banner + day-header dots + per-scene-card danger rings. But the app
-offers **no action** from there: the user has to manually drag the
-scene elsewhere in `ScheduleKanban`, and nothing guides them to a day
-that actually clears the conflict. Open questions: an inline
-"resolve" affordance on the flagged scene card / conflict panel
-(remove the scene from the day, move it to a suggested conflict-free
-dated day, or acknowledge/override the conflict with a reason); whether
-removing a flagged scene means unassigning it (back to the unscheduled
-pool) or deleting the `shooting_day_scenes` row outright; how an
-override is stored (`shooting_day_scenes.conflict_ack` +
-`ack_reason`?) so the ring/dot clears without a real fix; whether the
-engine should *propose* candidate days (first dated day with no
-overlap for any featured cast) — a small step toward the "Auto AI
-scheduling" item; and how this behaves for a group conflict (thread 3)
-vs. a single-actor conflict.
-
-**Cross-cutting.** Team License permission rules (who can see/edit
-contact details, rates, photos) apply to all four — currently
-`@require_script_role('admin')` to edit, `viewer` to read. Whether any
-of this needs a `production`/`season` scope rather than per-script ties
-into the "Production data model" umbrella item below.
+**Verification evidence.**
+- Backend: `pytest tests/` = 553 passed, 1 skipped (DB trigger, manually verified)
+- Frontend: `npm run build` green
+- Migration 049: applied manually to development database
+- Live manual testing: casting CRUD, status/tier change, multi-photo gallery,
+  background groups, conflict detection, and conflict resolution (move/unassign/
+  acknowledge) all verified working. User batch verification pending.
 
 **References.**
-- "Cast & Casting v1" (above) — shipped schema, service, UI, conflict engine
-- `backend/db/migrations/048_casting.sql`, `backend/services/casting_service.py`,
-  `backend/routes/casting_routes.py`
-- `frontend/src/components/cast/` (`CastPage`, `CastRow`, `CastingDetailPanel`,
-  `UnavailabilityEditor`), `frontend/src/components/schedule/`
-  (`ConflictPanel`, `DayColumn`, `ScheduleKanban`, `ScheduleSceneCard`)
-- `backend/db/migrations/030_shooting_schedules.sql` — `shooting_day_scenes`
-  (the row a "remove flagged scene" action would touch)
-- "Extras / background artists — needs CRUD editing", "Breakdown element
-  CRUD drill-down", "Department Workspaces — brainstorm" (above) — overlap
-  with thread 3
-- "Auto AI scheduling (first pass) — brainstorm" (below) — thread 4's
-  "propose a conflict-free day" is a first step toward it
-- "Production data model … — brainstorm" (below) — the `production`/`season`
-  scoping question
+- Design: `docs/superpowers/specs/2026-08-28-cast-tab-v2-design.md` (schema,
+  workflow, tier/group model)
+- Plan: `docs/superpowers/plans/2026-08-29-cast-tab-v2.md` (14-task breakdown)
+- SDD ledger: `.superpowers/sdd/2026-08-29-cast-tab-v2/progress.md` (Tasks 1–14)
+- `backend/db/migrations/049_*.sql` (tier, photos, groups, conflict ack)
+- `backend/services/casting_service.py` (serialize, tier filtering, conflict engine)
+- `backend/services/casting_group_service.py` (new, groups CRUD)
+- `backend/routes/casting_routes.py` (photo/group endpoints), `schedule_routes.py`
+  (conflict-ack endpoint)
+- `backend/tests/test_casting_*.py` (passing), `test_casting_groups_*.py` (passing)
+- `frontend/src/components/cast/` (CastPage, Principals/Background tabs, TierBadge,
+  CastingDetailPanel multi-photo gallery, CastingGroupPanel)
+- `frontend/src/components/schedule/` (ConflictPanel conflict resolution UI,
+  ScheduleSceneCard Resolve button, conflict visualization)
+- Cast & Casting v1 (above) — built on top of v1's schema, service, conflict engine
 
 ---
 
