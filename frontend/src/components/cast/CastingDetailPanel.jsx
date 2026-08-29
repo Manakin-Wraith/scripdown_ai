@@ -5,6 +5,7 @@ import {
     createCasting, updateCasting, deleteCasting, uploadHeadshot,
 } from '../../services/apiService';
 import UnavailabilityEditor from './UnavailabilityEditor';
+import PhotoGallery from './PhotoGallery';
 import './CastingDetailPanel.css';
 
 const STATUSES = ['wishlist', 'offer', 'booked', 'declined', 'released'];
@@ -155,18 +156,15 @@ export default function CastingDetailPanel({
             <label className="cd-label">Actor</label>
             <input type="text" {...field('actor_name')} placeholder="Actor name" />
 
-            <label className="cd-label">Headshot</label>
-            <div className="cd-headshot">
-                {row?.headshot_url
-                    ? <img src={row.headshot_url} alt={`${row.character_name} headshot`} />
-                    : <span className="cd-headshot-empty">No photo</span>}
-                {canEdit && (
-                    <label className="cd-headshot-btn">
-                        {row?.headshot_url ? 'Replace' : 'Upload'}
-                        <input type="file" accept="image/jpeg,image/png,image/webp" onChange={onHeadshot} hidden />
-                    </label>
-                )}
-            </div>
+            <label className="cd-label">Photos</label>
+            <PhotoGallery
+                castingId={rowIdRef.current}
+                primaryUrl={row?.headshot_url}
+                photos={row?.photos || []}
+                canEdit={canEdit && !!rowIdRef.current}
+                onPrimaryFile={onHeadshot}
+                onPhotosChange={(next) => setRow((r) => ({ ...r, photos: next }))}
+            />
 
             {'contact_phone' in (row || {}) || canEdit ? (
                 <>

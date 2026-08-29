@@ -42,3 +42,23 @@
     background: var(--bg-card); border: 1px solid var(--border-color);
     border-radius: var(--radius-md); color: var(--text-primary); }
 @media (max-width: 480px) { .cd-tier-status { flex-direction: column; gap: var(--space-2); } }
+
+.cd-photos { margin: var(--space-2) 0 var(--space-4); }
+.cd-photo-primary { display: flex; align-items: flex-start; gap: var(--space-3); }
+.cd-photo-primary img { width: 120px; height: 120px; object-fit: cover; border-radius: var(--radius-md); }
+.cd-photo-empty { width: 120px; height: 120px; display: grid; place-items: center;
+    background: var(--gray-700); color: var(--text-muted); border-radius: var(--radius-md); font-size: var(--text-xs); }
+.cd-photo-btn { color: var(--primary-400); cursor: pointer; font-size: var(--text-sm); }
+.cd-photo-expander { display: inline-flex; align-items: center; gap: 4px; margin-top: var(--space-2);
+    background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: var(--text-xs); }
+.cd-photo-thumbs { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-2); }
+.cd-photo-thumb { position: relative; margin: 0; width: 72px; }
+.cd-photo-thumb img { width: 72px; height: 72px; object-fit: cover; border-radius: var(--radius-md); }
+.cd-photo-thumb figcaption { font-size: var(--text-2xs); color: var(--text-muted); text-align: center; margin-top: 2px; }
+.cd-photo-remove { position: absolute; top: 2px; right: 2px; background: var(--scrim, rgba(0,0,0,.6));
+    border: none; border-radius: var(--radius-full); color: #fff; cursor: pointer; padding: 2px; display: grid; place-items: center; }
+.cd-photo-add { display: flex; flex-direction: column; gap: 4px; width: 72px; }
+.cd-photo-add select { font-size: var(--text-2xs); }
+.cd-photo-addtile { width: 72px; height: 72px; border: 1px dashed var(--gray-600); border-radius: var(--radius-md);
+    display: grid; place-items: center; color: var(--text-muted); cursor: pointer; }
+.cd-photo-err { color: var(--danger); font-size: var(--text-xs); margin-top: var(--space-1); }
