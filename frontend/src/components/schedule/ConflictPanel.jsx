@@ -1,16 +1,26 @@
 // frontend/src/components/schedule/ConflictPanel.jsx
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { TriangleAlert, ChevronDown, ChevronRight, Loader2 } from 'lucide-react';
-import { getCastingConflicts } from '../../services/apiService';
+import {
+    getCastingConflicts,
+    moveSceneToDay,
+    removeSceneFromDay,
+    acknowledgeSceneConflict,
+} from '../../services/apiService';
+import { Button } from '../ui';
 import './ConflictPanel.css';
 
-// scene_id -> [{ actor_name, character_name }] for every conflicted scene card
+// scene_id -> [{ actor_name, character_name, ack_reason? }] for every conflicted scene card
 function sceneMapFromConflicts(conflicts) {
     const m = new Map();
     for (const c of conflicts) {
         for (const sid of (c.scene_ids || [])) {
             if (!m.has(sid)) m.set(sid, []);
-            m.get(sid).push({ actor_name: c.actor_name, character_name: c.character_name });
+            m.get(sid).push({
+                actor_name: c.actor_name,
+                character_name: c.character_name,
+                ack_reason: c.ack_reason,
+            });
         }
     }
     return m;
@@ -29,51 +39,108 @@ function scheduleSignature(days) {
     );
 }
 
-export default function ConflictPanel({ scriptId, scheduleId, days, onConflictDays, onConflictScenes }) {
+const keyOf = (c) => `${c.shooting_day_id}:${c.character_name}`;
+
+export default function ConflictPanel({
+    scriptId,
+    scheduleId,
+    days,
+    onConflictDays,
+    onConflictScenes,
+    onAcknowledgedScenes,
+    expandedKey,
+    onExpandedKeyChange,
+    refreshDays,
+}) {
     const [conflicts, setConflicts] = useState([]);
+    const [acknowledged, setAcknowledged] = useState([]);
     const [open, setOpen] = useState(true);
     const [checking, setChecking] = useState(false);
+    const [ackDraft, setAckDraft] = useState(null);
+    const [ackReason, setAckReason] = useState('');
+    const [ackedOpen, setAckedOpen] = useState(false);
     const firstLoadDone = useRef(false);
 
     const daysSig = useMemo(() => scheduleSignature(days), [days]);
 
-    useEffect(() => {
-        let cancelled = false;
+    const refetch = useCallback(() => {
         if (!scheduleId) {
             setConflicts([]);
+            setAcknowledged([]);
             onConflictDays?.(new Set());
             onConflictScenes?.(new Map());
+            onAcknowledgedScenes?.(new Map());
             return;
         }
         // Only surface the "re-checking" indicator for updates after the first
         // load — the initial fetch is covered by the board's own loading state.
         if (firstLoadDone.current) setChecking(true);
-        getCastingConflicts(scriptId, scheduleId)
+        return getCastingConflicts(scriptId, scheduleId)
             .then((data) => {
-                if (cancelled) return;
                 const rows = data.conflicts || [];
+                const acked = data.acknowledged || [];
                 setConflicts(rows);
+                setAcknowledged(acked);
                 onConflictDays?.(new Set(rows.map((c) => c.shooting_day_id)));
                 onConflictScenes?.(sceneMapFromConflicts(rows));
+                onAcknowledgedScenes?.(sceneMapFromConflicts(acked));
             })
             .catch(() => {
-                if (cancelled) return;
                 setConflicts([]);
+                setAcknowledged([]);
                 onConflictDays?.(new Set());
                 onConflictScenes?.(new Map());
+                onAcknowledgedScenes?.(new Map());
             })
             .finally(() => {
-                if (cancelled) return;
                 firstLoadDone.current = true;
                 setChecking(false);
             });
-        return () => { cancelled = true; };
-    }, [scriptId, scheduleId, daysSig, onConflictDays, onConflictScenes]);
+    }, [scriptId, scheduleId, onConflictDays, onConflictScenes, onAcknowledgedScenes]);
+
+    useEffect(() => {
+        refetch();
+    }, [refetch, daysSig]);
+
+    const doMove = async (c) => {
+        for (const sid of (c.scene_ids || [])) {
+            await moveSceneToDay(c.shooting_day_id, sid, c.suggested_day.shooting_day_id);
+        }
+        onExpandedKeyChange?.(null);
+        refreshDays?.();
+        refetch();
+    };
+
+    const doUnassign = async (c) => {
+        for (const sid of (c.scene_ids || [])) {
+            await removeSceneFromDay(c.shooting_day_id, sid);
+        }
+        onExpandedKeyChange?.(null);
+        refreshDays?.();
+        refetch();
+    };
+
+    const doAck = async (c) => {
+        for (const sid of (c.scene_ids || [])) {
+            await acknowledgeSceneConflict(c.shooting_day_id, sid, { acknowledged: true, reason: ackReason });
+        }
+        setAckDraft(null);
+        setAckReason('');
+        onExpandedKeyChange?.(null);
+        refetch();
+    };
+
+    const doUnack = async (c) => {
+        for (const sid of (c.scene_ids || [])) {
+            await acknowledgeSceneConflict(c.shooting_day_id, sid, { acknowledged: false });
+        }
+        refetch();
+    };
 
     // Nothing to show and nothing in flight — stay out of the way.
-    if (conflicts.length === 0 && !checking) return null;
+    if (conflicts.length === 0 && acknowledged.length === 0 && !checking) return null;
 
-    if (conflicts.length === 0 && checking) {
+    if (conflicts.length === 0 && acknowledged.length === 0 && checking) {
         return (
             <div className="conflict-panel conflict-panel--checking">
                 <span className="conflict-panel-checking">
@@ -98,15 +165,72 @@ export default function ConflictPanel({ scriptId, scheduleId, days, onConflictDa
                 )}
             </button>
             {open && (
-                <ul className="conflict-panel-list">
-                    {conflicts.map((c) => (
-                        <li key={`${c.shooting_day_id}:${c.character_name}`}>
-                            Day {c.day_number} &middot; {c.shoot_date} &mdash;{' '}
-                            {c.actor_name || 'Actor'} ({c.character_name}) unavailable
-                            {c.reason ? ` · ${c.reason}` : ''}
-                        </li>
-                    ))}
-                </ul>
+                <>
+                    <ul className="conflict-panel-list">
+                        {conflicts.map((c) => {
+                            const k = keyOf(c);
+                            const isOpen = expandedKey === k;
+                            return (
+                                <li key={k} className={`conflict-row${isOpen ? ' conflict-row--open' : ''}`}>
+                                    <button
+                                        className="conflict-row-head"
+                                        onClick={() => onExpandedKeyChange?.(isOpen ? null : k)}
+                                    >
+                                        {isOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+                                        Day {c.day_number} · {c.shoot_date} — {c.actor_name || 'Actor'} ({c.character_name}) unavailable
+                                        {c.reason ? ` · ${c.reason}` : ''}
+                                    </button>
+                                    {isOpen && (
+                                        <div className="conflict-row-actions">
+                                            <Button
+                                                size="sm"
+                                                disabled={!c.suggested_day}
+                                                title={c.suggested_day ? undefined : "Every dated day has an availability clash for this scene's principals."}
+                                                onClick={() => doMove(c)}
+                                            >
+                                                {c.suggested_day
+                                                    ? `Move to Day ${c.suggested_day.day_number} (${c.suggested_day.shoot_date})`
+                                                    : 'No conflict-free day'}
+                                            </Button>
+                                            <Button size="sm" variant="ghost" onClick={() => doUnassign(c)}>Unassign</Button>
+                                            <Button size="sm" variant="ghost" onClick={() => setAckDraft(k)}>Acknowledge</Button>
+                                            {ackDraft === k && (
+                                                <span className="conflict-ack-input">
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Reason (optional)"
+                                                        value={ackReason}
+                                                        onChange={(e) => setAckReason(e.target.value)}
+                                                    />
+                                                    <Button size="sm" onClick={() => doAck(c)}>Save</Button>
+                                                </span>
+                                            )}
+                                        </div>
+                                    )}
+                                </li>
+                            );
+                        })}
+                    </ul>
+                    {acknowledged.length > 0 && (
+                        <div className="conflict-acked">
+                            <button className="conflict-acked-head" onClick={() => setAckedOpen((o) => !o)}>
+                                {ackedOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+                                Acknowledged ({acknowledged.length})
+                            </button>
+                            {ackedOpen && (
+                                <ul>
+                                    {acknowledged.map((c) => (
+                                        <li key={keyOf(c)}>
+                                            Day {c.day_number} · {c.shoot_date} — {c.actor_name || 'Actor'} ({c.character_name})
+                                            {c.ack_reason ? ` · “${c.ack_reason}”` : ''}
+                                            <button className="conflict-unack" onClick={() => doUnack(c)}>Un-acknowledge</button>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
+                    )}
+                </>
             )}
         </div>
     );
