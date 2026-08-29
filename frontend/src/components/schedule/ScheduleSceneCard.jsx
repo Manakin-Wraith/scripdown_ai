@@ -46,14 +46,15 @@ const ScheduleSceneCard = ({ dayScene, onRemove, isDragOverlay = false, isSelect
 
     const isOmitted = scene.is_omitted || false;
     const conflictRows = Array.isArray(conflict) ? conflict : [];
-    const hasConflict = conflictRows.length > 0;
-    const conflictNames = conflictRows
+    const ackRows = Array.isArray(acknowledged) ? acknowledged : [];
+    const ackNames = new Set(ackRows.map((r) => r.character_name));
+    const activeConflictRows = conflictRows.filter((r) => !ackNames.has(r.character_name));
+    const showConflict = activeConflictRows.length > 0;
+    const isAck = ackRows.length > 0;
+    const conflictNames = activeConflictRows
         .map(c => c.actor_name || c.character_name)
         .filter(Boolean)
         .join(', ');
-    const ackRows = Array.isArray(acknowledged) ? acknowledged : [];
-    const isAck = ackRows.length > 0;
-    const showConflict = hasConflict && !isAck;
     const intExtClass = intExt === 'INT' ? 'int' : intExt === 'EXT' ? 'ext' : '';
     const TimeIcon = TIME_ICONS[timeOfDay] || null;
 
@@ -131,7 +132,7 @@ const ScheduleSceneCard = ({ dayScene, onRemove, isDragOverlay = false, isSelect
                     <button
                         type="button"
                         className="ssc-resolve"
-                        onClick={(e) => { e.stopPropagation(); onResolve?.(conflictRows[0]?.character_name); }}
+                        onClick={(e) => { e.stopPropagation(); onResolve?.(activeConflictRows[0]?.character_name); }}
                     >
                         Resolve <ArrowRight size={12} />
                     </button>

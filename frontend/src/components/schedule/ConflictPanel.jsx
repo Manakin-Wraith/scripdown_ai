@@ -8,6 +8,7 @@ import {
     acknowledgeSceneConflict,
 } from '../../services/apiService';
 import { Button } from '../ui';
+import { useToast } from '../../context/ToastContext';
 import './ConflictPanel.css';
 
 // scene_id -> [{ actor_name, character_name, ack_reason? }] for every conflicted scene card
@@ -60,6 +61,7 @@ export default function ConflictPanel({
     const [ackReason, setAckReason] = useState('');
     const [ackedOpen, setAckedOpen] = useState(false);
     const firstLoadDone = useRef(false);
+    const toast = useToast();
 
     const daysSig = useMemo(() => scheduleSignature(days), [days]);
 
@@ -103,38 +105,59 @@ export default function ConflictPanel({
     }, [refetch, daysSig]);
 
     const doMove = async (c) => {
-        for (const sid of (c.scene_ids || [])) {
-            await moveSceneToDay(c.shooting_day_id, sid, c.suggested_day.shooting_day_id);
+        if (!c.suggested_day) return;
+        try {
+            for (const sid of (c.scene_ids || [])) {
+                await moveSceneToDay(c.shooting_day_id, sid, c.suggested_day.shooting_day_id);
+            }
+            onExpandedKeyChange?.(null);
+            refreshDays?.();
+        } catch {
+            toast.error('Move failed', 'Could not move the scene. Try again.');
+        } finally {
+            refetch();
         }
-        onExpandedKeyChange?.(null);
-        refreshDays?.();
-        refetch();
     };
 
     const doUnassign = async (c) => {
-        for (const sid of (c.scene_ids || [])) {
-            await removeSceneFromDay(c.shooting_day_id, sid);
+        try {
+            for (const sid of (c.scene_ids || [])) {
+                await removeSceneFromDay(c.shooting_day_id, sid);
+            }
+            onExpandedKeyChange?.(null);
+            refreshDays?.();
+        } catch {
+            toast.error('Unassign failed', 'Could not remove the scene from this day.');
+        } finally {
+            refetch();
         }
-        onExpandedKeyChange?.(null);
-        refreshDays?.();
-        refetch();
     };
 
     const doAck = async (c) => {
-        for (const sid of (c.scene_ids || [])) {
-            await acknowledgeSceneConflict(c.shooting_day_id, sid, { acknowledged: true, reason: ackReason });
+        try {
+            for (const sid of (c.scene_ids || [])) {
+                await acknowledgeSceneConflict(c.shooting_day_id, sid, { acknowledged: true, reason: ackReason });
+            }
+            onExpandedKeyChange?.(null);
+        } catch {
+            toast.error('Save failed', 'Could not acknowledge the conflict.');
+        } finally {
+            setAckDraft(null);
+            setAckReason('');
+            refetch();
         }
-        setAckDraft(null);
-        setAckReason('');
-        onExpandedKeyChange?.(null);
-        refetch();
     };
 
     const doUnack = async (c) => {
-        for (const sid of (c.scene_ids || [])) {
-            await acknowledgeSceneConflict(c.shooting_day_id, sid, { acknowledged: false });
+        try {
+            for (const sid of (c.scene_ids || [])) {
+                await acknowledgeSceneConflict(c.shooting_day_id, sid, { acknowledged: false });
+            }
+        } catch {
+            toast.error('Update failed', 'Could not un-acknowledge the conflict.');
+        } finally {
+            refetch();
         }
-        refetch();
     };
 
     // Nothing to show and nothing in flight — stay out of the way.

@@ -294,18 +294,17 @@ def _suggested_day(days, current_day_id, scene_char_names, ranges_by_casting, ca
 
 def compute_conflicts(script_id, schedule_id):
     c = _client()
-    empty = {"conflicts": [], "acknowledged": []}
     days = [d for d in (c.table("shooting_days").select("id, day_number, shoot_date")
             .eq("schedule_id", schedule_id).order("day_number").execute()).data or []
             if d.get("shoot_date")]
     if not days:
-        return empty
+        return {"conflicts": [], "acknowledged": []}
     day_ids = [d["id"] for d in days]
     dps = (c.table("shooting_day_scenes").select("shooting_day_id, scene_id")
            .in_("shooting_day_id", day_ids).execute()).data or []
     scene_ids = list({p["scene_id"] for p in dps})
     if not scene_ids:
-        return empty
+        return {"conflicts": [], "acknowledged": []}
     scenes = (c.table("scenes").select("id, characters")
               .in_("id", scene_ids).execute()).data or []
     amap = _alias_map(script_id)
@@ -326,7 +325,7 @@ def compute_conflicts(script_id, schedule_id):
                     if r.get("status") in CONFLICT_STATUSES
                     and (r.get("tier") or "supporting") in TIER_CONFLICT]
     if not casting_rows:
-        return empty
+        return {"conflicts": [], "acknowledged": []}
     casting_by_name = {r["character_name"]: r for r in casting_rows}
     unavail = (c.table("casting_unavailability")
                .select("casting_id, start_date, end_date, reason")

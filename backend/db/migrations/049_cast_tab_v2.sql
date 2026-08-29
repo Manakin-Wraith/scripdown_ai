@@ -41,6 +41,7 @@ CREATE TABLE IF NOT EXISTS casting_groups (
 );
 CREATE INDEX IF NOT EXISTS idx_casting_groups_script ON casting_groups(script_id);
 
+DROP TRIGGER IF EXISTS trg_casting_groups_updated ON casting_groups;
 CREATE TRIGGER trg_casting_groups_updated
     BEFORE UPDATE ON casting_groups
     FOR EACH ROW EXECUTE FUNCTION update_shooting_updated_at();  -- shared fn from migration 030
@@ -80,6 +81,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trg_shooting_days_clear_ack ON shooting_days;
 CREATE TRIGGER trg_shooting_days_clear_ack
     AFTER UPDATE ON shooting_days
     FOR EACH ROW EXECUTE FUNCTION clear_conflict_ack_on_date_change();
@@ -91,11 +93,13 @@ ALTER TABLE casting_photos        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE casting_groups        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE casting_group_scenes  ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "casting_photos select for script members" ON casting_photos;
 CREATE POLICY "casting_photos select for script members" ON casting_photos FOR SELECT
     USING (casting_id IN (
         SELECT c.id FROM casting c
         WHERE c.script_id IN (SELECT id FROM scripts WHERE user_id = auth.uid())
            OR c.script_id IN (SELECT script_id FROM script_members WHERE user_id = auth.uid())));
+DROP POLICY IF EXISTS "casting_photos write for owner or admin" ON casting_photos;
 CREATE POLICY "casting_photos write for owner or admin" ON casting_photos FOR ALL
     USING (casting_id IN (
         SELECT c.id FROM casting c
@@ -103,19 +107,23 @@ CREATE POLICY "casting_photos write for owner or admin" ON casting_photos FOR AL
            OR c.script_id IN (SELECT script_id FROM script_members
                               WHERE user_id = auth.uid() AND role = 'admin')));
 
+DROP POLICY IF EXISTS "casting_groups select for script members" ON casting_groups;
 CREATE POLICY "casting_groups select for script members" ON casting_groups FOR SELECT
     USING (script_id IN (SELECT id FROM scripts WHERE user_id = auth.uid())
         OR script_id IN (SELECT script_id FROM script_members WHERE user_id = auth.uid()));
+DROP POLICY IF EXISTS "casting_groups write for owner or admin" ON casting_groups;
 CREATE POLICY "casting_groups write for owner or admin" ON casting_groups FOR ALL
     USING (script_id IN (SELECT id FROM scripts WHERE user_id = auth.uid())
         OR script_id IN (SELECT script_id FROM script_members
                          WHERE user_id = auth.uid() AND role = 'admin'));
 
+DROP POLICY IF EXISTS "casting_group_scenes select for script members" ON casting_group_scenes;
 CREATE POLICY "casting_group_scenes select for script members" ON casting_group_scenes FOR SELECT
     USING (group_id IN (
         SELECT g.id FROM casting_groups g
         WHERE g.script_id IN (SELECT id FROM scripts WHERE user_id = auth.uid())
            OR g.script_id IN (SELECT script_id FROM script_members WHERE user_id = auth.uid())));
+DROP POLICY IF EXISTS "casting_group_scenes write for owner or admin" ON casting_group_scenes;
 CREATE POLICY "casting_group_scenes write for owner or admin" ON casting_group_scenes FOR ALL
     USING (group_id IN (
         SELECT g.id FROM casting_groups g

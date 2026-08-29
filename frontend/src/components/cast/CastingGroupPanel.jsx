@@ -32,6 +32,7 @@ export default function CastingGroupPanel({ scriptId, group, onClose, onChanged,
         getScenes(scriptId).then((d) => setScenes(d.scenes || [])).catch(() => setScenes([]));
     }, [scriptId]);
     useEffect(() => {
+        if (!group && idRef.current) return;   // just-created; CastPage's groups list hasn't caught up yet
         setRow(group);
         idRef.current = group?.id || null;
         setLocalSceneIds(new Set(group?.scene_ids || []));
