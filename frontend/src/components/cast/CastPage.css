@@ -52,3 +52,10 @@
     .cast-row-sub, .cast-row-chev { display: none; }
     .cast-row-actor { flex-basis: 100%; padding-left: 52px; }
 }
+
+.tier-badge { font-size: var(--text-2xs); padding: 1px 6px; border-radius: var(--radius-full);
+    text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; }
+.tier-badge--lead { color: var(--text-primary); border: 1px solid var(--gray-500); }
+.tier-badge--supporting,
+.tier-badge--featured { color: var(--text-secondary); border: 1px solid var(--gray-600); }
+.tier-badge--background { color: var(--text-muted); border: 1px dashed var(--gray-600); }

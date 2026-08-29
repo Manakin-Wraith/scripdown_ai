@@ -1,6 +1,7 @@
 // frontend/src/components/cast/CastRow.jsx
 import { ChevronRight, TriangleAlert } from 'lucide-react';
 import StatusBadge from './StatusBadge';
+import TierBadge from './TierBadge';
 
 function Avatar({ row }) {
     const url = row.casting?.headshot_url;
@@ -23,6 +24,7 @@ export default function CastRow({ row, onOpen }) {
                     <span className="cast-row-sub">{row.scene_count} scenes</span>
                 )}
             </span>
+            <TierBadge tier={row.casting?.tier} />
             <span className="cast-row-actor">
                 {actor || <span className="cast-row-addcta">Add casting &rarr;</span>}
             </span>
