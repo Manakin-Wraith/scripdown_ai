@@ -6,6 +6,7 @@ Supports the "Add to Schedule" workflow from the Zoomable Stripboard.
 """
 
 import os
+from datetime import datetime, timezone
 from flask import Blueprint, request, jsonify
 from middleware.auth import require_auth, optional_auth, get_user_id
 from middleware.authorization import (
@@ -388,6 +389,30 @@ def move_scene_to_day(from_day_id, scene_id):
         return jsonify({'success': True}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+@schedule_bp.route('/api/shooting-days/<day_id>/scenes/<scene_id>/conflict-ack', methods=['PATCH'])
+@require_auth
+@require_script_role('member', resolver=from_day)
+def acknowledge_scene_conflict(day_id, scene_id):
+    """Acknowledge (or clear) an availability conflict on a scheduled scene."""
+    if not supabase:
+        return jsonify({'error': 'Database not configured'}), 500
+    body = request.get_json() or {}
+    acked = bool(body.get('acknowledged'))
+    if acked:
+        payload = {
+            'conflict_ack': True,
+            'conflict_ack_reason': (body.get('reason') or None),
+            'conflict_ack_at': datetime.now(timezone.utc).isoformat(),
+            'conflict_ack_by': get_user_id(),
+        }
+    else:
+        payload = {'conflict_ack': False, 'conflict_ack_reason': None,
+                   'conflict_ack_at': None, 'conflict_ack_by': None}
+    supabase.table('shooting_day_scenes').update(payload) \
+        .eq('shooting_day_id', day_id).eq('scene_id', scene_id).execute()
+    return jsonify({'success': True}), 200
 
 
 # ============================================
