@@ -3,6 +3,7 @@
 **Date:** 2026-08-29
 **Status:** Ready for implementation plan
 **Builds on:** `docs/superpowers/specs/2026-08-27-cast-casting-v1-design.md` (shipped 2026-08-28)
+**UI / UX companion:** `docs/superpowers/specs/2026-08-29-cast-tab-v2-ui-ux.md` — layout, states, interaction, and copy. §5 here is a summary; that doc is authoritative for the frontend.
 **Backlog entry:** "Cast tab v2 — full-body photo, cast tiers, extras as groups, conflict resolution — brainstorm" in `docs/BACKLOG.md`
 
 ---
