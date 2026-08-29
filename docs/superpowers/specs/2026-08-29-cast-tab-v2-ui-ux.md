@@ -67,6 +67,7 @@ Full-width workspace page, `--container-max`, centred, `--edge-padding` gutters
 │  │ [img] DET. REYES        SUPP    A. Smith         ● Offer    ⚠  ›  │  │
 │  └──────────────────────────────────────────────────────────────────┘  │
 │  ▸ FEATURED · 4                                                         │  collapsed
+│  ▸ UNCAST · 6                                                           │  collapsed — breakdown chars with no casting row
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -90,9 +91,12 @@ Background tab:
 
 ### 3.1 Segmented control
 
-- Two segments: `Principals ({n})` / `Background ({n})`. `{n}` = row counts
-  (principals = lead+supporting+featured casting rows + non-background orphans;
-  background = background-tier casting rows + `casting_groups`).
+- Two segments: `Principals ({n})` / `Background ({n})`.
+- **Principals count** = every breakdown character that is not cast-as-background
+  (i.e. has no `casting` row, or has one at `lead`/`supporting`/`featured`) +
+  non-background orphan casting rows. Uncast characters are counted here — they
+  are pending principals.
+- **Background count** = `background`-tier casting rows + `casting_groups`.
 - Style: the app's existing segmented / pill-toggle treatment (`--bg-card`
   track, `--bg-elevated` active segment, `--text-primary` active /
   `--text-secondary` idle). Sits on the left of the sticky bar; the search +
@@ -105,7 +109,8 @@ Background tab:
 
 `{n} principals · {n} background groups · {n} booked · {n} conflicts`
 
-- `principals` = count of lead+supporting+featured casting rows.
+- `principals` = the Principals-tab count (§3.1) — non-background breakdown
+  characters incl. uncast, + non-background orphans.
 - `background groups` = count of `casting_groups` (omit the clause when 0).
 - `booked` = casting rows (any tier) with `status = 'booked'`.
 - `conflicts` = distinct `(character, day)` conflicts against the active
@@ -120,14 +125,24 @@ Unchanged from v1 (search by character/actor name; status select
 - Filters apply **within the active tab only**.
 - On the Background tab, the status filter also filters groups by their
   `status`. Search matches a group's `label`.
-- **No tier filter control** — the Principals tab's three sections and the tab
+- **No tier filter control** — the Principals tab's tier sections and the tab
   split itself already are the tier filter.
 - Empty result inside a tab: the existing inline "No characters match. · Clear
   filters" treatment.
 
 ### 3.4 Tier sections (Principals tab)
 
-- Three sections in fixed order: **Leads**, **Supporting**, **Featured**.
+- Four sections in fixed order: **Leads**, **Supporting**, **Featured**,
+  **Uncast**.
+- **Uncast** holds every breakdown character with no `casting` row. Collapsed by
+  default; header count `· {n}`. Rows show the v1 "not cast" treatment (hollow
+  avatar, `Add casting →`). Opening one and touching any field lazy-creates the
+  `casting` row at the default tier `supporting` (§4.1 of the design spec), so
+  the row then jumps from Uncast into Supporting. A breakdown character the user
+  actually wants as background stays in Uncast only until first cast, then is
+  re-tiered to Background in its drawer.
+- The other three sections hold `casting` rows at their tier (plus
+  lead/supporting/featured orphans, with the `Not in breakdown` chip).
 - Header: `lucide` `ChevronDown` (open) / `ChevronRight` (collapsed), the label
   in `--text-xs` uppercase tracked (`.cast-divider` styling), and `· {count}`.
 - Collapse state per section persisted in `localStorage`
@@ -445,7 +460,8 @@ Inherits v1's table. Changes / additions:
 |---|---|
 | **Loading** | `SkeletonList` — now under a skeleton segmented control + filter bar. |
 | **No characters** | Unchanged v1 `EmptyState` ("No characters yet" → Go to Scenes). The segmented control is hidden in this state. |
-| **Principals empty, background present** | Land on Principals (per §3.1), show an inline note *"No principal cast yet — every character is set to Background, or none are cast."* with the three empty tier headers still visible. |
+| **No cast principals** | Leads/Supporting/Featured all empty but Uncast populated: the three headers show `· 0`, Uncast holds the characters. Normal — no special note. |
+| **Every character cast as Background** | Leads/Supporting/Featured/Uncast all `· 0`; inline note on the Principals tab *"Every character is set to Background — see the Background tab."* |
 | **Background tab, nothing** | `EmptyState` inside the tab: icon (`lucide` `UsersRound`), *"No background yet"*, body *"Add a background group for crowd scenes, or set a character's tier to Background."*, primary button *"New group"*. |
 | **Group with no scenes** | Row shows `No scenes` in `--warning`; drawer shows all scene checkboxes unticked with a hint *"Link the scenes this group appears in so it shows on the schedule."* |
 | **No active schedule** | No conflict UI (v1 behaviour). The `Resolve` affordance and `ConflictPanel` actions simply never appear. |
@@ -457,7 +473,7 @@ Inherits v1's table. Changes / additions:
 
 **Tabs / sections**
 - Segmented control: `Principals ({n})` · `Background ({n})`
-- Tier sections: `Leads` · `Supporting` · `Featured`
+- Tier sections: `Leads` · `Supporting` · `Featured` · `Uncast`
 - Background dividers: `Individuals` · `Groups`
 - `+ New group`
 

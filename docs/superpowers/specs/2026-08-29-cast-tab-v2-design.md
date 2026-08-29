@@ -428,10 +428,11 @@ refetch on success.
 One new migration file, `049_cast_tab_v2.sql`, applied manually against the
 Supabase project (per the repo convention — `run_migration.py` is dead):
 
-1. `ALTER TABLE casting ADD COLUMN tier ...` then
-   `UPDATE casting SET tier = 'supporting'` (the DEFAULT covers new rows; the
-   explicit UPDATE covers the backfill of existing rows — both land on
-   `'supporting'`).
+1. `ALTER TABLE casting ADD COLUMN tier TEXT NOT NULL DEFAULT 'supporting'
+   CHECK (tier IN ('lead','supporting','featured','background'))` — Postgres
+   backfills every existing row with the default in the same statement, so all
+   v1 rows land on `'supporting'` and stay in the conflict engine (§4.1). No
+   separate `UPDATE` needed.
 2. `CREATE TABLE casting_photos ...` + index + RLS policies.
 3. `CREATE TABLE casting_groups ...` + index + `updated_at` trigger + RLS.
 4. `CREATE TABLE casting_group_scenes ...` + indexes + RLS.
