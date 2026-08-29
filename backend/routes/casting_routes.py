@@ -5,9 +5,10 @@ from flask import Blueprint, request, jsonify, g
 from middleware.auth import require_auth, get_user_id
 from middleware.authorization import (
     require_script_role, from_script, from_casting, from_casting_unavailability,
-    from_casting_photo,
+    from_casting_photo, from_casting_group,
 )
 import services.casting_service as casting_service
+import services.casting_group_service as group_service
 
 casting_bp = Blueprint("casting", __name__)
 
@@ -176,3 +177,61 @@ def casting_conflicts(script_id):
         return jsonify({"error": "Schedule not found for this script"}), 404
     conflicts = casting_service.compute_conflicts(script_id, schedule_id)
     return jsonify({"conflicts": conflicts, "schedule_id": schedule_id}), 200
+
+
+# --- Background casting groups -------------------------------------------------
+
+
+@casting_bp.route("/api/scripts/<script_id>/casting-groups", methods=["GET"])
+@require_auth
+@require_script_role("viewer", resolver=from_script)
+def list_casting_groups(script_id):
+    return jsonify({"groups": group_service.list_groups(script_id)}), 200
+
+
+@casting_bp.route("/api/scripts/<script_id>/casting-groups", methods=["POST"])
+@require_auth
+@require_script_role("admin", resolver=from_script)
+def create_casting_group(script_id):
+    data = request.get_json(silent=True) or {}
+    try:
+        row = group_service.create_group(script_id, data, get_user_id())
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    return jsonify({"group": row}), 201
+
+
+@casting_bp.route("/api/casting-groups/<group_id>", methods=["PATCH"])
+@require_auth
+@require_script_role("admin", resolver=from_casting_group)
+def update_casting_group(group_id):
+    data = request.get_json(silent=True) or {}
+    try:
+        row = group_service.update_group(group_id, data)
+    except group_service.GroupNotFound:
+        return jsonify({"error": "Not found"}), 404
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    return jsonify({"group": row}), 200
+
+
+@casting_bp.route("/api/casting-groups/<group_id>", methods=["DELETE"])
+@require_auth
+@require_script_role("admin", resolver=from_casting_group)
+def delete_casting_group(group_id):
+    group_service.delete_group(group_id)
+    return jsonify({"success": True}), 200
+
+
+@casting_bp.route("/api/casting-groups/<group_id>/scenes", methods=["PUT"])
+@require_auth
+@require_script_role("admin", resolver=from_casting_group)
+def set_casting_group_scenes(group_id):
+    data = request.get_json(silent=True) or {}
+    try:
+        ids = group_service.set_group_scenes(group_id, data.get("scene_ids") or [])
+    except group_service.GroupNotFound:
+        return jsonify({"error": "Not found"}), 404
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    return jsonify({"scene_ids": ids}), 200

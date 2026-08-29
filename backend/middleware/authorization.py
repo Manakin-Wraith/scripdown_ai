@@ -107,6 +107,10 @@ def from_casting(kwargs):
     return _lookup_script_id('casting', kwargs.get('casting_id'))
 
 
+def from_casting_group(kwargs):
+    return _lookup_script_id('casting_groups', kwargs.get('group_id'))
+
+
 def from_casting_unavailability(kwargs):
     """Two-hop: casting_unavailability.casting_id -> casting.script_id."""
     casting_id = _lookup_script_id('casting_unavailability', kwargs.get('unavail_id'),
