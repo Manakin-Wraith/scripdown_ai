@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Sun, Moon, Sunrise, Sunset, GripVertical, MapPin, Users, FileText, Clock, Clapperboard, Tag, TriangleAlert } from 'lucide-react';
+import { X, Sun, Moon, Sunrise, Sunset, GripVertical, MapPin, Users, FileText, Clock, Clapperboard, Tag, TriangleAlert, ArrowRight, Check } from 'lucide-react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { formatEighths, getSceneEighths } from '../../utils/sceneUtils';
@@ -13,7 +13,7 @@ const TIME_ICONS = {
     DUSK: Sunset,
 };
 
-const ScheduleSceneCard = ({ dayScene, onRemove, isDragOverlay = false, isSelected = false, onToggleSelect, conflict }) => {
+const ScheduleSceneCard = ({ dayScene, onRemove, isDragOverlay = false, isSelected = false, onToggleSelect, conflict, acknowledged, onResolve }) => {
     const scene = dayScene.scene || dayScene.scenes || {};
     const sceneId = dayScene.scene_id;
     const cardRef = useRef(null);
@@ -51,6 +51,9 @@ const ScheduleSceneCard = ({ dayScene, onRemove, isDragOverlay = false, isSelect
         .map(c => c.actor_name || c.character_name)
         .filter(Boolean)
         .join(', ');
+    const ackRows = Array.isArray(acknowledged) ? acknowledged : [];
+    const isAck = ackRows.length > 0;
+    const showConflict = hasConflict && !isAck;
     const intExtClass = intExt === 'INT' ? 'int' : intExt === 'EXT' ? 'ext' : '';
     const TimeIcon = TIME_ICONS[timeOfDay] || null;
 
@@ -89,7 +92,7 @@ const ScheduleSceneCard = ({ dayScene, onRemove, isDragOverlay = false, isSelect
         <div
             ref={(el) => { setNodeRef(el); cardRef.current = el; }}
             style={style}
-            className={`schedule-scene-card ${intExtClass} ${isDragging ? 'dragging' : ''} ${isDragOverlay ? 'overlay' : ''} ${isSelected ? 'selected' : ''} ${isOmitted ? 'omitted' : ''} ${hasConflict ? 'conflict' : ''}`}
+            className={`schedule-scene-card ${intExtClass} ${isDragging ? 'dragging' : ''} ${isDragOverlay ? 'overlay' : ''} ${isSelected ? 'selected' : ''} ${isOmitted ? 'omitted' : ''} ${showConflict ? 'conflict' : ''}`}
             onClick={handleCardClick}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
@@ -121,10 +124,22 @@ const ScheduleSceneCard = ({ dayScene, onRemove, isDragOverlay = false, isSelect
                 {castCount > 0 && <span className="ssc-cast">{castCount} cast</span>}
             </div>
 
-            {hasConflict && (
+            {showConflict && (
                 <div className="ssc-conflict-note" title={`Unavailable on this day: ${conflictNames}`}>
                     <TriangleAlert size={11} />
                     <span>{conflictNames} unavailable</span>
+                    <button
+                        type="button"
+                        className="ssc-resolve"
+                        onClick={(e) => { e.stopPropagation(); onResolve?.(conflictRows[0]?.character_name); }}
+                    >
+                        Resolve <ArrowRight size={12} />
+                    </button>
+                </div>
+            )}
+            {isAck && (
+                <div className="ssc-conflict-ack" title={ackRows.map((r) => r.ack_reason).filter(Boolean).join(' · ')}>
+                    <Check size={12} /> Conflict acknowledged
                 </div>
             )}
 

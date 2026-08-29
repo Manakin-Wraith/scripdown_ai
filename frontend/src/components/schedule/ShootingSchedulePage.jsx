@@ -24,6 +24,8 @@ const ShootingSchedulePage = () => {
     const [activeScheduleId, setActiveScheduleId] = useState(null);
     const [conflictDayIds, setConflictDayIds] = useState(new Set());
     const [conflictScenes, setConflictScenes] = useState(new Map());
+    const [acknowledgedScenes, setAcknowledgedScenes] = useState(new Map());
+    const [expandedConflictKey, setExpandedConflictKey] = useState(null);
     const [days, setDays] = useState([]);
     const [loading, setLoading] = useState(true);
     const [metadata, setMetadata] = useState(null);
@@ -82,6 +84,14 @@ const ShootingSchedulePage = () => {
             console.error('Failed to refresh days:', err);
         }
     }, [activeScheduleId]);
+
+    const handleResolve = useCallback((dayId, characterName) => {
+        setExpandedConflictKey(`${dayId}:${characterName}`);
+        document.querySelector('.conflict-panel')?.scrollIntoView({
+            behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+            block: 'nearest',
+        });
+    }, []);
 
     // Keyboard shortcuts for zoom
     useEffect(() => {
@@ -292,6 +302,10 @@ const ShootingSchedulePage = () => {
                 days={days}
                 onConflictDays={setConflictDayIds}
                 onConflictScenes={setConflictScenes}
+                onAcknowledgedScenes={setAcknowledgedScenes}
+                expandedKey={expandedConflictKey}
+                onExpandedKeyChange={setExpandedConflictKey}
+                refreshDays={refreshDays}
             />
 
             {/* Kanban body */}
@@ -303,6 +317,8 @@ const ShootingSchedulePage = () => {
                     zoomApiRef={zoomApiRef}
                     conflictDayIds={conflictDayIds}
                     conflictScenes={conflictScenes}
+                    acknowledgedScenes={acknowledgedScenes}
+                    onResolve={handleResolve}
                 />
             ) : (
                 <EmptyState
