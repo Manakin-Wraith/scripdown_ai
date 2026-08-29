@@ -9,6 +9,8 @@ import './CastingDetailPanel.css';
 
 const STATUSES = ['wishlist', 'offer', 'booked', 'declined', 'released'];
 const LABEL = { wishlist: 'Wishlist', offer: 'Offer', booked: 'Booked', declined: 'Declined', released: 'Released' };
+const TIERS = ['lead', 'supporting', 'featured', 'background'];
+const TIER_LABEL = { lead: 'Lead', supporting: 'Supporting', featured: 'Featured', background: 'Background' };
 
 export default function CastingDetailPanel({
     scriptId, casting, characterName, conflicts, onClose, onChanged, onCreated,
@@ -57,9 +59,16 @@ export default function CastingDetailPanel({
         }
     };
 
+    const [draft, setDraft] = useState({});
+    useEffect(() => { setDraft({}); }, [row?.id]);
+    const val = (name) => (name in draft ? draft[name] : (row?.[name] ?? ''));
     const field = (name) => ({
-        defaultValue: row?.[name] ?? '',
-        onBlur: (e) => { if (e.target.value !== (row?.[name] ?? '')) persist({ [name]: e.target.value }); },
+        value: val(name),
+        onChange: (e) => setDraft((d) => ({ ...d, [name]: e.target.value })),
+        onBlur: (e) => {
+            if (e.target.value !== (row?.[name] ?? '')) persist({ [name]: e.target.value });
+            setDraft((d) => { const n = { ...d }; delete n[name]; return n; });
+        },
         disabled: !canEdit,
     });
 
@@ -114,22 +123,37 @@ export default function CastingDetailPanel({
                 </div>
             )}
 
+            <div className="cd-tier-status">
+                <div>
+                    <label className="cd-label" htmlFor="cd-tier">Tier</label>
+                    <select
+                        id="cd-tier"
+                        value={row?.tier || 'supporting'}
+                        disabled={!canEdit}
+                        onChange={(e) => persist({ tier: e.target.value })}
+                    >
+                        {TIERS.map((t) => <option key={t} value={t}>{TIER_LABEL[t]}</option>)}
+                    </select>
+                </div>
+                <div>
+                    <label className="cd-label">Status</label>
+                    <div className="cd-status" role="radiogroup" aria-label="Status">
+                        {STATUSES.map((s) => (
+                            <button
+                                key={s}
+                                role="radio"
+                                aria-checked={(row?.status || 'wishlist') === s}
+                                className={(row?.status || 'wishlist') === s ? 'active' : ''}
+                                disabled={!canEdit}
+                                onClick={() => persist({ status: s })}
+                            >{LABEL[s]}</button>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
             <label className="cd-label">Actor</label>
             <input type="text" {...field('actor_name')} placeholder="Actor name" />
-
-            <label className="cd-label">Status</label>
-            <div className="cd-status" role="radiogroup" aria-label="Status">
-                {STATUSES.map((s) => (
-                    <button
-                        key={s}
-                        role="radio"
-                        aria-checked={(row?.status || 'wishlist') === s}
-                        className={(row?.status || 'wishlist') === s ? 'active' : ''}
-                        disabled={!canEdit}
-                        onClick={() => persist({ status: s })}
-                    >{LABEL[s]}</button>
-                ))}
-            </div>
 
             <label className="cd-label">Headshot</label>
             <div className="cd-headshot">
@@ -157,14 +181,16 @@ export default function CastingDetailPanel({
             ) : null}
 
             <p className="cd-section">Availability</p>
-            {rowIdRef.current
-                ? <UnavailabilityEditor
-                    castingId={rowIdRef.current}
-                    ranges={row?.unavailability || []}
-                    canEdit={canEdit}
-                    onChanged={onChanged}
-                  />
-                : <p className="cd-muted">Add an actor or status first to record unavailable dates.</p>}
+            {(row?.tier === 'background')
+                ? <p className="cd-muted">Background cast isn’t checked for schedule conflicts.</p>
+                : (rowIdRef.current
+                    ? <UnavailabilityEditor
+                        castingId={rowIdRef.current}
+                        ranges={row?.unavailability || []}
+                        canEdit={canEdit}
+                        onChanged={onChanged}
+                      />
+                    : <p className="cd-muted">Add an actor or status first to record unavailable dates.</p>)}
 
             <label className="cd-label">Notes</label>
             <textarea rows={3} {...field('notes')} />
