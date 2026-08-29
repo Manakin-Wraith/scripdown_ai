@@ -94,3 +94,30 @@ def test_add_unavailability_validates_order(fake_db):
         cs.add_unavailability(row["id"], "2026-03-10", "2026-03-01", None)
     ok = cs.add_unavailability(row["id"], "2026-03-01", "2026-03-05", "Other shoot")
     assert ok["reason"] == "Other shoot"
+
+
+def test_update_casting_sets_tier(fake_db):
+    row = cs.create_casting("s1", "JOHN", "u1")
+    updated = cs.update_casting(row["id"], {"tier": "lead"})
+    assert updated["tier"] == "lead"
+
+
+def test_update_casting_rejects_bad_tier(fake_db):
+    row = cs.create_casting("s1", "JOHN", "u1")
+    with pytest.raises(ValueError):
+        cs.update_casting(row["id"], {"tier": "hero"})
+
+
+def test_serialize_includes_tier():
+    out = cs.serialize(
+        {"id": "x", "script_id": "s", "character_name": "SARAH",
+         "status": "booked", "tier": "featured"},
+        include_contact=False)
+    assert out["tier"] == "featured"
+
+
+def test_serialize_defaults_tier_when_missing():
+    out = cs.serialize(
+        {"id": "x", "script_id": "s", "character_name": "SARAH", "status": "booked"},
+        include_contact=False)
+    assert out["tier"] == "supporting"

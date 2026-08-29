@@ -111,6 +111,21 @@ def test_patch_ok_for_admin(monkeypatch):
     assert resp.get_json()["casting"]["status"] == "booked"
 
 
+def test_patch_casting_tier(monkeypatch):
+    _as_role(monkeypatch, "admin")
+    monkeypatch.setattr(authz, "_lookup_script_id", lambda *a, **k: "s1")
+    monkeypatch.setattr(cr.casting_service, "update_casting",
+                        lambda cid, fields: {"id": cid, "script_id": "s1",
+                        "character_name": "JOHN", "status": "wishlist",
+                        "actor_name": None, "headshot_path": None,
+                        "notes": None, "tier": fields.get("tier", "supporting"),
+                        "unavailability": []})
+    monkeypatch.setattr(cr.casting_service, "_headshot_url", lambda p: None)
+    resp = _client().patch("/api/casting/c1", json={"tier": "lead"})
+    assert resp.status_code == 200
+    assert resp.get_json()["casting"]["tier"] == "lead"
+
+
 def test_delete_ok_for_admin(monkeypatch):
     _as_role(monkeypatch, "admin")
     monkeypatch.setattr(authz, "_lookup_script_id", lambda *a, **k: "s1")

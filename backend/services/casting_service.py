@@ -9,11 +9,12 @@ from db.supabase_client import get_supabase_admin
 
 UPDATABLE_FIELDS = {
     "character_name", "actor_name", "status", "contact_phone",
-    "contact_email", "agent_contact", "headshot_path", "notes",
+    "contact_email", "agent_contact", "headshot_path", "notes", "tier",
 }
 CONTACT_FIELDS = ("contact_phone", "contact_email", "agent_contact")
 CONFLICT_STATUSES = ("booked", "offer")
 VALID_STATUS = {"wishlist", "offer", "booked", "declined", "released"}
+VALID_TIER = frozenset({"lead", "supporting", "featured", "background"})
 HEADSHOT_BUCKET = "scripts"
 SIGNED_URL_TTL = 3600  # seconds
 
@@ -108,6 +109,8 @@ def update_casting(casting_id, fields):
         payload["character_name"] = norm_name(payload["character_name"])
     if "status" in payload and payload["status"] not in VALID_STATUS:
         raise ValueError(f"invalid status: {payload['status']}")
+    if "tier" in payload and payload["tier"] not in VALID_TIER:
+        raise ValueError(f"invalid tier: {payload['tier']}")
     if not payload:
         return get_casting(casting_id)
     c = _client()
@@ -173,6 +176,7 @@ def serialize(row, *, include_contact, breakdown_names=None):
         "character_name": row["character_name"],
         "actor_name": row.get("actor_name"),
         "status": row.get("status") or "wishlist",
+        "tier": row.get("tier") or "supporting",
         "headshot_path": row.get("headshot_path"),
         "headshot_url": _headshot_url(row.get("headshot_path")),
         "notes": row.get("notes"),
