@@ -68,8 +68,14 @@ def list_casting(script_id):
     by_casting = {}
     for u in unavail:
         by_casting.setdefault(u["casting_id"], []).append(u)
+    photos = (c.table("casting_photos").select("*")
+              .in_("casting_id", ids).order("sort_order").execute()).data or []
+    photos_by_casting = {}
+    for p in photos:
+        photos_by_casting.setdefault(p["casting_id"], []).append(p)
     for r in rows:
         r["unavailability"] = by_casting.get(r["id"], [])
+        r["photos"] = photos_by_casting.get(r["id"], [])
     return rows
 
 
@@ -82,6 +88,7 @@ def get_casting(casting_id):
     unavail = (c.table("casting_unavailability").select("*")
                .eq("casting_id", casting_id).order("start_date").execute()).data or []
     row["unavailability"] = unavail
+    row["photos"] = list_photos(casting_id)
     return row
 
 
@@ -157,6 +164,57 @@ _HEADSHOT_TYPES = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp"
 MAX_HEADSHOT_BYTES = 5 * 1024 * 1024
 
 
+VALID_PHOTO_KIND = frozenset({"headshot", "full_body", "other"})
+
+
+def _photo_url(path):
+    return _headshot_url(path)  # same bucket + signing
+
+
+def list_photos(casting_id):
+    rows = (_client().table("casting_photos").select("*")
+            .eq("casting_id", casting_id)
+            .order("sort_order").order("created_at").execute()).data or []
+    return rows
+
+
+def serialize_photo(row):
+    return {
+        "id": row["id"], "kind": row["kind"], "caption": row.get("caption"),
+        "sort_order": row.get("sort_order", 0), "url": _photo_url(row["path"]),
+    }
+
+
+def store_photo(casting_id, script_id, kind, file_bytes, content_type):
+    if kind not in VALID_PHOTO_KIND:
+        raise ValueError(f"invalid photo kind: {kind}")
+    ext = _HEADSHOT_TYPES.get(content_type)
+    if not ext:
+        raise ValueError("Use a JPG, PNG, or WebP image.")
+    import uuid as _uuid
+    path = f"casting/{script_id}/{casting_id}/{_uuid.uuid4().hex}.{ext}"
+    _client().storage.from_(HEADSHOT_BUCKET).upload(
+        path, file_bytes, {"content-type": content_type})
+    res = (_client().table("casting_photos").insert({
+        "casting_id": casting_id, "path": path, "kind": kind,
+    }).execute())
+    return serialize_photo(res.data[0])
+
+
+def delete_photo(photo_id):
+    res = (_client().table("casting_photos").select("*")
+           .eq("id", photo_id).limit(1).execute())
+    if not res.data:
+        return None
+    row = res.data[0]
+    try:
+        _client().storage.from_(HEADSHOT_BUCKET).remove([row["path"]])
+    except Exception:
+        pass
+    _client().table("casting_photos").delete().eq("id", photo_id).execute()
+    return row
+
+
 def store_headshot(casting_id, script_id, file_bytes, content_type):
     ext = _HEADSHOT_TYPES.get(content_type)
     if not ext:
@@ -183,6 +241,7 @@ def serialize(row, *, include_contact, breakdown_names=None):
         "created_at": row.get("created_at"),
         "updated_at": row.get("updated_at"),
         "unavailability": row.get("unavailability", []),
+        "photos": [serialize_photo(p) for p in (row.get("photos") or [])],
     }
     if include_contact:
         for f in CONTACT_FIELDS:

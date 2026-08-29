@@ -116,6 +116,15 @@ def from_casting_unavailability(kwargs):
     return _lookup_script_id('casting', casting_id)
 
 
+def from_casting_photo(kwargs):
+    """Two-hop: casting_photos.casting_id -> casting.script_id."""
+    casting_id = _lookup_script_id('casting_photos', kwargs.get('photo_id'),
+                                   script_col='casting_id')
+    if not casting_id:
+        return None
+    return _lookup_script_id('casting', casting_id)
+
+
 from functools import wraps
 from flask import g, jsonify
 from middleware.auth import get_user_id

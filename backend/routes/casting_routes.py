@@ -5,6 +5,7 @@ from flask import Blueprint, request, jsonify, g
 from middleware.auth import require_auth, get_user_id
 from middleware.authorization import (
     require_script_role, from_script, from_casting, from_casting_unavailability,
+    from_casting_photo,
 )
 import services.casting_service as casting_service
 
@@ -128,6 +129,38 @@ def upload_headshot(casting_id):
         return jsonify({"error": str(e)}), 400
     updated = casting_service.update_casting(casting_id, {"headshot_path": path})
     return jsonify({"casting": _serialize_one(updated)}), 200
+
+
+@casting_bp.route("/api/casting/<casting_id>/photos", methods=["POST"])
+@require_auth
+@require_script_role("admin", resolver=from_casting)
+def add_casting_photo(casting_id):
+    file = request.files.get("file")
+    kind = request.args.get("kind", "other")
+    if not file:
+        return jsonify({"error": "No file provided"}), 400
+    blob = file.read()
+    if file.mimetype not in casting_service._HEADSHOT_TYPES:
+        return jsonify({"error": "Use a JPG, PNG, or WebP image."}), 400
+    if len(blob) > casting_service.MAX_HEADSHOT_BYTES:
+        return jsonify({"error": "That image is over 5 MB. Use a smaller file."}), 413
+    row = casting_service.get_casting(casting_id)
+    if not row:
+        return jsonify({"error": "Not found"}), 404
+    try:
+        photo = casting_service.store_photo(
+            casting_id, row["script_id"], kind, blob, file.mimetype)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    return jsonify({"photo": photo}), 201
+
+
+@casting_bp.route("/api/casting/photos/<photo_id>", methods=["DELETE"])
+@require_auth
+@require_script_role("admin", resolver=from_casting_photo)
+def delete_casting_photo(photo_id):
+    casting_service.delete_photo(photo_id)
+    return jsonify({"success": True}), 200
 
 
 @casting_bp.route("/api/scripts/<script_id>/casting/conflicts", methods=["GET"])
