@@ -1580,6 +1580,25 @@ threads (photos, tiers, groups, conflict resolution).
   `Contact` icons while the rest of the repo uses `AlertTriangle`. Purely
   cosmetic, no impact on functionality.
 
+**Follow-up — non-blocking minors (from final review, 2026-08-29).** None
+block the ship; batch them into a cleanup session.
+- `casting_group_service.set_group_scenes` isn't transactional — a mid-loop
+  failure leaves the scene set half-updated (delete-then-insert with no
+  rollback).
+- `delete_casting_photo` returns 200 for a non-existent id (no existence
+  check → silent no-op looks like success).
+- `store_photo` orphans the uploaded blob in Storage if the row insert
+  fails afterward. Pre-existing pattern (v1 headshot upload does the same).
+- `ConflictPanel` shares one reason-input value across all conflict rows —
+  typing a reason for one row shows it under every row until submit.
+- `CastPage.jsx` is ~430 lines — split out the sub-tab / tier-section
+  rendering.
+- Photo gallery has no "Remove" for the primary photo (matches v1 behaviour;
+  only added photos are removable).
+- `backend/tests/test_route_enforcement.py` doesn't cover the `casting.`
+  blueprint — add `"casting."` to `BLUEPRINT_PREFIXES` plus the new route arg
+  names. Would also retro-cover the v1 casting routes.
+
 **Verification evidence.**
 - Backend: `pytest tests/` = 553 passed, 1 skipped (DB trigger, manually verified)
 - Frontend: `npm run build` green
