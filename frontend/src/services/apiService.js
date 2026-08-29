@@ -2451,4 +2451,50 @@ export const getCastingConflicts = async (scriptId, scheduleId) => {
     return response.data;
 };
 
+export const addCastingPhoto = async (castingId, file, kind) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post(
+        `/api/casting/${castingId}/photos?kind=${encodeURIComponent(kind)}`,
+        formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+    return response.data;
+};
+
+export const deleteCastingPhoto = async (photoId) => {
+    const response = await api.delete(`/api/casting/photos/${photoId}`);
+    return response.data;
+};
+
+export const getCastingGroups = async (scriptId) => {
+    const response = await api.get(`/api/scripts/${scriptId}/casting-groups`);
+    return response.data;
+};
+
+export const createCastingGroup = async (scriptId, fields) => {
+    const response = await api.post(`/api/scripts/${scriptId}/casting-groups`, fields);
+    return response.data;
+};
+
+export const updateCastingGroup = async (groupId, fields) => {
+    const response = await api.patch(`/api/casting-groups/${groupId}`, fields);
+    return response.data;
+};
+
+export const deleteCastingGroup = async (groupId) => {
+    const response = await api.delete(`/api/casting-groups/${groupId}`);
+    return response.data;
+};
+
+export const setCastingGroupScenes = async (groupId, sceneIds) => {
+    const response = await api.put(`/api/casting-groups/${groupId}/scenes`, { scene_ids: sceneIds });
+    return response.data;
+};
+
+export const acknowledgeSceneConflict = async (dayId, sceneId, { acknowledged, reason }) => {
+    const response = await api.patch(
+        `/api/shooting-days/${dayId}/scenes/${sceneId}/conflict-ack`,
+        { acknowledged, reason });
+    return response.data;
+};
+
 export default api;
