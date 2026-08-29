@@ -225,4 +225,4 @@ def test_conflicts_no_active_schedule_returns_empty(monkeypatch):
     monkeypatch.setattr(cr.casting_service, "active_schedule_id", lambda sid: None)
     resp = _client().get("/api/scripts/s1/casting/conflicts")
     assert resp.status_code == 200
-    assert resp.get_json() == {"conflicts": [], "schedule_id": None}
+    assert resp.get_json() == {"conflicts": [], "acknowledged": [], "schedule_id": None}

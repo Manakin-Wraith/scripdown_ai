@@ -170,13 +170,13 @@ def delete_casting_photo(photo_id):
 def casting_conflicts(script_id):
     schedule_id = request.args.get("schedule_id") or casting_service.active_schedule_id(script_id)
     if not schedule_id:
-        return jsonify({"conflicts": [], "schedule_id": None}), 200
+        return jsonify({"conflicts": [], "acknowledged": [], "schedule_id": None}), 200
     owner = casting_service._client().table("shooting_schedules").select("script_id") \
         .eq("id", schedule_id).limit(1).execute()
     if not owner.data or owner.data[0]["script_id"] != script_id:
         return jsonify({"error": "Schedule not found for this script"}), 404
-    conflicts = casting_service.compute_conflicts(script_id, schedule_id)
-    return jsonify({"conflicts": conflicts, "schedule_id": schedule_id}), 200
+    result = casting_service.compute_conflicts(script_id, schedule_id)
+    return jsonify({**result, "schedule_id": schedule_id}), 200
 
 
 # --- Background casting groups -------------------------------------------------

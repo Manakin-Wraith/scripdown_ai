@@ -265,19 +265,47 @@ def _alias_map(script_id):
     return {norm_name(r["alias"]): norm_name(r["canonical_name"]) for r in rows}
 
 
+TIER_CONFLICT = ("lead", "supporting", "featured")
+
+
+def _suggested_day(days, current_day_id, scene_char_names, ranges_by_casting, casting_by_name):
+    """Earliest dated day (not current) whose date is outside every relevant
+    cast member's unavailability. `scene_char_names` = canonical names in the
+    conflicting scene that have a booked/offer lead|supporting|featured row."""
+    for d in sorted((x for x in days if x["id"] != current_day_id),
+                    key=lambda x: str(x["shoot_date"])):
+        ds = str(d["shoot_date"])
+        clash = False
+        for cname in scene_char_names:
+            row = casting_by_name.get(cname)
+            if not row:
+                continue
+            for rng in ranges_by_casting.get(row["id"], []):
+                if str(rng["start_date"]) <= ds <= str(rng["end_date"]):
+                    clash = True
+                    break
+            if clash:
+                break
+        if not clash:
+            return {"shooting_day_id": d["id"], "day_number": d["day_number"],
+                    "shoot_date": ds}
+    return None
+
+
 def compute_conflicts(script_id, schedule_id):
     c = _client()
+    empty = {"conflicts": [], "acknowledged": []}
     days = [d for d in (c.table("shooting_days").select("id, day_number, shoot_date")
             .eq("schedule_id", schedule_id).order("day_number").execute()).data or []
             if d.get("shoot_date")]
     if not days:
-        return []
+        return empty
     day_ids = [d["id"] for d in days]
     dps = (c.table("shooting_day_scenes").select("shooting_day_id, scene_id")
            .in_("shooting_day_id", day_ids).execute()).data or []
     scene_ids = list({p["scene_id"] for p in dps})
     if not scene_ids:
-        return []
+        return empty
     scenes = (c.table("scenes").select("id, characters")
               .in_("id", scene_ids).execute()).data or []
     amap = _alias_map(script_id)
@@ -293,11 +321,12 @@ def compute_conflicts(script_id, schedule_id):
         )
 
     casting_rows = [r for r in (c.table("casting")
-                    .select("id, character_name, actor_name, status")
+                    .select("id, character_name, actor_name, status, tier")
                     .eq("script_id", script_id).execute()).data or []
-                    if r.get("status") in CONFLICT_STATUSES]
+                    if r.get("status") in CONFLICT_STATUSES
+                    and (r.get("tier") or "supporting") in TIER_CONFLICT]
     if not casting_rows:
-        return []
+        return empty
     casting_by_name = {r["character_name"]: r for r in casting_rows}
     unavail = (c.table("casting_unavailability")
                .select("casting_id, start_date, end_date, reason")
@@ -311,27 +340,53 @@ def compute_conflicts(script_id, schedule_id):
     for p in dps:
         day_scene_ids.setdefault(p["shooting_day_id"], []).append(p["scene_id"])
 
-    out = []
+    ack_rows = (c.table("shooting_day_scenes")
+                .select("shooting_day_id, scene_id, conflict_ack, "
+                        "conflict_ack_reason, conflict_ack_by, conflict_ack_at")
+                .in_("shooting_day_id", day_ids).execute()).data or []
+    ack_by_key = {(r["shooting_day_id"], r["scene_id"]): r for r in ack_rows}
+
+    active, acknowledged = [], []
     for d in days:
         sd = str(d["shoot_date"])
         for cname in day_chars.get(d["id"], set()):
             row = casting_by_name.get(cname)
             if not row:
                 continue
+            matched = None
             for rng in ranges_by_casting.get(row["id"], []):
                 if str(rng["start_date"]) <= sd <= str(rng["end_date"]):
-                    scene_ids_for = [
-                        sid for sid in day_scene_ids.get(d["id"], [])
-                        if cname in scene_chars.get(sid, set())
-                    ]
-                    out.append({
-                        "shooting_day_id": d["id"],
-                        "day_number": d["day_number"],
-                        "shoot_date": sd,
-                        "character_name": cname,
-                        "actor_name": row.get("actor_name"),
-                        "reason": rng.get("reason"),
-                        "scene_ids": scene_ids_for,
-                    })
+                    matched = rng
                     break
-    return out
+            if not matched:
+                continue
+            scene_ids_for = [
+                sid for sid in day_scene_ids.get(d["id"], [])
+                if cname in scene_chars.get(sid, set())
+            ]
+            entry = {
+                "shooting_day_id": d["id"],
+                "day_number": d["day_number"],
+                "shoot_date": sd,
+                "character_name": cname,
+                "actor_name": row.get("actor_name"),
+                "reason": matched.get("reason"),
+                "scene_ids": scene_ids_for,
+            }
+            ack_for = [ack_by_key.get((d["id"], sid)) for sid in scene_ids_for]
+            if scene_ids_for and all(a and a.get("conflict_ack") for a in ack_for):
+                a = ack_for[0]
+                entry["ack_reason"] = a.get("conflict_ack_reason")
+                entry["ack_by"] = a.get("conflict_ack_by")
+                entry["ack_at"] = a.get("conflict_ack_at")
+                acknowledged.append(entry)
+            else:
+                scene_char_names = set()
+                for sid in scene_ids_for:
+                    scene_char_names |= (scene_chars.get(sid, set())
+                                         & set(casting_by_name))
+                entry["suggested_day"] = _suggested_day(
+                    days, d["id"], scene_char_names,
+                    ranges_by_casting, casting_by_name)
+                active.append(entry)
+    return {"conflicts": active, "acknowledged": acknowledged}
