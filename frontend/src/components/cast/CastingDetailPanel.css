@@ -16,12 +16,6 @@
     background: var(--bg-app); border: 1px solid var(--border-color);
     border-radius: var(--radius-sm); color: var(--text-secondary); cursor: pointer; }
 .cd-status button.active { background: var(--primary-alpha-15); border-color: var(--primary-500); color: var(--primary-300); }
-.cd-headshot { display: flex; align-items: center; gap: var(--space-3); }
-.cd-headshot img { width: 88px; height: 88px; object-fit: cover; border-radius: var(--radius-md); }
-.cd-headshot-empty { width: 88px; height: 88px; display: grid; place-items: center;
-    border: 1px dashed var(--gray-600); border-radius: var(--radius-md);
-    font-size: var(--text-2xs); color: var(--text-muted); }
-.cd-headshot-btn { font-size: var(--text-sm); color: var(--primary-400); cursor: pointer; }
 .cd-conflict-callout { display: flex; flex-direction: column; gap: 2px;
     padding: var(--space-3); margin-top: var(--space-4);
     background: var(--danger-bg); border-left: 3px solid var(--danger); border-radius: var(--radius-sm);
@@ -62,3 +56,8 @@
 .cd-photo-addtile { width: 72px; height: 72px; border: 1px dashed var(--gray-600); border-radius: var(--radius-md);
     display: grid; place-items: center; color: var(--text-muted); cursor: pointer; }
 .cd-photo-err { color: var(--danger); font-size: var(--text-xs); margin-top: var(--space-1); }
+
+.cd-scene-list { max-height: 220px; overflow-y: auto; border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md); padding: var(--space-2); margin: var(--space-2) 0; }
+.cd-scene-item { display: flex; gap: var(--space-2); align-items: center; padding: 2px 0;
+    font-size: var(--text-xs); color: var(--text-secondary); }

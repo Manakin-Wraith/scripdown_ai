@@ -59,3 +59,13 @@
 .tier-badge--supporting,
 .tier-badge--featured { color: var(--text-secondary); border: 1px solid var(--gray-600); }
 .tier-badge--background { color: var(--text-muted); border: 1px dashed var(--gray-600); }
+
+.cast-group-row { display: flex; align-items: center; gap: var(--space-3); width: 100%;
+    padding: var(--space-2) var(--space-4); background: var(--bg-card); border: none;
+    border-bottom: 1px solid var(--border-subtle); cursor: pointer; text-align: left; color: var(--text-primary); }
+.cast-group-row:hover { background: var(--bg-elevated); }
+.cast-group-row:focus-visible { outline: 2px solid var(--primary-500); outline-offset: -2px; }
+.cast-group-label { font-size: var(--text-sm); font-weight: 600; }
+.cast-group-count { font-size: var(--text-sm); color: var(--text-secondary); }
+.cast-group-scenes { flex: 1; font-size: var(--text-xs); color: var(--text-muted); }
+.cast-group-scenes--none { color: var(--warning); }
