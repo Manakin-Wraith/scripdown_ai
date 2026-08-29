@@ -17,6 +17,7 @@ export default function CastingGroupPanel({ scriptId, group, onClose, onChanged,
     const { confirm } = useConfirmDialog();
     const [row, setRow] = useState(group);
     const [saveState, setSaveState] = useState('idle');
+    const [canEdit, setCanEdit] = useState(true);
     const [scenes, setScenes] = useState([]);
     const [sceneFilter, setSceneFilter] = useState('');
     const [localSceneIds, setLocalSceneIds] = useState(new Set(group?.scene_ids || []));
@@ -39,7 +40,7 @@ export default function CastingGroupPanel({ scriptId, group, onClose, onChanged,
     const ensureRow = () => {
         if (idRef.current) return Promise.resolve(idRef.current);
         if (!createPromise.current) {
-            const label = (row?.label || '').trim();
+            const label = (draft.label ?? row?.label ?? '').trim();
             if (!label) return Promise.reject(new Error('label'));
             createPromise.current = createCastingGroup(scriptId, { label })
                 .then(({ group: g }) => { idRef.current = g.id; setRow(g); onCreated?.(g.id); return g.id; })
@@ -56,13 +57,17 @@ export default function CastingGroupPanel({ scriptId, group, onClose, onChanged,
             setRow(g); setSaveState('idle'); onChanged();
         } catch (e) {
             if (e?.message === 'label') { setSaveState('idle'); return; }
+            if (e?.response?.status === 403) { setCanEdit(false); setSaveState('idle'); return; }
             setSaveState('error');
         }
     };
 
     const flushScenes = async (ids) => {
         try { const id = await ensureRow(); await setCastingGroupScenes(id, [...ids]); onChanged(); }
-        catch { /* keep local state; retry on next toggle */ }
+        catch (e) {
+            if (e?.response?.status === 403) { setCanEdit(false); }
+            /* keep local state; retry on next toggle */
+        }
     };
     const toggleScene = (sid) => {
         setLocalSceneIds((prev) => {
@@ -78,9 +83,18 @@ export default function CastingGroupPanel({ scriptId, group, onClose, onChanged,
         if (idRef.current) flushScenes(sceneIdsRef.current);
     }, []); // flush on unmount
 
+    const [draft, setDraft] = useState({});
+    useEffect(() => { setDraft({}); }, [row?.id]);
+    const val = (name) => (name in draft ? draft[name] : (row?.[name] ?? ''));
     const field = (name, transform = (v) => v) => ({
-        defaultValue: row?.[name] ?? '',
-        onBlur: (e) => { const v = transform(e.target.value); if (v !== (row?.[name] ?? '')) persist({ [name]: v }); },
+        value: val(name),
+        onChange: (e) => setDraft((d) => ({ ...d, [name]: e.target.value })),
+        onBlur: (e) => {
+            const v = transform(e.target.value);
+            if (v !== (row?.[name] ?? '')) persist({ [name]: v });
+            setDraft((d) => { const n = { ...d }; delete n[name]; return n; });
+        },
+        disabled: !canEdit,
     });
 
     const onDelete = async () => {
@@ -110,10 +124,11 @@ export default function CastingGroupPanel({ scriptId, group, onClose, onChanged,
                     {saveState === 'idle' && '✓ All changes saved'}
                     {saveState === 'error' && '⚠ Couldn’t save — change a field to retry'}
                 </span>}
-                footer={idRef.current ? <button className="cd-delete" onClick={onDelete}>Delete group</button> : null}>
+                footer={canEdit && idRef.current ? <button className="cd-delete" onClick={onDelete}>Delete group</button> : null}>
+            {!canEdit && <p className="cd-muted">Only the owner and admins can edit casting.</p>}
+
             <label className="cd-label">Label</label>
-            <input type="text" {...field('label')} placeholder="e.g. Restaurant patrons"
-                   onChange={(e) => setRow((r) => ({ ...(r || {}), label: e.target.value }))} />
+            <input type="text" {...field('label')} placeholder="e.g. Restaurant patrons" />
 
             <div className="cd-tier-status">
                 <div>
@@ -123,7 +138,7 @@ export default function CastingGroupPanel({ scriptId, group, onClose, onChanged,
                 </div>
                 <div>
                     <label className="cd-label" htmlFor="grp-status">Status</label>
-                    <select id="grp-status" value={row?.status || 'wishlist'}
+                    <select id="grp-status" value={row?.status || 'wishlist'} disabled={!canEdit}
                             onChange={(e) => persist({ status: e.target.value })}>
                         {STATUSES.map((s) => <option key={s} value={s}>{LABEL[s]}</option>)}
                     </select>
@@ -131,7 +146,10 @@ export default function CastingGroupPanel({ scriptId, group, onClose, onChanged,
             </div>
 
             <label className="cd-label">Day rate (optional)</label>
-            <input type="number" min="0" {...field('day_rate', (v) => (v === '' ? null : Number(v)))} />
+            <span className="cd-rate">
+                <span>R</span>
+                <input type="number" min="0" {...field('day_rate', (v) => (v === '' ? null : Number(v)))} />
+            </span>
 
             <p className="cd-section">Scenes</p>
             {scenes.length > 12 && (
@@ -141,7 +159,7 @@ export default function CastingGroupPanel({ scriptId, group, onClose, onChanged,
             <div className="cd-scene-list" role="group" aria-label="Scenes">
                 {visibleScenes.map((s) => (
                     <label key={s.id} className="cd-scene-item">
-                        <input type="checkbox" checked={localSceneIds.has(s.id)}
+                        <input type="checkbox" checked={localSceneIds.has(s.id)} disabled={!canEdit}
                                onChange={() => toggleScene(s.id)} />
                         <span>{s.scene_number} · {sceneHeading(s)}</span>
                     </label>
