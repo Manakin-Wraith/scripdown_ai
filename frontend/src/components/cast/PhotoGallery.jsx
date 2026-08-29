@@ -39,7 +39,7 @@ export default function PhotoGallery({ castingId, primaryUrl, photos = [], canEd
                     <label className="cd-photo-btn">
                         {primaryUrl ? 'Replace' : 'Upload'}
                         <input type="file" accept="image/jpeg,image/png,image/webp" hidden
-                               onChange={(e) => onPrimaryFile(e.target.files?.[0])} />
+                               onChange={onPrimaryFile} />
                     </label>
                 )}
             </div>
