@@ -3,6 +3,7 @@ serialization, and availability-conflict computation.
 
 See docs/superpowers/specs/2026-08-27-cast-casting-v1-design.md.
 """
+import uuid as _uuid
 from datetime import date, datetime
 
 from db.supabase_client import get_supabase_admin
@@ -69,7 +70,8 @@ def list_casting(script_id):
     for u in unavail:
         by_casting.setdefault(u["casting_id"], []).append(u)
     photos = (c.table("casting_photos").select("*")
-              .in_("casting_id", ids).order("sort_order").execute()).data or []
+              .in_("casting_id", ids).order("sort_order").order("created_at")
+              .execute()).data or []
     photos_by_casting = {}
     for p in photos:
         photos_by_casting.setdefault(p["casting_id"], []).append(p)
@@ -191,7 +193,6 @@ def store_photo(casting_id, script_id, kind, file_bytes, content_type):
     ext = _HEADSHOT_TYPES.get(content_type)
     if not ext:
         raise ValueError("Use a JPG, PNG, or WebP image.")
-    import uuid as _uuid
     path = f"casting/{script_id}/{casting_id}/{_uuid.uuid4().hex}.{ext}"
     _client().storage.from_(HEADSHOT_BUCKET).upload(
         path, file_bytes, {"content-type": content_type})

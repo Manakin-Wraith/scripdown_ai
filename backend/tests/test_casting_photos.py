@@ -47,26 +47,33 @@ class FakeTable:
 
 
 class _FakeBucket:
-    def upload(self, *a, **k): return None
-    def remove(self, *a, **k): return None
+    def __init__(self, log): self.log = log
+    def upload(self, path, *a, **k): self.log.append(("upload", path)); return None
+    def remove(self, paths, *a, **k): self.log.append(("remove", paths)); return None
     def create_signed_url(self, *a, **k): return {"signedURL": "https://signed/photo"}
 
 
 class _FakeStorage:
-    def from_(self, bucket): return _FakeBucket()
+    def __init__(self, log): self.log = log
+    def from_(self, bucket): return _FakeBucket(self.log)
 
 
 class FakeClient:
-    def __init__(self, store): self.store = store
+    def __init__(self, store, storage_log):
+        self.store, self._storage_log = store, storage_log
     def table(self, name): return FakeTable(self.store, name)
     @property
-    def storage(self): return _FakeStorage()
+    def storage(self): return _FakeStorage(self._storage_log)
+
+
+STORAGE_LOG = []
 
 
 @pytest.fixture
 def mock_client(monkeypatch):
     store = {"casting": [], "casting_unavailability": [], "casting_photos": []}
-    monkeypatch.setattr(cs, "_client", lambda: FakeClient(store))
+    STORAGE_LOG.clear()
+    monkeypatch.setattr(cs, "_client", lambda: FakeClient(store, STORAGE_LOG))
     return store
 
 
@@ -84,6 +91,13 @@ class TestPhotoService:
         assert photo["url"]  # signed URL present
         photos = casting_service.list_photos(seed_casting["id"])
         assert [p["id"] for p in photos] == [photo["id"]]
+        # storage-path convention: per-casting subfolder, NOT the v1 headshot path
+        uploaded = [p for op, p in STORAGE_LOG if op == "upload"]
+        assert len(uploaded) == 1
+        cid = seed_casting["id"]
+        assert uploaded[0].startswith(f"casting/s1/{cid}/")
+        assert uploaded[0].endswith(".png")
+        assert uploaded[0] != f"casting/s1/{cid}.png"  # v1 headshot path untouched
 
     def test_store_photo_rejects_bad_type(self, mock_client, seed_casting):
         with pytest.raises(ValueError):
