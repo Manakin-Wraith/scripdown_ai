@@ -3,12 +3,17 @@
 -- Apply manually against the Supabase project (run_migration.py is dead).
 --
 -- Delete-user ordering note (013_delete_user_safely.sql deletes scripts then
--- profiles): profiles delete cascades to productions (050) which cascades to
--- production_crew via production_crew.production_id BEFORE the profiles ->
--- contacts cascade fires, so the ON DELETE RESTRICT on
--- production_crew.contact_id is never violated during user deletion. This
--- ordering is load-bearing; do not "soften" contact_id to CASCADE without
--- re-checking that script.
+-- profiles): when profiles is deleted, Postgres fires the two FK cascades from
+-- profiles (-> productions via 050, -> contacts via this migration) in
+-- constraint-creation order. Today 050 runs before 051, so productions (and its
+-- ON DELETE CASCADE to production_crew.production_id) is cleared before the
+-- profiles -> contacts cascade reaches production_crew.contact_id (ON DELETE
+-- RESTRICT). This ordering is NOT guaranteed: a pg_dump / pg_restore
+-- alphabetises constraints ("contacts" before "productions"), which inverts the
+-- order and produces a 23503 RESTRICT violation on user deletion. The durable
+-- fix is the explicit `DELETE FROM production_crew ...` added to
+-- 013_delete_user_safely.sql before the profiles row is deleted; do not rely on
+-- cascade ordering here.
 
 -- ============================================
 -- 1. contacts -- account-level reusable directory

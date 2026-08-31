@@ -12,6 +12,19 @@ from services import department_service
 ASSIGN_FIELDS = ("role", "department_code", "job_rate", "job_rate_unit",
                  "start_date", "end_date", "notes")
 
+VALID_RATE_UNITS = frozenset(("day", "week", "flat"))
+
+
+def _validate_assignment(fields):
+    """Return a sentinel string for a CHECK-constraint violation, or None."""
+    unit = fields.get("job_rate_unit")
+    if unit is not None and unit not in VALID_RATE_UNITS:
+        return "bad_rate_unit"
+    start, end = fields.get("start_date"), fields.get("end_date")
+    if start is not None and end is not None and str(end) < str(start):
+        return "bad_dates"
+    return None
+
 
 def _contacts_by_id(supabase, ids):
     if not ids:
@@ -55,6 +68,9 @@ def add_crew(production_id, user_id, fields):
     dept = fields.get("department_code")
     if dept and dept not in valid_department_codes():
         return "bad_department"
+    bad = _validate_assignment(fields)
+    if bad:
+        return bad
     row = {"production_id": production_id, "contact_id": contact_id}
     for f in ASSIGN_FIELDS:
         if fields.get(f) is not None:
@@ -76,6 +92,9 @@ def update_crew(production_id, crew_id, fields):
     dept = fields.get("department_code")
     if dept and dept not in valid_department_codes():
         return "bad_department"
+    bad = _validate_assignment(fields)
+    if bad:
+        return bad
     patch = {f: fields[f] for f in ASSIGN_FIELDS if f in fields}
     if patch:
         supabase.table("production_crew").update(patch).eq("id", crew_id).execute()
@@ -91,12 +110,11 @@ def remove_crew(production_id, crew_id):
 def _find_contact_by_email(supabase, user_id, email):
     if not email:
         return None
+    # ilike with no wildcards == case-insensitive equality.
     res = (supabase.table("contacts").select("*")
-           .eq("owner_id", user_id).execute().data or [])
-    for c in res:
-        if (c.get("email") or "").strip().lower() == email.strip().lower():
-            return c
-    return None
+           .eq("owner_id", user_id).ilike("email", email.strip())
+           .limit(1).execute().data or [])
+    return res[0] if res else None
 
 
 def _has_same_role_assignment(supabase, production_id, contact_id, role):

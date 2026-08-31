@@ -87,8 +87,14 @@ export default function ProductionCrewTab({ productionId }) {
         if (!groups.has(key)) groups.set(key, []);
         groups.get(key).push(row);
     }
+    const knownKeys = departments.map((d) => d.code).filter((c) => groups.has(c));
+    // Any grouped department code not in the fetched departments list (renamed,
+    // removed, or getDepartments() failed) — keep its rows visible.
+    const orphanKeys = [...groups.keys()].filter(
+        (k) => k !== UNASSIGNED_KEY && !knownKeys.includes(k));
     const orderedKeys = [
-        ...departments.map((d) => d.code).filter((c) => groups.has(c)),
+        ...knownKeys,
+        ...orphanKeys,
         ...(groups.has(UNASSIGNED_KEY) ? [UNASSIGNED_KEY] : []),
     ];
 

@@ -37,9 +37,12 @@ export default function ContactFormModal({ initial, onSubmit, onClose, saving, t
         const name = form.name.trim();
         if (!name || saving) return;
 
-        const clean = (v) => {
+        // CREATE: omit empty optional fields. EDIT: send explicit null for a
+        // cleared field so update_contact (patches only present keys) nulls it.
+        const opt = (v) => {
             const t = typeof v === 'string' ? v.trim() : v;
-            return t === '' || t === null || t === undefined ? undefined : t;
+            if (t === '' || t === null || t === undefined) return isEdit ? null : undefined;
+            return t;
         };
 
         const roleTags = form.role_tags
@@ -52,14 +55,14 @@ export default function ContactFormModal({ initial, onSubmit, onClose, saving, t
         onSubmit({
             name,
             kind: form.kind,
-            company_name: clean(form.company_name),
-            role_tags: roleTags.length ? roleTags : undefined,
-            phone: clean(form.phone),
-            email: clean(form.email),
-            agent_contact: clean(form.agent_contact),
-            standard_rate: Number.isFinite(rate) ? rate : undefined,
-            rate_unit: clean(form.rate_unit),
-            notes: clean(form.notes),
+            company_name: opt(form.company_name),
+            role_tags: roleTags.length ? roleTags : (isEdit ? [] : undefined),
+            phone: opt(form.phone),
+            email: opt(form.email),
+            agent_contact: opt(form.agent_contact),
+            standard_rate: Number.isFinite(rate) ? rate : (isEdit ? null : undefined),
+            rate_unit: opt(form.rate_unit),
+            notes: opt(form.notes),
         });
     };
 

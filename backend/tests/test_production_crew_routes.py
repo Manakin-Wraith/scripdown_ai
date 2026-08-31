@@ -17,12 +17,30 @@ from middleware.auth import DEV_USER_ID
 from postgrest.exceptions import APIError
 
 
+def _ilike_match(cell, pattern):
+    c = str(cell or "").lower()
+    p = str(pattern).lower()
+    if "%" in p:
+        return p.strip("%") in c
+    return c == p
+
+
+def _or_match(row, expr):
+    for clause in expr.split(","):
+        col, op, val = clause.split(".", 2)
+        if op == "ilike" and _ilike_match(row.get(col), val):
+            return True
+    return False
+
+
 class MockTable:
     def __init__(self, name, store):
         self.name = name
         self.store = store
         self._filters = {}          # col -> value for .eq
         self._is_null = set()       # cols asserted IS NULL via .is_
+        self._ilike = []            # (col, pattern) from .ilike
+        self._or = None             # raw PostgREST or_ expression
         self._op = None
         self._payload = None
         self._single = False
@@ -50,6 +68,12 @@ class MockTable:
     def in_(self, col, values):
         self._filters[col] = ("__in__", set(values)); return self
 
+    def ilike(self, col, pattern):
+        self._ilike.append((col, pattern)); return self
+
+    def or_(self, expr):
+        self._or = expr; return self
+
     def order(self, col, desc=False):
         self._order = (col, desc); return self
 
@@ -72,6 +96,11 @@ class MockTable:
         for col in self._is_null:
             if r.get(col) is not None:
                 return False
+        for col, pattern in self._ilike:
+            if not _ilike_match(r.get(col), pattern):
+                return False
+        if self._or is not None and not _or_match(r, self._or):
+            return False
         return True
 
     def _filtered(self):
@@ -176,6 +205,44 @@ def test_add_crew_contact_not_owned_is_400(monkeypatch):
     store = _store(contacts=[{"id": "c9", "owner_id": "other", "name": "X", "kind": "person"}])
     _patch(monkeypatch, store)
     resp = _client().post("/api/productions/p1/crew", json={"contact_id": "c9"})
+    assert resp.status_code == 400
+
+
+def test_add_crew_bad_rate_unit_is_400(monkeypatch):
+    store = _store()
+    _patch(monkeypatch, store)
+    resp = _client().post("/api/productions/p1/crew",
+                          json={"contact_id": "c1", "job_rate_unit": "hour"})
+    assert resp.status_code == 400
+    assert "job_rate_unit" in resp.get_json()["error"]
+    assert store["production_crew"] == []
+
+
+def test_add_crew_end_before_start_is_400(monkeypatch):
+    store = _store()
+    _patch(monkeypatch, store)
+    resp = _client().post("/api/productions/p1/crew",
+                          json={"contact_id": "c1", "start_date": "2026-05-10",
+                                "end_date": "2026-05-01"})
+    assert resp.status_code == 400
+    assert store["production_crew"] == []
+
+
+def test_patch_crew_bad_rate_unit_is_400(monkeypatch):
+    store = _store(production_crew=[
+        {"id": "w1", "production_id": "p1", "contact_id": "c1", "role": "Gaffer"}])
+    _patch(monkeypatch, store)
+    resp = _client().patch("/api/productions/p1/crew/w1", json={"job_rate_unit": "month"})
+    assert resp.status_code == 400
+    assert store["production_crew"][0].get("job_rate_unit") is None
+
+
+def test_patch_crew_end_before_start_is_400(monkeypatch):
+    store = _store(production_crew=[
+        {"id": "w1", "production_id": "p1", "contact_id": "c1"}])
+    _patch(monkeypatch, store)
+    resp = _client().patch("/api/productions/p1/crew/w1",
+                           json={"start_date": "2026-05-10", "end_date": "2026-05-01"})
     assert resp.status_code == 400
 
 

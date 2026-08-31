@@ -36,12 +36,14 @@ def list_contacts(user_id, q=None, kind=None):
     query = supabase.table("contacts").select("*").eq("owner_id", user_id)
     if kind:
         query = query.eq("kind", kind)
-    rows = query.order("name").execute().data or []
     if q:
-        needle = q.strip().lower()
-        rows = [r for r in rows if needle in " ".join(
-            str(r.get(f) or "") for f in ("name", "company_name", "email")).lower()]
-    return rows
+        # Server-side substring search; strip PostgREST filter metacharacters
+        # so a stray %/, can't break out of the or_ expression.
+        needle = q.strip().replace("%", "").replace(",", "")
+        if needle:
+            query = query.or_(
+                f"name.ilike.%{needle}%,company_name.ilike.%{needle}%,email.ilike.%{needle}%")
+    return query.order("name").execute().data or []
 
 
 def create_contact(user_id, fields):

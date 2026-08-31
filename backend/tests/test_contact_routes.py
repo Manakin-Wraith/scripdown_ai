@@ -17,12 +17,30 @@ from middleware.auth import DEV_USER_ID
 from postgrest.exceptions import APIError
 
 
+def _ilike_match(cell, pattern):
+    c = str(cell or "").lower()
+    p = str(pattern).lower()
+    if "%" in p:
+        return p.strip("%") in c
+    return c == p
+
+
+def _or_match(row, expr):
+    for clause in expr.split(","):
+        col, op, val = clause.split(".", 2)
+        if op == "ilike" and _ilike_match(row.get(col), val):
+            return True
+    return False
+
+
 class MockTable:
     def __init__(self, name, store):
         self.name = name
         self.store = store
         self._filters = {}          # col -> value for .eq
         self._is_null = set()       # cols asserted IS NULL via .is_
+        self._ilike = []            # (col, pattern) from .ilike
+        self._or = None             # raw PostgREST or_ expression
         self._op = None
         self._payload = None
         self._single = False
@@ -50,6 +68,12 @@ class MockTable:
     def in_(self, col, values):
         self._filters[col] = ("__in__", set(values)); return self
 
+    def ilike(self, col, pattern):
+        self._ilike.append((col, pattern)); return self
+
+    def or_(self, expr):
+        self._or = expr; return self
+
     def order(self, col, desc=False):
         self._order = (col, desc); return self
 
@@ -72,6 +96,11 @@ class MockTable:
         for col in self._is_null:
             if r.get(col) is not None:
                 return False
+        for col, pattern in self._ilike:
+            if not _ilike_match(r.get(col), pattern):
+                return False
+        if self._or is not None and not _or_match(r, self._or):
+            return False
         return True
 
     def _filtered(self):
@@ -176,6 +205,33 @@ def test_list_returns_only_callers_contacts(monkeypatch):
     assert [c["name"] for c in body["contacts"]] == ["Mine"]
 
 
+def test_list_q_filters_server_side_across_name_company_email(monkeypatch):
+    store = _store(contacts=[
+        {"id": "c1", "owner_id": DEV_USER_ID, "name": "Gary Gaffer", "company_name": None,
+         "email": None, "kind": "person"},
+        {"id": "c2", "owner_id": DEV_USER_ID, "name": "Someone", "company_name": "Acme Grip Co",
+         "email": None, "kind": "company"},
+        {"id": "c3", "owner_id": DEV_USER_ID, "name": "Third", "company_name": None,
+         "email": "gary@example.com", "kind": "person"},
+        {"id": "c4", "owner_id": DEV_USER_ID, "name": "Nope", "company_name": None,
+         "email": None, "kind": "person"},
+    ])
+    _patch(monkeypatch, store)
+    names = {c["name"] for c in _client().get("/api/contacts?q=gary").get_json()["contacts"]}
+    assert names == {"Gary Gaffer", "Third"}
+    assert [c["name"] for c in _client().get("/api/contacts?q=grip").get_json()["contacts"]] == ["Someone"]
+
+
+def test_list_q_strips_postgrest_metacharacters(monkeypatch):
+    store = _store(contacts=[
+        {"id": "c1", "owner_id": DEV_USER_ID, "name": "Gary", "company_name": None,
+         "email": None, "kind": "person"}])
+    _patch(monkeypatch, store)
+    resp = _client().get("/api/contacts?q=ga%,ry")
+    assert resp.status_code == 200
+    assert [c["name"] for c in resp.get_json()["contacts"]] == ["Gary"]
+
+
 def test_get_patch_delete_other_users_contact_is_404(monkeypatch):
     store = _store(contacts=[{"id": "c2", "owner_id": "other", "name": "Theirs", "kind": "person"}])
     _patch(monkeypatch, store)
@@ -193,6 +249,19 @@ def test_patch_updates_only_given_fields(monkeypatch):
     assert resp.status_code == 200
     assert store["contacts"][0]["name"] == "Old"
     assert store["contacts"][0]["phone"] == "222"
+
+
+def test_patch_explicit_null_clears_optional_field(monkeypatch):
+    store = _store(contacts=[
+        {"id": "c1", "owner_id": DEV_USER_ID, "name": "Gary", "phone": "111",
+         "email": "g@x.com", "role_tags": ["gaffer"], "kind": "person"},
+    ])
+    _patch(monkeypatch, store)
+    resp = _client().patch("/api/contacts/c1", json={"phone": None, "role_tags": []})
+    assert resp.status_code == 200
+    assert store["contacts"][0]["phone"] is None
+    assert store["contacts"][0]["role_tags"] == []
+    assert store["contacts"][0]["email"] == "g@x.com"
 
 
 def test_delete_blocked_when_assigned(monkeypatch):

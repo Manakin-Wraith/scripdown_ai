@@ -175,12 +175,20 @@ def add_production_crew(production_id):
     if err:
         return err, status
     data = request.get_json(silent=True) or {}
-    result = crew_svc.add_crew(production_id, get_user_id(), data)
-    if result == "bad_contact":
-        return jsonify({"error": "contact_id must be one of your contacts"}), 400
-    if result == "bad_department":
-        return jsonify({"error": "Unknown department_code"}), 400
-    return jsonify({"crew": result}), 201
+    try:
+        result = crew_svc.add_crew(production_id, get_user_id(), data)
+        if result == "bad_contact":
+            return jsonify({"error": "contact_id must be one of your contacts"}), 400
+        if result == "bad_department":
+            return jsonify({"error": "Unknown department_code"}), 400
+        if result == "bad_rate_unit":
+            return jsonify({"error": "job_rate_unit must be one of: day, week, flat"}), 400
+        if result == "bad_dates":
+            return jsonify({"error": "end_date must be on or after start_date"}), 400
+        return jsonify({"crew": result}), 201
+    except Exception as e:
+        print(f"Error adding production crew: {e}")
+        return jsonify({"error": str(e)}), 500
 
 
 @production_bp.route("/api/productions/<production_id>/crew/<crew_id>", methods=["PATCH"])
@@ -190,12 +198,20 @@ def update_production_crew(production_id, crew_id):
     if err:
         return err, status
     data = request.get_json(silent=True) or {}
-    result = crew_svc.update_crew(production_id, crew_id, data)
-    if result == "not_found":
-        return jsonify({"error": "Crew assignment not found"}), 404
-    if result == "bad_department":
-        return jsonify({"error": "Unknown department_code"}), 400
-    return jsonify({"crew": result})
+    try:
+        result = crew_svc.update_crew(production_id, crew_id, data)
+        if result == "not_found":
+            return jsonify({"error": "Crew assignment not found"}), 404
+        if result == "bad_department":
+            return jsonify({"error": "Unknown department_code"}), 400
+        if result == "bad_rate_unit":
+            return jsonify({"error": "job_rate_unit must be one of: day, week, flat"}), 400
+        if result == "bad_dates":
+            return jsonify({"error": "end_date must be on or after start_date"}), 400
+        return jsonify({"crew": result})
+    except Exception as e:
+        print(f"Error updating production crew: {e}")
+        return jsonify({"error": str(e)}), 500
 
 
 @production_bp.route("/api/productions/<production_id>/crew/import", methods=["POST"])
