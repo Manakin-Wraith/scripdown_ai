@@ -191,6 +191,45 @@
 
 .production-crew-placeholder { color: #6b7a94; padding: 24px 0; }
 
+.production-crew-actions { display: flex; gap: 8px; }
+.production-crew-actions button {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: #26324a; color: #e6ecf5; border: none; border-radius: 6px;
+    padding: 6px 12px; cursor: pointer;
+}
+.production-crew-actions button:hover { background: #33415a; }
+.production-crew-group { margin-top: 20px; }
+.production-crew-group h4 {
+    margin: 0 0 8px; font-size: 13px; text-transform: uppercase;
+    letter-spacing: 0.04em; color: #9fb0c9;
+}
+.production-crew-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.production-crew-list li {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 10px 14px; background: #131c2e; border: 1px solid #26324a; border-radius: 6px;
+}
+.production-crew-row-main { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.production-crew-name { color: #e6ecf5; font-weight: 600; }
+.production-crew-role { color: #cdd7e6; font-size: 13px; }
+.production-crew-rate, .production-crew-dates { color: #6b7a94; font-size: 12px; }
+.production-crew-row-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.production-crew-row-actions button {
+    background: none; border: none; color: #9fb0c9; cursor: pointer; font-size: 13px;
+}
+.production-crew-row-actions button:hover { color: #f5b301; }
+
+.crew-contact-picked { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.crew-contact-picked span { color: #e6ecf5; }
+.crew-contact-picked button, .crew-create-toggle {
+    background: none; border: none; color: #f5b301; cursor: pointer; font-size: 13px; align-self: flex-start; padding: 0;
+}
+.crew-new-contact { display: flex; flex-direction: column; gap: 10px; border-left: 2px solid #33415a; padding-left: 10px; }
+.crew-search-hint { color: #6b7a94; font-size: 12px; margin: 4px 0 0; }
+.crew-import-help { color: #9fb0c9; font-size: 13px; }
+.crew-import-help a { color: #f5b301; }
+.crew-import-summary { color: #e6ecf5; margin: 12px 0; }
+.crew-import-skipped { color: #9fb0c9; font-size: 13px; margin: 0 0 12px; padding-left: 18px; }
+
 .production-overview { display: flex; flex-direction: column; gap: 14px; margin-bottom: 32px; }
 .production-overview label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #9fb0c9; }
 .production-overview input,

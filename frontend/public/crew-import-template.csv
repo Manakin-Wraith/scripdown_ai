@@ -1,0 +1,3 @@
+name,email,phone,company_name,role,department,rate,rate_unit,notes
+Jane Gaffer,jane@example.com,+27 82 000 0000,,Gaffer,camera,900,day,Owns own kit
+Acme Catering,info@acmecatering.com,+27 21 555 0000,Acme Catering,Caterer,,15000,flat,Vegan options
