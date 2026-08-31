@@ -99,17 +99,6 @@ def _find_contact_by_email(supabase, user_id, email):
     return None
 
 
-def _find_contact_by_name(supabase, user_id, name):
-    if not name:
-        return None
-    res = (supabase.table("contacts").select("*")
-           .eq("owner_id", user_id).execute().data or [])
-    for c in res:
-        if (c.get("name") or "").strip().lower() == name.strip().lower():
-            return c
-    return None
-
-
 def _has_same_role_assignment(supabase, production_id, contact_id, role):
     rows = (supabase.table("production_crew").select("role")
             .eq("production_id", production_id).eq("contact_id", contact_id)
@@ -133,8 +122,6 @@ def import_crew_csv(production_id, user_id, csv_text):
 
     for row in parsed["rows"]:
         contact = _find_contact_by_email(supabase, user_id, row["email"])
-        if not contact and not row["email"]:
-            contact = _find_contact_by_name(supabase, user_id, row["name"])
         if contact:
             matched += 1
         else:

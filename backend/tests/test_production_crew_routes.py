@@ -281,13 +281,25 @@ def test_import_happy_path_counts(monkeypatch):
 def test_import_is_idempotent_on_rerun(monkeypatch):
     store = _store(contacts=[])
     _patch(monkeypatch, store)
-    csv_text = "name,role\nGary,Gaffer\n"
+    csv_text = "name,email,role\nGary,gary@x.com,Gaffer\n"
     _post_csv(_client(), "p1", csv_text)
     resp = _post_csv(_client(), "p1", csv_text)
     body = resp.get_json()
     assert body["assignments_created"] == 0
     assert body["skipped"] and "already on crew" in body["skipped"][0]["reason"]
+    assert len(store["contacts"]) == 1
     assert len(store["production_crew"]) == 1
+
+
+def test_import_emailless_row_not_idempotent(monkeypatch):
+    store = _store(contacts=[])
+    _patch(monkeypatch, store)
+    csv_text = "name,role\nGary,Gaffer\n"
+    _post_csv(_client(), "p1", csv_text)
+    _post_csv(_client(), "p1", csv_text)
+    garys = [c for c in store["contacts"] if c["name"] == "Gary"]
+    assert len(garys) == 2
+    assert len(store["production_crew"]) == 2
 
 
 def test_import_email_match_scoped_to_owner(monkeypatch):
