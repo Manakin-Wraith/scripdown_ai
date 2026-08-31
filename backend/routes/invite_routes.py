@@ -19,6 +19,7 @@ from middleware.auth import require_auth, get_user_id
 from middleware.authorization import require_script_role, from_script, ROLE_RANK
 from services.entitlement_service import require_team_tier, get_entitlement
 from services.email_service import send_invite_accepted_notification, send_team_invite, send_member_removed, send_invite_revoked, send_test_email, is_configured as email_configured
+from services.department_service import get_departments_list, get_department_name
 
 invite_bp = Blueprint('invite', __name__)
 
@@ -31,29 +32,6 @@ except ValueError:
 
 # Frontend URL for email links
 FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5173')
-
-# Cache for departments from database
-_departments_cache = None
-
-def get_departments_list():
-    """Get departments from database with caching."""
-    global _departments_cache
-    if _departments_cache is None and supabase:
-        try:
-            result = supabase.table('departments').select('code, name, color').order('sort_order').execute()
-            _departments_cache = result.data or []
-        except Exception as e:
-            print(f"Error fetching departments: {e}")
-            _departments_cache = []
-    return _departments_cache or []
-
-def get_department_name(code):
-    """Get department name by code."""
-    depts = get_departments_list()
-    for d in depts:
-        if d['code'] == code:
-            return d['name']
-    return code
 
 def generate_invite_token():
     """Generate a secure random token for invite links."""
