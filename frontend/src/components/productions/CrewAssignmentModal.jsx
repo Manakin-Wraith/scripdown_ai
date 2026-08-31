@@ -8,7 +8,6 @@ import {
 
 const RATE_UNITS = [
     { value: '', label: '—' },
-    { value: 'hour', label: 'hour' },
     { value: 'day', label: 'day' },
     { value: 'week', label: 'week' },
     { value: 'flat', label: 'flat' },
@@ -78,15 +77,30 @@ export default function CrewAssignmentModal({ productionId, initial, departments
         setQuery('');
     };
 
-    const buildAssignmentFields = () => ({
-        role: clean(form.role),
-        department_code: form.department_code === '' ? null : form.department_code,
-        job_rate: form.job_rate === '' ? undefined : Number(form.job_rate),
-        job_rate_unit: clean(form.job_rate_unit),
-        start_date: clean(form.start_date),
-        end_date: clean(form.end_date),
-        notes: clean(form.notes),
-    });
+    // CREATE: omit empty fields. EDIT: send explicit null for cleared fields so
+    // update_crew (patches only present keys) can null them out.
+    const buildAssignmentFields = () => {
+        if (isEdit) {
+            return {
+                role: form.role.trim() === '' ? null : form.role.trim(),
+                department_code: form.department_code === '' ? null : form.department_code,
+                job_rate: form.job_rate === '' ? null : Number(form.job_rate),
+                job_rate_unit: form.job_rate_unit === '' ? null : form.job_rate_unit,
+                start_date: form.start_date === '' ? null : form.start_date,
+                end_date: form.end_date === '' ? null : form.end_date,
+                notes: form.notes.trim() === '' ? null : form.notes.trim(),
+            };
+        }
+        return {
+            role: clean(form.role),
+            department_code: form.department_code === '' ? null : form.department_code,
+            job_rate: form.job_rate === '' ? undefined : Number(form.job_rate),
+            job_rate_unit: clean(form.job_rate_unit),
+            start_date: clean(form.start_date),
+            end_date: clean(form.end_date),
+            notes: clean(form.notes),
+        };
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
