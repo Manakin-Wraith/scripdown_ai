@@ -21,30 +21,33 @@ gallery, cast tiers (leads/supporting/featured/background), background groups
 by headcount, and in-app conflict resolution. Still ahead in that cluster:
 crew + call sheets + sides, auto-scheduling, department workspaces.
 
-## Priority snapshot — 2026-08-29
+## Priority snapshot — 2026-08-31
 
 Ranked view of everything open below. Billing lifecycle stays deferred by
 the 2026-08-27 decision; the active thrust is production-management depth.
 
+**Production data model — DIRECTION DECIDED 2026-08-31.** Umbrella
+brainstorm complete → `docs/superpowers/specs/2026-08-31-production-data-model-design.md`:
+a top-level `production` entity (independent axis from series/seasons),
+account-level `contacts` + `locations` directories, additive
+`production_members` permission layer, `units` now, production-level
+schedule later (per-script rollup first). **Build-sequence step 1 ("the
+spine") shipped to `main` 2026-08-31** — `production` entity, `/productions`
++ detail page, script association, migration 050 applied
+(`docs/superpowers/plans/2026-08-31-production-spine.md`). Steps 2–4 below.
+
 **Do next (unblocks the most):**
-1. **Production data model — DIRECTION DECIDED 2026-08-31.** Umbrella
-   brainstorm complete → `docs/superpowers/specs/2026-08-31-production-data-model-design.md`.
-   Introduce a top-level `production` entity (independent axis from
-   series/seasons), account-level `contacts` + `locations` directories,
-   additive `production_members` permission layer, `units` now,
-   schedule model supports production-level later (per-script rollup
-   first). Next: step 1 ("the spine") shipped, code-complete pending manual migration apply — see `docs/superpowers/plans/2026-08-31-production-spine.md`. Step 2: brainstorm crew / contacts / production_members.
+1. **Crew + contacts + `production_members` — brainstorm** (build-sequence
+   step 2). Data model already set by the spec above. Then steps 3–4:
+   locations directory → call sheets / sides. The headline next slice.
 2. **Cast & Casting v1 closeout** (cheap, ~1 session): `TriangleAlert`→`AlertTriangle`
    icon consistency (cosmetic); v1 "Review Important #3" uncontrolled-field
    issue now resolved via Task 9's controlled-input migration. Task 13 (DOOD
    conflict overlay) remains open but not blocking v1. Docs entry now complete
    via Cast tab v2 SLATEONE_FEATURES.md section.
-3. **Crew + production detail + call sheets / sides — brainstorm.** The
-   headline next slice; data model set by #1's spec (build-sequence
-   steps 2–4: contacts/crew → locations → call sheets).
-4. **Auto AI scheduling (first pass) — brainstorm.** Cast availability now
+3. **Auto AI scheduling (first pass) — brainstorm.** Cast availability now
    exists as a real constraint; biggest "breakdown tool → scheduling
-   tool" jump. Consumes #1's production/units/crew model.
+   tool" jump. Consumes the production/units/crew model.
 
 **Solid, no hard dependency (pick up between the above):**
 6. Breakdown element CRUD drill-down (+ extras CRUD as the first concrete
