@@ -31,16 +31,45 @@ brainstorm complete → `docs/superpowers/specs/2026-08-31-production-data-model
 a top-level `production` entity (independent axis from series/seasons),
 account-level `contacts` + `locations` directories, additive
 `production_members` permission layer, `units` now, production-level
-schedule later (per-script rollup first). **Build-sequence step 1 ("the
-spine") shipped to `main` 2026-08-31** — `production` entity, `/productions`
-+ detail page, script association, migration 050 applied
-(`docs/superpowers/plans/2026-08-31-production-spine.md`). Step 2a (crew + contacts directory + `production_crew` + CSV import, owner-only) shipped 2026-08-31 — `docs/superpowers/plans/2026-08-31-crew-contacts.md`. Next: slice 2b — the `production_members` permission layer (`can_view_sensitive`, seat consumption, non-owner directory scope, permission inheritance). Steps 3–4 below.
+schedule later (per-script rollup first).
+
+- **Step 1 ("the spine")** shipped to `main` 2026-08-31 — `production` entity,
+  `/productions` + detail page, script association, migration 050
+  (`docs/superpowers/plans/2026-08-31-production-spine.md`).
+- **Step 2a (crew + contacts)** shipped to `main` 2026-08-31, merge `8e03750`
+  — account-level `contacts` directory (`/contacts`), `production_crew`
+  assignments + Crew tab, CSV crew import, all owner-only. Migrations 051 +
+  updated 013 applied to Supabase. Spec `2026-08-31-crew-contacts-design.md`,
+  plan `2026-08-31-crew-contacts.md`.
+
+**START HERE 2026-09-01 — slice 2b: `production_members` permission layer.**
+Brainstorm not yet started. Inputs ready: the umbrella spec's "Permissions"
+section (role set `admin`/`coordinator`/`viewer`, `can_view_sensitive` gating
+`contacts.phone` / `contacts.standard_rate` / `production_crew.job_rate`, seat
+== Team License seat) plus the four questions the 2a spec explicitly deferred
+to 2b — non-owner directory scope (whole address book vs. assigned subset),
+permission inheritance (production admin → the production's scripts?), how
+`_fetch_seats_used` extends to production members, and whether the Crew tab
+becomes visible read-only to non-owners. 2a is genuinely owner-only today, so
+there is no partial-sharing behaviour to unbuild. Then steps 3–4: locations
+directory → call sheets / sides.
+
+**2a follow-ups (small, non-blocking — fold into 2b or a hygiene pass):**
+- Verify `department=camera` in `frontend/public/crew-import-template.csv` is a
+  real `departments` code/name (else the template's first example row is
+  skipped on a user's first import).
+- CSV import: no explicit >2,000-row cap (1 MB byte cap only); import is
+  non-transactional so a huge file is a slow partial write.
+- Crew tab uses `window.confirm` instead of the repo's `ConfirmDialogContext`.
+- `GET /api/contacts?kind=<invalid>` returns `[]` instead of 400 (POST/PATCH
+  validate the enum; GET doesn't).
+- `update_crew`: a single-field PATCH (e.g. only `end_date`) that violates the
+  date-order CHECK against an existing opposite bound surfaces as a clean 500
+  via try/except, not a 400.
 
 **Do next (unblocks the most):**
-1. **`production_members` permission layer (step 2b) — brainstorm**
-   (`can_view_sensitive`, seat consumption, non-owner directory scope,
-   permission inheritance). Then steps 3–4: locations directory → call sheets / sides.
-   The headline next slice after 2b.
+1. **`production_members` permission layer (step 2b) — brainstorm** (see
+   START HERE above). The headline next slice; steps 3–4 follow it.
 2. **Cast & Casting v1 closeout** (cheap, ~1 session): `TriangleAlert`→`AlertTriangle`
    icon consistency (cosmetic); v1 "Review Important #3" uncontrolled-field
    issue now resolved via Task 9's controlled-input migration. Task 13 (DOOD
