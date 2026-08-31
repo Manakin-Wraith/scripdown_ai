@@ -2403,6 +2403,115 @@ export const updateScriptSeason = async (scriptId, seasonId, episodeNumber) => {
     }
 };
 
+// ============================================
+// Productions (build-sequence step 1 — the spine)
+// ============================================
+
+/**
+ * List productions the current user owns.
+ * @returns {Promise<{productions: object[]}>}
+ */
+export const listProductions = async () => {
+    try {
+        const response = await api.get('/api/productions');
+        return response.data;
+    } catch (error) {
+        console.error('Error listing productions:', error);
+        throw error;
+    }
+};
+
+/**
+ * Create a production (auto-creates its "Main Unit").
+ * @param {{title: string, status?: string, shoot_start_date?: string, shoot_end_date?: string, notes?: string}} payload
+ * @returns {Promise<{production: object, unit: object}>}
+ */
+export const createProduction = async (payload) => {
+    try {
+        const response = await api.post('/api/productions', payload);
+        return response.data;
+    } catch (error) {
+        console.error('Error creating production:', error);
+        throw error;
+    }
+};
+
+/**
+ * Get a production plus its associated scripts (filtered to the caller's access).
+ * @param {string} id
+ * @returns {Promise<{production: object, scripts: object[]}>}
+ */
+export const getProduction = async (id) => {
+    try {
+        const response = await api.get(`/api/productions/${id}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error getting production:', error);
+        throw error;
+    }
+};
+
+/**
+ * Update a production's Overview fields (owner only).
+ * @param {string} id
+ * @param {object} payload  any of title/status/shoot_start_date/shoot_end_date/notes
+ * @returns {Promise<{production: object}>}
+ */
+export const updateProduction = async (id, payload) => {
+    try {
+        const response = await api.patch(`/api/productions/${id}`, payload);
+        return response.data;
+    } catch (error) {
+        console.error('Error updating production:', error);
+        throw error;
+    }
+};
+
+/**
+ * Delete a production (associated scripts survive, unlinked).
+ * @param {string} id
+ */
+export const deleteProduction = async (id) => {
+    try {
+        const response = await api.delete(`/api/productions/${id}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error deleting production:', error);
+        throw error;
+    }
+};
+
+/**
+ * Attach a script the caller owns to a production. 409 if the script is
+ * already in a production.
+ * @param {string} id  production id
+ * @param {string} scriptId
+ */
+export const addScriptToProduction = async (id, scriptId) => {
+    try {
+        const response = await api.post(`/api/productions/${id}/scripts`, { script_id: scriptId });
+        return response.data;
+    } catch (error) {
+        console.error('Error adding script to production:', error);
+        throw error;
+    }
+};
+
+/**
+ * Detach a script from a production.
+ * @param {string} id  production id
+ * @param {string} scriptId
+ */
+export const removeScriptFromProduction = async (id, scriptId) => {
+    try {
+        const response = await api.delete(`/api/productions/${id}/scripts/${scriptId}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error removing script from production:', error);
+        throw error;
+    }
+};
+
 // ── Cast & casting ─────────────────────────────────────────────
 export const getCasting = async (scriptId) => {
     const response = await api.get(`/api/scripts/${scriptId}/casting`);
