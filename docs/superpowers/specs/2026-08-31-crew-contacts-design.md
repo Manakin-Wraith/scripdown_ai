@@ -219,10 +219,14 @@ both `invite_routes` and `production_crew_service` import it without a
 route→route dependency. Small, in-scope refactor; keep the existing cache
 behavior.
 
-### `GET /api/productions/:id` — unchanged
+### `GET /api/productions/:id` — one additive field
 
-Crew is fetched via `GET /api/productions/:id/crew` when the Crew tab
-opens. Keeps the detail payload small; `scripts` stays the only embed.
+Add `is_owner: bool` to the response (`get_production_for_viewer` already
+computes `is_owner` locally — just include it). The Crew tab needs it to
+hide itself for non-owner viewers, and it lets `ProductionDetailPage`
+replace its current optimistic-owner heuristic with the real value. No
+other change; crew is still fetched via `GET /api/productions/:id/crew`
+when the tab opens, so the detail payload stays small.
 
 ### `app.py`
 
@@ -419,7 +423,7 @@ Full suite (`pytest tests/`) stays green.
 
 | System | Change |
 |---|---|
-| `productions` / `units` / spine routes | `production_bp` gains crew routes + `production_crew_service`. `GET /api/productions/:id` unchanged. `ProductionDetailPage` refactored into tabs. |
+| `productions` / `units` / spine routes | `production_bp` gains crew routes + `production_crew_service`. `GET /api/productions/:id` gains an additive `is_owner` field. `ProductionDetailPage` refactored into tabs and switched to the real `is_owner`. |
 | `series` / `seasons` | None. |
 | `casting` / `casting_unavailability` | None. Cast stays its own per-script system. A person who is both cast and crew is duplicated across systems — accepted (umbrella "known future reconciliation debt"). |
 | `script_members` / `departments` / `department_notes` | None to the tables. `get_departments_list()` **moves** from `routes/invite_routes.py` to a shared service module (both callers updated). `production_crew.department_code` is a Python-validated soft reference to the same list. |
