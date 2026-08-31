@@ -42,7 +42,12 @@
 - **Availability Blackout Dates:** Define date ranges when a cast member is unavailable (location shoots, other projects, unavailable dates), automatically flagged against the production schedule.
 - **Schedule Conflict Detection & In-App Resolution:** Automatically detect when a booked or offer-status cast member's unavailability overlaps a dated shoot day containing their scene. Resolve conflicts directly in the app by moving the scene to a suggested conflict-free day, unassigning it, or acknowledging with a reason.
 
-### 8. Exporting & Reporting
+### 8. Productions
+- **Production Entity:** Group the scripts you shoot together (a TV block, a feature and its reshoot) under a single Production with its own status and shoot dates — an axis independent of Series/Season.
+- **Script Association:** Attach and detach scripts from a production; each script belongs to at most one production, kept in sync with My Scripts.
+- **Units:** Every production starts with a "Main Unit"; multi-unit support underpins later Daily Production Reporting.
+
+### 9. Exporting & Reporting
 - **Customizable Reports:** Generate 7+ standard production reports (Scene Breakdown, Day Out of Days (DOOD), Location, Props, Wardrobe, One-Liner, Full Binder).
 - **Advanced Filtering:** Filter reports across 9 dimensions (location, character, timeline code, etc.) and save custom filter presets.
 - **Highlighted Script PDF:** Export a script PDF with color-coded, industry-standard text highlights for every extracted breakdown item.

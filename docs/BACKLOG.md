@@ -33,9 +33,7 @@ the 2026-08-27 decision; the active thrust is production-management depth.
    series/seasons), account-level `contacts` + `locations` directories,
    additive `production_members` permission layer, `units` now,
    schedule model supports production-level later (per-script rollup
-   first). Next: brainstorm build-sequence step 1 ("the spine" —
-   `productions` entity + `/productions` + workspace shell + script
-   association + `production_members`) as its own cycle.
+   first). Next: step 1 ("the spine") shipped, code-complete pending manual migration apply — see `docs/superpowers/plans/2026-08-31-production-spine.md`. Step 2: brainstorm crew / contacts / production_members.
 2. **Cast & Casting v1 closeout** (cheap, ~1 session): `TriangleAlert`→`AlertTriangle`
    icon consistency (cosmetic); v1 "Review Important #3" uncontrolled-field
    issue now resolved via Task 9's controlled-input migration. Task 13 (DOOD
