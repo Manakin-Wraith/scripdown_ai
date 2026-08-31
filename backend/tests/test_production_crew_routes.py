@@ -247,3 +247,67 @@ def test_delete_production_cascade_is_simulated_by_route(monkeypatch):
     assert _client().delete("/api/productions/p1").status_code == 200
     assert store["production_crew"] == []
     assert len(store["contacts"]) == 1
+
+
+import io
+
+
+def _post_csv(client, pid, text):
+    return client.post(f"/api/productions/{pid}/crew/import",
+                       data={"file": (io.BytesIO(text.encode()), "crew.csv")},
+                       content_type="multipart/form-data")
+
+
+def test_import_happy_path_counts(monkeypatch):
+    store = _store(contacts=[
+        {"id": "c1", "owner_id": DEV_USER_ID, "name": "Existing", "email": "e@x.com", "kind": "person"}])
+    _patch(monkeypatch, store)
+    csv_text = (
+        "name,email,role,department,rate,rate_unit\n"
+        "New One,new@x.com,Gaffer,camera,800,day\n"
+        "Existing,e@x.com,Best Boy,camera,,\n"
+        ",,,,,\n"
+    )
+    resp = _post_csv(_client(), "p1", csv_text)
+    assert resp.status_code == 200
+    body = resp.get_json()
+    assert body["created_contacts"] == 1
+    assert body["matched_contacts"] == 1
+    assert body["assignments_created"] == 2
+    assert body["skipped"] == [{"line": 4, "reason": "missing name"}]
+    assert len(store["production_crew"]) == 2
+
+
+def test_import_is_idempotent_on_rerun(monkeypatch):
+    store = _store(contacts=[])
+    _patch(monkeypatch, store)
+    csv_text = "name,role\nGary,Gaffer\n"
+    _post_csv(_client(), "p1", csv_text)
+    resp = _post_csv(_client(), "p1", csv_text)
+    body = resp.get_json()
+    assert body["assignments_created"] == 0
+    assert body["skipped"] and "already on crew" in body["skipped"][0]["reason"]
+    assert len(store["production_crew"]) == 1
+
+
+def test_import_email_match_scoped_to_owner(monkeypatch):
+    store = _store(contacts=[
+        {"id": "cX", "owner_id": "other", "name": "Stranger", "email": "dup@x.com", "kind": "person"}])
+    _patch(monkeypatch, store)
+    _post_csv(_client(), "p1", "name,email\nMine,dup@x.com\n")
+    # a new contact is created for the caller, the stranger's row is untouched
+    mine = [c for c in store["contacts"] if c["owner_id"] == DEV_USER_ID]
+    assert len(mine) == 1 and mine[0]["name"] == "Mine"
+
+
+def test_import_no_name_column_is_400(monkeypatch):
+    _patch(monkeypatch, _store())
+    resp = _post_csv(_client(), "p1", "email,role\na@b.com,Gaffer\n")
+    assert resp.status_code == 400
+
+
+def test_import_non_owner_forbidden(monkeypatch):
+    store = _store(productions=[{"id": "p1", "owner_id": "other", "title": "Theirs"}])
+    _patch(monkeypatch, store)
+    resp = _post_csv(_client(), "p1", "name\nGary\n")
+    assert resp.status_code == 403

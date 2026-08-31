@@ -6,6 +6,8 @@ production_service._user_owns_production.
 """
 from services.production_service import get_supabase_admin
 from services.department_service import valid_department_codes
+from services.crew_import import parse_crew_csv
+from services import department_service
 
 ASSIGN_FIELDS = ("role", "department_code", "job_rate", "job_rate_unit",
                  "start_date", "end_date", "notes")
@@ -84,3 +86,77 @@ def update_crew(production_id, crew_id, fields):
 def remove_crew(production_id, crew_id):
     (get_supabase_admin().table("production_crew").delete()
      .eq("id", crew_id).eq("production_id", production_id).execute())
+
+
+def _find_contact_by_email(supabase, user_id, email):
+    if not email:
+        return None
+    res = (supabase.table("contacts").select("*")
+           .eq("owner_id", user_id).execute().data or [])
+    for c in res:
+        if (c.get("email") or "").strip().lower() == email.strip().lower():
+            return c
+    return None
+
+
+def _find_contact_by_name(supabase, user_id, name):
+    if not name:
+        return None
+    res = (supabase.table("contacts").select("*")
+           .eq("owner_id", user_id).execute().data or [])
+    for c in res:
+        if (c.get("name") or "").strip().lower() == name.strip().lower():
+            return c
+    return None
+
+
+def _has_same_role_assignment(supabase, production_id, contact_id, role):
+    rows = (supabase.table("production_crew").select("role")
+            .eq("production_id", production_id).eq("contact_id", contact_id)
+            .execute().data or [])
+    target = (role or "").strip().lower()
+    return any((r.get("role") or "").strip().lower() == target for r in rows)
+
+
+def import_crew_csv(production_id, user_id, csv_text):
+    supabase = get_supabase_admin()
+    depts = department_service.get_departments_list()
+    valid_codes = {d["code"] for d in depts}
+    name_to_code = {d["code"]: d["name"] for d in depts}
+
+    parsed = parse_crew_csv(csv_text, valid_codes, name_to_code)
+    if parsed["fatal"]:
+        return ("fatal", parsed["fatal"])
+
+    created = matched = assignments = 0
+    skipped = list(parsed["errors"])
+
+    for row in parsed["rows"]:
+        contact = _find_contact_by_email(supabase, user_id, row["email"])
+        if not contact and not row["email"]:
+            contact = _find_contact_by_name(supabase, user_id, row["name"])
+        if contact:
+            matched += 1
+        else:
+            contact = supabase.table("contacts").insert({
+                "owner_id": user_id, "created_by": user_id, "kind": "person",
+                "name": row["name"], "email": row["email"], "phone": row["phone"],
+                "company_name": row["company_name"], "role_tags": [],
+                "standard_rate": row["rate"], "rate_unit": row["rate_unit"],
+            }).execute().data[0]
+            created += 1
+
+        if _has_same_role_assignment(supabase, production_id, contact["id"], row["role"]):
+            skipped.append({"line": 0, "reason": f"{row['name']} already on crew as {row['role'] or '(no role)'}"})
+            continue
+
+        supabase.table("production_crew").insert({
+            "production_id": production_id, "contact_id": contact["id"],
+            "role": row["role"], "department_code": row["department_code"],
+            "job_rate": row["rate"], "job_rate_unit": row["rate_unit"],
+            "notes": row["notes"],
+        }).execute()
+        assignments += 1
+
+    return {"created_contacts": created, "matched_contacts": matched,
+            "assignments_created": assignments, "skipped": skipped}

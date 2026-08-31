@@ -198,6 +198,28 @@ def update_production_crew(production_id, crew_id):
     return jsonify({"crew": result})
 
 
+@production_bp.route("/api/productions/<production_id>/crew/import", methods=["POST"])
+@require_auth
+def import_production_crew(production_id):
+    err, status = _require_production_owner(production_id)
+    if err:
+        return err, status
+    upload = request.files.get("file")
+    if not upload:
+        return jsonify({"error": "file is required"}), 400
+    raw = upload.read()
+    if len(raw) > 1_000_000:
+        return jsonify({"error": "File too large (max ~1 MB)"}), 400
+    try:
+        text = raw.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        return jsonify({"error": "File must be UTF-8 CSV"}), 400
+    result = crew_svc.import_crew_csv(production_id, get_user_id(), text)
+    if isinstance(result, tuple) and result[0] == "fatal":
+        return jsonify({"error": result[1]}), 400
+    return jsonify(result)
+
+
 @production_bp.route("/api/productions/<production_id>/crew/<crew_id>", methods=["DELETE"])
 @require_auth
 def remove_production_crew(production_id, crew_id):
