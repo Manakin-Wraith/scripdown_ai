@@ -21,6 +21,7 @@ from routes.segment_routes import segment_bp
 from routes.payfast_routes import payfast_bp
 from routes.series_routes import series_bp
 from routes.casting_routes import casting_bp
+from routes.production_routes import production_bp
 
 load_dotenv()
 
@@ -64,6 +65,7 @@ app.register_blueprint(segment_bp)  # Timeline segment routes at /api/segments/*
 app.register_blueprint(payfast_bp)  # PayFast ITN webhook at /api/payfast/notify (public — PayFast calls it)
 app.register_blueprint(series_bp)  # Series/season grouping routes at /api/series/*, /api/seasons/*, /api/scripts/:id/season
 app.register_blueprint(casting_bp)  # Cast & casting routes at /api/scripts/:id/casting, /api/casting/*
+app.register_blueprint(production_bp)  # Production entity routes at /api/productions/*
 
 @app.route('/health')
 def health_check():
