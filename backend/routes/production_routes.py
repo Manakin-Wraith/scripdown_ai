@@ -7,6 +7,7 @@ from flask import Blueprint, request, jsonify
 
 from middleware.auth import require_auth, get_user_id
 from services import production_service as svc
+from services import production_crew_service as crew_svc
 from services.production_service import VALID_STATUSES
 
 production_bp = Blueprint("production", __name__)
@@ -100,6 +101,8 @@ def delete_production(production_id):
         # NULL too; doing it here keeps behavior identical under the mock).
         svc.get_supabase_admin().table("scripts").update(
             {"production_id": None}).eq("production_id", production_id).execute()
+        svc.get_supabase_admin().table("production_crew").delete().eq(
+            "production_id", production_id).execute()
         svc.delete_production(production_id)
         return jsonify({"success": True})
     except Exception as e:
@@ -144,3 +147,100 @@ def remove_script_from_production(production_id, script_id):
     except Exception as e:
         print(f"Error removing script from production: {e}")
         return jsonify({"error": str(e)}), 500
+
+
+def _require_production_owner(production_id):
+    """Return (err_response, status) or (None, None) if the caller owns it."""
+    user_id = get_user_id()
+    if not svc._get_production(svc.get_supabase_admin(), production_id):
+        return jsonify({"error": "Production not found"}), 404
+    if not svc._user_owns_production(production_id, user_id):
+        return jsonify({"error": "Insufficient permissions"}), 403
+    return None, None
+
+
+@production_bp.route("/api/productions/<production_id>/crew", methods=["GET"])
+@require_auth
+def list_production_crew(production_id):
+    err, status = _require_production_owner(production_id)
+    if err:
+        return err, status
+    return jsonify({"crew": crew_svc.list_crew(production_id)})
+
+
+@production_bp.route("/api/productions/<production_id>/crew", methods=["POST"])
+@require_auth
+def add_production_crew(production_id):
+    err, status = _require_production_owner(production_id)
+    if err:
+        return err, status
+    data = request.get_json(silent=True) or {}
+    try:
+        result = crew_svc.add_crew(production_id, get_user_id(), data)
+        if result == "bad_contact":
+            return jsonify({"error": "contact_id must be one of your contacts"}), 400
+        if result == "bad_department":
+            return jsonify({"error": "Unknown department_code"}), 400
+        if result == "bad_rate_unit":
+            return jsonify({"error": "job_rate_unit must be one of: day, week, flat"}), 400
+        if result == "bad_dates":
+            return jsonify({"error": "end_date must be on or after start_date"}), 400
+        return jsonify({"crew": result}), 201
+    except Exception as e:
+        print(f"Error adding production crew: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@production_bp.route("/api/productions/<production_id>/crew/<crew_id>", methods=["PATCH"])
+@require_auth
+def update_production_crew(production_id, crew_id):
+    err, status = _require_production_owner(production_id)
+    if err:
+        return err, status
+    data = request.get_json(silent=True) or {}
+    try:
+        result = crew_svc.update_crew(production_id, crew_id, data)
+        if result == "not_found":
+            return jsonify({"error": "Crew assignment not found"}), 404
+        if result == "bad_department":
+            return jsonify({"error": "Unknown department_code"}), 400
+        if result == "bad_rate_unit":
+            return jsonify({"error": "job_rate_unit must be one of: day, week, flat"}), 400
+        if result == "bad_dates":
+            return jsonify({"error": "end_date must be on or after start_date"}), 400
+        return jsonify({"crew": result})
+    except Exception as e:
+        print(f"Error updating production crew: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@production_bp.route("/api/productions/<production_id>/crew/import", methods=["POST"])
+@require_auth
+def import_production_crew(production_id):
+    err, status = _require_production_owner(production_id)
+    if err:
+        return err, status
+    upload = request.files.get("file")
+    if not upload:
+        return jsonify({"error": "file is required"}), 400
+    raw = upload.read()
+    if len(raw) > 1_000_000:
+        return jsonify({"error": "File too large (max ~1 MB)"}), 400
+    try:
+        text = raw.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        return jsonify({"error": "File must be UTF-8 CSV"}), 400
+    result = crew_svc.import_crew_csv(production_id, get_user_id(), text)
+    if isinstance(result, tuple) and result[0] == "fatal":
+        return jsonify({"error": result[1]}), 400
+    return jsonify(result)
+
+
+@production_bp.route("/api/productions/<production_id>/crew/<crew_id>", methods=["DELETE"])
+@require_auth
+def remove_production_crew(production_id, crew_id):
+    err, status = _require_production_owner(production_id)
+    if err:
+        return err, status
+    crew_svc.remove_crew(production_id, crew_id)
+    return jsonify({"success": True})

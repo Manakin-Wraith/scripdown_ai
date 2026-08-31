@@ -11,7 +11,8 @@ import {
   LogIn,
   Shield,
   Layers,
-  Clapperboard
+  Clapperboard,
+  Contact
 } from 'lucide-react';
 import { Spinner } from '../ui';
 import { useAnalysis } from '../../context/AnalysisContext';
@@ -88,6 +89,14 @@ const TopBar = () => {
           >
             <Clapperboard size={18} />
             <span>Productions</span>
+          </NavLink>
+
+          <NavLink
+            to="/contacts"
+            className={({ isActive }) => `topbar-nav-item ${isActive ? 'active' : ''}`}
+          >
+            <Contact size={18} />
+            <span>Contacts</span>
           </NavLink>
 
           {/* Admin Button - only show for superusers */}

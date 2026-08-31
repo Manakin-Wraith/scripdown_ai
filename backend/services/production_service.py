@@ -75,7 +75,7 @@ def get_production_for_viewer(production_id, user_id):
     scripts = _accessible_scripts(supabase, production_id, user_id, is_owner)
     if not is_owner and not scripts:
         return None  # exists, but caller has no way in
-    return {"production": prod, "scripts": scripts}
+    return {"production": prod, "scripts": scripts, "is_owner": is_owner}
 
 
 def update_production(production_id, fields):

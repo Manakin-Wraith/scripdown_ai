@@ -34,12 +34,13 @@ account-level `contacts` + `locations` directories, additive
 schedule later (per-script rollup first). **Build-sequence step 1 ("the
 spine") shipped to `main` 2026-08-31** — `production` entity, `/productions`
 + detail page, script association, migration 050 applied
-(`docs/superpowers/plans/2026-08-31-production-spine.md`). Steps 2–4 below.
+(`docs/superpowers/plans/2026-08-31-production-spine.md`). Step 2a (crew + contacts directory + `production_crew` + CSV import, owner-only) shipped 2026-08-31 — `docs/superpowers/plans/2026-08-31-crew-contacts.md`. Next: slice 2b — the `production_members` permission layer (`can_view_sensitive`, seat consumption, non-owner directory scope, permission inheritance). Steps 3–4 below.
 
 **Do next (unblocks the most):**
-1. **Crew + contacts + `production_members` — brainstorm** (build-sequence
-   step 2). Data model already set by the spec above. Then steps 3–4:
-   locations directory → call sheets / sides. The headline next slice.
+1. **`production_members` permission layer (step 2b) — brainstorm**
+   (`can_view_sensitive`, seat consumption, non-owner directory scope,
+   permission inheritance). Then steps 3–4: locations directory → call sheets / sides.
+   The headline next slice after 2b.
 2. **Cast & Casting v1 closeout** (cheap, ~1 session): `TriangleAlert`→`AlertTriangle`
    icon consistency (cosmetic); v1 "Review Important #3" uncontrolled-field
    issue now resolved via Task 9's controlled-input migration. Task 13 (DOOD

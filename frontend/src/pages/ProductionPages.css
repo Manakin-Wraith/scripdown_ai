@@ -180,6 +180,56 @@
     display: inline-flex; align-items: center; gap: 6px;
     color: #9fb0c9; text-decoration: none; font-size: 14px; margin-bottom: 16px;
 }
+.production-tabs {
+    display: flex; gap: 4px; border-bottom: 1px solid #26324a; margin-bottom: 20px;
+}
+.production-tab {
+    background: none; border: none; padding: 10px 16px; color: #9fb0c9;
+    cursor: pointer; border-bottom: 2px solid transparent; font-size: 14px;
+}
+.production-tab.active { color: #e6ecf5; border-bottom-color: #f5b301; }
+
+.production-crew-placeholder { color: #6b7a94; padding: 24px 0; }
+
+.production-crew-actions { display: flex; gap: 8px; }
+.production-crew-actions button {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: #26324a; color: #e6ecf5; border: none; border-radius: 6px;
+    padding: 6px 12px; cursor: pointer;
+}
+.production-crew-actions button:hover { background: #33415a; }
+.production-crew-group { margin-top: 20px; }
+.production-crew-group h4 {
+    margin: 0 0 8px; font-size: 13px; text-transform: uppercase;
+    letter-spacing: 0.04em; color: #9fb0c9;
+}
+.production-crew-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.production-crew-list li {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 10px 14px; background: #131c2e; border: 1px solid #26324a; border-radius: 6px;
+}
+.production-crew-row-main { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.production-crew-name { color: #e6ecf5; font-weight: 600; }
+.production-crew-role { color: #cdd7e6; font-size: 13px; }
+.production-crew-rate, .production-crew-dates { color: #6b7a94; font-size: 12px; }
+.production-crew-row-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.production-crew-row-actions button {
+    background: none; border: none; color: #9fb0c9; cursor: pointer; font-size: 13px;
+}
+.production-crew-row-actions button:hover { color: #f5b301; }
+
+.crew-contact-picked { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.crew-contact-picked span { color: #e6ecf5; }
+.crew-contact-picked button, .crew-create-toggle {
+    background: none; border: none; color: #f5b301; cursor: pointer; font-size: 13px; align-self: flex-start; padding: 0;
+}
+.crew-new-contact { display: flex; flex-direction: column; gap: 10px; border-left: 2px solid #33415a; padding-left: 10px; }
+.crew-search-hint { color: #6b7a94; font-size: 12px; margin: 4px 0 0; }
+.crew-import-help { color: #9fb0c9; font-size: 13px; }
+.crew-import-help a { color: #f5b301; }
+.crew-import-summary { color: #e6ecf5; margin: 12px 0; }
+.crew-import-skipped { color: #9fb0c9; font-size: 13px; margin: 0 0 12px; padding-left: 18px; }
+
 .production-overview { display: flex; flex-direction: column; gap: 14px; margin-bottom: 32px; }
 .production-overview label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #9fb0c9; }
 .production-overview input,
@@ -237,3 +287,76 @@
     margin-top: 8px; background: #26324a; color: #e6ecf5; border: none;
     border-radius: 6px; padding: 8px 16px; cursor: pointer;
 }
+
+/* ---- Contacts directory (Task 9) ---- */
+.contact-toolbar {
+    display: flex; gap: var(--space-2); margin: var(--space-3) 0 var(--space-4);
+}
+.contact-toolbar .contact-search { flex: 1; }
+.contact-toolbar input,
+.contact-toolbar select {
+    padding: 8px 12px; border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color); background: var(--bg-card);
+    color: var(--text-primary); font-size: 0.9375rem;
+}
+.contact-toolbar input:focus,
+.contact-toolbar select:focus { outline: none; border-color: var(--primary-500); }
+
+.contact-table {
+    width: 100%; border-collapse: collapse; font-size: 0.9rem;
+}
+.contact-table th {
+    text-align: left; padding: 10px 12px; color: #6b7a94;
+    font-weight: 600; border-bottom: 1px solid #26324a;
+}
+.contact-table td {
+    padding: 10px 12px; border-bottom: 1px solid #1e2a40;
+    color: var(--text-primary);
+}
+.contact-table tbody tr { cursor: pointer; }
+.contact-table tbody tr:hover td { background: #131c2e; }
+
+.contact-kind-badge {
+    display: inline-block; padding: 2px 8px; border-radius: 999px;
+    font-size: 0.75rem; text-transform: capitalize;
+    background: #26324a; color: #cdd7e6;
+}
+.contact-kind-badge.kind-company { background: #3a2f16; color: #f5b301; }
+
+.contact-form {
+    display: flex; flex-direction: column; gap: var(--space-3); margin-top: var(--space-3);
+}
+.contact-field { display: flex; flex-direction: column; gap: 4px; }
+.contact-field > span,
+.contact-field-label {
+    font-size: 0.8rem; color: #6b7a94; font-weight: 600;
+}
+.contact-field input,
+.contact-field select,
+.contact-field textarea {
+    padding: 8px 12px; border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color); background: var(--bg-card);
+    color: var(--text-primary); font-size: 0.9rem; font-family: inherit;
+}
+.contact-field input:focus,
+.contact-field select:focus,
+.contact-field textarea:focus { outline: none; border-color: var(--primary-500); }
+.contact-field-row { display: flex; gap: var(--space-3); }
+.contact-field-row .contact-field { flex: 1; }
+
+.contact-form-actions {
+    display: flex; justify-content: flex-end; gap: var(--space-2); margin-top: var(--space-2);
+}
+
+.contact-used-on { display: flex; flex-direction: column; gap: 4px; }
+.contact-used-on-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 4px; }
+.contact-used-on-list li { display: flex; gap: 8px; align-items: baseline; }
+.contact-used-on-list a { color: #f5b301; text-decoration: none; }
+.contact-used-on-role { color: #6b7a94; font-size: 0.8rem; }
+
+.contact-delete-row { display: flex; flex-direction: column; gap: 6px; }
+.contact-delete-btn {
+    align-self: flex-start; background: none; border: 1px solid var(--danger);
+    color: var(--danger); border-radius: var(--radius-lg); padding: 6px 14px; cursor: pointer;
+}
+.contact-delete-btn:disabled { opacity: 0.5; cursor: not-allowed; }

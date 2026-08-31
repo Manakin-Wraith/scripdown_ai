@@ -1,15 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Trash2, Plus, X } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import {
     getProduction, updateProduction, deleteProduction,
     addScriptToProduction, removeScriptFromProduction,
 } from '../services/apiService';
 import { Spinner } from '../components/ui';
-import ProductionScriptPicker from '../components/productions/ProductionScriptPicker';
+import ProductionOverviewTab from '../components/productions/ProductionOverviewTab';
+import ProductionCrewTab from '../components/productions/ProductionCrewTab';
 import './ProductionPages.css';
-
-const STATUSES = ['development', 'prep', 'shooting', 'wrapped', 'archived'];
 
 export default function ProductionDetailPage() {
     const { productionId } = useParams();
@@ -23,6 +22,7 @@ export default function ProductionDetailPage() {
     const [saving, setSaving] = useState(false);
     const [picking, setPicking] = useState(false);
     const [isOwner, setIsOwner] = useState(false);
+    const [activeTab, setActiveTab] = useState('overview');
 
     const load = useCallback(() => {
         getProduction(productionId)
@@ -36,11 +36,7 @@ export default function ProductionDetailPage() {
                     shoot_end_date: data.production.shoot_end_date || '',
                     notes: data.production.notes || '',
                 });
-                // Heuristic: PATCH is owner-only; probe cheaply by allowing edit
-                // and letting the server 403. Simpler: treat as owner if the
-                // list endpoint returned this production. Here we optimistically
-                // enable and surface a 403 on save.
-                setIsOwner(true);
+                setIsOwner(!!data.is_owner);
             })
             .catch((err) => {
                 if (err.response?.status === 403) setError('You can view this production but not edit it.');
@@ -50,6 +46,10 @@ export default function ProductionDetailPage() {
     }, [productionId]);
 
     useEffect(load, [load]);
+
+    useEffect(() => {
+        if (!isOwner && activeTab === 'crew') setActiveTab('overview');
+    }, [isOwner, activeTab]);
 
     const save = async (e) => {
         e.preventDefault();
@@ -100,81 +100,44 @@ export default function ProductionDetailPage() {
     if (loading) return <div className="production-page-loading"><Spinner size={32} /></div>;
     if (!production) return <p className="production-page-error">{error || 'Not found'}</p>;
 
+    const tabs = [{ id: 'overview', label: 'Overview' }];
+    if (isOwner) tabs.push({ id: 'crew', label: 'Crew' });
+
     return (
         <div className="production-page">
             <Link to="/productions" className="production-back"><ArrowLeft size={16} /> Productions</Link>
 
             {error && <p className="production-page-error">{error}</p>}
 
-            <form className="production-overview" onSubmit={save}>
-                <label>
-                    Title
-                    <input value={form.title} disabled={!isOwner}
-                        onChange={(e) => setForm({ ...form, title: e.target.value })} />
-                </label>
-                <label>
-                    Status
-                    <select value={form.status} disabled={!isOwner}
-                        onChange={(e) => setForm({ ...form, status: e.target.value })}>
-                        {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                </label>
-                <div className="production-date-row">
-                    <label>
-                        Shoot start
-                        <input type="date" value={form.shoot_start_date} disabled={!isOwner}
-                            onChange={(e) => setForm({ ...form, shoot_start_date: e.target.value })} />
-                    </label>
-                    <label>
-                        Shoot end
-                        <input type="date" value={form.shoot_end_date} disabled={!isOwner}
-                            onChange={(e) => setForm({ ...form, shoot_end_date: e.target.value })} />
-                    </label>
-                </div>
-                <label>
-                    Notes
-                    <textarea value={form.notes} disabled={!isOwner} rows={3}
-                        onChange={(e) => setForm({ ...form, notes: e.target.value })} />
-                </label>
-                {isOwner && (
-                    <div className="production-overview-actions">
-                        <button type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
-                        <button type="button" className="production-delete-btn" onClick={handleDelete}>
-                            <Trash2 size={14} /> Delete production
-                        </button>
-                    </div>
-                )}
-            </form>
+            <div className="production-tabs">
+                {tabs.map((t) => (
+                    <button
+                        key={t.id}
+                        className={`production-tab ${activeTab === t.id ? 'active' : ''}`}
+                        onClick={() => setActiveTab(t.id)}
+                    >
+                        {t.label}
+                    </button>
+                ))}
+            </div>
 
-            <section className="production-scripts">
-                <div className="production-scripts-head">
-                    <h3>Scripts</h3>
-                    {isOwner && (
-                        <button onClick={() => setPicking(true)}><Plus size={14} /> Add script</button>
-                    )}
-                </div>
-                {scripts.length === 0 ? (
-                    <p className="production-scripts-empty">No scripts attached yet.</p>
-                ) : (
-                    <ul className="production-scripts-list">
-                        {scripts.map((s) => (
-                            <li key={s.id}>
-                                <Link to={`/scenes/${s.id}`}>{s.title || 'Untitled script'}</Link>
-                                {isOwner && (
-                                    <button className="production-script-remove"
-                                        onClick={() => handleRemove(s.id)} aria-label="Remove script">
-                                        <X size={14} />
-                                    </button>
-                                )}
-                            </li>
-                        ))}
-                    </ul>
-                )}
-            </section>
-
-            {picking && (
-                <ProductionScriptPicker onPick={handlePick} onClose={() => setPicking(false)} />
+            {activeTab === 'overview' && (
+                <ProductionOverviewTab
+                    production={production}
+                    scripts={scripts}
+                    form={form}
+                    setForm={setForm}
+                    isOwner={isOwner}
+                    saving={saving}
+                    onSave={save}
+                    onDelete={handleDelete}
+                    onPick={handlePick}
+                    onRemove={handleRemove}
+                    picking={picking}
+                    setPicking={setPicking}
+                />
             )}
+            {activeTab === 'crew' && isOwner && <ProductionCrewTab productionId={productionId} />}
         </div>
     );
 }

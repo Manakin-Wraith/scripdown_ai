@@ -364,3 +364,24 @@ def test_remove_script_clears_pointer_and_second_call_is_noop(monkeypatch):
     assert store["scripts"][0]["production_id"] is None
     r2 = c.delete("/api/productions/p1/scripts/s1")
     assert r2.status_code == 200  # idempotent no-op
+
+
+def test_get_production_includes_is_owner_flag(monkeypatch):
+    store = _store(
+        productions=[{"id": "p1", "owner_id": DEV_USER_ID, "title": "Mine"}],
+        scripts=[{"id": "s1", "user_id": DEV_USER_ID, "production_id": "p1", "title": "Ep 1"}],
+    )
+    _patch(monkeypatch, store)
+    assert _client().get("/api/productions/p1").get_json()["is_owner"] is True
+
+
+def test_get_production_is_owner_false_for_script_member(monkeypatch):
+    store = _store(
+        productions=[{"id": "p1", "owner_id": "other", "title": "Theirs"}],
+        scripts=[{"id": "s1", "user_id": "other", "production_id": "p1", "title": "Ep 1"}],
+        script_members=[{"script_id": "s1", "user_id": DEV_USER_ID, "role": "viewer"}],
+    )
+    _patch(monkeypatch, store)
+    body = _client().get("/api/productions/p1").get_json()
+    assert body["is_owner"] is False
+    assert {s["id"] for s in body["scripts"]} == {"s1"}

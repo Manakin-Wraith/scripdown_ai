@@ -15,7 +15,14 @@ BEGIN
     
     -- Delete email logs for this user as recipient
     DELETE FROM email_logs WHERE recipient_user_id = user_id_to_delete;
-    
+
+    -- Delete crew assignments referencing this user's contacts. production_crew.contact_id
+    -- is ON DELETE RESTRICT, so the profiles -> contacts cascade below would raise 23503
+    -- unless these rows are gone first. Explicit delete = ordering-independent (see
+    -- migration 051 header note re: pg_restore constraint reordering).
+    DELETE FROM production_crew
+     WHERE contact_id IN (SELECT id FROM contacts WHERE owner_id = user_id_to_delete);
+
     -- Delete scripts and related data (cascades automatically)
     DELETE FROM scripts WHERE user_id = user_id_to_delete;
     
@@ -50,7 +57,11 @@ BEGIN
     
     -- Delete email logs
     DELETE FROM email_logs WHERE recipient_user_id = user_id_to_delete;
-    
+
+    -- Delete crew assignments before the profiles -> contacts cascade (RESTRICT FK)
+    DELETE FROM production_crew
+     WHERE contact_id IN (SELECT id FROM contacts WHERE owner_id = user_id_to_delete);
+
     -- Delete scripts (cascades to scenes, etc.)
     DELETE FROM scripts WHERE user_id = user_id_to_delete;
     

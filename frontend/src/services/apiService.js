@@ -2512,6 +2512,116 @@ export const removeScriptFromProduction = async (id, scriptId) => {
     }
 };
 
+// ============================================
+// Contacts directory + production crew (build-sequence step 2a)
+// ============================================
+
+/** List the current user's contacts. @param {{q?: string, kind?: string}} params */
+export const listContacts = async (params = {}) => {
+    try {
+        const response = await api.get('/api/contacts', { params });
+        return response.data;
+    } catch (error) {
+        console.error('Error listing contacts:', error);
+        throw error;
+    }
+};
+
+export const createContact = async (payload) => {
+    try {
+        const response = await api.post('/api/contacts', payload);
+        return response.data;
+    } catch (error) {
+        console.error('Error creating contact:', error);
+        throw error;
+    }
+};
+
+export const getContact = async (id) => {
+    try {
+        const response = await api.get(`/api/contacts/${id}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error getting contact:', error);
+        throw error;
+    }
+};
+
+export const updateContact = async (id, payload) => {
+    try {
+        const response = await api.patch(`/api/contacts/${id}`, payload);
+        return response.data;
+    } catch (error) {
+        console.error('Error updating contact:', error);
+        throw error;
+    }
+};
+
+/** Delete a contact. Throws with response.status 409 + data.used_in if still assigned. */
+export const deleteContact = async (id) => {
+    try {
+        const response = await api.delete(`/api/contacts/${id}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error deleting contact:', error);
+        throw error;
+    }
+};
+
+export const listProductionCrew = async (productionId) => {
+    try {
+        const response = await api.get(`/api/productions/${productionId}/crew`);
+        return response.data;
+    } catch (error) {
+        console.error('Error listing production crew:', error);
+        throw error;
+    }
+};
+
+export const addProductionCrew = async (productionId, payload) => {
+    try {
+        const response = await api.post(`/api/productions/${productionId}/crew`, payload);
+        return response.data;
+    } catch (error) {
+        console.error('Error adding production crew:', error);
+        throw error;
+    }
+};
+
+export const updateProductionCrew = async (productionId, crewId, payload) => {
+    try {
+        const response = await api.patch(`/api/productions/${productionId}/crew/${crewId}`, payload);
+        return response.data;
+    } catch (error) {
+        console.error('Error updating production crew:', error);
+        throw error;
+    }
+};
+
+export const removeProductionCrew = async (productionId, crewId) => {
+    try {
+        const response = await api.delete(`/api/productions/${productionId}/crew/${crewId}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error removing production crew:', error);
+        throw error;
+    }
+};
+
+export const importProductionCrew = async (productionId, file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+        const response = await api.post(
+            `/api/productions/${productionId}/crew/import`, formData,
+            { headers: { 'Content-Type': 'multipart/form-data' } });
+        return response.data;
+    } catch (error) {
+        console.error('Error importing production crew:', error);
+        throw error;
+    }
+};
+
 // ── Cast & casting ─────────────────────────────────────────────
 export const getCasting = async (scriptId) => {
     const response = await api.get(`/api/scripts/${scriptId}/casting`);
