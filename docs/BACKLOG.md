@@ -58,6 +58,10 @@ spine") shipped to `main` 2026-08-31** — `production` entity, `/productions`
 9. Report version control; CSV export industry-standard audit.
 9a. Cast drawer (`CastingDetailPanel`) UI/UX layout pass — cosmetic,
     brainstorm-then-build; drawer grew organically across Cast v1/v2.
+9b. Production pages UI/UX pass — `/productions` list + `ProductionDetailPage`
+    (Overview/Crew tabs, script picker, crew roster, CSV import modal).
+    Shipped functional across the spine + step 2a; never had a design pass.
+    Brainstorm-then-build, cosmetic.
 
 **Infra / hygiene:**
 10. Flip `backend-tests` CI check to required; add a frontend
