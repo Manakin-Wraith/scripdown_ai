@@ -27,19 +27,24 @@ Ranked view of everything open below. Billing lifecycle stays deferred by
 the 2026-08-27 decision; the active thrust is production-management depth.
 
 **Do next (unblocks the most):**
-1. **Production data model — umbrella brainstorm.** Decide `production`
-   entity vs. keep shipping slices. Gates crew, call sheets, department
-   workspaces, auto-scheduling. One brainstorm pass, no code.
+1. **Production data model — DIRECTION DECIDED 2026-08-31.** Umbrella
+   brainstorm complete → `docs/superpowers/specs/2026-08-31-production-data-model-design.md`.
+   Introduce a top-level `production` entity (independent axis from
+   series/seasons), account-level `contacts` + `locations` directories,
+   additive `production_members` permission layer, `units` now,
+   schedule model supports production-level later (per-script rollup
+   first). Next: step 1 ("the spine") shipped, code-complete pending manual migration apply — see `docs/superpowers/plans/2026-08-31-production-spine.md`. Step 2: brainstorm crew / contacts / production_members.
 2. **Cast & Casting v1 closeout** (cheap, ~1 session): `TriangleAlert`→`AlertTriangle`
    icon consistency (cosmetic); v1 "Review Important #3" uncontrolled-field
    issue now resolved via Task 9's controlled-input migration. Task 13 (DOOD
    conflict overlay) remains open but not blocking v1. Docs entry now complete
    via Cast tab v2 SLATEONE_FEATURES.md section.
 3. **Crew + production detail + call sheets / sides — brainstorm.** The
-   headline next slice; scope falls out of #1.
+   headline next slice; data model set by #1's spec (build-sequence
+   steps 2–4: contacts/crew → locations → call sheets).
 4. **Auto AI scheduling (first pass) — brainstorm.** Cast availability now
    exists as a real constraint; biggest "breakdown tool → scheduling
-   tool" jump.
+   tool" jump. Consumes #1's production/units/crew model.
 
 **Solid, no hard dependency (pick up between the above):**
 6. Breakdown element CRUD drill-down (+ extras CRUD as the first concrete
@@ -48,6 +53,8 @@ the 2026-08-27 decision; the active thrust is production-management depth.
 8. Series page redesign + finish-or-drop `worktree-series-accordion`,
    style `SeriesAssignmentModal`.
 9. Report version control; CSV export industry-standard audit.
+9a. Cast drawer (`CastingDetailPanel`) UI/UX layout pass — cosmetic,
+    brainstorm-then-build; drawer grew organically across Cast v1/v2.
 
 **Infra / hygiene:**
 10. Flip `backend-tests` CI check to required; add a frontend
@@ -1274,7 +1281,14 @@ webhook) is worth adding as a fallback.
 
 ## Separate Location (production element) from Sets (creative element)
 
-**Status:** Not started — feature request, needs brainstorming.
+**Status:** Not started — feature request, needs brainstorming. Related:
+the production data model spec
+(`docs/superpowers/specs/2026-08-31-production-data-model-design.md`)
+defines an account-level `locations` directory (real places: address,
+contacts, permits, photos) but **explicitly defers the scene-`setting`
+→ real-`location` mapping mechanism to this brainstorm.** Pick this up
+after the `locations` directory ships (build-sequence step 3); this
+item is then the mapping layer on top of it.
 
 **Context.** The breakdown currently conflates two distinct concepts under
 one "location" idea: the physical shooting **Location** (a production/
@@ -1626,6 +1640,43 @@ block the ship; batch them into a cleanup session.
 
 ---
 
+## Cast drawer (CastingDetailPanel) UI/UX — needs a layout pass — brainstorm
+
+**Status:** Not started — needs brainstorming. Cosmetic/UX only; the drawer
+is functionally complete and verified (see "Cast tab v2" above).
+
+**Context.** `frontend/src/components/cast/CastingDetailPanel.jsx` grew
+organically across Cast v1 and v2 — it now carries contact fields, tier +
+status on one row, the multi-photo gallery (primary headshot + "N more"
+expander + kind-tagged thumbnails + add button), the availability editor,
+and notes. The layout was never designed as a whole; fields and controls
+were appended as each thread shipped. It reads as a stack of unrelated
+sections rather than a considered form.
+
+**What to look at when picked up.** Brainstorm before implementing (see
+`superpowers:brainstorming`) — open questions:
+- Overall information hierarchy: what a user needs first (identity, photo,
+  tier/status) vs. secondary (contact detail, availability, notes), and
+  grouping/sectioning to match.
+- Photo gallery placement and sizing — it's the most visually prominent
+  element but currently sits mid-stack.
+- Field grouping and alignment (contact block, casting block, scheduling
+  block), consistent spacing, and whether a two-column layout helps on
+  wider drawers.
+- Consistency with the other drawer in this area, `CastingGroupPanel.jsx`,
+  and with the app's existing panel/drawer chrome.
+- Whether any of this overlaps with the pending `CastPage.jsx` split-out
+  noted in the Cast tab v2 follow-ups.
+
+**References.**
+- `frontend/src/components/cast/CastingDetailPanel.jsx`, `CastingDetailPanel.css`
+- `frontend/src/components/cast/PhotoGallery.jsx`, `UnavailabilityEditor.jsx`,
+  `TierBadge.jsx`, `StatusBadge.jsx`
+- `frontend/src/components/cast/CastingGroupPanel.jsx` — sibling drawer
+- "Cast tab v2" (above) — what the drawer currently contains and why
+
+---
+
 ## Redesign the Series page UI/UX — brainstorm
 
 **Status:** Not started — needs brainstorming.
@@ -1668,7 +1719,11 @@ same visual system.
 
 ## Department Workspaces — brainstorm
 
-**Status:** Not started — needs brainstorming.
+**Status:** Not started — needs brainstorming. Build-sequence step 7 in
+`docs/superpowers/specs/2026-08-31-production-data-model-design.md` —
+re-scope department workspaces to production-level, building on
+`production_crew` + the existing `departments` list. Depends on the
+production spine (step 1) and crew (step 2).
 
 **Context.** Breakdown data is aggregated by department (props, wardrobe,
 makeup, SFX, stunts, vehicles, animals, extras, cast, locations) and each
@@ -1708,7 +1763,11 @@ mechanism, workspaces as the container.
 
 ## "Auto" AI scheduling (first pass) — brainstorm
 
-**Status:** Not started — needs brainstorming.
+**Status:** Not started — needs brainstorming. Consumes the production
+data model (`docs/superpowers/specs/2026-08-31-production-data-model-design.md`)
+— shoot dates on `productions`, `units`, cast availability, and later the
+production-level cross-script schedule. Where target shoot-days/hours-per-day
+get entered is answered by that spec (production/unit level).
 
 **Context.** Scheduling today is entirely manual: the user builds a
 stripboard / shooting schedule by hand in `ScheduleKanban.jsx` /
@@ -1749,11 +1808,15 @@ shoot-days/hours-per-day and other production parameters get entered.
 
 ## Add CREW and production detail for scheduling + call sheets / sides — brainstorm
 
-**Status:** Not started — needs brainstorming. The **cast** slice
-(actor, contact, agent, headshot, availability + schedule conflict
-detection) shipped 2026-08-28 — see "Cast & Casting v1" above. What
-remains here is crew, per-shoot-day production detail, and call
-sheet / sides generation.
+**Status:** Not started — needs brainstorming. Data model now set by
+`docs/superpowers/specs/2026-08-31-production-data-model-design.md`:
+build-sequence step 2 (`contacts` directory + `production_crew`
+assignments + CSV import), step 3 (`locations` directory), step 4 (call
+sheets — `shooting_day_details`, fields designed in that brainstorm,
+generation via the WeasyPrint pipeline). Depends on the production spine
+(step 1). The **cast** slice (actor, contact, agent, headshot,
+availability + schedule conflict detection) shipped 2026-08-28 — see
+"Cast & Casting v1" above — and stays a separate system per the spec.
 
 **Context.** The app now carries cast production data (via Cast & Casting
 v1) but still lacks the rest of what a call sheet or scene sides need:
@@ -1795,14 +1858,32 @@ details.
 
 ---
 
-## Production data model — what a production needs, and how it's uploaded/managed — brainstorm
+## Production data model — what a production needs, and how it's uploaded/managed — DIRECTION DECIDED
 
-**Status:** Not started — needs brainstorming. Umbrella item; the
+**Status:** Umbrella brainstorm complete 2026-08-31 →
+`docs/superpowers/specs/2026-08-31-production-data-model-design.md`
+(direction + data-model only; no implementation plan). Decision:
+introduce a top-level `production` entity as an independent axis from
+`series → seasons`; account-level `contacts` + `locations` reusable
+directories; per-production `production_crew` assignments; additive
+`production_members` permission layer with a `can_view_sensitive` gate;
+`units` defined now (unblocks DPR); `shooting_schedules.production_id`
+in the target model with a per-script rollup as the first slice; cast
+(`casting`) and `script_members` left untouched. Ingestion: manual
+forms baseline, CSV fast-follow for crew/contacts, AI-parse deferred.
+Placement: `/productions` list + per-production tabbed workspace.
+
+**Next:** each build-sequence step in the spec is its own brainstorm →
+spec → plan cycle. Step 1 is "the spine" — `productions` entity +
+`/productions` + workspace shell + script↔production association +
+`production_members`. Steps 2–7: crew, locations, call sheets,
+production-level schedule, DPR, department workspaces.
+
+**Original context (kept for history):** Umbrella item; the
 scheduling/call-sheet, crew, and department-workspace entries above are
 slices of this. The **cast** slice shipped 2026-08-28 as an independent
-feature ("Cast & Casting v1" above) rather than waiting on this umbrella
-design — worth deciding whether the rest follows the same
-ship-a-slice-at-a-time path or gets a unifying `production` entity first.
+feature ("Cast & Casting v1" above) — the spec keeps it separate rather
+than folding it into the new `contacts` directory.
 
 **Context.** Everything the app holds today is derived from the script (AI
 extraction) or generated from it (breakdown, schedule, reports) — plus,
@@ -1886,7 +1967,11 @@ unchecked). New deps required: `qrcode[pil]` (backend), `recharts`
 (frontend), Supabase Storage bucket `dpr-attachments`.
 **Why not now:** very large; depends on schedule/call-sheet maturity to
 have a "planned baseline" to report actuals against. Sequence it *after*
-call sheets exist. Roadmap item #1 in `SLATEONE_FEATURES.md`.
+call sheets exist. Roadmap item #1 in `SLATEONE_FEATURES.md`. Build-sequence
+step 6 in `docs/superpowers/specs/2026-08-31-production-data-model-design.md`
+— its "per production" config and Unit entity are accommodated by that
+spec (`productions`, `units` defined up front); DPR internals stay as
+specced here.
 
 ### Narrative Intelligence Dashboard
 **Status:** Spec complete 2026-02-24

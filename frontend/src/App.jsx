@@ -46,6 +46,8 @@ import CastPage from './components/cast/CastPage';
 import SeriesListPage from './pages/SeriesListPage';
 import SeriesDetailPage from './pages/SeriesDetailPage';
 import SeasonPage from './pages/SeasonPage';
+import ProductionsListPage from './pages/ProductionsListPage';
+import ProductionDetailPage from './pages/ProductionDetailPage';
 
 function App() {
   return (
@@ -78,6 +80,8 @@ function App() {
                     <Route path="series" element={<SeriesListPage />} />
                     <Route path="series/:seriesId" element={<SeriesDetailPage />} />
                     <Route path="series/:seriesId/seasons/:seasonId" element={<SeasonPage />} />
+                    <Route path="productions" element={<ProductionsListPage />} />
+                    <Route path="productions/:productionId" element={<ProductionDetailPage />} />
                     <Route path="payment/success" element={<PaymentResultPage outcome="success" />} />
                     <Route path="payment/cancel" element={<PaymentResultPage outcome="cancel" />} />
 
