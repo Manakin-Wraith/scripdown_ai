@@ -7,8 +7,17 @@ from flask import Blueprint, request, jsonify
 
 from middleware.auth import require_auth, get_user_id
 from services import production_service as svc
+from services.production_service import VALID_STATUSES
 
 production_bp = Blueprint("production", __name__)
+
+
+def _invalid_status(data):
+    """Return an error string if 'status' is present but not an allowed value."""
+    if "status" in data and data.get("status") is not None:
+        if data["status"] not in VALID_STATUSES:
+            return "status must be one of: " + ", ".join(sorted(VALID_STATUSES))
+    return None
 
 
 @production_bp.route("/api/productions", methods=["POST"])
@@ -19,6 +28,9 @@ def create_production():
     if not title:
         return jsonify({"error": "title is required"}), 400
     data["title"] = title
+    status_err = _invalid_status(data)
+    if status_err:
+        return jsonify({"error": status_err}), 400
     try:
         result = svc.create_production(get_user_id(), data)
         return jsonify(result), 201
@@ -66,6 +78,9 @@ def update_production(production_id):
             data["title"] = (data.get("title") or "").strip()
             if not data["title"]:
                 return jsonify({"error": "title cannot be empty"}), 400
+        status_err = _invalid_status(data)
+        if status_err:
+            return jsonify({"error": status_err}), 400
         return jsonify({"production": svc.update_production(production_id, data)})
     except Exception as e:
         print(f"Error updating production: {e}")

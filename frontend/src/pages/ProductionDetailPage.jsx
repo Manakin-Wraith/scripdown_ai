@@ -88,8 +88,13 @@ export default function ProductionDetailPage() {
     };
 
     const handleRemove = async (scriptId) => {
-        await removeScriptFromProduction(productionId, scriptId);
-        setScripts((prev) => prev.filter((s) => s.id !== scriptId));
+        try {
+            await removeScriptFromProduction(productionId, scriptId);
+            setScripts((prev) => prev.filter((s) => s.id !== scriptId));
+            setError(null);
+        } catch (err) {
+            setError(err.response?.data?.error || err.message || 'Failed to remove script');
+        }
     };
 
     if (loading) return <div className="production-page-loading"><Spinner size={32} /></div>;

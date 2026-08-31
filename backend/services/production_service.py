@@ -13,6 +13,11 @@ NOT_FOUND = object()  # distinguishes 404 from 403 to the route layer
 
 _EDITABLE_FIELDS = ("title", "status", "shoot_start_date", "shoot_end_date", "notes")
 
+# Mirrors the CHECK constraint in db/migrations/050_productions.sql.
+VALID_STATUSES = frozenset(
+    ("development", "prep", "shooting", "wrapped", "archived")
+)
+
 
 def _get_production(supabase, production_id):
     res = (supabase.table("productions").select("*")

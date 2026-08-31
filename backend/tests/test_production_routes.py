@@ -164,6 +164,33 @@ def test_create_production_requires_title(monkeypatch):
     assert resp.status_code == 400
 
 
+def test_create_production_blank_title_is_400(monkeypatch):
+    store = _store()
+    _patch(monkeypatch, store)
+    resp = _client().post("/api/productions", json={"title": "   "})
+    assert resp.status_code == 400
+    assert store["productions"] == []
+
+
+def test_create_production_invalid_status_is_400(monkeypatch):
+    store = _store()
+    _patch(monkeypatch, store)
+    resp = _client().post(
+        "/api/productions", json={"title": "X", "status": "nonsense"})
+    assert resp.status_code == 400
+    assert store["productions"] == []
+
+
+def test_patch_production_invalid_status_is_400(monkeypatch):
+    store = _store(productions=[
+        {"id": "p1", "owner_id": DEV_USER_ID, "title": "Old", "status": "development"},
+    ])
+    _patch(monkeypatch, store)
+    resp = _client().patch("/api/productions/p1", json={"status": "nonsense"})
+    assert resp.status_code == 400
+    assert store["productions"][0]["status"] == "development"
+
+
 def test_list_productions_returns_only_callers_own(monkeypatch):
     store = _store(productions=[
         {"id": "p1", "owner_id": DEV_USER_ID, "title": "Mine"},

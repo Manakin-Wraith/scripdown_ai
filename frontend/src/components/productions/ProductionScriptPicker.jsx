@@ -18,6 +18,7 @@ export default function ProductionScriptPicker({ onPick, onClose }) {
 
     const pick = async (scriptId) => {
         setBusyId(scriptId);
+        setError(null);
         try {
             await onPick(scriptId);
         } catch (err) {
@@ -30,11 +31,10 @@ export default function ProductionScriptPicker({ onPick, onClose }) {
         <div className="production-modal-backdrop" onClick={onClose}>
             <div className="production-modal" onClick={(e) => e.stopPropagation()}>
                 <h3>Add a script</h3>
+                {error && <p className="production-page-error">{error}</p>}
                 {loading ? (
                     <Spinner size={24} />
-                ) : error ? (
-                    <p className="production-page-error">{error}</p>
-                ) : scripts.length === 0 ? (
+                ) : !error && scripts.length === 0 ? (
                     <p>Every script you own is already in a production.</p>
                 ) : (
                     <ul className="production-picker-list">
