@@ -47,6 +47,23 @@
 - **Script Association:** Attach and detach scripts from a production; each script belongs to at most one production, kept in sync with My Scripts.
 - **Units:** Every production starts with a "Main Unit"; multi-unit support underpins later Daily Production Reporting.
 
+#### Crew & Contacts
+
+- **Contacts directory** (`/contacts`) — an account-level address book of
+  people and companies (crew, vendors, agents). Canonical: editing a
+  contact updates it everywhere it's used. Owner-only.
+- **Production crew** — each production has a Crew tab: assign contacts to
+  the production with a role, department, this-job rate, and date range.
+  One person can hold multiple roles. Grouped by department, with an
+  "Unassigned / Vendors" bucket.
+- **CSV crew import** — upload a crew list onto a production; rows with an email are matched to an existing contact, others create a new one, and each row creates a crew assignment in one pass. A downloadable template defines the columns. Re-importing an emailed crew list is safe (duplicate role assignments are skipped); rows without an email always create a new contact.
+- Deleting a contact that's still on a crew is blocked with a list of
+  where it's used. Deleting a production removes its crew assignments; the
+  contacts remain.
+
+Not yet: sharing a production's crew/contacts with non-owner team members
+(the `production_members` permission layer — next slice).
+
 ### 9. Exporting & Reporting
 - **Customizable Reports:** Generate 7+ standard production reports (Scene Breakdown, Day Out of Days (DOOD), Location, Props, Wardrobe, One-Liner, Full Binder).
 - **Advanced Filtering:** Filter reports across 9 dimensions (location, character, timeline code, etc.) and save custom filter presets.
