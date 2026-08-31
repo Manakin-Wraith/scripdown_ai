@@ -76,8 +76,10 @@ def get_contact_with_usage(user_id, contact_id):
         return NOT_FOUND
     crew = (supabase.table("production_crew").select("*")
             .eq("contact_id", contact_id).execute().data or [])
+    if not crew:
+        return {"contact": contact, "assignments": []}
     prods = {p["id"]: p for p in (supabase.table("productions").select("id, title")
-             .in_("id", list({c["production_id"] for c in crew}) or ["__none__"]).execute().data or [])}
+             .in_("id", list({c["production_id"] for c in crew})).execute().data or [])}
     assignments = [{
         "crew_id": c["id"], "production_id": c["production_id"],
         "production_title": prods.get(c["production_id"], {}).get("title"),

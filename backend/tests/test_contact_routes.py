@@ -215,6 +215,14 @@ def test_delete_unassigned_then_second_delete_404(monkeypatch):
     assert _client().delete("/api/contacts/c1").status_code == 404
 
 
+def test_get_contact_with_zero_assignments_returns_empty_list(monkeypatch):
+    store = _store(contacts=[{"id": "c1", "owner_id": DEV_USER_ID, "name": "Gary", "kind": "person"}])
+    _patch(monkeypatch, store)
+    resp = _client().get("/api/contacts/c1")
+    assert resp.status_code == 200
+    assert resp.get_json()["assignments"] == []
+
+
 def test_get_contact_lists_assignments(monkeypatch):
     store = _store(
         contacts=[{"id": "c1", "owner_id": DEV_USER_ID, "name": "Gary", "kind": "person"}],
