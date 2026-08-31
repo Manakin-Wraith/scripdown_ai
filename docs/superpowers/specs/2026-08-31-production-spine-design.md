@@ -36,6 +36,11 @@ deferred to the slice that needs it.
 - Upload-flow production picker (beside `SeriesPicker` in
   `ScriptUpload.jsx`) → fast-follow
 - My Scripts (`ScriptTable`) production grouping / badges → fast-follow
+- "Add all of a season's episodes to this production" bulk action → fast-follow
+  (step 1 adds scripts one at a time; with driver D — many episodes — this
+  will be wanted quickly)
+- `shooting_days.unit_id` column → added with the schedule/DPR slice; no
+  reader/writer exists in step 1
 - Unit management (rename, add, reorder, delete) → DPR slice or when a
   consumer appears
 - Cross-script / production-level scheduling
@@ -59,7 +64,11 @@ Migration `backend/db/migrations/050_productions.sql`.
 | `shoot_start_date` | date null | |
 | `shoot_end_date` | date null | |
 | `notes` | text null | |
-| `created_by` | uuid null | → `auth.users(id) on delete set null` |
+| `created_by` | uuid null | → `auth.users(id) on delete set null`. Kept (not YAGNI-dropped like `format`) purely so an audit/"created by X" line is possible later; always equals `owner_id` until ownership transfer exists. Drop it if the plan reviewer prefers. |
+
+Table-level constraint:
+`CHECK (shoot_end_date IS NULL OR shoot_start_date IS NULL OR shoot_end_date >= shoot_start_date)`
+(mirrors `casting_unavailability`'s date-order check).
 | `created_at` | timestamptz not null | `default now()` |
 | `updated_at` | timestamptz not null | `default now()`; `BEFORE UPDATE` trigger reusing `update_shooting_updated_at()` from migration 030 |
 
@@ -84,6 +93,13 @@ Index: `idx_units_production ON units(production_id)`.
 One row auto-inserted (`name = 'Main Unit'`, `sort_order = 0`) when a
 production is created — in `production_service.create_production`, same
 transaction-ish sequence as `create_series` inserting its first season.
+The literal string `'Main Unit'` is what the DPR spec's velocity logic
+expects to find as the default unit, so keep it verbatim.
+
+**Not added in step 1:** `shooting_days.unit_id` (named in the umbrella
+entity model). No reader or writer exists until the schedule/DPR slice, so
+adding the column now would be speculative. The `units` rows created here
+simply wait for that slice.
 
 ### `scripts.production_id`
 
@@ -97,12 +113,25 @@ Nullable. A script belongs to **at most one** production; a production holds
 **many** scripts (a season's episodes, a feature + its reshoot). Independent
 of `scripts.season_id` — a script may have either, both, or neither.
 
+**User deletion:** `013_delete_user_safely.sql` (a manual admin script)
+deletes `scripts` then `profiles`. Because `productions.owner_id` is
+`ON DELETE CASCADE`, deleting the profile cascades to `productions` →
+`units` with no FK error or orphan. Add a comment to migration 050 noting
+the cascade is load-bearing for that script — do not "soften" `owner_id`
+to `SET NULL`.
+
 ### RLS
 
 Owner-only policies on `productions` and `units` as a defense-in-depth
 backstop, matching the pattern in `045_series_seasons.sql` (the backend uses
 the service-role key and enforces access in Python; RLS only guards any
 direct client-side table access).
+
+**RLS is intentionally narrower than the app.** `GET /api/productions/:id`
+lets a team member with a script role read the production (see Backend
+below); the owner-only RLS policy does not. This is not a bug — it is the
+exact `series` arrangement, where RLS is only a direct-client backstop and
+all real reads go through the service-role key with Python enforcement.
 
 ```sql
 ALTER TABLE productions ENABLE ROW LEVEL SECURITY;
@@ -140,7 +169,7 @@ specific; `series_routes.py` likewise keeps its `_user_owns_series` local).
 | `GET /api/productions/<production_id>` | owner **or** viewer+ on any script in the production | Returns `{production, scripts: [...]}` where `scripts` is the associated scripts filtered to those the caller can access (owner sees all associated; a team member sees the ones they hold a role on). Mirrors `list_seasons` / `_visible_episode_scripts`. 404 if the production doesn't exist; 403 if no owner and no accessible script. |
 | `PATCH /api/productions/<production_id>` | owner only | Body: any of `{title, status, shoot_start_date, shoot_end_date, notes}`. 403 if not owner, 404 if absent. |
 | `DELETE /api/productions/<production_id>` | owner only | Deletes the production. `scripts.production_id` → NULL via `ON DELETE SET NULL`; units cascade. |
-| `POST /api/productions/<production_id>/scripts` | owner only | Body `{script_id}`. The script must be owned by the caller (`scripts.user_id == caller`) and currently unassigned (`production_id IS NULL`) → else 409 `{error: 'Script already belongs to a production'}` / 403 if not owned. Sets `scripts.production_id`. |
+| `POST /api/productions/<production_id>/scripts` | owner only | Body `{script_id}`. 403 if the script isn't owned by the caller (`scripts.user_id == caller`). Association is a **single conditional UPDATE** — `UPDATE scripts SET production_id = :pid WHERE id = :sid AND user_id = :caller AND production_id IS NULL` — and a zero-row result → 409 `{error: 'Script already belongs to a production'}`. Read-then-write is **not** acceptable here (concurrent requests would both pass a prior `SELECT ... IS NULL` check — the same race class already logged against `casting` group-create). |
 | `DELETE /api/productions/<production_id>/scripts/<script_id>` | owner only | Clears `scripts.production_id` (only if it currently points at this production). |
 
 No unit routes in step 1 — nothing consumes them yet.
@@ -156,11 +185,26 @@ No unit routes in step 1 — nothing consumes them yet.
   filter (same as `_visible_episode_scripts`)
 - `update_production(production_id, fields)`
 - `delete_production(production_id)`
-- `add_script(production_id, script_id, user_id)` — ownership + unassigned
-  guard
-- `remove_script(production_id, script_id)`
+- `add_script(production_id, script_id, user_id)` — single conditional
+  `UPDATE ... WHERE production_id IS NULL AND user_id = :user_id`; returns
+  whether a row was affected (caller maps `False` → 409, and distinguishes
+  "not owned" → 403 with a cheap ownership pre-check for the right status
+  code)
+- `remove_script(production_id, script_id)` — conditional
+  `UPDATE scripts SET production_id = NULL WHERE id = :sid AND production_id = :pid`;
+  a no-match is a 200 no-op
 - `_user_owns_production(production_id, user_id) -> bool` — local helper,
   mirrors `_user_owns_series`
+
+### `GET /api/scripts` — add `production_id`
+
+The existing scripts listing (`supabase_routes.py`) does not return the new
+column. The `ProductionScriptPicker` needs "my scripts where `production_id`
+is null," and the deferred My Scripts view will need the association too.
+Add `production_id` (and `production_title` via a batched join, the way
+`_attach_series_info` already attaches `series_title` / `season_number`) to
+the `GET /api/scripts` response. This is the one touch to an existing
+endpoint in step 1.
 
 ## Frontend
 
@@ -195,7 +239,10 @@ instance, no new instance.
   and `<Route path="productions/:productionId" element={<ProductionDetailPage />} />`
   under the existing `ProtectedRoute` layout.
 - `components/layout/TopBar.jsx`: a "Productions" `NavLink` in
-  `.topbar-nav` immediately after the "Series" link.
+  `.topbar-nav` immediately after the "Series" link. This makes three
+  top-level items ("My Scripts", "Series", "Productions") — check
+  `.topbar-nav` wrapping / overflow at narrow widths and tighten spacing
+  if needed (no redesign; just don't let it break the bar).
 
 ## Testing
 
@@ -214,10 +261,16 @@ instance, no new instance.
   - `DELETE` removes the production and leaves formerly-associated scripts
     with `production_id IS NULL`
 - **Association guards:**
-  - `POST .../scripts` with an already-assigned script → 409
+  - `POST .../scripts` with an already-assigned script → 409 (assert via
+    the conditional-UPDATE zero-row path, not a pre-`SELECT`)
   - `POST .../scripts` with a script the caller doesn't own → 403
   - `DELETE .../scripts/:id` clears the pointer; a second delete is a
     no-op 200
+  - `POST .../scripts` with a script already in *this same* production →
+    409 (not a silent success)
+- **`GET /api/scripts` regression:** response now includes `production_id`
+  (null when unassigned, the id when assigned); existing scripts-list
+  tests still pass.
 - Full suite (`pytest tests/`) stays green.
 
 ### Frontend
@@ -233,9 +286,11 @@ instance, no new instance.
 |---|---|
 | `series` / `seasons` | None. `scripts.production_id` and `scripts.season_id` are independent nullable FKs. |
 | `casting`, `script_members`, `departments`, `shooting_schedules` | None. |
+| `GET /api/scripts` (`supabase_routes.py`) | Adds `production_id` (+ `production_title`) to the response, mirroring `_attach_series_info`. The one existing-endpoint touch in step 1. |
 | `middleware/authorization.py` | None — `get_script_role` is reused read-only by `production_service` for the per-script visibility filter. No new resolver added there. |
+| `013_delete_user_safely.sql` | No edit needed — `productions.owner_id ON DELETE CASCADE` makes the existing `DELETE FROM profiles` cascade cleanly. Migration 050 carries a comment saying so. |
 | `app.py` | One `register_blueprint(production_bp)` line. |
-| Billing / seats | None. A production consumes nothing; `production_members` (which would consume seats) is deferred. |
+| Billing / seats | None. A production consumes nothing; `production_members` (which would consume seats) is deferred to the crew slice. |
 
 ## Open questions resolved
 

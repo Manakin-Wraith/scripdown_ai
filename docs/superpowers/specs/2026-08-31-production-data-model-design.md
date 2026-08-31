@@ -52,8 +52,15 @@ scoping cannot express either without duplication.
 
 ## Entity model
 
+**"Account" in this spec means the owner user** — there is no `accounts` /
+organization table in this codebase. Ownership is a `profiles` row
+(`profiles.id` == the `auth.users` id), the same pattern `series.owner_id`
+and `account_seats.owner_id` already use. "Account-level" below therefore
+means **owner-scoped** (`owner_id → profiles(id)`); it does not imply a new
+org entity.
+
 ```
-account (existing)
+account = the owner user (profiles row; NOT a new table)
  ├── productions              (new, 1:n)
  │    ├── production_members   (new — additive permission layer)
  │    ├── units               (new — 1st Unit / 2nd Unit / Splinter; unblocks DPR)
@@ -70,7 +77,8 @@ scripts.production_id                (new, nullable — a script belongs to ≤1
 scripts.season_id                    (existing, unchanged — independent axis)
 
 shooting_schedules.production_id     (new, nullable — TARGET model; see "Scheduling")
-shooting_days.unit_id                (new, nullable)
+shooting_days.unit_id                (new, nullable — added with the schedule/DPR
+                                       slice, not step 1; no reader/writer before then)
 shooting_day_details                 (new — 1:1 with shooting_days; call-sheet
                                        fields; SHAPE NAMED ONLY in this spec)
 
@@ -148,6 +156,11 @@ slice brainstorm.
   belongs to the "Separate Location (production element) from Sets
   (creative)" brainstorm. This spec only reserves that `locations` is where
   it will attach.
+- **Open for the crew-slice brainstorm:** whether a non-owner production
+  member can browse the *whole* owner `contacts` / `locations` directory
+  (including people/places attached only to that owner's *other*
+  productions) or only the subset assigned to productions they belong to.
+  This is a privacy decision, not settled here.
 
 ## Permissions
 
@@ -155,21 +168,29 @@ A **new additive layer**, consistent with the app's app-layer, per-surface
 authorization (the backend uses the service-role key; enforcement is in
 Python via role helpers).
 
+**None of this lands in step 1.** `production_members` and everything gated
+by it ship with the **crew slice (build-sequence step 2)** — step 1
+productions are owner-only (with the `series`-style read-through for team
+members who hold a role on a script inside the production; see the spine
+spec). Until step 2, a production consumes no seat and grants no access.
+
 - **`production_members`** — `(production_id, user_id, role,
   can_view_sensitive)`. Role set: `admin` (line producer), `coordinator`,
   `viewer`. Governs **production-level surfaces only**: crew, locations,
   production schedule, call sheets, DPR.
 - **`script_members` is unchanged** — still the sole primitive for
   breakdown / scene / report access.
-- **Inheritance is one-way:** a production `admin` is granted access to the
-  production's scripts. Being a script member grants **no** production
-  access.
+- **Inheritance (deferred, revisit at the crew slice):** the intent is that
+  a production `admin` is granted access to the production's scripts, and
+  being a script member grants **no** production access. Step 1 keeps
+  production and script access fully independent; the inheritance direction
+  is decided for real when `production_members` is built.
 - **`can_view_sensitive`** (default: `admin` only) gates `contacts.phone`,
   `contacts.standard_rate`, `production_crew.job_rate`. Coordinators and
   viewers see names, roles, departments, call times — not money or personal
   numbers — unless explicitly granted.
-- **Seats:** a production member consumes a Team License seat exactly as a
-  script member does. No new billing concept.
+- **Seats:** once it exists, a production member consumes a Team License
+  seat exactly as a script member does. No new billing concept.
 
 ## Scheduling — target model and migration path
 
@@ -224,11 +245,17 @@ from that one script.
 
 Each step is its own brainstorm → spec → plan → implementation cycle.
 
-1. **The spine** — `productions` entity, `/productions` list, per-production
-   workspace shell, script↔production association, `production_members` +
-   the `can_view_sensitive` gate. Nothing downstream can start without this.
+1. **The spine** — `productions` entity + `units` table, `/productions`
+   list, per-production detail (Overview), script↔production association.
+   Owner-only + `series`-style read-through. **No `production_members`
+   yet.** Full design: `docs/superpowers/specs/2026-08-31-production-spine-design.md`.
+   Nothing downstream can start without this. Fast-follows: upload-flow
+   association picker; My Scripts production grouping; "add a whole
+   season's episodes to this production" bulk action.
 2. **Crew** — `contacts` directory + `production_crew` assignments + CSV
-   import. First real payoff; the highest-demand missing data.
+   import, **plus `production_members` + `can_view_sensitive`** (the first
+   surface worth gating) and the non-owner directory-scope decision above.
+   First real payoff; the highest-demand missing data.
 3. **Locations** — `locations` directory + `production_locations`. Defer the
    scene-`setting` mapping.
 4. **Call sheets** — `shooting_day_details` (field design happens here) +
@@ -248,6 +275,17 @@ Each step is its own brainstorm → spec → plan → implementation cycle.
 - Cast ↔ `contacts` unification
 - The production-level cross-script stripboard implementation
 - CSV import column formats (decided per slice)
+
+## Known future reconciliation debt
+
+- **Cast vs. crew as people.** `casting` stays separate from `contacts` /
+  `production_crew`. A real person can be both a day-player actor and a
+  crew member (e.g. a stunt coordinator who also appears on camera), and
+  the same agent/contact detail will exist in both systems. Accepted for
+  now; unifying is a later migration, tracked here so it isn't a surprise.
+- **`shooting_days.unit_id`** is named in the entity model but added only
+  with the schedule/DPR slice — the `units` rows created in step 1 have no
+  consumer until then.
 
 ## Open questions resolved in the brainstorm
 
