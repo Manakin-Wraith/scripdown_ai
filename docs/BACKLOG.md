@@ -48,6 +48,8 @@ the 2026-08-27 decision; the active thrust is production-management depth.
 8. Series page redesign + finish-or-drop `worktree-series-accordion`,
    style `SeriesAssignmentModal`.
 9. Report version control; CSV export industry-standard audit.
+9a. Cast drawer (`CastingDetailPanel`) UI/UX layout pass — cosmetic,
+    brainstorm-then-build; drawer grew organically across Cast v1/v2.
 
 **Infra / hygiene:**
 10. Flip `backend-tests` CI check to required; add a frontend
@@ -1623,6 +1625,43 @@ block the ship; batch them into a cleanup session.
 - `frontend/src/components/schedule/` (ConflictPanel conflict resolution UI,
   ScheduleSceneCard Resolve button, conflict visualization)
 - Cast & Casting v1 (above) — built on top of v1's schema, service, conflict engine
+
+---
+
+## Cast drawer (CastingDetailPanel) UI/UX — needs a layout pass — brainstorm
+
+**Status:** Not started — needs brainstorming. Cosmetic/UX only; the drawer
+is functionally complete and verified (see "Cast tab v2" above).
+
+**Context.** `frontend/src/components/cast/CastingDetailPanel.jsx` grew
+organically across Cast v1 and v2 — it now carries contact fields, tier +
+status on one row, the multi-photo gallery (primary headshot + "N more"
+expander + kind-tagged thumbnails + add button), the availability editor,
+and notes. The layout was never designed as a whole; fields and controls
+were appended as each thread shipped. It reads as a stack of unrelated
+sections rather than a considered form.
+
+**What to look at when picked up.** Brainstorm before implementing (see
+`superpowers:brainstorming`) — open questions:
+- Overall information hierarchy: what a user needs first (identity, photo,
+  tier/status) vs. secondary (contact detail, availability, notes), and
+  grouping/sectioning to match.
+- Photo gallery placement and sizing — it's the most visually prominent
+  element but currently sits mid-stack.
+- Field grouping and alignment (contact block, casting block, scheduling
+  block), consistent spacing, and whether a two-column layout helps on
+  wider drawers.
+- Consistency with the other drawer in this area, `CastingGroupPanel.jsx`,
+  and with the app's existing panel/drawer chrome.
+- Whether any of this overlaps with the pending `CastPage.jsx` split-out
+  noted in the Cast tab v2 follow-ups.
+
+**References.**
+- `frontend/src/components/cast/CastingDetailPanel.jsx`, `CastingDetailPanel.css`
+- `frontend/src/components/cast/PhotoGallery.jsx`, `UnavailabilityEditor.jsx`,
+  `TierBadge.jsx`, `StatusBadge.jsx`
+- `frontend/src/components/cast/CastingGroupPanel.jsx` — sibling drawer
+- "Cast tab v2" (above) — what the drawer currently contains and why
 
 ---
 
