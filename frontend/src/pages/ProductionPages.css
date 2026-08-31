@@ -1,0 +1,177 @@
+/* Styling for ProductionsListPage (and, from Task 7, ProductionDetailPage).
+   Mirrors SeriesPages.css — dark-navy card rows, amber accent — using the
+   shared design tokens rather than hard-coded colours. */
+
+.production-page {
+    max-width: 900px;
+}
+
+.production-page-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+}
+
+.production-page-error {
+    color: var(--danger);
+    background: var(--danger-bg);
+    border: 1px solid var(--danger);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4);
+    margin: var(--space-3) 0;
+}
+
+/* "New production" affordance + inline create form */
+.production-new-btn,
+.production-create-form button {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
+    color: var(--gray-900);
+    border: none;
+    border-radius: var(--radius-lg);
+    padding: 8px 16px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.production-new-btn:hover,
+.production-create-form button:hover:not(:disabled) {
+    background: linear-gradient(135deg, var(--primary-400), var(--primary-500));
+    transform: translateY(-1px);
+}
+.production-create-form button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.production-create-form {
+    display: flex;
+    gap: var(--space-2);
+    margin: var(--space-3) 0 var(--space-5);
+}
+.production-create-form input {
+    flex: 1;
+    padding: 8px 12px;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+    background: var(--bg-card);
+    color: var(--text-primary);
+    font-size: 0.9375rem;
+}
+.production-create-form input:focus {
+    outline: none;
+    border-color: var(--primary-500);
+}
+
+/* Row list */
+.production-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.production-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: var(--space-3) var(--space-4);
+    text-decoration: none;
+    transition: border-color 0.15s ease;
+}
+.production-row:hover {
+    border-color: var(--primary-500);
+}
+
+.production-row-title {
+    flex: 1;
+    min-width: 0;
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 0.9375rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.production-row-status {
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 2px var(--space-2);
+    border-radius: var(--radius-full);
+    background: var(--gray-700);
+    color: var(--text-secondary);
+    flex-shrink: 0;
+}
+.production-row-status.status-shooting {
+    background: var(--primary-alpha-15);
+    color: var(--primary-500);
+}
+.production-row-status.status-wrapped {
+    background: var(--primary-alpha-15);
+    color: var(--primary-400);
+}
+
+.production-row-chevron {
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+
+/* Empty state — mirrors .series-empty-state */
+.production-empty-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-12) var(--space-8);
+    min-height: 280px;
+    background: var(--bg-card);
+    border-radius: var(--radius-2xl);
+    border: 1px solid var(--border-color);
+}
+
+.production-empty-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    max-width: 380px;
+}
+
+.production-empty-icon-wrapper {
+    width: 64px;
+    height: 64px;
+    background: var(--gray-700);
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto var(--space-4);
+    border: 1px solid var(--border-color);
+}
+
+.production-empty-icon {
+    color: var(--primary-500);
+}
+
+.production-empty-content h2 {
+    font-size: 1.25rem;
+    color: var(--text-primary);
+    margin: 0 0 var(--space-2);
+}
+
+.production-empty-content p {
+    color: var(--text-secondary);
+    margin: 0;
+    line-height: 1.6;
+    font-size: 0.875rem;
+}

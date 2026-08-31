@@ -10,7 +10,8 @@ import {
   Film,
   LogIn,
   Shield,
-  Layers
+  Layers,
+  Clapperboard
 } from 'lucide-react';
 import { Spinner } from '../ui';
 import { useAnalysis } from '../../context/AnalysisContext';
@@ -79,6 +80,14 @@ const TopBar = () => {
           >
             <Layers size={18} />
             <span>Series</span>
+          </NavLink>
+
+          <NavLink
+            to="/productions"
+            className={({ isActive }) => `topbar-nav-item ${isActive ? 'active' : ''}`}
+          >
+            <Clapperboard size={18} />
+            <span>Productions</span>
           </NavLink>
 
           {/* Admin Button - only show for superusers */}
