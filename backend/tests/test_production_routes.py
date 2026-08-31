@@ -271,3 +271,69 @@ def test_delete_production_non_owner_forbidden(monkeypatch):
     resp = _client().delete("/api/productions/p1")
     assert resp.status_code == 403
     assert len(store["productions"]) == 1
+
+
+def test_add_script_associates_owned_unassigned_script(monkeypatch):
+    store = _store(
+        productions=[{"id": "p1", "owner_id": DEV_USER_ID, "title": "Mine"}],
+        scripts=[{"id": "s1", "user_id": DEV_USER_ID, "production_id": None, "title": "Ep 1"}],
+    )
+    _patch(monkeypatch, store)
+    resp = _client().post("/api/productions/p1/scripts", json={"script_id": "s1"})
+    assert resp.status_code == 200
+    assert store["scripts"][0]["production_id"] == "p1"
+
+
+def test_add_script_already_in_a_production_conflicts(monkeypatch):
+    store = _store(
+        productions=[{"id": "p1", "owner_id": DEV_USER_ID, "title": "Mine"},
+                     {"id": "p2", "owner_id": DEV_USER_ID, "title": "Other"}],
+        scripts=[{"id": "s1", "user_id": DEV_USER_ID, "production_id": "p2", "title": "Ep 1"}],
+    )
+    _patch(monkeypatch, store)
+    resp = _client().post("/api/productions/p1/scripts", json={"script_id": "s1"})
+    assert resp.status_code == 409
+    assert store["scripts"][0]["production_id"] == "p2"
+
+
+def test_add_script_not_owned_forbidden(monkeypatch):
+    store = _store(
+        productions=[{"id": "p1", "owner_id": DEV_USER_ID, "title": "Mine"}],
+        scripts=[{"id": "s1", "user_id": "other", "production_id": None, "title": "Ep 1"}],
+    )
+    _patch(monkeypatch, store)
+    resp = _client().post("/api/productions/p1/scripts", json={"script_id": "s1"})
+    assert resp.status_code == 403
+
+
+def test_add_script_non_owner_of_production_forbidden(monkeypatch):
+    store = _store(
+        productions=[{"id": "p1", "owner_id": "other", "title": "Theirs"}],
+        scripts=[{"id": "s1", "user_id": DEV_USER_ID, "production_id": None, "title": "Ep 1"}],
+    )
+    _patch(monkeypatch, store)
+    resp = _client().post("/api/productions/p1/scripts", json={"script_id": "s1"})
+    assert resp.status_code == 403
+
+
+def test_add_script_missing_script_id_is_400(monkeypatch):
+    store = _store(
+        productions=[{"id": "p1", "owner_id": DEV_USER_ID, "title": "Mine"}],
+    )
+    _patch(monkeypatch, store)
+    resp = _client().post("/api/productions/p1/scripts", json={})
+    assert resp.status_code == 400
+
+
+def test_remove_script_clears_pointer_and_second_call_is_noop(monkeypatch):
+    store = _store(
+        productions=[{"id": "p1", "owner_id": DEV_USER_ID, "title": "Mine"}],
+        scripts=[{"id": "s1", "user_id": DEV_USER_ID, "production_id": "p1", "title": "Ep 1"}],
+    )
+    _patch(monkeypatch, store)
+    c = _client()
+    r1 = c.delete("/api/productions/p1/scripts/s1")
+    assert r1.status_code == 200
+    assert store["scripts"][0]["production_id"] is None
+    r2 = c.delete("/api/productions/p1/scripts/s1")
+    assert r2.status_code == 200  # idempotent no-op

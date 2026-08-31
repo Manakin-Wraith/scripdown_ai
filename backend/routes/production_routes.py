@@ -90,3 +90,42 @@ def delete_production(production_id):
     except Exception as e:
         print(f"Error deleting production: {e}")
         return jsonify({"error": str(e)}), 500
+
+
+@production_bp.route("/api/productions/<production_id>/scripts", methods=["POST"])
+@require_auth
+def add_script_to_production(production_id):
+    user_id = get_user_id()
+    try:
+        if not svc._get_production(svc.get_supabase_admin(), production_id):
+            return jsonify({"error": "Production not found"}), 404
+        if not svc._user_owns_production(production_id, user_id):
+            return jsonify({"error": "Insufficient permissions"}), 403
+        script_id = (request.get_json(silent=True) or {}).get("script_id")
+        if not script_id:
+            return jsonify({"error": "script_id is required"}), 400
+        outcome = svc.add_script(production_id, script_id, user_id)
+        if outcome == "not_owned":
+            return jsonify({"error": "You do not own that script"}), 403
+        if outcome == "conflict":
+            return jsonify({"error": "Script already belongs to a production"}), 409
+        return jsonify({"success": True})
+    except Exception as e:
+        print(f"Error adding script to production: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@production_bp.route("/api/productions/<production_id>/scripts/<script_id>", methods=["DELETE"])
+@require_auth
+def remove_script_from_production(production_id, script_id):
+    user_id = get_user_id()
+    try:
+        if not svc._get_production(svc.get_supabase_admin(), production_id):
+            return jsonify({"error": "Production not found"}), 404
+        if not svc._user_owns_production(production_id, user_id):
+            return jsonify({"error": "Insufficient permissions"}), 403
+        svc.remove_script(production_id, script_id)
+        return jsonify({"success": True})
+    except Exception as e:
+        print(f"Error removing script from production: {e}")
+        return jsonify({"error": str(e)}), 500

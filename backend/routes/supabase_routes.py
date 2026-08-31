@@ -125,6 +125,25 @@ def _attach_series_info(scripts):
     return scripts
 
 
+def _attach_production_info(scripts):
+    """Enrich each script dict with production_id/production_title by joining
+    scripts.production_id -> productions. Scripts with no production_id (the
+    common case) get both keys set to None, matching the series-info pattern."""
+    prod_ids = {s['production_id'] for s in scripts if s.get('production_id')}
+    prod_map = {}
+    if prod_ids and supabase:
+        res = supabase.table('productions').select('id, title').in_('id', list(prod_ids)).execute()
+        for prod in res.data or []:
+            prod_map[prod['id']] = prod
+
+    for script in scripts:
+        prod = prod_map.get(script.get('production_id'))
+        script['production_id'] = script.get('production_id') or None
+        script['production_title'] = prod.get('title') if prod else None
+
+    return scripts
+
+
 @supabase_bp.route('/api/scripts', methods=['GET'])
 @optional_auth
 def get_scripts():
@@ -196,6 +215,7 @@ def get_scripts():
                 'analysis_status': script.get('analysis_status', 'pending'),
                 'season_id': script.get('season_id'),
                 'episode_number': script.get('episode_number'),
+                'production_id': script.get('production_id'),
                 'is_owner': True,
                 'membership': None
             })
@@ -223,6 +243,7 @@ def get_scripts():
                 'analysis_status': script.get('analysis_status', 'pending'),
                 'season_id': script.get('season_id'),
                 'episode_number': script.get('episode_number'),
+                'production_id': script.get('production_id'),
                 'is_owner': False,
                 'membership': {
                     'department_code': membership['department_code'] if membership else None,
@@ -231,6 +252,7 @@ def get_scripts():
             })
 
         scripts = _attach_series_info(scripts)
+        scripts = _attach_production_info(scripts)
 
         # Sort by created_at descending
         scripts.sort(key=lambda x: x['created_at'], reverse=True)
