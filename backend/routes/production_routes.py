@@ -50,3 +50,43 @@ def get_production(production_id):
     except Exception as e:
         print(f"Error getting production: {e}")
         return jsonify({"error": str(e)}), 500
+
+
+@production_bp.route("/api/productions/<production_id>", methods=["PATCH"])
+@require_auth
+def update_production(production_id):
+    user_id = get_user_id()
+    try:
+        if not svc._get_production(svc.get_supabase_admin(), production_id):
+            return jsonify({"error": "Production not found"}), 404
+        if not svc._user_owns_production(production_id, user_id):
+            return jsonify({"error": "Insufficient permissions"}), 403
+        data = request.get_json(silent=True) or {}
+        if "title" in data:
+            data["title"] = (data.get("title") or "").strip()
+            if not data["title"]:
+                return jsonify({"error": "title cannot be empty"}), 400
+        return jsonify({"production": svc.update_production(production_id, data)})
+    except Exception as e:
+        print(f"Error updating production: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@production_bp.route("/api/productions/<production_id>", methods=["DELETE"])
+@require_auth
+def delete_production(production_id):
+    user_id = get_user_id()
+    try:
+        if not svc._get_production(svc.get_supabase_admin(), production_id):
+            return jsonify({"error": "Production not found"}), 404
+        if not svc._user_owns_production(production_id, user_id):
+            return jsonify({"error": "Insufficient permissions"}), 403
+        # Explicitly null associated scripts (DB does this via ON DELETE SET
+        # NULL too; doing it here keeps behavior identical under the mock).
+        svc.get_supabase_admin().table("scripts").update(
+            {"production_id": None}).eq("production_id", production_id).execute()
+        svc.delete_production(production_id)
+        return jsonify({"success": True})
+    except Exception as e:
+        print(f"Error deleting production: {e}")
+        return jsonify({"error": str(e)}), 500

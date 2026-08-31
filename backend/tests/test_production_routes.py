@@ -221,3 +221,53 @@ def test_get_production_missing_is_404(monkeypatch):
     _patch(monkeypatch, store)
     resp = _client().get("/api/productions/nope")
     assert resp.status_code == 404
+
+
+def test_patch_production_updates_only_given_fields(monkeypatch):
+    store = _store(productions=[
+        {"id": "p1", "owner_id": DEV_USER_ID, "title": "Old", "status": "development",
+         "notes": "keep me"},
+    ])
+    _patch(monkeypatch, store)
+    resp = _client().patch("/api/productions/p1", json={"title": "New", "status": "prep"})
+    assert resp.status_code == 200
+    row = store["productions"][0]
+    assert row["title"] == "New"
+    assert row["status"] == "prep"
+    assert row["notes"] == "keep me"
+
+
+def test_patch_production_non_owner_forbidden(monkeypatch):
+    store = _store(productions=[{"id": "p1", "owner_id": "other", "title": "Theirs"}])
+    _patch(monkeypatch, store)
+    resp = _client().patch("/api/productions/p1", json={"title": "Hijack"})
+    assert resp.status_code == 403
+    assert store["productions"][0]["title"] == "Theirs"
+
+
+def test_patch_production_missing_is_404(monkeypatch):
+    store = _store()
+    _patch(monkeypatch, store)
+    resp = _client().patch("/api/productions/nope", json={"title": "x"})
+    assert resp.status_code == 404
+
+
+def test_delete_production_nulls_associated_scripts(monkeypatch):
+    store = _store(
+        productions=[{"id": "p1", "owner_id": DEV_USER_ID, "title": "Mine"}],
+        scripts=[{"id": "s1", "user_id": DEV_USER_ID, "production_id": "p1", "title": "Ep 1"}],
+    )
+    _patch(monkeypatch, store)
+    resp = _client().delete("/api/productions/p1")
+    assert resp.status_code == 200
+    assert store["productions"] == []
+    # ON DELETE SET NULL is a DB behavior; the route mirrors it explicitly
+    assert store["scripts"][0]["production_id"] is None
+
+
+def test_delete_production_non_owner_forbidden(monkeypatch):
+    store = _store(productions=[{"id": "p1", "owner_id": "other", "title": "Theirs"}])
+    _patch(monkeypatch, store)
+    resp = _client().delete("/api/productions/p1")
+    assert resp.status_code == 403
+    assert len(store["productions"]) == 1
