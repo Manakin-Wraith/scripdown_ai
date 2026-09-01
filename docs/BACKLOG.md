@@ -42,17 +42,48 @@ schedule later (per-script rollup first).
   updated 013 applied to Supabase. Spec `2026-08-31-crew-contacts-design.md`,
   plan `2026-08-31-crew-contacts.md`.
 
-**START HERE 2026-09-01 — slice 2b: `production_members` permission layer.**
-Brainstorm not yet started. Inputs ready: the umbrella spec's "Permissions"
-section (role set `admin`/`coordinator`/`viewer`, `can_view_sensitive` gating
-`contacts.phone` / `contacts.standard_rate` / `production_crew.job_rate`, seat
-== Team License seat) plus the four questions the 2a spec explicitly deferred
-to 2b — non-owner directory scope (whole address book vs. assigned subset),
-permission inheritance (production admin → the production's scripts?), how
-`_fetch_seats_used` extends to production members, and whether the Crew tab
-becomes visible read-only to non-owners. 2a is genuinely owner-only today, so
-there is no partial-sharing behaviour to unbuild. Then steps 3–4: locations
-directory → call sheets / sides.
+**START HERE — slice 2b: `production_members` permission layer. IN
+PROGRESS on branch `feat/production-members-2b` (not merged, not pushed).**
+Brainstorm + spec + plan done 2026-09-01:
+`docs/superpowers/specs/2026-09-01-production-members-design.md`,
+`docs/superpowers/plans/2026-09-01-production-members.md`. Executing
+task-by-task via `superpowers:subagent-driven-development`; SDD ledger at
+`.superpowers/sdd/2026-09-01-production-members/progress.md` (gitignored —
+this is the recovery map).
+
+**Decisions locked in the brainstorm:** unified email-based "Add member"
+(immediate for existing accounts, pending token invite otherwise, reuses
+`script_invites` infra); axes stay independent (production membership grants
+ZERO script access — `get_script_role` untouched); `_fetch_seats_used`
+unions four sources deduped per person (script members + script invites +
+production members + pending production invites); non-owner directory scope
+= assigned subset only (`/contacts` stays owner-only); role presets
+(`admin`/`coordinator`/`viewer`) + four per-member override toggles
+(`can_view_sensitive`, `can_edit_crew`, `can_manage_members`,
+`can_edit_production`); server-side redaction of `job_rate`/`phone`/
+`standard_rate`; member management = owner + `can_manage_members` with rank
+guardrails; entitlement gate keyed to the production OWNER not the acting
+caller. Department-scoped script/report access for HODs is explicitly OUT
+of scope → its own brainstorm / umbrella step 7.
+
+**Progress (18 tasks total):**
+- Tasks 1–4 done, committed on the branch:
+  1. migration `052_production_members.sql` (`cd70926`) — **not yet applied
+     to Supabase**; apply before Tasks 7+ are exercised against real data.
+  2. `backend/middleware/production_authz.py` — `get_production_role` /
+     `get_production_access` (`13c941c`).
+  3. `require_production_role` decorator + resolvers (`207612a`).
+  4. crew routes re-gated to `require_production_role` + server-side
+     redaction (`4761510`). Note: DELETE of a missing crew row now → 404
+     (was 200 no-op); Task 15 frontend should treat that as "already gone".
+- **Next: Task 5** — extend `_fetch_seats_used` to count production members
+  + pending production invites. Then Tasks 6–11 backend (member service,
+  member/invite routes, auto-accept, `production_access` on GET-one,
+  route-enforcement test), 12–17 frontend (apiService, Members tab, crew
+  tab gating, invite-accept page, list badge), 18 verification.
+- Deferred-minor notes for the final review are in the SDD ledger.
+
+Then steps 3–4: locations directory → call sheets / sides.
 
 **2a follow-ups (small, non-blocking — fold into 2b or a hygiene pass):**
 - Verify `department=camera` in `frontend/public/crew-import-template.csv` is a
@@ -68,8 +99,10 @@ directory → call sheets / sides.
   via try/except, not a 400.
 
 **Do next (unblocks the most):**
-1. **`production_members` permission layer (step 2b) — brainstorm** (see
-   START HERE above). The headline next slice; steps 3–4 follow it.
+1. **`production_members` permission layer (step 2b) — resume execution at
+   Task 5** on branch `feat/production-members-2b` (see START HERE above:
+   brainstorm/spec/plan done, Tasks 1–4 committed). The headline next
+   slice; steps 3–4 follow it.
 2. **Cast & Casting v1 closeout** (cheap, ~1 session): `TriangleAlert`→`AlertTriangle`
    icon consistency (cosmetic); v1 "Review Important #3" uncontrolled-field
    issue now resolved via Task 9's controlled-input migration. Task 13 (DOOD
