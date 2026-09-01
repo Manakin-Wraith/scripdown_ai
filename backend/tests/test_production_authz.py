@@ -90,3 +90,8 @@ def test_access_non_member_is_none(monkeypatch):
     _patch(monkeypatch, {"productions": [{"id": "p1", "owner_id": "other"}],
                          "production_members": []})
     assert pa.get_production_access("p1", DEV_USER_ID) is None
+
+
+def test_access_missing_production(monkeypatch):
+    _patch(monkeypatch, {"productions": [], "production_members": []})
+    assert pa.get_production_access("nope", DEV_USER_ID) is pa.PRODUCTION_NOT_FOUND
