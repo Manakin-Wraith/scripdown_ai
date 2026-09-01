@@ -92,6 +92,14 @@ directory → call sheets / sides.
     (Overview/Crew tabs, script picker, crew roster, CSV import modal).
     Shipped functional across the spine + step 2a; never had a design pass.
     Brainstorm-then-build, cosmetic.
+9c. Contacts page UI/UX pass — the new `/contacts` account-level directory
+    (list, add/edit contact, kind filter, sensitive-field display) shipped
+    functional in step 2a but never had a design pass. Brainstorm-then-build,
+    cosmetic.
+9d. Crew tab UI/UX pass — the new Crew tab on `ProductionDetailPage`
+    (crew roster, department grouping, add-from-contacts, CSV import modal,
+    job/rate fields) shipped functional in step 2a but never had a design
+    pass. Brainstorm-then-build, cosmetic.
 
 **Infra / hygiene:**
 10. Flip `backend-tests` CI check to required; add a frontend
