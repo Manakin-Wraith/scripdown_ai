@@ -76,3 +76,73 @@ def get_production_access(production_id, user_id):
     if not row:
         return None
     return {'role': row['role'], **{c: bool(row.get(c)) for c in CAPABILITIES}}
+
+
+def _lookup_production_id(table, id_value, id_col='id'):
+    if not id_value:
+        return None
+    res = (get_supabase_admin().table(table)
+           .select('production_id').eq(id_col, id_value).limit(1).execute())
+    return res.data[0].get('production_id') if res.data else None
+
+
+def from_production_id(kwargs):
+    return kwargs.get('production_id')
+
+
+def from_crew_id(kwargs):
+    return _lookup_production_id('production_crew', kwargs.get('crew_id'))
+
+
+def from_member_id(kwargs):
+    return _lookup_production_id('production_members', kwargs.get('member_id'))
+
+
+def from_production_invite_id(kwargs):
+    return _lookup_production_id('production_invites', kwargs.get('invite_id'))
+
+
+def require_production_role(min_role=None, capability=None, resolver=from_production_id):
+    """Require the caller to hold a production role (and/or a capability flag).
+
+    Stack BELOW @require_auth. Resolves the production via resolver(kwargs).
+    404 if the production/resource is absent; 403 if the role rank is below
+    `min_role` or the named `capability` flag is not True. On success sets
+    g.production_access (the full dict) and g.resolved_production_id.
+    """
+    if min_role is not None and min_role not in ROLE_RANK:
+        raise ValueError(f"Unknown min_role: {min_role}")
+    if capability is not None and capability not in CAPABILITIES:
+        raise ValueError(f"Unknown capability: {capability}")
+
+    def decorator(f):
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            user_id = get_user_id()
+            if not user_id:
+                return jsonify({'error': 'Authentication required'}), 401
+
+            production_id = resolver(kwargs)
+            if not production_id:
+                return jsonify({'error': 'Not found'}), 404
+
+            access = get_production_access(production_id, user_id)
+            if access is PRODUCTION_NOT_FOUND:
+                return jsonify({'error': 'Not found'}), 404
+            if access is None:
+                return jsonify({'error': 'Insufficient permissions'}), 403
+            if min_role is not None and ROLE_RANK[access['role']] < ROLE_RANK[min_role]:
+                return jsonify({'error': 'Insufficient permissions'}), 403
+            if capability is not None and not access.get(capability):
+                return jsonify({'error': 'Insufficient permissions'}), 403
+
+            g.production_access = access
+            g.resolved_production_id = production_id
+            return f(*args, **kwargs)
+
+        if min_role is not None:
+            wrapper._authz_min_role = min_role
+        if capability is not None:
+            wrapper._authz_capability = capability
+        return wrapper
+    return decorator

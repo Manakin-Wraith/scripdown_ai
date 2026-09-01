@@ -10,6 +10,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import middleware.production_authz as pa
 from middleware.auth import DEV_USER_ID
+from flask import g
 
 
 class MockTable:
@@ -95,3 +96,80 @@ def test_access_non_member_is_none(monkeypatch):
 def test_access_missing_production(monkeypatch):
     _patch(monkeypatch, {"productions": [], "production_members": []})
     assert pa.get_production_access("nope", DEV_USER_ID) is pa.PRODUCTION_NOT_FOUND
+
+
+# Tests for require_production_role decorator and resolvers
+
+from flask import Flask, jsonify
+
+
+def _app_with_route(**decorator_kwargs):
+    app = Flask(__name__)
+    app.config["TESTING"] = True
+
+    @app.route("/api/productions/<production_id>/thing")
+    @pa.require_production_role(**decorator_kwargs)
+    def thing(production_id):
+        return jsonify({"role": g.production_access["role"]})
+
+    return app.test_client()
+
+
+def _patch_auth(monkeypatch, store):
+    _patch(monkeypatch, store)
+    monkeypatch.setattr(pa, "get_user_id", lambda: DEV_USER_ID)
+
+
+def test_decorator_min_role_rejects_non_member(monkeypatch):
+    _patch_auth(monkeypatch, {"productions": [{"id": "p1", "owner_id": "other"}],
+                              "production_members": []})
+    r = _app_with_route(min_role="viewer").get("/api/productions/p1/thing")
+    assert r.status_code == 403
+
+
+def test_decorator_min_role_accepts_viewer(monkeypatch):
+    _patch_auth(monkeypatch, {
+        "productions": [{"id": "p1", "owner_id": "other"}],
+        "production_members": [{"production_id": "p1", "user_id": DEV_USER_ID, "role": "viewer"}],
+    })
+    r = _app_with_route(min_role="viewer").get("/api/productions/p1/thing")
+    assert r.status_code == 200 and r.get_json()["role"] == "viewer"
+
+
+def test_decorator_capability_rejects_without_flag(monkeypatch):
+    _patch_auth(monkeypatch, {
+        "productions": [{"id": "p1", "owner_id": "other"}],
+        "production_members": [{"production_id": "p1", "user_id": DEV_USER_ID,
+                               "role": "viewer", "can_edit_crew": False}],
+    })
+    r = _app_with_route(capability="can_edit_crew").get("/api/productions/p1/thing")
+    assert r.status_code == 403
+
+
+def test_decorator_capability_accepts_overridden_viewer(monkeypatch):
+    _patch_auth(monkeypatch, {
+        "productions": [{"id": "p1", "owner_id": "other"}],
+        "production_members": [{"production_id": "p1", "user_id": DEV_USER_ID,
+                               "role": "viewer", "can_edit_crew": True}],
+    })
+    r = _app_with_route(capability="can_edit_crew").get("/api/productions/p1/thing")
+    assert r.status_code == 200
+
+
+def test_decorator_404_for_missing_production(monkeypatch):
+    _patch_auth(monkeypatch, {"productions": [], "production_members": []})
+    r = _app_with_route(min_role="viewer").get("/api/productions/nope/thing")
+    assert r.status_code == 404
+
+
+def test_decorator_sets_introspection_markers():
+    f = pa.require_production_role(capability="can_edit_crew")(lambda: None)
+    assert f._authz_capability == "can_edit_crew"
+    g2 = pa.require_production_role(min_role="admin")(lambda: None)
+    assert g2._authz_min_role == "admin"
+
+
+def test_from_crew_id_resolves_production(monkeypatch):
+    _patch(monkeypatch, {"production_crew": [{"id": "cr1", "production_id": "p1"}]})
+    assert pa.from_crew_id({"crew_id": "cr1"}) == "p1"
+    assert pa.from_crew_id({"crew_id": "missing"}) is None
