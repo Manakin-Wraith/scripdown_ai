@@ -205,3 +205,155 @@ def test_list_members_joins_profile_name(monkeypatch):
     assert out["members"][0]["name"] == "Lee Producer"
     assert out["members"][0]["email"] == "lee@x.com"
     assert len(out["invites"]) == 1 and out["invites"][0]["email"] == "new@x.com"
+
+
+import routes.production_routes as pr  # noqa
+
+
+def _client():
+    from flask import Flask
+    from routes.production_routes import production_bp
+    app = Flask(__name__); app.config["TESTING"] = True
+    app.register_blueprint(production_bp)
+    return app.test_client()
+
+
+def _rt_patch(monkeypatch, store):
+    monkeypatch.setattr("middleware.auth.DEV_MODE", True)
+    mock = MockSupabase(store)
+    monkeypatch.setattr(pms, "get_supabase_admin", lambda: mock)
+    monkeypatch.setattr("middleware.production_authz.get_supabase_admin", lambda: mock)
+    monkeypatch.setattr("middleware.production_authz.get_user_id", lambda: DEV_USER_ID)
+    monkeypatch.setattr("services.production_service.get_supabase_admin", lambda: mock)
+    # owner is Tier-2 active with spare seats unless a test overrides
+    monkeypatch.setattr(pms, "get_entitlement", lambda uid: {
+        "can_use_teams": True, "seats_used": 0, "seats_paid": 10})
+    monkeypatch.setattr("services.email_service.is_configured", lambda: False)
+
+
+def _owned_store(**ov):
+    base = {"productions": [{"id": "p1", "owner_id": DEV_USER_ID, "title": "Farm Feature"}],
+            "production_members": [], "production_invites": [],
+            "profiles": [{"id": DEV_USER_ID, "full_name": "Owner", "email": "dev@example.com"}],
+            "notifications": []}
+    base.update(ov)
+    return base
+
+
+def test_get_members_requires_membership(monkeypatch):
+    _rt_patch(monkeypatch, {"productions": [{"id": "p1", "owner_id": "other"}],
+                            "production_members": [], "production_invites": [], "profiles": []})
+    assert _client().get("/api/productions/p1/members").status_code == 403
+
+
+def test_get_members_owner_ok(monkeypatch):
+    _rt_patch(monkeypatch, _owned_store())
+    r = _client().get("/api/productions/p1/members")
+    assert r.status_code == 200 and r.get_json() == {"members": [], "invites": []}
+
+
+def test_add_member_existing_account_is_immediate(monkeypatch):
+    store = _owned_store(profiles=[
+        {"id": DEV_USER_ID, "full_name": "Owner", "email": "dev@example.com"},
+        {"id": "u-lee", "full_name": "Lee", "email": "lee@x.com"}])
+    _rt_patch(monkeypatch, store)
+    r = _client().post("/api/productions/p1/members",
+                       json={"email": "lee@x.com", "role": "coordinator"})
+    assert r.status_code == 201
+    assert r.get_json()["member"]["role"] == "coordinator"
+    assert store["production_members"][0]["user_id"] == "u-lee"
+    assert store["production_members"][0]["can_edit_crew"] is True
+    assert store["production_invites"] == []
+
+
+def test_add_member_unknown_email_creates_pending_invite(monkeypatch):
+    store = _owned_store()
+    _rt_patch(monkeypatch, store)
+    r = _client().post("/api/productions/p1/members",
+                       json={"email": "stranger@x.com", "role": "viewer"})
+    assert r.status_code == 201
+    assert r.get_json()["invite"]["email"] == "stranger@x.com"
+    assert store["production_invites"][0]["status"] == "pending"
+    assert store["production_invites"][0]["token"]
+
+
+def test_add_member_duplicate_is_409(monkeypatch):
+    store = _owned_store(
+        profiles=[{"id": DEV_USER_ID, "email": "dev@example.com"},
+                  {"id": "u-lee", "email": "lee@x.com"}],
+        production_members=[{"id": "m1", "production_id": "p1", "user_id": "u-lee", "role": "viewer"}])
+    _rt_patch(monkeypatch, store)
+    r = _client().post("/api/productions/p1/members", json={"email": "lee@x.com", "role": "viewer"})
+    assert r.status_code == 409
+
+
+def test_add_member_override_persists(monkeypatch):
+    store = _owned_store(profiles=[{"id": DEV_USER_ID, "email": "dev@example.com"},
+                                   {"id": "u-lee", "email": "lee@x.com"}])
+    _rt_patch(monkeypatch, store)
+    _client().post("/api/productions/p1/members",
+                   json={"email": "lee@x.com", "role": "coordinator", "can_view_sensitive": True})
+    assert store["production_members"][0]["can_view_sensitive"] is True
+
+
+def test_add_member_owner_not_tier2_is_403(monkeypatch):
+    store = _owned_store(profiles=[{"id": DEV_USER_ID, "email": "dev@example.com"},
+                                   {"id": "u-lee", "email": "lee@x.com"}])
+    _rt_patch(monkeypatch, store)
+    monkeypatch.setattr(pms, "get_entitlement", lambda uid: {
+        "can_use_teams": False, "seats_used": 0, "seats_paid": 10})
+    r = _client().post("/api/productions/p1/members", json={"email": "lee@x.com", "role": "viewer"})
+    assert r.status_code == 403 and r.get_json()["code"] == "tier_2_required"
+
+
+def test_add_member_no_seats_is_402(monkeypatch):
+    store = _owned_store(profiles=[{"id": DEV_USER_ID, "email": "dev@example.com"},
+                                   {"id": "u-lee", "email": "lee@x.com"}])
+    _rt_patch(monkeypatch, store)
+    monkeypatch.setattr(pms, "get_entitlement", lambda uid: {
+        "can_use_teams": True, "seats_used": 10, "seats_paid": 10})
+    r = _client().post("/api/productions/p1/members", json={"email": "lee@x.com", "role": "viewer"})
+    assert r.status_code == 402 and r.get_json()["code"] == "no_seats_available"
+
+
+def test_admin_member_cannot_create_admin(monkeypatch):
+    store = {"productions": [{"id": "p1", "owner_id": "other", "title": "T"}],
+             "production_members": [{"id": "m1", "production_id": "p1", "user_id": DEV_USER_ID,
+                                     "role": "admin", "can_manage_members": True, "can_edit_crew": True,
+                                     "can_view_sensitive": True, "can_edit_production": True}],
+             "production_invites": [],
+             "profiles": [{"id": DEV_USER_ID, "email": "dev@example.com"},
+                          {"id": "u-x", "email": "x@x.com"}],
+             "notifications": []}
+    _rt_patch(monkeypatch, store)
+    r = _client().post("/api/productions/p1/members", json={"email": "x@x.com", "role": "admin"})
+    assert r.status_code == 403 and r.get_json()["code"] == "rank_denied"
+
+
+def test_patch_member_role(monkeypatch):
+    store = _owned_store(production_members=[
+        {"id": "m1", "production_id": "p1", "user_id": "u-lee", "role": "viewer",
+         "can_view_sensitive": False, "can_edit_crew": False,
+         "can_manage_members": False, "can_edit_production": False}],
+        profiles=[{"id": DEV_USER_ID, "email": "dev@example.com"},
+                  {"id": "u-lee", "email": "lee@x.com"}])
+    _rt_patch(monkeypatch, store)
+    r = _client().patch("/api/productions/p1/members/m1",
+                        json={"role": "coordinator", "can_edit_crew": True})
+    assert r.status_code == 200
+    assert store["production_members"][0]["role"] == "coordinator"
+    assert store["production_members"][0]["can_edit_crew"] is True
+
+
+def test_delete_member(monkeypatch):
+    store = _owned_store(production_members=[
+        {"id": "m1", "production_id": "p1", "user_id": "u-lee", "role": "viewer"}],
+        profiles=[{"id": DEV_USER_ID, "email": "dev@example.com"}])
+    _rt_patch(monkeypatch, store)
+    assert _client().delete("/api/productions/p1/members/m1").status_code == 200
+    assert store["production_members"] == []
+
+
+def test_delete_missing_member_is_noop_200(monkeypatch):
+    _rt_patch(monkeypatch, _owned_store())
+    assert _client().delete("/api/productions/p1/members/nope").status_code == 200

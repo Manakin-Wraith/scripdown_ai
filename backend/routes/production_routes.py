@@ -6,12 +6,27 @@ role inside the production (see production_service.get_production_for_viewer).
 from flask import Blueprint, request, jsonify, g
 
 from middleware.auth import require_auth, get_user_id
-from middleware.production_authz import require_production_role, from_crew_id
+from middleware.production_authz import (
+    require_production_role, from_crew_id, from_member_id,
+)
 from services import production_service as svc
 from services import production_crew_service as crew_svc
+from services import production_member_service as member_svc
 from services.production_service import VALID_STATUSES
 
 production_bp = Blueprint("production", __name__)
+
+# Error codes the frontend switches on get echoed as a machine-readable `code`;
+# the service already carries the HTTP status.
+_MEMBER_ERR_WITH_CODE = {'rank_denied', 'tier_2_required', 'no_seats_available'}
+
+
+def _member_error(result):
+    _, code, status = result
+    body = {'error': code}
+    if code in _MEMBER_ERR_WITH_CODE:
+        body['code'] = code
+    return jsonify(body), status
 
 
 def _invalid_status(data):
@@ -229,4 +244,48 @@ def import_production_crew(production_id):
 @require_production_role(capability="can_edit_crew", resolver=from_crew_id)
 def remove_production_crew(production_id, crew_id):
     crew_svc.remove_crew(production_id, crew_id)
+    return jsonify({"success": True})
+
+
+@production_bp.route("/api/productions/<production_id>/members", methods=["GET"])
+@require_auth
+@require_production_role(min_role="viewer")
+def list_production_members(production_id):
+    return jsonify(member_svc.list_members_and_invites(production_id))
+
+
+@production_bp.route("/api/productions/<production_id>/members", methods=["POST"])
+@require_auth
+@require_production_role(capability="can_manage_members")
+def add_production_member(production_id):
+    data = request.get_json(silent=True) or {}
+    result = member_svc.add_member(
+        production_id, get_user_id(), g.production_access, data)
+    if isinstance(result, tuple):
+        return _member_error(result)
+    return jsonify(result), 201
+
+
+@production_bp.route("/api/productions/<production_id>/members/<member_id>", methods=["PATCH"])
+@require_auth
+@require_production_role(capability="can_manage_members", resolver=from_member_id)
+def update_production_member(production_id, member_id):
+    data = request.get_json(silent=True) or {}
+    result = member_svc.update_member(
+        production_id, member_id, get_user_id(), g.production_access, data)
+    if isinstance(result, tuple):
+        return _member_error(result)
+    return jsonify(result)
+
+
+@production_bp.route("/api/productions/<production_id>/members/<member_id>", methods=["DELETE"])
+@require_auth
+@require_production_role(capability="can_manage_members")
+def remove_production_member(production_id, member_id):
+    # Resolves via production_id (not the member row) so deleting an already-
+    # absent member is a 200 no-op rather than a 404.
+    result = member_svc.remove_member(
+        production_id, member_id, get_user_id(), g.production_access)
+    if isinstance(result, tuple):
+        return _member_error(result)
     return jsonify({"success": True})
