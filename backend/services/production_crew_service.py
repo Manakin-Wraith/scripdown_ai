@@ -41,7 +41,28 @@ def _embed(supabase, crew_rows):
     return crew_rows
 
 
-def list_crew(production_id):
+_SENSITIVE_CREW = ("job_rate",)
+_SENSITIVE_CONTACT = ("phone", "standard_rate")
+
+
+def _redact(rows, can_view_sensitive):
+    """Strip sensitive rate/contact fields unless the caller may see them.
+
+    Keeps `job_rate_unit` / `rate_unit` — a unit with no number leaks nothing.
+    """
+    if can_view_sensitive:
+        return rows
+    for r in rows:
+        for k in _SENSITIVE_CREW:
+            r.pop(k, None)
+        contact = r.get("contact")
+        if isinstance(contact, dict):
+            for k in _SENSITIVE_CONTACT:
+                contact.pop(k, None)
+    return rows
+
+
+def list_crew(production_id, *, can_view_sensitive=False):
     supabase = get_supabase_admin()
     rows = (supabase.table("production_crew").select("*")
             .eq("production_id", production_id).execute().data or [])
@@ -51,7 +72,7 @@ def list_crew(production_id):
         c.get("department_code") or "",
         (c.get("contact") or {}).get("name") or "",
     ))
-    return rows
+    return _redact(rows, can_view_sensitive)
 
 
 def _contact_owned_by(supabase, contact_id, user_id):
@@ -60,8 +81,10 @@ def _contact_owned_by(supabase, contact_id, user_id):
     return bool(res.data)
 
 
-def add_crew(production_id, user_id, fields):
+def add_crew(production_id, user_id, fields, *, can_view_sensitive=True):
     supabase = get_supabase_admin()
+    if not can_view_sensitive:
+        fields = {k: v for k, v in fields.items() if k != "job_rate"}
     contact_id = fields.get("contact_id")
     if not contact_id or not _contact_owned_by(supabase, contact_id, user_id):
         return "bad_contact"
@@ -85,8 +108,10 @@ def _get_crew(supabase, production_id, crew_id):
     return res.data[0] if res.data else None
 
 
-def update_crew(production_id, crew_id, fields):
+def update_crew(production_id, crew_id, fields, *, can_view_sensitive=True):
     supabase = get_supabase_admin()
+    if not can_view_sensitive:
+        fields = {k: v for k, v in fields.items() if k != "job_rate"}
     if not _get_crew(supabase, production_id, crew_id):
         return "not_found"
     dept = fields.get("department_code")

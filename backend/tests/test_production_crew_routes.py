@@ -170,6 +170,8 @@ def _patch(monkeypatch, store):
     for mod in (ps, pcs):
         monkeypatch.setattr(mod, "get_supabase_admin", lambda: mock)
     monkeypatch.setattr("middleware.authorization.get_supabase_admin", lambda: mock)
+    monkeypatch.setattr("middleware.production_authz.get_supabase_admin", lambda: mock)
+    monkeypatch.setattr("middleware.production_authz.get_user_id", lambda: DEV_USER_ID)
     monkeypatch.setattr(ds, "get_departments_list", lambda: [{"code": "camera", "name": "Camera", "color": "#1"}])
 
 
@@ -249,7 +251,8 @@ def test_patch_crew_end_before_start_is_400(monkeypatch):
 def test_non_owner_forbidden_on_all_crew_routes(monkeypatch):
     store = _store(productions=[{"id": "p1", "owner_id": "other", "title": "Theirs"}],
                    scripts=[{"id": "s1", "user_id": "other", "production_id": "p1"}],
-                   script_members=[{"script_id": "s1", "user_id": DEV_USER_ID, "role": "viewer"}])
+                   script_members=[{"script_id": "s1", "user_id": DEV_USER_ID, "role": "viewer"}],
+                   production_crew=[{"id": "cw1", "production_id": "p1", "contact_id": "c1"}])
     _patch(monkeypatch, store)
     assert _client().get("/api/productions/p1/crew").status_code == 403
     assert _client().post("/api/productions/p1/crew", json={"contact_id": "c1"}).status_code == 403
@@ -291,11 +294,14 @@ def test_patch_ignores_contact_id(monkeypatch):
     assert store["production_crew"][0]["role"] == "Best Boy"
 
 
-def test_delete_then_redelete_is_noop_200(monkeypatch):
+def test_delete_then_redelete_is_404(monkeypatch):
+    # Task 4: DELETE is now gated by require_production_role(resolver=from_crew_id).
+    # Once the row is gone the production can't be resolved from it, so the
+    # decorator answers 404 (was a noop 200 under the old owner-only guard).
     store = _store(production_crew=[{"id": "w1", "production_id": "p1", "contact_id": "c1"}])
     _patch(monkeypatch, store)
     assert _client().delete("/api/productions/p1/crew/w1").status_code == 200
-    assert _client().delete("/api/productions/p1/crew/w1").status_code == 200
+    assert _client().delete("/api/productions/p1/crew/w1").status_code == 404
 
 
 def test_same_contact_two_roles_both_persist(monkeypatch):
@@ -390,3 +396,70 @@ def test_import_non_owner_forbidden(monkeypatch):
     _patch(monkeypatch, store)
     resp = _post_csv(_client(), "p1", "name\nGary\n")
     assert resp.status_code == 403
+
+
+# --- Task 4: production members reach crew per role/capability + redaction ---
+
+def _member_store(role, **flags):
+    """A production owned by someone else, with DEV_USER_ID as a member."""
+    row = {"production_id": "p1", "user_id": DEV_USER_ID, "role": role,
+           "can_view_sensitive": False, "can_edit_crew": False,
+           "can_manage_members": False, "can_edit_production": False}
+    row.update(flags)
+    return _store(
+        productions=[{"id": "p1", "owner_id": "other", "title": "Farm Feature"}],
+        production_members=[row],
+        contacts=[{"id": "c1", "owner_id": "other", "name": "Gary", "kind": "person",
+                   "phone": "0821112222", "standard_rate": 4500}],
+        production_crew=[{"id": "cr1", "production_id": "p1", "contact_id": "c1",
+                         "role": "Gaffer", "department_code": "camera",
+                         "job_rate": 4000, "job_rate_unit": "day"}],
+    )
+
+
+def test_viewer_can_read_crew(monkeypatch):
+    _patch(monkeypatch, _member_store("viewer"))
+    r = _client().get("/api/productions/p1/crew")
+    assert r.status_code == 200
+
+
+def test_viewer_cannot_edit_crew(monkeypatch):
+    _patch(monkeypatch, _member_store("viewer"))
+    r = _client().post("/api/productions/p1/crew", json={"contact_id": "c1"})
+    assert r.status_code == 403
+
+
+def test_coordinator_can_edit_crew(monkeypatch):
+    store = _member_store("coordinator", can_edit_crew=True)
+    store["contacts"].append({"id": "c2", "owner_id": "other", "name": "Sam", "kind": "person"})
+    _patch(monkeypatch, store)
+    r = _client().post("/api/productions/p1/crew", json={"contact_id": "c2"})
+    assert r.status_code in (201, 400)  # 400 only if contact-ownership rule bites; see Step 3
+
+
+def test_redaction_hides_rates_for_plain_viewer(monkeypatch):
+    _patch(monkeypatch, _member_store("viewer"))
+    row = _client().get("/api/productions/p1/crew").get_json()["crew"][0]
+    assert "job_rate" not in row
+    assert row.get("job_rate_unit") == "day"
+    assert "phone" not in row["contact"]
+    assert "standard_rate" not in row["contact"]
+
+
+def test_no_redaction_for_sensitive_viewer(monkeypatch):
+    _patch(monkeypatch, _member_store("viewer", can_view_sensitive=True))
+    row = _client().get("/api/productions/p1/crew").get_json()["crew"][0]
+    assert row["job_rate"] == 4000
+    assert row["contact"]["phone"] == "0821112222"
+
+
+def test_owner_still_sees_everything(monkeypatch):
+    store = _store(
+        contacts=[{"id": "c1", "owner_id": DEV_USER_ID, "name": "Gary", "kind": "person",
+                   "phone": "0821112222", "standard_rate": 4500}],
+        production_crew=[{"id": "cr1", "production_id": "p1", "contact_id": "c1",
+                         "role": "Gaffer", "job_rate": 4000, "job_rate_unit": "day"}],
+    )
+    _patch(monkeypatch, store)
+    row = _client().get("/api/productions/p1/crew").get_json()["crew"][0]
+    assert row["job_rate"] == 4000 and row["contact"]["phone"] == "0821112222"

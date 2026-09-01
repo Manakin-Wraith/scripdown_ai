@@ -3,9 +3,10 @@ Production HTTP routes. Logic lives in services/production_service.py.
 Owner-scoped list/write; GET-one also serves team members with a script
 role inside the production (see production_service.get_production_for_viewer).
 """
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
 
 from middleware.auth import require_auth, get_user_id
+from middleware.production_authz import require_production_role, from_crew_id
 from services import production_service as svc
 from services import production_crew_service as crew_svc
 from services.production_service import VALID_STATUSES
@@ -149,34 +150,23 @@ def remove_script_from_production(production_id, script_id):
         return jsonify({"error": str(e)}), 500
 
 
-def _require_production_owner(production_id):
-    """Return (err_response, status) or (None, None) if the caller owns it."""
-    user_id = get_user_id()
-    if not svc._get_production(svc.get_supabase_admin(), production_id):
-        return jsonify({"error": "Production not found"}), 404
-    if not svc._user_owns_production(production_id, user_id):
-        return jsonify({"error": "Insufficient permissions"}), 403
-    return None, None
-
-
 @production_bp.route("/api/productions/<production_id>/crew", methods=["GET"])
 @require_auth
+@require_production_role(min_role="viewer")
 def list_production_crew(production_id):
-    err, status = _require_production_owner(production_id)
-    if err:
-        return err, status
-    return jsonify({"crew": crew_svc.list_crew(production_id)})
+    return jsonify({"crew": crew_svc.list_crew(
+        production_id, can_view_sensitive=g.production_access["can_view_sensitive"])})
 
 
 @production_bp.route("/api/productions/<production_id>/crew", methods=["POST"])
 @require_auth
+@require_production_role(capability="can_edit_crew")
 def add_production_crew(production_id):
-    err, status = _require_production_owner(production_id)
-    if err:
-        return err, status
     data = request.get_json(silent=True) or {}
     try:
-        result = crew_svc.add_crew(production_id, get_user_id(), data)
+        result = crew_svc.add_crew(
+            production_id, get_user_id(), data,
+            can_view_sensitive=g.production_access["can_view_sensitive"])
         if result == "bad_contact":
             return jsonify({"error": "contact_id must be one of your contacts"}), 400
         if result == "bad_department":
@@ -193,13 +183,13 @@ def add_production_crew(production_id):
 
 @production_bp.route("/api/productions/<production_id>/crew/<crew_id>", methods=["PATCH"])
 @require_auth
+@require_production_role(capability="can_edit_crew", resolver=from_crew_id)
 def update_production_crew(production_id, crew_id):
-    err, status = _require_production_owner(production_id)
-    if err:
-        return err, status
     data = request.get_json(silent=True) or {}
     try:
-        result = crew_svc.update_crew(production_id, crew_id, data)
+        result = crew_svc.update_crew(
+            production_id, crew_id, data,
+            can_view_sensitive=g.production_access["can_view_sensitive"])
         if result == "not_found":
             return jsonify({"error": "Crew assignment not found"}), 404
         if result == "bad_department":
@@ -216,10 +206,8 @@ def update_production_crew(production_id, crew_id):
 
 @production_bp.route("/api/productions/<production_id>/crew/import", methods=["POST"])
 @require_auth
+@require_production_role(capability="can_edit_crew")
 def import_production_crew(production_id):
-    err, status = _require_production_owner(production_id)
-    if err:
-        return err, status
     upload = request.files.get("file")
     if not upload:
         return jsonify({"error": "file is required"}), 400
@@ -238,9 +226,7 @@ def import_production_crew(production_id):
 
 @production_bp.route("/api/productions/<production_id>/crew/<crew_id>", methods=["DELETE"])
 @require_auth
+@require_production_role(capability="can_edit_crew", resolver=from_crew_id)
 def remove_production_crew(production_id, crew_id):
-    err, status = _require_production_owner(production_id)
-    if err:
-        return err, status
     crew_svc.remove_crew(production_id, crew_id)
     return jsonify({"success": True})
