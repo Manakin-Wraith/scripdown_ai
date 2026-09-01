@@ -99,7 +99,7 @@ def add_crew(production_id, user_id, fields, *, can_view_sensitive=True):
         if fields.get(f) is not None:
             row[f] = fields[f]
     created = supabase.table("production_crew").insert(row).execute().data[0]
-    return _embed(supabase, [created])[0]
+    return _redact([_embed(supabase, [created])[0]], can_view_sensitive)[0]
 
 
 def _get_crew(supabase, production_id, crew_id):
@@ -124,7 +124,7 @@ def update_crew(production_id, crew_id, fields, *, can_view_sensitive=True):
     if patch:
         supabase.table("production_crew").update(patch).eq("id", crew_id).execute()
     updated = _get_crew(supabase, production_id, crew_id)
-    return _embed(supabase, [updated])[0]
+    return _redact([_embed(supabase, [updated])[0]], can_view_sensitive)[0]
 
 
 def remove_crew(production_id, crew_id):

@@ -429,6 +429,12 @@ def test_viewer_cannot_edit_crew(monkeypatch):
     assert r.status_code == 403
 
 
+def test_plain_viewer_forbidden_on_patch_and_delete(monkeypatch):
+    _patch(monkeypatch, _member_store("viewer"))
+    assert _client().patch("/api/productions/p1/crew/cr1", json={"role": "X"}).status_code == 403
+    assert _client().delete("/api/productions/p1/crew/cr1").status_code == 403
+
+
 def test_coordinator_can_edit_crew(monkeypatch):
     store = _member_store("coordinator", can_edit_crew=True)
     store["contacts"].append({"id": "c2", "owner_id": "other", "name": "Sam", "kind": "person"})
