@@ -357,3 +357,61 @@ def test_delete_member(monkeypatch):
 def test_delete_missing_member_is_noop_200(monkeypatch):
     _rt_patch(monkeypatch, _owned_store())
     assert _client().delete("/api/productions/p1/members/nope").status_code == 200
+
+
+def test_revoke_invite(monkeypatch):
+    store = _owned_store(production_invites=[
+        {"id": "i1", "production_id": "p1", "email": "x@x.com", "role": "viewer",
+         "status": "pending", "expires_at": "2099-01-01"}])
+    _rt_patch(monkeypatch, store)
+    assert _client().delete("/api/production-invites/i1").status_code == 200
+    assert store["production_invites"][0]["status"] == "revoked"
+
+
+def test_get_invite_by_token_public(monkeypatch):
+    store = _owned_store(production_invites=[
+        {"id": "i1", "production_id": "p1", "email": "x@x.com", "role": "coordinator",
+         "token": "tok1", "status": "pending", "expires_at": "2099-01-01"}])
+    _rt_patch(monkeypatch, store)
+    r = _client().get("/api/production-invites/token/tok1")
+    assert r.status_code == 200
+    assert r.get_json()["role"] == "coordinator"
+    assert r.get_json()["production_title"] == "Farm Feature"
+
+
+def test_accept_invite_email_mismatch(monkeypatch):
+    store = _owned_store(production_invites=[
+        {"id": "i1", "production_id": "p1", "email": "someone-else@x.com", "role": "viewer",
+         "token": "tok1", "status": "pending", "expires_at": "2099-01-01"}])
+    _rt_patch(monkeypatch, store)
+    # DEV_MODE user email is dev@example.com
+    r = _client().post("/api/production-invites/token/tok1/accept")
+    assert r.status_code == 403 and r.get_json()["code"] == "email_mismatch"
+
+
+def test_accept_invite_success(monkeypatch):
+    store = _owned_store(production_invites=[
+        {"id": "i1", "production_id": "p1", "email": "dev@example.com", "role": "coordinator",
+         "can_view_sensitive": False, "can_edit_crew": True, "can_manage_members": False,
+         "can_edit_production": False, "token": "tok1", "status": "pending",
+         "expires_at": "2099-01-01", "invited_by": "owner"}])
+    _rt_patch(monkeypatch, store)
+    r = _client().post("/api/production-invites/token/tok1/accept")
+    assert r.status_code == 200
+    assert r.get_json()["production_id"] == "p1"
+    assert store["production_members"][0]["user_id"] == DEV_USER_ID
+    assert store["production_members"][0]["role"] == "coordinator"
+    assert store["production_members"][0]["can_edit_crew"] is True
+    assert store["production_invites"][0]["status"] == "accepted"
+
+
+def test_accept_invite_already_member(monkeypatch):
+    store = _owned_store(
+        production_members=[{"id": "m1", "production_id": "p1", "user_id": DEV_USER_ID, "role": "viewer"}],
+        production_invites=[{"id": "i1", "production_id": "p1", "email": "dev@example.com",
+                            "role": "viewer", "token": "tok1", "status": "pending",
+                            "expires_at": "2099-01-01"}])
+    _rt_patch(monkeypatch, store)
+    r = _client().post("/api/production-invites/token/tok1/accept")
+    assert r.status_code == 200 and r.get_json()["already_member"] is True
+    assert store["production_invites"][0]["status"] == "accepted"

@@ -231,6 +231,97 @@ def _maybe_email_member_added(supabase, production_id, target_uid, role, title):
         print(f"Warning: production member-added email failed: {e}")
 
 
+def revoke_invite(invite_id):
+    get_supabase_admin().table('production_invites').update(
+        {'status': 'revoked'}).eq('id', invite_id).execute()
+    return 'ok'
+
+
+def get_invite_by_token(token):
+    supabase = get_supabase_admin()
+    rows = (supabase.table('production_invites').select('*')
+            .eq('token', token).limit(1).execute().data or [])
+    if not rows:
+        return None
+    inv = rows[0]
+    prod = _get_production(supabase, inv['production_id'])
+    inviter = None
+    if inv.get('invited_by'):
+        p = (supabase.table('profiles').select('full_name, email')
+             .eq('id', inv['invited_by']).limit(1).execute().data or [])
+        if p:
+            inviter = p[0].get('full_name') or p[0].get('email')
+    expired = False
+    if inv.get('expires_at'):
+        try:
+            exp = datetime.fromisoformat(inv['expires_at'].replace('Z', '+00:00'))
+            expired = exp < datetime.now(exp.tzinfo)
+        except ValueError:
+            pass
+    return {
+        'production_id': inv['production_id'],
+        'production_title': (prod or {}).get('title', 'a production'),
+        'inviter_name': inviter or 'A teammate',
+        'role': inv['role'], 'email': inv['email'],
+        'status': inv['status'], 'expired': expired,
+    }
+
+
+def accept_invite(token, user_id, user_email):
+    supabase = get_supabase_admin()
+    rows = (supabase.table('production_invites').select('*')
+            .eq('token', token).limit(1).execute().data or [])
+    if not rows:
+        return ('error', 'not_found', 404)
+    inv = rows[0]
+    if (inv['email'] or '').lower() != (user_email or '').lower():
+        return ('error', 'email_mismatch', 403)
+    if inv['status'] == 'revoked':
+        return ('error', 'invite_revoked', 403)
+    if inv.get('expires_at'):
+        try:
+            exp = datetime.fromisoformat(inv['expires_at'].replace('Z', '+00:00'))
+            if exp < datetime.now(exp.tzinfo):
+                return ('error', 'invite_expired', 403)
+        except ValueError:
+            pass
+
+    existing = (supabase.table('production_members').select('id')
+                .eq('production_id', inv['production_id']).eq('user_id', user_id)
+                .limit(1).execute().data or [])
+    if existing:
+        supabase.table('production_invites').update(
+            {'status': 'accepted'}).eq('id', inv['id']).execute()
+        return {'production_id': inv['production_id'], 'already_member': True}
+
+    supabase.table('production_members').insert({
+        'production_id': inv['production_id'], 'user_id': user_id, 'role': inv['role'],
+        'invited_by': inv.get('invited_by'),
+        **{c: bool(inv.get(c)) for c in CAPABILITIES},
+    }).execute()
+    supabase.table('production_invites').update(
+        {'status': 'accepted'}).eq('id', inv['id']).execute()
+    _notify_invite_accepted(supabase, inv, user_id)
+    return {'production_id': inv['production_id'], 'already_member': False}
+
+
+def _notify_invite_accepted(supabase, inv, user_id):
+    if not inv.get('invited_by'):
+        return
+    prod = _get_production(supabase, inv['production_id'])
+    title = (prod or {}).get('title', 'a production')
+    try:
+        supabase.table('notifications').insert({
+            'user_id': inv['invited_by'],
+            'type': 'production_invite_accepted',
+            'title': 'Invite accepted',
+            'message': f'Someone joined "{title}" as {inv["role"]}',
+            'data': {'production_id': inv['production_id']},
+        }).execute()
+    except Exception as e:
+        print(f"Warning: production invite-accepted notification failed: {e}")
+
+
 def _send_invite_email(supabase, production_id, inv):
     from services import email_service
     if not email_service.is_configured():

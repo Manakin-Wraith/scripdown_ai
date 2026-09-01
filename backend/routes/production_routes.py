@@ -7,7 +7,7 @@ from flask import Blueprint, request, jsonify, g
 
 from middleware.auth import require_auth, get_user_id
 from middleware.production_authz import (
-    require_production_role, from_crew_id, from_member_id,
+    require_production_role, from_crew_id, from_member_id, from_production_invite_id,
 )
 from services import production_service as svc
 from services import production_crew_service as crew_svc
@@ -288,4 +288,35 @@ def remove_production_member(production_id, member_id):
         production_id, member_id, get_user_id(), g.production_access)
     if isinstance(result, tuple):
         return _member_error(result)
+    return jsonify({"success": True})
+
+
+# --- Invite lifecycle ---------------------------------------------------------
+# The token/<token> routes stay above the <invite_id> route for clarity.
+
+@production_bp.route("/api/production-invites/token/<token>", methods=["GET"])
+def get_production_invite(token):
+    # PUBLIC — powers the invite-accept landing page for logged-out users.
+    info = member_svc.get_invite_by_token(token)
+    if not info:
+        return jsonify({"error": "Invite not found"}), 404
+    return jsonify(info)
+
+
+@production_bp.route("/api/production-invites/token/<token>/accept", methods=["POST"])
+@require_auth
+def accept_production_invite(token):
+    user_email = (g.current_user or {}).get("email", "")
+    result = member_svc.accept_invite(token, get_user_id(), user_email)
+    if isinstance(result, tuple):
+        _, code, status = result
+        return jsonify({"error": code, "code": code}), status
+    return jsonify(result)
+
+
+@production_bp.route("/api/production-invites/<invite_id>", methods=["DELETE"])
+@require_auth
+@require_production_role(capability="can_manage_members", resolver=from_production_invite_id)
+def revoke_production_invite(invite_id):
+    member_svc.revoke_invite(invite_id)
     return jsonify({"success": True})
