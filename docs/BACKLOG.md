@@ -43,8 +43,9 @@ schedule later (per-script rollup first).
   plan `2026-08-31-crew-contacts.md`.
 
 **START HERE — slice 2b: `production_members` permission layer. IN
-PROGRESS on branch `feat/production-members-2b` (not merged, not pushed).**
-Brainstorm + spec + plan done 2026-09-01:
+PROGRESS on branch `feat/production-members-2b` (not merged, not pushed).
+Tasks 1–8 of 18 done & reviewed clean @ `a97933a`; resume at Task 9 (see
+"Progress" below).** Brainstorm + spec + plan done 2026-09-01:
 `docs/superpowers/specs/2026-09-01-production-members-design.md`,
 `docs/superpowers/plans/2026-09-01-production-members.md`. Executing
 task-by-task via `superpowers:subagent-driven-development`; SDD ledger at
@@ -66,22 +67,63 @@ guardrails; entitlement gate keyed to the production OWNER not the acting
 caller. Department-scoped script/report access for HODs is explicitly OUT
 of scope → its own brainstorm / umbrella step 7.
 
-**Progress (18 tasks total):**
-- Tasks 1–4 done, committed on the branch:
-  1. migration `052_production_members.sql` (`cd70926`) — **not yet applied
-     to Supabase**; apply before Tasks 7+ are exercised against real data.
+**Progress (18 tasks total) — Tasks 1–8 done & reviewed clean, HEAD `a97933a`
+on `feat/production-members-2b` (not pushed, not merged). 2026-09-01.**
+- Tasks 1–4 (committed earlier):
+  1. migration `052_production_members.sql` (`cd70926`) — **APPLIED to
+     Supabase manually by the user 2026-09-01** (the two tables +
+     `production_invites`).
   2. `backend/middleware/production_authz.py` — `get_production_role` /
-     `get_production_access` (`13c941c`).
-  3. `require_production_role` decorator + resolvers (`207612a`).
+     `get_production_access` / `ROLE_RANK` / `CAPABILITIES` (`13c941c`).
+  3. `require_production_role` decorator + resolvers `from_crew_id` /
+     `from_member_id` / `from_production_invite_id` (`207612a`).
   4. crew routes re-gated to `require_production_role` + server-side
      redaction (`4761510`). Note: DELETE of a missing crew row now → 404
      (was 200 no-op); Task 15 frontend should treat that as "already gone".
-- **Next: Task 5** — extend `_fetch_seats_used` to count production members
-  + pending production invites. Then Tasks 6–11 backend (member service,
-  member/invite routes, auto-accept, `production_access` on GET-one,
-  route-enforcement test), 12–17 frontend (apiService, Members tab, crew
-  tab gating, invite-accept page, list badge), 18 verification.
-- Deferred-minor notes for the final review are in the SDD ledger.
+- Tasks 5–8 (this session):
+  5. `_fetch_seats_used` now folds in the production axis — accepted
+     `production_members` + pending unexpired `production_invites` for the
+     owner's productions, deduped per person into the existing tally
+     (`2a0ee86`).
+  6. `backend/services/production_member_service.py` — `ROLE_PRESETS`
+     (admin/coordinator/viewer), `apply_role_preset`, `rank_ok` (strict
+     rank + only-grant-flags-you-hold), `list_members_and_invites`
+     (`5c7c162`).
+  7. member CRUD: `add_member` (immediate for existing accounts / pending
+     token invite otherwise; entitlement gate keyed to the production
+     OWNER; rank guardrails), `update_member` (double rank-check on current
+     + new role), `remove_member` (no-op 200 on missing — deliberately
+     unlike crew's 404); 4 routes on `production_bp`; `email_service`
+     `send_production_member_added` + `send_production_invite` sharing one
+     safety-preserving renderer (`76d5f25`).
+  8. invite lifecycle: `revoke_invite`, **public** `get_invite_by_token`
+     (landing-page display data; still returns for revoked/expired),
+     `accept_invite` (email-match / revoked / expired / not-found guards;
+     already-member 200; copies role + capability flags onto the new
+     member row); 3 routes (`a97933a`).
+  Full backend suite green at 672 passed / 1 skipped.
+- **Service signature ruling:** `add_member` / `update_member` /
+  `remove_member` take `(production_id, actor_uid, actor_access[, fields])`;
+  routes pass `get_user_id()`. No `_dev_actor_uid` shim.
+- **START HERE on resume — Task 9** — auto-accept pending production
+  invites on login (`auto_accept_pending_invites`, consumes
+  `accept_invite`). Then Task 10 (`production_access` field on GET-one +
+  member-visible `list_productions`), Task 11 (route-enforcement
+  regression test) → backend done. Then 12–17 frontend (apiService,
+  Members tab, crew-tab gating, invite-accept page, list badge), 18
+  full-stack verification, then the whole-branch final review +
+  `superpowers:finishing-a-development-branch`.
+- **Recovery map:** SDD ledger at
+  `.superpowers/sdd/2026-09-01-production-members/progress.md` (gitignored)
+  — has every task's commits, reviews, and rulings. Re-invoke
+  `superpowers:subagent-driven-development`; its first line names the plan;
+  Tasks 1–8 have `complete` lines so skip them.
+- **Deferred-minors + a background commit-security-review's 3 findings**
+  (all adjudicated non-blocking: 2 defense-in-depth DB-scoping /
+  payload-trim nits, 1 = the already-deferred Teams→Solo downgrade class)
+  are logged in the SDD ledger for the final whole-branch review.
+- User directive for this execution: **STOP after each task for explicit
+  go-ahead** before dispatching the next.
 
 Then steps 3–4: locations directory → call sheets / sides.
 
@@ -100,8 +142,9 @@ Then steps 3–4: locations directory → call sheets / sides.
 
 **Do next (unblocks the most):**
 1. **`production_members` permission layer (step 2b) — resume execution at
-   Task 5** on branch `feat/production-members-2b` (see START HERE above:
-   brainstorm/spec/plan done, Tasks 1–4 committed). The headline next
+   Task 9** on branch `feat/production-members-2b` (see START HERE above:
+   brainstorm/spec/plan done, Tasks 1–8 committed & reviewed @ `a97933a`,
+   backend suite 672 green, migration 052 applied). The headline next
    slice; steps 3–4 follow it.
 2. **Cast & Casting v1 closeout** (cheap, ~1 session): `TriangleAlert`→`AlertTriangle`
    icon consistency (cosmetic); v1 "Review Important #3" uncontrolled-field
