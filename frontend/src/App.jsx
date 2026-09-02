@@ -50,6 +50,7 @@ import SeasonPage from './pages/SeasonPage';
 import ProductionsListPage from './pages/ProductionsListPage';
 import ProductionDetailPage from './pages/ProductionDetailPage';
 import ContactsListPage from './pages/ContactsListPage';
+import LocationsListPage from './pages/LocationsListPage';
 
 function App() {
   return (
@@ -85,6 +86,7 @@ function App() {
                     <Route path="productions" element={<ProductionsListPage />} />
                     <Route path="productions/:productionId" element={<ProductionDetailPage />} />
                     <Route path="contacts" element={<ContactsListPage />} />
+                    <Route path="locations" element={<LocationsListPage />} />
                     <Route path="payment/success" element={<PaymentResultPage outcome="success" />} />
                     <Route path="payment/cancel" element={<PaymentResultPage outcome="cancel" />} />
 

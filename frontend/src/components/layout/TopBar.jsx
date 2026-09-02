@@ -12,7 +12,8 @@ import {
   Shield,
   Layers,
   Clapperboard,
-  Contact
+  Contact,
+  MapPin
 } from 'lucide-react';
 import { Spinner } from '../ui';
 import { useAnalysis } from '../../context/AnalysisContext';
@@ -97,6 +98,14 @@ const TopBar = () => {
           >
             <Contact size={18} />
             <span>Contacts</span>
+          </NavLink>
+
+          <NavLink
+            to="/locations"
+            className={({ isActive }) => `topbar-nav-item ${isActive ? 'active' : ''}`}
+          >
+            <MapPin size={18} />
+            <span>Locations</span>
           </NavLink>
 
           {/* Admin Button - only show for superusers */}
