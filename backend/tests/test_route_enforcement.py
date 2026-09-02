@@ -125,3 +125,46 @@ def test_shared_report_routes_are_public(flask_app):
             assert not getattr(view, "_authz_min_role", None), \
                 f"{rule.endpoint} must stay public"
     assert matched == public, f"Expected shared routes not found: {public - matched}"
+
+
+def test_production_scoped_routes_carry_authz_marker():
+    """Every production_bp route keyed to a production (directly or via a
+    child resource) must carry require_production_role — i.e. expose an
+    _authz_min_role or _authz_capability marker on its view function."""
+    from routes.production_routes import production_bp
+    from flask import Flask
+
+    app = Flask(__name__)
+    app.register_blueprint(production_bp)
+
+    # Routes intentionally NOT production-role scoped:
+    #  - create/list (no production yet / filters itself)
+    #  - the public invite-token lookup + accept (token IS the credential)
+    WHITELIST = {
+        "production.create_production",
+        "production.list_productions",
+        "production.get_production_invite",
+        "production.accept_production_invite",
+    }
+    # Owner-only spine routes still use the inline _user_owns_production guard,
+    # not the decorator — track them explicitly so this test documents them.
+    INLINE_OWNER_GUARD = {
+        "production.get_production",
+        "production.update_production",
+        "production.delete_production",
+        "production.add_script_to_production",
+        "production.remove_script_from_production",
+    }
+
+    SCOPED_ARGS = {"production_id", "crew_id", "member_id", "invite_id"}
+
+    for rule in app.url_map.iter_rules():
+        if not rule.endpoint.startswith("production."):
+            continue
+        if rule.endpoint in WHITELIST or rule.endpoint in INLINE_OWNER_GUARD:
+            continue
+        if not (set(rule.arguments) & SCOPED_ARGS):
+            continue
+        view = app.view_functions[rule.endpoint]
+        assert hasattr(view, "_authz_min_role") or hasattr(view, "_authz_capability"), \
+            f"{rule.endpoint} is production-scoped but has no require_production_role marker"
