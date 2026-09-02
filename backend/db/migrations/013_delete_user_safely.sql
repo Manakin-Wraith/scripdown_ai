@@ -22,6 +22,8 @@ BEGIN
     -- migration 051 header note re: pg_restore constraint reordering).
     DELETE FROM production_crew
      WHERE contact_id IN (SELECT id FROM contacts WHERE owner_id = user_id_to_delete);
+    -- locations (053) needs no explicit delete here: profiles -> locations is
+    -- ON DELETE CASCADE and nothing references locations with RESTRICT.
 
     -- Delete scripts and related data (cascades automatically)
     DELETE FROM scripts WHERE user_id = user_id_to_delete;
@@ -61,6 +63,8 @@ BEGIN
     -- Delete crew assignments before the profiles -> contacts cascade (RESTRICT FK)
     DELETE FROM production_crew
      WHERE contact_id IN (SELECT id FROM contacts WHERE owner_id = user_id_to_delete);
+    -- locations (053) needs no explicit delete here: profiles -> locations is
+    -- ON DELETE CASCADE and nothing references locations with RESTRICT.
 
     -- Delete scripts (cascades to scenes, etc.)
     DELETE FROM scripts WHERE user_id = user_id_to_delete;
