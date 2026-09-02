@@ -20,7 +20,7 @@ const formatDates = (row) => {
     return row.start_date || row.end_date || '';
 };
 
-export default function ProductionCrewTab({ productionId }) {
+export default function ProductionCrewTab({ productionId, access }) {
     const [crew, setCrew] = useState([]);
     const [departments, setDepartments] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -28,6 +28,9 @@ export default function ProductionCrewTab({ productionId }) {
     const [editing, setEditing] = useState(null);
     const [adding, setAdding] = useState(false);
     const [importing, setImporting] = useState(false);
+
+    const canEdit = access?.can_edit_crew;
+    const canViewSensitive = access?.can_view_sensitive;
 
     const loadCrew = useCallback(() => {
         return listProductionCrew(productionId)
@@ -102,16 +105,20 @@ export default function ProductionCrewTab({ productionId }) {
         <div className="production-crew">
             <div className="production-scripts-head">
                 <h3>Crew</h3>
-                <div className="production-crew-actions">
-                    <button onClick={() => setAdding(true)}>Add crew</button>
-                    <button onClick={() => setImporting(true)}>Import CSV</button>
-                </div>
+                {canEdit && (
+                    <div className="production-crew-actions">
+                        <button onClick={() => setAdding(true)}>Add crew</button>
+                        <button onClick={() => setImporting(true)}>Import CSV</button>
+                    </div>
+                )}
             </div>
 
             {error && <p className="production-page-error">{error}</p>}
 
             {crew.length === 0 ? (
-                <p className="production-scripts-empty">No crew yet. Add people or import a CSV.</p>
+                <p className="production-scripts-empty">
+                    {canEdit ? 'No crew yet. Add people or import a CSV.' : 'No crew yet.'}
+                </p>
             ) : (
                 orderedKeys.map((key) => (
                     <section key={key} className="production-crew-group">
@@ -124,17 +131,21 @@ export default function ProductionCrewTab({ productionId }) {
                                             {row.contact?.name || row.contact?.company_name || 'Unknown'}
                                         </span>
                                         {row.role && <span className="production-crew-role">{row.role}</span>}
-                                        {formatRate(row) && (
+                                        {!canViewSensitive ? (
+                                            <span className="production-crew-rate production-crew-rate-hidden">rate hidden</span>
+                                        ) : formatRate(row) && (
                                             <span className="production-crew-rate">{formatRate(row)}</span>
                                         )}
                                         {formatDates(row) && (
                                             <span className="production-crew-dates">{formatDates(row)}</span>
                                         )}
                                     </div>
-                                    <div className="production-crew-row-actions">
-                                        <button onClick={() => setEditing(row)}>Edit</button>
-                                        <button onClick={() => handleRemove(row)}>Remove</button>
-                                    </div>
+                                    {canEdit && (
+                                        <div className="production-crew-row-actions">
+                                            <button onClick={() => setEditing(row)}>Edit</button>
+                                            <button onClick={() => handleRemove(row)}>Remove</button>
+                                        </div>
+                                    )}
                                 </li>
                             ))}
                         </ul>

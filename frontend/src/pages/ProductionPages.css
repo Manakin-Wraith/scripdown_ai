@@ -397,3 +397,5 @@
     display: flex; align-items: center; gap: 8px;
     margin: 6px 0; font-size: 13px; color: #e6ecf5;
 }
+
+.production-crew-rate-hidden { color: #6b7a94; font-style: italic; }
