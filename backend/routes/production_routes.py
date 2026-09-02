@@ -8,10 +8,12 @@ from flask import Blueprint, request, jsonify, g
 from middleware.auth import require_auth, get_user_id
 from middleware.production_authz import (
     require_production_role, from_crew_id, from_member_id, from_production_invite_id,
+    from_production_location_id,
 )
 from services import production_service as svc
 from services import production_crew_service as crew_svc
 from services import production_member_service as member_svc
+from services import production_location_service as ploc_svc
 from services.production_service import VALID_STATUSES
 
 production_bp = Blueprint("production", __name__)
@@ -244,6 +246,51 @@ def import_production_crew(production_id):
 @require_production_role(capability="can_edit_crew", resolver=from_crew_id)
 def remove_production_crew(production_id, crew_id):
     crew_svc.remove_crew(production_id, crew_id)
+    return jsonify({"success": True})
+
+
+@production_bp.route("/api/productions/<production_id>/locations", methods=["GET"])
+@require_auth
+@require_production_role(min_role="viewer")
+def list_production_locations(production_id):
+    return jsonify({"locations": ploc_svc.list_for_production(production_id)})
+
+
+@production_bp.route("/api/productions/<production_id>/locations", methods=["POST"])
+@require_auth
+@require_production_role(capability="can_edit_production")
+def link_production_location(production_id):
+    data = request.get_json(silent=True) or {}
+    location_id = (data.get("location_id") or "").strip()
+    if not location_id:
+        return jsonify({"error": "location_id is required"}), 400
+    owner_id = svc.get_production_owner_id(production_id)
+    result = ploc_svc.link_location(production_id, location_id, owner_id,
+                                    notes=data.get("production_notes"))
+    if result == "not_owned":
+        return jsonify({"error": "That location is not in this production owner's directory"}), 404
+    if result == "exists":
+        return jsonify({"error": "That location is already linked to this production"}), 409
+    return jsonify({"location": result}), 201
+
+
+@production_bp.route("/api/productions/<production_id>/locations/<link_id>", methods=["PATCH"])
+@require_auth
+@require_production_role(capability="can_edit_production", resolver=from_production_location_id)
+def update_production_location(production_id, link_id):
+    data = request.get_json(silent=True) or {}
+    result = ploc_svc.update_link(link_id, data.get("production_notes"))
+    if result == "not_found":
+        return jsonify({"error": "Not found"}), 404
+    return jsonify({"location": result})
+
+
+@production_bp.route("/api/productions/<production_id>/locations/<link_id>", methods=["DELETE"])
+@require_auth
+@require_production_role(capability="can_edit_production", resolver=from_production_location_id)
+def unlink_production_location(production_id, link_id):
+    if ploc_svc.unlink(production_id, link_id) == "not_found":
+        return jsonify({"error": "Not found"}), 404
     return jsonify({"success": True})
 
 

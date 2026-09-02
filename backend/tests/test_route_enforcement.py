@@ -155,7 +155,7 @@ def test_production_scoped_routes_carry_authz_marker():
         "production.remove_script_from_production",
     }
 
-    SCOPED_ARGS = {"production_id", "crew_id", "member_id", "invite_id"}
+    SCOPED_ARGS = {"production_id", "crew_id", "member_id", "invite_id", "link_id"}
 
     for rule in app.url_map.iter_rules():
         if not rule.endpoint.startswith("production."):

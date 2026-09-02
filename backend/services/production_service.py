@@ -34,6 +34,13 @@ def _user_owns_production(production_id, user_id):
     return bool(prod and prod.get("owner_id") == user_id)
 
 
+def get_production_owner_id(production_id):
+    """The production owner's uid. Account-level directories (contacts,
+    locations) live in the OWNER's book, so links resolve against them."""
+    prod = _get_production(get_supabase_admin(), production_id)
+    return prod.get("owner_id") if prod else None
+
+
 def create_production(user_id, fields):
     supabase = get_supabase_admin()
     row = {"owner_id": user_id, "created_by": user_id,
