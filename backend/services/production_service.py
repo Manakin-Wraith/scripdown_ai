@@ -8,6 +8,9 @@ production_members table yet -- that ships with the crew slice.
 """
 from db.supabase_client import get_supabase_admin
 from middleware.authorization import get_script_role, SCRIPT_NOT_FOUND
+from middleware.production_authz import (
+    get_production_access, PRODUCTION_NOT_FOUND, CAPABILITIES,
+)
 
 NOT_FOUND = object()  # distinguishes 404 from 403 to the route layer
 
@@ -47,9 +50,24 @@ def create_production(user_id, fields):
 
 def list_productions(user_id):
     supabase = get_supabase_admin()
-    res = (supabase.table("productions").select("*")
-           .eq("owner_id", user_id).order("created_at", desc=True).execute())
-    return res.data or []
+    owned = (supabase.table("productions").select("*")
+             .eq("owner_id", user_id).order("created_at", desc=True).execute().data or [])
+    for p in owned:
+        p["is_owner"] = True
+
+    member_rows = (supabase.table("production_members").select("production_id, role")
+                   .eq("user_id", user_id).execute().data or [])
+    role_by_id = {r["production_id"]: r["role"] for r in member_rows}
+    owned_ids = {p["id"] for p in owned}
+    extra_ids = [pid for pid in role_by_id if pid not in owned_ids]
+    extra = []
+    if extra_ids:
+        extra = (supabase.table("productions").select("*")
+                 .in_("id", extra_ids).execute().data or [])
+        for p in extra:
+            p["is_owner"] = False
+            p["member_role"] = role_by_id.get(p["id"])
+    return owned + extra
 
 
 def _accessible_scripts(supabase, production_id, user_id, is_owner):
@@ -73,9 +91,15 @@ def get_production_for_viewer(production_id, user_id):
         return NOT_FOUND
     is_owner = prod.get("owner_id") == user_id
     scripts = _accessible_scripts(supabase, production_id, user_id, is_owner)
-    if not is_owner and not scripts:
+
+    access = get_production_access(production_id, user_id)
+    if access in (None, PRODUCTION_NOT_FOUND):
+        access = {"role": None, **{c: False for c in CAPABILITIES}}
+
+    if not is_owner and access["role"] is None and not scripts:
         return None  # exists, but caller has no way in
-    return {"production": prod, "scripts": scripts, "is_owner": is_owner}
+    return {"production": prod, "scripts": scripts,
+            "is_owner": is_owner, "production_access": access}
 
 
 def update_production(production_id, fields):
