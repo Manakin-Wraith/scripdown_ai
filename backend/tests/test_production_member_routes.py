@@ -417,6 +417,36 @@ def test_accept_invite_already_member(monkeypatch):
     assert store["production_invites"][0]["status"] == "accepted"
 
 
+def test_accept_invite_already_used_is_403(monkeypatch):
+    """An ACCEPTED invite is not a live credential: a removed member clicking
+    the old link must not silently re-consume a seat."""
+    store = _owned_store(production_invites=[
+        {"id": "i1", "production_id": "p1", "email": "dev@example.com", "role": "viewer",
+         "token": "tok1", "status": "accepted", "expires_at": "2099-01-01"}])
+    _rt_patch(monkeypatch, store)
+    r = _client().post("/api/production-invites/token/tok1/accept")
+    assert r.status_code == 403 and r.get_json()["code"] == "invite_already_used"
+    assert store["production_members"] == []
+
+
+def test_add_member_owner_email_is_400(monkeypatch):
+    store = _owned_store()
+    _rt_patch(monkeypatch, store)
+    r = _client().post("/api/productions/p1/members",
+                       json={"email": "dev@example.com", "role": "viewer"})
+    assert r.status_code == 400 and r.get_json()["code"] == "cannot_target_owner"
+    assert store["production_members"] == []
+
+
+def test_revoke_does_not_clobber_accepted_invite(monkeypatch):
+    store = _owned_store(production_invites=[
+        {"id": "i1", "production_id": "p1", "email": "x@x.com", "role": "viewer",
+         "status": "accepted", "expires_at": "2099-01-01"}])
+    _rt_patch(monkeypatch, store)
+    assert _client().delete("/api/production-invites/i1").status_code == 200
+    assert store["production_invites"][0]["status"] == "accepted"
+
+
 import routes.invite_routes as ir  # noqa
 
 

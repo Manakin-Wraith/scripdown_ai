@@ -440,7 +440,31 @@ def test_coordinator_can_edit_crew(monkeypatch):
     store["contacts"].append({"id": "c2", "owner_id": "other", "name": "Sam", "kind": "person"})
     _patch(monkeypatch, store)
     r = _client().post("/api/productions/p1/crew", json={"contact_id": "c2"})
-    assert r.status_code in (201, 400)  # 400 only if contact-ownership rule bites; see Step 3
+    # Contacts are resolved against the PRODUCTION OWNER's book, not the actor's.
+    assert r.status_code == 201
+
+
+def test_member_import_creates_contacts_owned_by_production_owner(monkeypatch):
+    store = _member_store("coordinator", can_edit_crew=True, can_view_sensitive=True)
+    store["contacts"] = []
+    _patch(monkeypatch, store)
+    r = _post_csv(_client(), "p1", "name,email,role\nGary,gary@x.com,Gaffer\n")
+    assert r.status_code == 200
+    assert [c["owner_id"] for c in store["contacts"]] == ["other"]
+
+
+def test_member_without_sensitive_cannot_import_rates(monkeypatch):
+    store = _member_store("coordinator", can_edit_crew=True)
+    store["contacts"] = []
+    store["production_crew"] = []
+    _patch(monkeypatch, store)
+    r = _post_csv(_client(), "p1",
+                  "name,email,role,rate,rate_unit,phone\nGary,gary@x.com,Gaffer,900,day,0821112222\n")
+    assert r.status_code == 200
+    crew = store["production_crew"][0]
+    assert crew["job_rate"] is None and crew["job_rate_unit"] is None
+    contact = store["contacts"][0]
+    assert contact["standard_rate"] is None and contact["phone"] is None
 
 
 def test_redaction_hides_rates_for_plain_viewer(monkeypatch):

@@ -9,15 +9,12 @@ Answers: may THIS user act on THIS production, at what role, with which
 capability flags? Enforcement is app-layer (the backend uses the
 service-role key).
 """
-import logging
 from functools import wraps
 
 from flask import g, jsonify
 
 from db.supabase_client import get_supabase_admin
 from middleware.auth import get_user_id
-
-logger = logging.getLogger(__name__)
 
 ROLE_RANK = {'viewer': 1, 'coordinator': 2, 'admin': 3, 'owner': 4}
 

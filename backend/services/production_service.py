@@ -2,9 +2,10 @@
 Production data logic (build-sequence step 1 -- "the spine").
 
 A production is a physical-shoot container holding >=0 scripts. Access:
-owner-only for list/write; GET-one also serves a team member who holds a
-role on a script inside the production (mirrors series_routes.py). No
-production_members table yet -- that ships with the crew slice.
+owner-only for create/delete; GET-one also serves a team member who holds a
+role on a script inside the production (mirrors series_routes.py), and
+production_members grants production-level access (see
+middleware/production_authz.py).
 """
 from db.supabase_client import get_supabase_admin
 from middleware.authorization import get_script_role, SCRIPT_NOT_FOUND
@@ -67,7 +68,11 @@ def list_productions(user_id):
         for p in extra:
             p["is_owner"] = False
             p["member_role"] = role_by_id.get(p["id"])
-    return owned + extra
+    combined = owned + extra
+    # One list, newest first — `extra` comes back unordered from the .in_() read.
+    combined.sort(key=lambda p: (p.get("created_at") is not None,
+                                 p.get("created_at") or ""), reverse=True)
+    return combined
 
 
 def _accessible_scripts(supabase, production_id, user_id, is_owner):

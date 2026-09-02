@@ -150,7 +150,6 @@ def test_production_scoped_routes_carry_authz_marker():
     # not the decorator — track them explicitly so this test documents them.
     INLINE_OWNER_GUARD = {
         "production.get_production",
-        "production.update_production",
         "production.delete_production",
         "production.add_script_to_production",
         "production.remove_script_from_production",

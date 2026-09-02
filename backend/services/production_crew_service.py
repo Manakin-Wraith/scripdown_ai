@@ -75,6 +75,14 @@ def list_crew(production_id, *, can_view_sensitive=False):
     return _redact(rows, can_view_sensitive)
 
 
+def _production_owner_id(supabase, production_id):
+    """The production owner's uid — contacts live in the OWNER's book, so every
+    lookup/creation below is scoped to them, not to the acting caller."""
+    res = (supabase.table("productions").select("owner_id")
+           .eq("id", production_id).limit(1).execute())
+    return res.data[0].get("owner_id") if res.data else None
+
+
 def _contact_owned_by(supabase, contact_id, user_id):
     res = (supabase.table("contacts").select("id")
            .eq("id", contact_id).eq("owner_id", user_id).limit(1).execute())
@@ -85,8 +93,9 @@ def add_crew(production_id, user_id, fields, *, can_view_sensitive=True):
     supabase = get_supabase_admin()
     if not can_view_sensitive:
         fields = {k: v for k, v in fields.items() if k != "job_rate"}
+    owner_uid = _production_owner_id(supabase, production_id)
     contact_id = fields.get("contact_id")
-    if not contact_id or not _contact_owned_by(supabase, contact_id, user_id):
+    if not contact_id or not _contact_owned_by(supabase, contact_id, owner_uid):
         return "bad_contact"
     dept = fields.get("department_code")
     if dept and dept not in valid_department_codes():
@@ -150,8 +159,9 @@ def _has_same_role_assignment(supabase, production_id, contact_id, role):
     return any((r.get("role") or "").strip().lower() == target for r in rows)
 
 
-def import_crew_csv(production_id, user_id, csv_text):
+def import_crew_csv(production_id, user_id, csv_text, *, can_view_sensitive=True):
     supabase = get_supabase_admin()
+    owner_uid = _production_owner_id(supabase, production_id)
     depts = department_service.get_departments_list()
     valid_codes = {d["code"] for d in depts}
     name_to_code = {d["code"]: d["name"] for d in depts}
@@ -164,12 +174,15 @@ def import_crew_csv(production_id, user_id, csv_text):
     skipped = list(parsed["errors"])
 
     for row in parsed["rows"]:
-        contact = _find_contact_by_email(supabase, user_id, row["email"])
+        if not can_view_sensitive:
+            # A caller who may not SEE rates may not SET them in bulk either.
+            row = {**row, "rate": None, "rate_unit": None, "phone": None}
+        contact = _find_contact_by_email(supabase, owner_uid, row["email"])
         if contact:
             matched += 1
         else:
             contact = supabase.table("contacts").insert({
-                "owner_id": user_id, "created_by": user_id, "kind": "person",
+                "owner_id": owner_uid, "created_by": owner_uid, "kind": "person",
                 "name": row["name"], "email": row["email"], "phone": row["phone"],
                 "company_name": row["company_name"], "role_tags": [],
                 "standard_rate": row["rate"], "rate_unit": row["rate_unit"],

@@ -274,6 +274,32 @@ def test_patch_production_non_owner_forbidden(monkeypatch):
     assert store["productions"][0]["title"] == "Theirs"
 
 
+def _member_row(role, **flags):
+    row = {"id": "m1", "production_id": "p1", "user_id": DEV_USER_ID, "role": role,
+           "can_view_sensitive": False, "can_edit_crew": False,
+           "can_manage_members": False, "can_edit_production": False}
+    row.update(flags)
+    return row
+
+
+def test_patch_production_member_with_can_edit_production_ok(monkeypatch):
+    store = _store(productions=[{"id": "p1", "owner_id": "other", "title": "Theirs"}],
+                   production_members=[_member_row("admin", can_edit_production=True)])
+    _patch(monkeypatch, store)
+    resp = _client().patch("/api/productions/p1", json={"title": "Renamed"})
+    assert resp.status_code == 200
+    assert store["productions"][0]["title"] == "Renamed"
+
+
+def test_patch_production_viewer_member_forbidden(monkeypatch):
+    store = _store(productions=[{"id": "p1", "owner_id": "other", "title": "Theirs"}],
+                   production_members=[_member_row("viewer")])
+    _patch(monkeypatch, store)
+    resp = _client().patch("/api/productions/p1", json={"title": "Hijack"})
+    assert resp.status_code == 403
+    assert store["productions"][0]["title"] == "Theirs"
+
+
 def test_patch_production_missing_is_404(monkeypatch):
     store = _store()
     _patch(monkeypatch, store)

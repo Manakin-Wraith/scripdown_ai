@@ -18,7 +18,9 @@ production_bp = Blueprint("production", __name__)
 
 # Error codes the frontend switches on get echoed as a machine-readable `code`;
 # the service already carries the HTTP status.
-_MEMBER_ERR_WITH_CODE = {'rank_denied', 'tier_2_required', 'no_seats_available'}
+_MEMBER_ERR_WITH_CODE = {'rank_denied', 'tier_2_required', 'no_seats_available',
+                         'duplicate_member', 'duplicate_invite', 'bad_role',
+                         'cannot_target_owner'}
 
 
 def _member_error(result):
@@ -83,13 +85,9 @@ def get_production(production_id):
 
 @production_bp.route("/api/productions/<production_id>", methods=["PATCH"])
 @require_auth
+@require_production_role(capability="can_edit_production")
 def update_production(production_id):
-    user_id = get_user_id()
     try:
-        if not svc._get_production(svc.get_supabase_admin(), production_id):
-            return jsonify({"error": "Production not found"}), 404
-        if not svc._user_owns_production(production_id, user_id):
-            return jsonify({"error": "Insufficient permissions"}), 403
         data = request.get_json(silent=True) or {}
         if "title" in data:
             data["title"] = (data.get("title") or "").strip()
@@ -233,7 +231,9 @@ def import_production_crew(production_id):
         text = raw.decode("utf-8-sig")
     except UnicodeDecodeError:
         return jsonify({"error": "File must be UTF-8 CSV"}), 400
-    result = crew_svc.import_crew_csv(production_id, get_user_id(), text)
+    result = crew_svc.import_crew_csv(
+        production_id, get_user_id(), text,
+        can_view_sensitive=g.production_access["can_view_sensitive"])
     if isinstance(result, tuple) and result[0] == "fatal":
         return jsonify({"error": result[1]}), 400
     return jsonify(result)
@@ -299,7 +299,7 @@ def get_production_invite(token):
     # PUBLIC — powers the invite-accept landing page for logged-out users.
     info = member_svc.get_invite_by_token(token)
     if not info:
-        return jsonify({"error": "Invite not found"}), 404
+        return jsonify({"error": "Invite not found", "code": "not_found"}), 404
     return jsonify(info)
 
 
@@ -318,5 +318,5 @@ def accept_production_invite(token):
 @require_auth
 @require_production_role(capability="can_manage_members", resolver=from_production_invite_id)
 def revoke_production_invite(invite_id):
-    member_svc.revoke_invite(invite_id)
+    member_svc.revoke_invite(invite_id, g.resolved_production_id)
     return jsonify({"success": True})

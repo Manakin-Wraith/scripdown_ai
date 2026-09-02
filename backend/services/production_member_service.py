@@ -131,6 +131,8 @@ def add_member(production_id, actor_uid, actor_access, fields):
             .ilike('email', email).limit(1).execute().data or [])
     if prof:
         target_uid = prof[0]['id']
+        if target_uid == _owner_id(supabase, production_id):
+            return ('error', 'cannot_target_owner', 400)
         dupe = (supabase.table('production_members').select('id')
                 .eq('production_id', production_id).eq('user_id', target_uid)
                 .limit(1).execute().data or [])
@@ -178,8 +180,8 @@ def update_member(production_id, member_id, actor_uid, actor_access, fields):
     if (not rank_ok(actor_access, current['role'], {})
             or not rank_ok(actor_access, new_role, merged)):
         return ('error', 'rank_denied', 403)
-    supabase.table('production_members').update(
-        {'role': new_role, **merged}).eq('id', member_id).execute()
+    (supabase.table('production_members').update({'role': new_role, **merged})
+     .eq('id', member_id).eq('production_id', production_id).execute())
     updated = (supabase.table('production_members').select('*')
                .eq('id', member_id).limit(1).execute().data[0])
     profiles = _profiles_by_id(supabase, {updated['user_id']})
@@ -231,9 +233,18 @@ def _maybe_email_member_added(supabase, production_id, target_uid, role, title):
         print(f"Warning: production member-added email failed: {e}")
 
 
-def revoke_invite(invite_id):
-    get_supabase_admin().table('production_invites').update(
-        {'status': 'revoked'}).eq('id', invite_id).execute()
+def revoke_invite(invite_id, production_id=None):
+    """Revoke a PENDING invite only — never clobber an already-accepted one."""
+    supabase = get_supabase_admin()
+    if production_id is None:
+        rows = (supabase.table('production_invites').select('production_id')
+                .eq('id', invite_id).limit(1).execute().data or [])
+        if not rows:
+            return 'ok'
+        production_id = rows[0].get('production_id')
+    (supabase.table('production_invites').update({'status': 'revoked'})
+     .eq('id', invite_id).eq('production_id', production_id)
+     .eq('status', 'pending').execute())
     return 'ok'
 
 
@@ -294,11 +305,30 @@ def accept_invite(token, user_id, user_email):
             {'status': 'accepted'}).eq('id', inv['id']).execute()
         return {'production_id': inv['production_id'], 'already_member': True}
 
-    supabase.table('production_members').insert({
-        'production_id': inv['production_id'], 'user_id': user_id, 'role': inv['role'],
-        'invited_by': inv.get('invited_by'),
-        **{c: bool(inv.get(c)) for c in CAPABILITIES},
-    }).execute()
+    # A non-pending invite (already accepted, and the member row since removed)
+    # must not act as a live credential and silently re-consume a seat.
+    if inv['status'] != 'pending':
+        return ('error', 'invite_already_used', 403)
+
+    try:
+        supabase.table('production_members').insert({
+            'production_id': inv['production_id'], 'user_id': user_id, 'role': inv['role'],
+            'invited_by': inv.get('invited_by'),
+            **{c: bool(inv.get(c)) for c in CAPABILITIES},
+        }).execute()
+    except Exception as e:
+        # Concurrent accept (auto-accept-on-login + the accept page) races the
+        # UNIQUE (production_id, user_id) constraint — treat a row that now
+        # exists as success rather than a 500.
+        now = (supabase.table('production_members').select('id')
+               .eq('production_id', inv['production_id']).eq('user_id', user_id)
+               .limit(1).execute().data or [])
+        if not now:
+            raise
+        print(f"Warning: concurrent production invite accept: {e}")
+        supabase.table('production_invites').update(
+            {'status': 'accepted'}).eq('id', inv['id']).execute()
+        return {'production_id': inv['production_id'], 'already_member': True}
     supabase.table('production_invites').update(
         {'status': 'accepted'}).eq('id', inv['id']).execute()
     _notify_invite_accepted(supabase, inv, user_id)

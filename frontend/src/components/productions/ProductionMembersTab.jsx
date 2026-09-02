@@ -40,6 +40,17 @@ const PRESETS = {
 
 const RANK = { viewer: 1, coordinator: 2, admin: 3, owner: 4 };
 
+// Machine-readable `code` values the members API returns → friendly copy.
+const CODE_MESSAGES = {
+    no_seats_available: 'All paid seats are in use. Purchase more seats to add members.',
+    tier_2_required: 'Team features require an active Team License.',
+    duplicate_member: 'That person is already a member of this production.',
+    duplicate_invite: 'An invite is already pending for that email address.',
+    rank_denied: 'You cannot grant a role or permission above your own.',
+    bad_role: 'Pick one of: viewer, coordinator, admin.',
+    cannot_target_owner: 'The production owner already has full access.',
+};
+
 export default function ProductionMembersTab({ productionId, access }) {
     const [members, setMembers] = useState([]);
     const [invites, setInvites] = useState([]);
@@ -50,19 +61,28 @@ export default function ProductionMembersTab({ productionId, access }) {
     const myRank = RANK[access?.role] || 0;
     const isOwner = access?.role === 'owner';
 
-    const load = useCallback(() => {
+    // `isActive` lets the mount effect below cancel state updates after unmount;
+    // manual refreshes call load() with no argument and always apply.
+    const load = useCallback((isActive = () => true) => {
         setLoading(true);
         return listProductionMembers(productionId)
             .then((d) => {
+                if (!isActive()) return;
                 setMembers(d.members || []);
                 setInvites(d.invites || []);
                 setError(null);
             })
-            .catch((e) => setError(e.response?.data?.error || 'Failed to load members'))
-            .finally(() => setLoading(false));
+            .catch((e) => {
+                if (isActive()) setError(e.response?.data?.error || 'Failed to load members');
+            })
+            .finally(() => { if (isActive()) setLoading(false); });
     }, [productionId]);
 
-    useEffect(() => { load(); }, [load]);
+    useEffect(() => {
+        let active = true;
+        load(() => active);
+        return () => { active = false; };
+    }, [load]);
 
     const patchMember = async (m, patch) => {
         try {
@@ -237,15 +257,7 @@ function AddMemberModal({ productionId, myRank, isOwner, onClose, onDone, setErr
             onDone();
         } catch (err) {
             const code = err.response?.data?.code;
-            if (code === 'no_seats_available') {
-                setError('All paid seats are in use. Purchase more seats to add members.');
-            } else if (code === 'tier_2_required') {
-                setError('Team features require an active Team License.');
-            } else if (code === 'bad_email') {
-                setError('That does not look like a valid email address.');
-            } else {
-                setError(err.response?.data?.error || 'Failed to add member');
-            }
+            setError(CODE_MESSAGES[code] || err.response?.data?.error || 'Failed to add member');
         } finally {
             setSubmitting(false);
         }
