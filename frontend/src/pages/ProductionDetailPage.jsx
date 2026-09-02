@@ -8,7 +8,13 @@ import {
 import { Spinner } from '../components/ui';
 import ProductionOverviewTab from '../components/productions/ProductionOverviewTab';
 import ProductionCrewTab from '../components/productions/ProductionCrewTab';
+import ProductionMembersTab from '../components/productions/ProductionMembersTab';
 import './ProductionPages.css';
+
+const NO_ACCESS = {
+    role: null, can_view_sensitive: false, can_edit_crew: false,
+    can_manage_members: false, can_edit_production: false,
+};
 
 export default function ProductionDetailPage() {
     const { productionId } = useParams();
@@ -21,8 +27,12 @@ export default function ProductionDetailPage() {
     const [form, setForm] = useState(null);
     const [saving, setSaving] = useState(false);
     const [picking, setPicking] = useState(false);
-    const [isOwner, setIsOwner] = useState(false);
+    const [access, setAccess] = useState(NO_ACCESS);
     const [activeTab, setActiveTab] = useState('overview');
+
+    const isOwner = access.role === 'owner';
+    const canManageMembers = isOwner || access.can_manage_members;
+    const isMember = isOwner || access.role !== null;
 
     const load = useCallback(() => {
         getProduction(productionId)
@@ -36,7 +46,7 @@ export default function ProductionDetailPage() {
                     shoot_end_date: data.production.shoot_end_date || '',
                     notes: data.production.notes || '',
                 });
-                setIsOwner(!!data.is_owner);
+                setAccess(data.production_access || NO_ACCESS);
             })
             .catch((err) => {
                 if (err.response?.status === 403) setError('You can view this production but not edit it.');
@@ -48,8 +58,9 @@ export default function ProductionDetailPage() {
     useEffect(load, [load]);
 
     useEffect(() => {
-        if (!isOwner && activeTab === 'crew') setActiveTab('overview');
-    }, [isOwner, activeTab]);
+        if (activeTab === 'crew' && !isMember) setActiveTab('overview');
+        if (activeTab === 'members' && !canManageMembers) setActiveTab('overview');
+    }, [activeTab, isMember, canManageMembers]);
 
     const save = async (e) => {
         e.preventDefault();
@@ -64,7 +75,7 @@ export default function ProductionDetailPage() {
             setProduction(updated);
             setError(null);
         } catch (err) {
-            if (err.response?.status === 403) { setIsOwner(false); setError('Only the production owner can edit this.'); }
+            if (err.response?.status === 403) setError('You do not have permission to edit this.');
             else setError(err.response?.data?.error || 'Save failed');
         } finally {
             setSaving(false);
@@ -101,12 +112,12 @@ export default function ProductionDetailPage() {
     if (!production) return <p className="production-page-error">{error || 'Not found'}</p>;
 
     const tabs = [{ id: 'overview', label: 'Overview' }];
-    if (isOwner) tabs.push({ id: 'crew', label: 'Crew' });
+    if (isMember) tabs.push({ id: 'crew', label: 'Crew' });
+    if (canManageMembers) tabs.push({ id: 'members', label: 'Members' });
 
     return (
         <div className="production-page">
             <Link to="/productions" className="production-back"><ArrowLeft size={16} /> Productions</Link>
-
             {error && <p className="production-page-error">{error}</p>}
 
             <div className="production-tabs">
@@ -127,7 +138,8 @@ export default function ProductionDetailPage() {
                     scripts={scripts}
                     form={form}
                     setForm={setForm}
-                    isOwner={isOwner}
+                    isOwner={access.can_edit_production}
+                    canDelete={isOwner}
                     saving={saving}
                     onSave={save}
                     onDelete={handleDelete}
@@ -137,7 +149,12 @@ export default function ProductionDetailPage() {
                     setPicking={setPicking}
                 />
             )}
-            {activeTab === 'crew' && isOwner && <ProductionCrewTab productionId={productionId} />}
+            {activeTab === 'crew' && isMember && (
+                <ProductionCrewTab productionId={productionId} access={access} />
+            )}
+            {activeTab === 'members' && canManageMembers && (
+                <ProductionMembersTab productionId={productionId} access={access} />
+            )}
         </div>
     );
 }
