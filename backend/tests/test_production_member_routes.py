@@ -415,3 +415,32 @@ def test_accept_invite_already_member(monkeypatch):
     r = _client().post("/api/production-invites/token/tok1/accept")
     assert r.status_code == 200 and r.get_json()["already_member"] is True
     assert store["production_invites"][0]["status"] == "accepted"
+
+
+import routes.invite_routes as ir  # noqa
+
+
+def test_auto_accept_applies_pending_production_invites(monkeypatch):
+    store = {
+        "productions": [{"id": "p1", "owner_id": "owner", "title": "T"}],
+        "production_members": [], "notifications": [],
+        "production_invites": [{"id": "i1", "production_id": "p1", "email": "dev@example.com",
+                               "role": "viewer", "token": "tk", "status": "pending",
+                               "expires_at": "2099-01-01",
+                               "can_view_sensitive": False, "can_edit_crew": False,
+                               "can_manage_members": False, "can_edit_production": False}],
+        "script_invites": [], "script_members": [], "profiles": [],
+    }
+    monkeypatch.setattr("middleware.auth.DEV_MODE", True)
+    mock = MockSupabase(store)
+    monkeypatch.setattr(ir, "supabase", mock)
+    monkeypatch.setattr(pms, "get_supabase_admin", lambda: mock)
+    monkeypatch.setattr("services.production_service.get_supabase_admin", lambda: mock)
+
+    from flask import Flask
+    app = Flask(__name__); app.config["TESTING"] = True
+    app.register_blueprint(ir.invite_bp)
+    r = app.test_client().post("/api/invites/auto-accept")
+    assert r.status_code == 200
+    assert "p1" in r.get_json().get("productions_accepted", [])
+    assert store["production_members"][0]["user_id"] == DEV_USER_ID
