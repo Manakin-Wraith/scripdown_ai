@@ -3,6 +3,8 @@
 # scene-setting resolver in location_resolver.py.
 """Owner-scoped locations directory. Every query filters owner_id == caller;
 no script or production axis. Mirrors services/contact_service.py."""
+import uuid as _uuid
+
 from db.supabase_client import get_supabase_admin
 from services import geocode_service
 
@@ -142,3 +144,52 @@ def _photo_url(path):
         return signed.get("signedURL") or signed.get("signed_url")
     except Exception:
         return None
+
+
+class NotOwner(Exception):
+    pass
+
+
+def _require_owned(supabase, user_id, location_id):
+    loc = _get(supabase, user_id, location_id)
+    if not loc:
+        raise NotOwner(location_id)
+    return loc
+
+
+def list_photos(user_id, location_id):
+    supabase = get_supabase_admin()
+    _require_owned(supabase, user_id, location_id)
+    rows = (supabase.table("location_photos").select("*")
+            .eq("location_id", location_id)
+            .order("sort_order").order("created_at").execute().data or [])
+    return [_serialize_photo(r) for r in rows]
+
+
+def add_photo(user_id, location_id, file_bytes, content_type, caption=None):
+    supabase = get_supabase_admin()
+    _require_owned(supabase, user_id, location_id)
+    ext = PHOTO_TYPES.get(content_type)
+    if not ext:
+        raise ValueError("Use a JPG, PNG, or WebP image.")
+    if len(file_bytes) > MAX_PHOTO_BYTES:
+        raise ValueError("That image is over 5 MB. Use a smaller file.")
+    path = f"locations/{location_id}/{_uuid.uuid4().hex}.{ext}"
+    supabase.storage.from_(PHOTO_BUCKET).upload(path, file_bytes, {"content-type": content_type})
+    row = {"location_id": location_id, "storage_path": path, "caption": caption}
+    return _serialize_photo(supabase.table("location_photos").insert(row).execute().data[0])
+
+
+def delete_photo(user_id, location_id, photo_id):
+    supabase = get_supabase_admin()
+    _require_owned(supabase, user_id, location_id)
+    res = (supabase.table("location_photos").select("*")
+           .eq("id", photo_id).eq("location_id", location_id).limit(1).execute())
+    if not res.data:
+        return "not_found"
+    try:
+        supabase.storage.from_(PHOTO_BUCKET).remove([res.data[0]["storage_path"]])
+    except Exception:
+        pass
+    supabase.table("location_photos").delete().eq("id", photo_id).execute()
+    return "ok"

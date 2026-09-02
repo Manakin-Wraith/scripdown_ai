@@ -143,3 +143,44 @@ def test_get_with_usage_lists_productions(fake):
     fake.store.setdefault("productions", []).append({"id": "p1", "title": "Feature"})
     out = svc.get_location_with_usage("u1", loc["id"])
     assert out["used_in"] == [{"production_id": "p1", "production_title": "Feature"}]
+
+
+class FakeStorage:
+    def __init__(self): self.uploaded, self.removed = [], []
+    def from_(self, bucket): self.bucket = bucket; return self
+    def upload(self, path, blob, opts=None): self.uploaded.append(path)
+    def remove(self, paths): self.removed.extend(paths)
+    def create_signed_url(self, path, ttl): return {"signedURL": f"https://x/{path}"}
+
+
+@pytest.fixture
+def fake_with_storage(fake):
+    fake.storage = FakeStorage()
+    return fake
+
+
+def test_add_photo_rejects_bad_type(fake_with_storage):
+    loc = svc.create_location("u1", {"name": "X"})
+    with pytest.raises(ValueError):
+        svc.add_photo("u1", loc["id"], b"x", "application/pdf")
+
+
+def test_add_photo_stores_and_rows(fake_with_storage):
+    loc = svc.create_location("u1", {"name": "X"})
+    out = svc.add_photo("u1", loc["id"], b"bytes", "image/png", caption="north")
+    assert out["caption"] == "north" and out["url"].startswith("https://x/locations/")
+    assert svc.list_photos("u1", loc["id"])[0]["id"] == out["id"]
+
+
+def test_add_photo_other_owner_rejected(fake_with_storage):
+    loc = svc.create_location("u1", {"name": "X"})
+    with pytest.raises(svc.NotOwner):
+        svc.add_photo("u2", loc["id"], b"b", "image/png")
+
+
+def test_delete_photo(fake_with_storage):
+    loc = svc.create_location("u1", {"name": "X"})
+    p = svc.add_photo("u1", loc["id"], b"b", "image/png")
+    assert svc.delete_photo("u1", loc["id"], p["id"]) == "ok"
+    assert svc.list_photos("u1", loc["id"]) == []
+    assert svc.delete_photo("u1", loc["id"], p["id"]) == "not_found"
