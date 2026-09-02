@@ -65,24 +65,32 @@ schedule later (per-script rollup first).
   Department-scoped script/report access for HODs stayed OUT of scope →
   its own brainstorm / umbrella step 7.
 
-**START HERE — umbrella step 3: account-level `locations` directory.
-Brainstorm + spec done 2026-09-02 on branch `feat/locations-directory-3`
-(not merged): `docs/superpowers/specs/2026-09-02-locations-directory-design.md`.
-Next: implementation plan (`superpowers:writing-plans`), then execute.**
-(Then step 4: call sheets / sides.) The spine (step 1), crew + contacts
-(2a), and the `production_members` permission layer (2b) are all merged to
-`main`.
+**Umbrella step 3: account-level `locations` directory — SHIPPED on
+`feat/locations-directory-3` 2026-09-02, commits `645e445..ad73d7b` (13
+tasks, not yet merged to `main`).** Migration `053_locations.sql`
+(`locations` + `production_locations` + `location_photos`) applied
+manually to the Supabase project; `geocode_service` (Mapbox v6, degrades
+to `None`); owner-scoped `location_service` (directory CRUD +
+geocode-on-write + photos) and `locations_bp` (`/api/locations/*`);
+`production_location_service` + `from_production_location_id` resolver +
+4 link routes on `production_bp` gated by `can_edit_production`;
+`MAPBOX_SECRET_TOKEN` added to `RECOMMENDED_VARS`. Frontend: `/locations`
+directory page + nav link, `LocationFormModal` / `LocationDetailDrawer` /
+`StaticMap`, `ProductionLocationsTab` + `LocationPickerModal` wired into
+`ProductionDetailPage`. Backend suite 723 passed / 1 skipped; frontend
+`npm run build` green. **Still to do on merge:** set `MAPBOX_SECRET_TOKEN`
+(Railway) + `VITE_MAPBOX_PUBLIC_TOKEN` (Vercel) — both optional, maps
+degrade without them; apply migration 053 to any other environments;
+whole-branch review + finish.
 
-**Slice scope (from the spec):** migration `053_locations.sql` (`locations`
-+ `production_locations` + `location_photos`); `locations_bp` owner-only
-directory CRUD; `geocode_service` (Mapbox, degrades gracefully);
-production location-link routes on `production_bp` gated by
-`can_edit_production` (no new capability flag); `/locations` directory page
-+ nav link; Locations tab on `ProductionDetailPage`; Mapbox static-map
-`<img>` preview. **Deferred:** scene-`setting`→location creative mapping
-(own brainstorm), contact photos, CSV import for locations, AI call-sheet
-parse. **New env:** `MAPBOX_SECRET_TOKEN` (Railway, recommended-not-required),
-`VITE_MAPBOX_PUBLIC_TOKEN` (Vercel).
+**START HERE — umbrella step 4: call sheets / sides.** Brainstorm first;
+no spec/plan yet. The spine (step 1), crew + contacts (2a), the
+`production_members` permission layer (2b), and the locations directory
+(step 3) precede it.
+
+**Step 3 deferred (not built):** scene-`setting`→location creative
+mapping (own brainstorm), contact photos, CSV import for locations, AI
+call-sheet parse.
 
 **2b follow-ups (small, non-blocking — fold into step 3 or a hygiene pass):**
 - Members tab never had a design pass — see item 9e (esp. the
@@ -105,9 +113,9 @@ parse. **New env:** `MAPBOX_SECRET_TOKEN` (Railway, recommended-not-required),
   via try/except, not a 400.
 
 **Do next (unblocks the most):**
-1. **Umbrella step 3: account-level `locations` directory** (see START HERE
-   above) — the headline next slice; step 4 (call sheets / sides) follows
-   it. Brainstorm first; no spec/plan yet.
+1. **Umbrella step 4: call sheets / sides** (see START HERE above) — the
+   headline next slice, now that step 3 (locations) has shipped on branch.
+   Brainstorm first; no spec/plan yet.
 2. **Cast & Casting v1 closeout** (cheap, ~1 session): `TriangleAlert`→`AlertTriangle`
    icon consistency (cosmetic). Task 13 (DOOD conflict overlay) remains open
    but not blocking v1. Docs entry now complete via Cast tab v2
@@ -145,6 +153,11 @@ parse. **New env:** `MAPBOX_SECRET_TOKEN` (Railway, recommended-not-required),
     production OWNER, so a coordinator adding a member can be blocked by the
     owner's missing seat; the current error surface for that case needs a
     clear, actionable message (who needs to buy a seat, and where).
+9f. Locations pages UI/UX pass — the `/locations` directory, the detail
+    drawer (fields + map + photo grid), and the `ProductionLocationsTab`
+    (linked-locations table + inline notes + picker modal) all shipped
+    functional in step 3, modelled on the contacts/crew chrome, with no
+    design pass. Brainstorm-then-build, cosmetic.
 
 **Infra / hygiene:**
 10. Flip `backend-tests` CI check to required; add a frontend
