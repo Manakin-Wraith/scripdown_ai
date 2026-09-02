@@ -2622,6 +2622,137 @@ export const importProductionCrew = async (productionId, file) => {
     }
 };
 
+// ============================================
+// Locations directory + production locations (build-sequence step 3)
+// ============================================
+
+/** List the current user's locations. @param {{q?: string}} params */
+export const listLocations = async (params = {}) => {
+    try {
+        const response = await api.get('/api/locations', { params });
+        return response.data;
+    } catch (error) {
+        console.error('Error listing locations:', error);
+        throw error;
+    }
+};
+
+export const createLocation = async (payload) => {
+    try {
+        const response = await api.post('/api/locations', payload);
+        return response.data;
+    } catch (error) {
+        console.error('Error creating location:', error);
+        throw error;
+    }
+};
+
+export const getLocation = async (id) => {
+    try {
+        const response = await api.get(`/api/locations/${id}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error getting location:', error);
+        throw error;
+    }
+};
+
+export const updateLocation = async (id, payload) => {
+    try {
+        const response = await api.patch(`/api/locations/${id}`, payload);
+        return response.data;
+    } catch (error) {
+        console.error('Error updating location:', error);
+        throw error;
+    }
+};
+
+/** Delete a location. Throws with response.status 409 + data.used_in if still linked. */
+export const deleteLocation = async (id) => {
+    try {
+        const response = await api.delete(`/api/locations/${id}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error deleting location:', error);
+        throw error;
+    }
+};
+
+export const uploadLocationPhoto = async (id, file, caption) => {
+    const form = new FormData();
+    form.append('file', file);
+    try {
+        const response = await api.post(`/api/locations/${id}/photos`, form, {
+            params: caption ? { caption } : undefined,
+            headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error uploading location photo:', error);
+        throw error;
+    }
+};
+
+export const deleteLocationPhoto = async (id, photoId) => {
+    try {
+        const response = await api.delete(`/api/locations/${id}/photos/${photoId}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error deleting location photo:', error);
+        throw error;
+    }
+};
+
+export const geocodeAddress = async (address) => {
+    try {
+        const response = await api.post('/api/locations/geocode', { address });
+        return response.data;
+    } catch (error) {
+        console.error('Error geocoding address:', error);
+        throw error;
+    }
+};
+
+export const listProductionLocations = async (productionId) => {
+    try {
+        const response = await api.get(`/api/productions/${productionId}/locations`);
+        return response.data;
+    } catch (error) {
+        console.error('Error listing production locations:', error);
+        throw error;
+    }
+};
+
+export const linkProductionLocation = async (productionId, payload) => {
+    try {
+        const response = await api.post(`/api/productions/${productionId}/locations`, payload);
+        return response.data;
+    } catch (error) {
+        console.error('Error linking production location:', error);
+        throw error;
+    }
+};
+
+export const updateProductionLocation = async (productionId, linkId, payload) => {
+    try {
+        const response = await api.patch(`/api/productions/${productionId}/locations/${linkId}`, payload);
+        return response.data;
+    } catch (error) {
+        console.error('Error updating production location:', error);
+        throw error;
+    }
+};
+
+export const unlinkProductionLocation = async (productionId, linkId) => {
+    try {
+        const response = await api.delete(`/api/productions/${productionId}/locations/${linkId}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error unlinking production location:', error);
+        throw error;
+    }
+};
+
 // Production members + invites (build-sequence step 2b)
 
 export const listProductionMembers = async (productionId) => {
