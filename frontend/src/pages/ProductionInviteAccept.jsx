@@ -70,7 +70,7 @@ const ProductionInviteAccept = () => {
             }, 2000);
         } catch (err) {
             console.error('Error accepting production invite:', err);
-            setError(err.response?.data?.error || 'Could not accept invite');
+            toast.error('Error', err.response?.data?.error || 'Could not accept invite');
         } finally {
             setAccepting(false);
         }
