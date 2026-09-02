@@ -5,7 +5,7 @@ import ProductionScriptPicker from './ProductionScriptPicker';
 const STATUSES = ['development', 'prep', 'shooting', 'wrapped', 'archived'];
 
 export default function ProductionOverviewTab({
-    production, scripts, form, setForm, isOwner, saving,
+    production, scripts, form, setForm, isOwner, canDelete = false, saving,
     onSave, onDelete, onPick, onRemove, picking, setPicking,
 }) {
     return (
@@ -40,12 +40,16 @@ export default function ProductionOverviewTab({
                     <textarea value={form.notes} disabled={!isOwner} rows={3}
                         onChange={(e) => setForm({ ...form, notes: e.target.value })} />
                 </label>
-                {isOwner && (
+                {(isOwner || canDelete) && (
                     <div className="production-overview-actions">
-                        <button type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
-                        <button type="button" className="production-delete-btn" onClick={onDelete}>
-                            <Trash2 size={14} /> Delete production
-                        </button>
+                        {isOwner && (
+                            <button type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
+                        )}
+                        {canDelete && (
+                            <button type="button" className="production-delete-btn" onClick={onDelete}>
+                                <Trash2 size={14} /> Delete production
+                            </button>
+                        )}
                     </div>
                 )}
             </form>
@@ -53,7 +57,7 @@ export default function ProductionOverviewTab({
             <section className="production-scripts">
                 <div className="production-scripts-head">
                     <h3>Scripts</h3>
-                    {isOwner && (
+                    {canDelete && (
                         <button onClick={() => setPicking(true)}><Plus size={14} /> Add script</button>
                     )}
                 </div>
@@ -64,7 +68,7 @@ export default function ProductionOverviewTab({
                         {scripts.map((s) => (
                             <li key={s.id}>
                                 <Link to={`/scenes/${s.id}`}>{s.title || 'Untitled script'}</Link>
-                                {isOwner && (
+                                {canDelete && (
                                     <button className="production-script-remove"
                                         onClick={() => onRemove(s.id)} aria-label="Remove script">
                                         <X size={14} />

@@ -2622,6 +2622,80 @@ export const importProductionCrew = async (productionId, file) => {
     }
 };
 
+// Production members + invites (build-sequence step 2b)
+
+export const listProductionMembers = async (productionId) => {
+    try {
+        const response = await api.get(`/api/productions/${productionId}/members`);
+        return response.data;
+    } catch (error) {
+        console.error('Error listing production members:', error);
+        throw error;
+    }
+};
+
+export const addProductionMember = async (productionId, payload) => {
+    try {
+        const response = await api.post(`/api/productions/${productionId}/members`, payload);
+        return response.data;
+    } catch (error) {
+        console.error('Error adding production member:', error);
+        throw error;
+    }
+};
+
+export const updateProductionMember = async (productionId, memberId, payload) => {
+    try {
+        const response = await api.patch(
+            `/api/productions/${productionId}/members/${memberId}`, payload);
+        return response.data;
+    } catch (error) {
+        console.error('Error updating production member:', error);
+        throw error;
+    }
+};
+
+export const removeProductionMember = async (productionId, memberId) => {
+    try {
+        const response = await api.delete(
+            `/api/productions/${productionId}/members/${memberId}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error removing production member:', error);
+        throw error;
+    }
+};
+
+export const revokeProductionInvite = async (inviteId) => {
+    try {
+        const response = await api.delete(`/api/production-invites/${inviteId}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error revoking production invite:', error);
+        throw error;
+    }
+};
+
+export const getProductionInvite = async (token) => {
+    try {
+        const response = await api.get(`/api/production-invites/token/${token}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching production invite:', error);
+        throw error;
+    }
+};
+
+export const acceptProductionInvite = async (token) => {
+    try {
+        const response = await api.post(`/api/production-invites/token/${token}/accept`);
+        return response.data;
+    } catch (error) {
+        console.error('Error accepting production invite:', error);
+        throw error;
+    }
+};
+
 // ── Cast & casting ─────────────────────────────────────────────
 export const getCasting = async (scriptId) => {
     const response = await api.get(`/api/scripts/${scriptId}/casting`);

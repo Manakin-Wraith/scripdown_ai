@@ -491,12 +491,9 @@ def auto_accept_pending_invites():
         # Find all pending invites for this email
         result = supabase.table('script_invites').select('*').eq('email', user_email).eq('status', 'pending').execute()
         
-        if not result.data:
-            return jsonify({'accepted': [], 'message': 'No pending invites found'})
-        
         accepted = []
-        
-        for invite in result.data:
+
+        for invite in (result.data or []):
             try:
                 # Check if expired
                 if invite['expires_at']:
@@ -603,9 +600,27 @@ def auto_accept_pending_invites():
                 print(f"Error processing invite {invite['id']}: {invite_err}")
                 continue
         
+        # --- Production invites (build-sequence step 2b) ---
+        productions_accepted = []
+        try:
+            from services import production_member_service as _pms
+            prod_invites = supabase.table('production_invites').select('token').eq(
+                'email', user_email).eq('status', 'pending').execute()
+            for pi in (prod_invites.data or []):
+                try:
+                    res = _pms.accept_invite(pi['token'], user_id, user_email)
+                    if not isinstance(res, tuple):
+                        productions_accepted.append(res['production_id'])
+                except Exception as pi_err:
+                    print(f"Error processing production invite: {pi_err}")
+                    continue
+        except Exception as e:
+            print(f"Warning: production invite auto-accept failed: {e}")
+
         return jsonify({
             'accepted': accepted,
             'count': len(accepted),
+            'productions_accepted': productions_accepted,
             'message': f'Successfully joined {len(accepted)} team(s)' if accepted else 'No new teams joined'
         })
         

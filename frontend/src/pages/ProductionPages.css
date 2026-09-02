@@ -360,3 +360,48 @@
     color: var(--danger); border-radius: var(--radius-lg); padding: 6px 14px; cursor: pointer;
 }
 .contact-delete-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ---- Production members tab (Task 14) ---- */
+.production-members { margin-top: 4px; }
+.members-invites-heading {
+    margin: 28px 0 0; font-size: 13px; text-transform: uppercase;
+    letter-spacing: 0.04em; color: #9fb0c9;
+}
+.members-table-wrap { overflow-x: auto; margin-top: 12px; }
+.members-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.members-table th {
+    text-align: left; padding: 10px 12px; color: #6b7a94;
+    font-weight: 600; border-bottom: 1px solid #26324a; white-space: nowrap;
+}
+.members-table td {
+    padding: 10px 12px; border-bottom: 1px solid #1e2a40; color: #e6ecf5;
+}
+.members-table select {
+    padding: 6px 10px; border-radius: 6px; border: 1px solid #33415a;
+    background: #131c2e; color: #e6ecf5; font: inherit;
+}
+.members-table select:disabled { opacity: 0.6; }
+.members-cap-cell { text-align: center; }
+.members-empty { text-align: center; color: #6b7a94; padding: 24px 12px; }
+.members-row-actions { text-align: right; white-space: nowrap; }
+.members-row-actions button {
+    background: none; border: none; color: #e5484d; cursor: pointer; font-size: 13px; padding: 0;
+}
+.members-row-actions button:hover { text-decoration: underline; }
+
+.members-advanced { margin: 4px 0; }
+.members-advanced summary {
+    cursor: pointer; color: #f5b301; font-size: 13px; margin-bottom: 6px;
+}
+.members-cap-check {
+    display: flex; align-items: center; gap: 8px;
+    margin: 6px 0; font-size: 13px; color: #e6ecf5;
+}
+
+.production-crew-rate-hidden { color: #6b7a94; font-style: italic; }
+
+.production-role-badge {
+    display: inline-block; margin-left: 8px; padding: 2px 8px;
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em;
+    border-radius: 999px; background: #26324a; color: #9fb0c9;
+}

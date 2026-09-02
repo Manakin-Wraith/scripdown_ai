@@ -139,6 +139,8 @@ def _patch(monkeypatch, store):
     monkeypatch.setattr(ps, "get_supabase_admin", lambda: mock)
     # get_script_role() in middleware.authorization has its own get_supabase_admin
     monkeypatch.setattr("middleware.authorization.get_supabase_admin", lambda: mock)
+    # get_production_access() in middleware.production_authz has its own too
+    monkeypatch.setattr("middleware.production_authz.get_supabase_admin", lambda: mock)
 
 
 def test_create_production_makes_production_and_main_unit(monkeypatch):
@@ -272,6 +274,32 @@ def test_patch_production_non_owner_forbidden(monkeypatch):
     assert store["productions"][0]["title"] == "Theirs"
 
 
+def _member_row(role, **flags):
+    row = {"id": "m1", "production_id": "p1", "user_id": DEV_USER_ID, "role": role,
+           "can_view_sensitive": False, "can_edit_crew": False,
+           "can_manage_members": False, "can_edit_production": False}
+    row.update(flags)
+    return row
+
+
+def test_patch_production_member_with_can_edit_production_ok(monkeypatch):
+    store = _store(productions=[{"id": "p1", "owner_id": "other", "title": "Theirs"}],
+                   production_members=[_member_row("admin", can_edit_production=True)])
+    _patch(monkeypatch, store)
+    resp = _client().patch("/api/productions/p1", json={"title": "Renamed"})
+    assert resp.status_code == 200
+    assert store["productions"][0]["title"] == "Renamed"
+
+
+def test_patch_production_viewer_member_forbidden(monkeypatch):
+    store = _store(productions=[{"id": "p1", "owner_id": "other", "title": "Theirs"}],
+                   production_members=[_member_row("viewer")])
+    _patch(monkeypatch, store)
+    resp = _client().patch("/api/productions/p1", json={"title": "Hijack"})
+    assert resp.status_code == 403
+    assert store["productions"][0]["title"] == "Theirs"
+
+
 def test_patch_production_missing_is_404(monkeypatch):
     store = _store()
     _patch(monkeypatch, store)
@@ -385,3 +413,41 @@ def test_get_production_is_owner_false_for_script_member(monkeypatch):
     body = _client().get("/api/productions/p1").get_json()
     assert body["is_owner"] is False
     assert {s["id"] for s in body["scripts"]} == {"s1"}
+
+
+def test_get_production_includes_production_access_for_owner(monkeypatch):
+    store = _store(productions=[{"id": "p1", "owner_id": DEV_USER_ID, "title": "Mine"}])
+    _patch(monkeypatch, store)  # use this file's existing _patch
+    # also patch production_authz
+    monkeypatch.setattr("middleware.production_authz.get_supabase_admin",
+                        lambda: MockSupabase(store))
+    body = _client().get("/api/productions/p1").get_json()
+    assert body["production_access"]["role"] == "owner"
+    assert body["production_access"]["can_edit_crew"] is True
+
+
+def test_get_production_access_for_member(monkeypatch):
+    store = _store(
+        productions=[{"id": "p1", "owner_id": "other", "title": "Theirs"}],
+        production_members=[{"production_id": "p1", "user_id": DEV_USER_ID,
+                            "role": "coordinator", "can_view_sensitive": False,
+                            "can_edit_crew": True, "can_manage_members": False,
+                            "can_edit_production": False}],
+    )
+    _patch(monkeypatch, store)
+    monkeypatch.setattr("middleware.production_authz.get_supabase_admin",
+                        lambda: MockSupabase(store))
+    body = _client().get("/api/productions/p1").get_json()
+    assert body["production_access"]["role"] == "coordinator"
+    assert body["is_owner"] is False
+
+
+def test_list_productions_includes_member_productions(monkeypatch):
+    store = _store(
+        productions=[{"id": "p1", "owner_id": DEV_USER_ID, "title": "Mine"},
+                     {"id": "p2", "owner_id": "other", "title": "Member of"}],
+        production_members=[{"production_id": "p2", "user_id": DEV_USER_ID, "role": "viewer"}],
+    )
+    _patch(monkeypatch, store)
+    ids = {p["id"] for p in _client().get("/api/productions").get_json()["productions"]}
+    assert ids == {"p1", "p2"}

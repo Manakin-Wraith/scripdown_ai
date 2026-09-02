@@ -84,6 +84,7 @@ def _fetch_seats_used(owner_id: str) -> int:
     accepted. Accepting an invite is a no-op for this count; the person
     just moves from the pending half of the tally to the accepted half.
 
+    Counts members + pending invites across BOTH script and production axes.
     `script_members` is a per-(script, user) table, so the same person
     invited to three scripts must consume one seat, not three. Pending
     invites are keyed by email (the invitee has no user_id yet); accepted
@@ -107,6 +108,23 @@ def _fetch_seats_used(owner_id: str) -> int:
         row['email'].strip().lower()
         for row in (invites_resp.data or []) if row.get('email')
     }
+
+    # --- Production axis: fold members + pending invites into the same tally.
+    prod_resp = admin.table('productions').select('id').eq('owner_id', owner_id).execute()
+    prod_ids = [row['id'] for row in (prod_resp.data or [])]
+    if prod_ids:
+        pm_resp = admin.table('production_members').select('user_id').in_(
+            'production_id', prod_ids
+        ).execute()
+        accepted_ids |= {row['user_id'] for row in (pm_resp.data or []) if row.get('user_id')}
+
+        pi_resp = admin.table('production_invites').select('email, status, expires_at').in_(
+            'production_id', prod_ids
+        ).eq('status', 'pending').gt('expires_at', now).execute()
+        pending_emails |= {
+            row['email'].strip().lower()
+            for row in (pi_resp.data or []) if row.get('email')
+        }
 
     if not pending_emails:
         return len(accepted_ids)

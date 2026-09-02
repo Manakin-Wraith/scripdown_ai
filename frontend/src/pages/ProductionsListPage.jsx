@@ -93,6 +93,9 @@ export default function ProductionsListPage() {
                         <li key={p.id}>
                             <Link to={`/productions/${p.id}`} className="production-row">
                                 <span className="production-row-title">{p.title}</span>
+                                {!p.is_owner && p.member_role && (
+                                    <span className="production-role-badge">{p.member_role}</span>
+                                )}
                                 <span className={`production-row-status status-${p.status}`}>
                                     {STATUS_LABELS[p.status] || p.status}
                                 </span>

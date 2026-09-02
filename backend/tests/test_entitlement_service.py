@@ -160,11 +160,17 @@ class _FakeSeatsAdmin:
     """Routes get_supabase_admin().table(name) calls by table name for
     _fetch_seats_used tests. Each table's canned rows are passed in."""
 
-    def __init__(self, members=None, invites=None, profiles=None):
+    def __init__(self, members=None, invites=None, profiles=None,
+                 account_seats=None, productions=None, production_members=None,
+                 production_invites=None):
         self._data = {
             'script_members': members or [],
             'script_invites': invites or [],
             'profiles': profiles or [],
+            'account_seats': account_seats or [],
+            'productions': productions or [],
+            'production_members': production_members or [],
+            'production_invites': production_invites or [],
         }
 
     def table(self, name):
@@ -174,23 +180,68 @@ class _FakeSeatsAdmin:
 class _FakeSeatsQuery:
     def __init__(self, rows):
         self._rows = rows
+        self._filters = []
 
     def select(self, *a, **k):
         return self
 
-    def eq(self, *a, **k):
+    def eq(self, field, value):
+        self._filters.append(('eq', field, value))
         return self
 
-    def gt(self, *a, **k):
+    def gt(self, field, value):
+        self._filters.append(('gt', field, value))
         return self
 
-    def in_(self, *a, **k):
+    def in_(self, field, values):
+        self._filters.append(('in', field, values))
         return self
 
     def execute(self):
+        # Apply all filters to rows. Skip filters if no row has the field
+        # (backwards compatibility with old tests that don't include all fields).
+        filtered = self._rows
+        for op, field, value in self._filters:
+            # Check if any row has this field before filtering
+            if not any(field in r for r in filtered):
+                continue
+
+            if op == 'eq':
+                filtered = [r for r in filtered if r.get(field) == value]
+            elif op == 'gt':
+                filtered = [r for r in filtered if r.get(field) and r.get(field) > value]
+            elif op == 'in':
+                filtered = [r for r in filtered if r.get(field) in value]
+
         class Resp:
-            data = self._rows
+            data = filtered
         return Resp()
+
+
+def _future():
+    """Return an ISO datetime string in the future for mocking expires_at."""
+    from datetime import datetime, timezone, timedelta
+    return (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()
+
+
+def _seat_store(profiles=None, account_seats=None, script_members=None,
+                script_invites=None, productions=None, production_members=None,
+                production_invites=None):
+    """Helper to build a mock Supabase admin with all seat-related tables."""
+    return _FakeSeatsAdmin(
+        members=script_members,
+        invites=script_invites,
+        profiles=profiles,
+        account_seats=account_seats,
+        productions=productions,
+        production_members=production_members,
+        production_invites=production_invites,
+    )
+
+
+def _patch_seats(monkeypatch, store):
+    """Helper to patch get_supabase_admin() to return the mock store."""
+    monkeypatch.setattr(es, "get_supabase_admin", lambda: store)
 
 
 def test_fetch_seats_used_dedupes_by_user_not_membership_row(monkeypatch):
@@ -294,3 +345,59 @@ def test_activate_license_handles_leap_day_now(monkeypatch):
     # 'txn1' isn't a real UUID (admin manual-approval reference) -- must
     # not be attached as the FK.
     assert captured['seats_payload']['payfast_transaction_id'] is None
+
+
+def test_seats_used_counts_production_member(monkeypatch):
+    store = _seat_store(
+        profiles=[{"id": "owner", "email": "o@x.com"}],
+        account_seats=[{"owner_id": "owner", "seats_granted": 5, "term_expires_at": _future()}],
+        script_members=[],
+        script_invites=[],
+        productions=[{"id": "p1", "owner_id": "owner"}],
+        production_members=[{"production_id": "p1", "user_id": "u-lp", "role": "admin"}],
+        production_invites=[],
+    )
+    _patch_seats(monkeypatch, store)
+    assert es._fetch_seats_used("owner") == 1
+
+
+def test_seats_used_dedupes_person_across_both_systems(monkeypatch):
+    store = _seat_store(
+        profiles=[{"id": "u-both", "email": "both@x.com"}],
+        account_seats=[{"owner_id": "owner", "seats_granted": 5, "term_expires_at": _future()}],
+        script_members=[{"user_id": "u-both", "invited_by": "owner"}],
+        script_invites=[],
+        productions=[{"id": "p1", "owner_id": "owner"}],
+        production_members=[{"production_id": "p1", "user_id": "u-both", "role": "viewer"}],
+        production_invites=[],
+    )
+    _patch_seats(monkeypatch, store)
+    assert es._fetch_seats_used("owner") == 1
+
+
+def test_seats_used_counts_pending_production_invite(monkeypatch):
+    store = _seat_store(
+        profiles=[],
+        account_seats=[{"owner_id": "owner", "seats_granted": 5, "term_expires_at": _future()}],
+        script_members=[],
+        script_invites=[],
+        productions=[{"id": "p1", "owner_id": "owner"}],
+        production_members=[],
+        production_invites=[{"production_id": "p1", "email": "new@x.com",
+                            "status": "pending", "expires_at": _future()}],
+    )
+    _patch_seats(monkeypatch, store)
+    assert es._fetch_seats_used("owner") == 1
+
+
+def test_seats_used_ignores_other_owners_production_members(monkeypatch):
+    store = _seat_store(
+        profiles=[],
+        account_seats=[{"owner_id": "owner", "seats_granted": 5, "term_expires_at": _future()}],
+        script_members=[], script_invites=[],
+        productions=[{"id": "p9", "owner_id": "someone-else"}],
+        production_members=[{"production_id": "p9", "user_id": "u-x", "role": "admin"}],
+        production_invites=[],
+    )
+    _patch_seats(monkeypatch, store)
+    assert es._fetch_seats_used("owner") == 0
