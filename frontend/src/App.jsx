@@ -40,6 +40,7 @@ import SharedReportView from './components/reports/SharedReportView';
 // import DepartmentWorkspace from './components/workspace/DepartmentWorkspace';
 // import SettingsPage from './pages/SettingsPage';
 import InvitePage from './pages/InvitePage';
+import ProductionInviteAccept from './pages/ProductionInviteAccept';
 import BillingPage from './pages/BillingPage';
 import PaymentResultPage from './pages/PaymentResultPage';
 import CastPage from './components/cast/CastPage';
@@ -143,6 +144,7 @@ function App() {
                   <Route path="shared/:shareToken" element={<SharedReportView />} />
                   
                   <Route path="invite/:token" element={<InvitePage />} />
+                  <Route path="production-invites/:token" element={<ProductionInviteAccept />} />
                 </Routes>
               </Router>
               </StoryDayProvider>
