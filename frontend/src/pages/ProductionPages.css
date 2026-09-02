@@ -399,3 +399,9 @@
 }
 
 .production-crew-rate-hidden { color: #6b7a94; font-style: italic; }
+
+.production-role-badge {
+    display: inline-block; margin-left: 8px; padding: 2px 8px;
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em;
+    border-radius: 999px; background: #26324a; color: #9fb0c9;
+}
