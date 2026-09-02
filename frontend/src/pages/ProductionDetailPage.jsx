@@ -8,6 +8,7 @@ import {
 import { Spinner } from '../components/ui';
 import ProductionOverviewTab from '../components/productions/ProductionOverviewTab';
 import ProductionCrewTab from '../components/productions/ProductionCrewTab';
+import ProductionLocationsTab from '../components/productions/ProductionLocationsTab';
 import ProductionMembersTab from '../components/productions/ProductionMembersTab';
 import './ProductionPages.css';
 
@@ -59,6 +60,7 @@ export default function ProductionDetailPage() {
 
     useEffect(() => {
         if (activeTab === 'crew' && !isMember) setActiveTab('overview');
+        if (activeTab === 'locations' && !isMember) setActiveTab('overview');
         if (activeTab === 'members' && !canManageMembers) setActiveTab('overview');
     }, [activeTab, isMember, canManageMembers]);
 
@@ -113,6 +115,7 @@ export default function ProductionDetailPage() {
 
     const tabs = [{ id: 'overview', label: 'Overview' }];
     if (isMember) tabs.push({ id: 'crew', label: 'Crew' });
+    if (isMember) tabs.push({ id: 'locations', label: 'Locations' });
     if (canManageMembers) tabs.push({ id: 'members', label: 'Members' });
 
     return (
@@ -151,6 +154,9 @@ export default function ProductionDetailPage() {
             )}
             {activeTab === 'crew' && isMember && (
                 <ProductionCrewTab productionId={productionId} access={access} />
+            )}
+            {activeTab === 'locations' && isMember && (
+                <ProductionLocationsTab productionId={productionId} access={access} />
             )}
             {activeTab === 'members' && canManageMembers && (
                 <ProductionMembersTab productionId={productionId} access={access} />
