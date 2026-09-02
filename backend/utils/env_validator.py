@@ -32,6 +32,7 @@ RECOMMENDED_VARS = {
     'GEMINI_API_KEY': 'Google Gemini API key for AI analysis',
     'OPENAI_API_KEY': 'OpenAI API key (alternative to Gemini)',
     'SUPABASE_JWT_SECRET': 'Legacy HS256 JWT secret (optional — JWKS endpoint used by default)',
+    'MAPBOX_SECRET_TOKEN': 'Mapbox secret token for server-side address geocoding (locations directory); geocoding degrades to manual lat/lng entry when absent',
 }
 
 
