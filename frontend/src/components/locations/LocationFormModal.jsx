@@ -102,7 +102,7 @@ export default function LocationFormModal({ initial, contacts = [], onSubmit, on
                         <input type="text" value={form.address} onChange={set('address')} />
                     </label>
 
-                    <div className="contact-field-row">
+                    <div className="location-coord-row">
                         <label className="contact-field">
                             <span>Latitude</span>
                             <input type="number" step="any" value={form.lat} onChange={setCoord('lat')} />
@@ -111,15 +111,15 @@ export default function LocationFormModal({ initial, contacts = [], onSubmit, on
                             <span>Longitude</span>
                             <input type="number" step="any" value={form.lng} onChange={setCoord('lng')} />
                         </label>
-                        <button
-                            type="button"
-                            className="production-modal-close"
-                            onClick={locate}
-                            disabled={locating || !form.address.trim()}
-                        >
-                            {locating ? 'Locating…' : 'Locate'}
-                        </button>
                     </div>
+                    <button
+                        type="button"
+                        className="location-locate-btn"
+                        onClick={locate}
+                        disabled={locating || !form.address.trim()}
+                    >
+                        {locating ? 'Locating…' : 'Locate from address'}
+                    </button>
                     {locateError && <p className="production-page-error">{locateError}</p>}
 
                     <StaticMap lat={form.lat} lng={form.lng} height={160} />
