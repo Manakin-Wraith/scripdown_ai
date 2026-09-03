@@ -51,6 +51,8 @@ import ProductionsListPage from './pages/ProductionsListPage';
 import ProductionDetailPage from './pages/ProductionDetailPage';
 import ContactsListPage from './pages/ContactsListPage';
 import LocationsListPage from './pages/LocationsListPage';
+import ContactPane from './components/contacts/ContactPane';
+import LocationPane from './components/locations/LocationPane';
 
 function App() {
   return (
@@ -85,8 +87,16 @@ function App() {
                     <Route path="series/:seriesId/seasons/:seasonId" element={<SeasonPage />} />
                     <Route path="productions" element={<ProductionsListPage />} />
                     <Route path="productions/:productionId" element={<ProductionDetailPage />} />
-                    <Route path="contacts" element={<ContactsListPage />} />
-                    <Route path="locations" element={<LocationsListPage />} />
+                    <Route path="contacts" element={<ContactsListPage />}>
+                      <Route path="new" element={<ContactPane mode="new" />} />
+                      <Route path=":contactId" element={<ContactPane mode="view" />} />
+                      <Route path=":contactId/edit" element={<ContactPane mode="edit" />} />
+                    </Route>
+                    <Route path="locations" element={<LocationsListPage />}>
+                      <Route path="new" element={<LocationPane mode="new" />} />
+                      <Route path=":locationId" element={<LocationPane mode="view" />} />
+                      <Route path=":locationId/edit" element={<LocationPane mode="edit" />} />
+                    </Route>
                     <Route path="payment/success" element={<PaymentResultPage outcome="success" />} />
                     <Route path="payment/cancel" element={<PaymentResultPage outcome="cancel" />} />
 
