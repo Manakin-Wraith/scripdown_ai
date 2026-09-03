@@ -65,9 +65,9 @@ schedule later (per-script rollup first).
   Department-scoped script/report access for HODs stayed OUT of scope →
   its own brainstorm / umbrella step 7.
 
-**Umbrella step 3: account-level `locations` directory — SHIPPED on
-`feat/locations-directory-3` 2026-09-02, commits `645e445..ad73d7b` (13
-tasks, not yet merged to `main`).** Migration `053_locations.sql`
+**Umbrella step 3: account-level `locations` directory — SHIPPED and
+MERGED to `main` 2026-09-03 (13 tasks + a whole-branch review pass).**
+Migration `053_locations.sql`
 (`locations` + `production_locations` + `location_photos`) applied
 manually to the Supabase project; `geocode_service` (Mapbox v6, degrades
 to `None`); owner-scoped `location_service` (directory CRUD +
@@ -77,11 +77,13 @@ geocode-on-write + photos) and `locations_bp` (`/api/locations/*`);
 `MAPBOX_SECRET_TOKEN` added to `RECOMMENDED_VARS`. Frontend: `/locations`
 directory page + nav link, `LocationFormModal` / `LocationDetailDrawer` /
 `StaticMap`, `ProductionLocationsTab` + `LocationPickerModal` wired into
-`ProductionDetailPage`. Backend suite 723 passed / 1 skipped; frontend
-`npm run build` green. **Still to do on merge:** set `MAPBOX_SECRET_TOKEN`
-(Railway) + `VITE_MAPBOX_PUBLIC_TOKEN` (Vercel) — both optional, maps
-degrade without them; apply migration 053 to any other environments;
-whole-branch review + finish.
+`ProductionDetailPage`. Backend suite 726 passed / 1 skipped; frontend
+`npm run build` green. Review pass fixed 4 findings (no re-geocode on
+unchanged address, search needle strips `()`, no half-populated
+lat/lng, `update_link` verifies the link's production). `MAPBOX_SECRET_TOKEN`
+(Railway) + `VITE_MAPBOX_PUBLIC_TOKEN` (Vercel, public `pk.` token, Prod +
+Preview) set 2026-09-03 — a frontend redeploy bakes the Vite var in.
+Migration 053 applied manually to slateone (the only environment).
 
 **START HERE — umbrella step 4: call sheets / sides.** Brainstorm first;
 no spec/plan yet. The spine (step 1), crew + contacts (2a), the
@@ -91,6 +93,12 @@ no spec/plan yet. The spine (step 1), crew + contacts (2a), the
 **Step 3 deferred (not built):** scene-`setting`→location creative
 mapping (own brainstorm), contact photos, CSV import for locations, AI
 call-sheet parse.
+
+**Step 3 follow-ups (small, non-blocking — fold into a hygiene pass):**
+- Same parenthesis-in-search bug fixed in `location_service` still lives in
+  `contact_service.py:42` — apply the identical `()` strip.
+- `LocationFormModal` UI/UX pass (item 9f) — shipped functional, no design
+  pass.
 
 **2b follow-ups (small, non-blocking — fold into step 3 or a hygiene pass):**
 - Members tab never had a design pass — see item 9e (esp. the
