@@ -98,9 +98,11 @@ call-sheet parse.
 **Step 3 follow-ups (small, non-blocking — fold into a hygiene pass):**
 - Same parenthesis-in-search bug fixed in `location_service` still lives in
   `contact_service.py:42` — apply the identical `()` strip.
-- Locations UI/UX pass (item 9f) — whole `/locations` surface shipped
-  functional with no design pass; hands-on testing 2026-09-03 confirmed it
-  needs one.
+- Directory split-pane redesign SHIPPED 2026-09-03 (see item 9c). Remaining
+  polish tracked in 9c / 9f / 9g: denser list rows, two-zone Locations
+  detail, app-wide centre-vs-left-align convention.
+- Dead CSS after the redesign: `.contact-delete-row` / `.contact-delete-btn`
+  in `ProductionPages.css` are now unused (panes use `.directory-*`).
 
 **2b follow-ups (small, non-blocking — fold into step 3 or a hygiene pass):**
 - Members tab never had a design pass — see item 9e (esp. the
@@ -147,10 +149,15 @@ call-sheet parse.
     (Overview/Crew tabs, script picker, crew roster, CSV import modal).
     Shipped functional across the spine + step 2a; never had a design pass.
     Brainstorm-then-build, cosmetic.
-9c. Contacts page UI/UX pass — the new `/contacts` account-level directory
-    (list, add/edit contact, kind filter, sensitive-field display) shipped
-    functional in step 2a but never had a design pass. Brainstorm-then-build,
-    cosmetic.
+9c. Contacts page UI/UX pass — **DONE 2026-09-03** (merges `b7097c5`,
+    `0d747ff`, + fixups through `b4ea13e`). `/contacts` and `/locations`
+    rebuilt as a centred master/detail split-pane: URL-driven selection
+    (`/:id`, `/:id/edit`, `/new`), read-only detail view with avatar header +
+    label/value rows + Used-on chips + bottom danger zone, de-modaled
+    `ContactForm`/`LocationForm`, `useGuardedNav` discard prompt, responsive
+    single-column collapse. Shared `DirectoryShell` + `DetailRow`. Remaining:
+    denser list rows (option 2 from the brainstorm) and a two-zone detail for
+    Locations (option 3) — both optional follow-ups.
 9d. Crew tab UI/UX pass — the new Crew tab on `ProductionDetailPage`
     (crew roster, department grouping, add-from-contacts, CSV import modal,
     job/rate fields) shipped functional in step 2a but never had a design
@@ -163,15 +170,17 @@ call-sheet parse.
     production OWNER, so a coordinator adding a member can be blocked by the
     owner's missing seat; the current error surface for that case needs a
     clear, actionable message (who needs to buy a seat, and where).
-9f. Locations pages UI/UX pass — the `/locations` directory, the detail
-    drawer (fields + map + photo grid), the `LocationFormModal` (add/edit,
-    Locate button, static-map preview), and the `ProductionLocationsTab`
-    (linked-locations table + inline notes + picker modal) all shipped
-    functional in step 3, modelled on the contacts/crew chrome, with no
-    design pass. **Confirmed needed via hands-on testing 2026-09-03** —
-    review the whole locations surface end to end (empty states, the
-    geocode/manual-coords flow and its error copy, map placeholder vs.
-    rendered map, photo grid, mobile layout). Brainstorm-then-build.
+9f. Locations pages UI/UX pass — the `/locations` **directory** page got the
+    split-pane redesign with 9c (DONE 2026-09-03): detail view, map preview,
+    photo grid, geocode/manual-coords flow + error copy, StaticMap
+    out-of-range handling. Still open: `ProductionLocationsTab` +
+    `LocationPickerModal` (in-production, kept their modal/inline pattern —
+    out of scope for the directory redesign), and the optional two-zone
+    Locations detail layout (main fields + sidebar for map/photos/used-on).
+9g. App-wide: content pages are `max-width` left-aligned (`.production-page`
+    900px, others), leaving a void on the right on wide screens. The
+    directory pages now centre their block (`b4ea13e`); the rest don't yet.
+    Decide on one convention (centre vs. left-align) and apply consistently.
 
 **Infra / hygiene:**
 10. Flip `backend-tests` CI check to required; add a frontend
