@@ -98,8 +98,9 @@ call-sheet parse.
 **Step 3 follow-ups (small, non-blocking — fold into a hygiene pass):**
 - Same parenthesis-in-search bug fixed in `location_service` still lives in
   `contact_service.py:42` — apply the identical `()` strip.
-- `LocationFormModal` UI/UX pass (item 9f) — shipped functional, no design
-  pass.
+- Locations UI/UX pass (item 9f) — whole `/locations` surface shipped
+  functional with no design pass; hands-on testing 2026-09-03 confirmed it
+  needs one.
 
 **2b follow-ups (small, non-blocking — fold into step 3 or a hygiene pass):**
 - Members tab never had a design pass — see item 9e (esp. the
@@ -163,10 +164,14 @@ call-sheet parse.
     owner's missing seat; the current error surface for that case needs a
     clear, actionable message (who needs to buy a seat, and where).
 9f. Locations pages UI/UX pass — the `/locations` directory, the detail
-    drawer (fields + map + photo grid), and the `ProductionLocationsTab`
+    drawer (fields + map + photo grid), the `LocationFormModal` (add/edit,
+    Locate button, static-map preview), and the `ProductionLocationsTab`
     (linked-locations table + inline notes + picker modal) all shipped
     functional in step 3, modelled on the contacts/crew chrome, with no
-    design pass. Brainstorm-then-build, cosmetic.
+    design pass. **Confirmed needed via hands-on testing 2026-09-03** —
+    review the whole locations surface end to end (empty states, the
+    geocode/manual-coords flow and its error copy, map placeholder vs.
+    rendered map, photo grid, mobile layout). Brainstorm-then-build.
 
 **Infra / hygiene:**
 10. Flip `backend-tests` CI check to required; add a frontend
