@@ -5,8 +5,7 @@ import { getContact, createContact, updateContact, deleteContact } from '../../s
 import { Spinner } from '../ui';
 import ContactForm from './ContactForm';
 import { DetailRow, DetailSection } from '../directory/DetailRow';
-
-const initials = (name) => (name || '?').trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+import { initials } from '../directory/initials';
 
 const errMsg = (err, fallback) => err.response?.data?.error || err.message || fallback;
 
