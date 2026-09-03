@@ -8,7 +8,10 @@
     grid-template-columns: minmax(300px, 340px) minmax(0, 760px);
     gap: var(--space-5);
     align-items: start;
-    max-width: 1140px;
+    max-width: 1120px;
+    /* centre the list+detail block so leftover width reads as page margin,
+       not a void on the right */
+    margin: 0 auto;
     /* fill the viewport height under the app chrome so each column scrolls */
     min-height: calc(100vh - 160px);
 }
