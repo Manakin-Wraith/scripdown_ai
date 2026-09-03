@@ -3,9 +3,12 @@
 
 .directory-shell {
     display: grid;
-    grid-template-columns: minmax(320px, 380px) 1fr;
+    /* list + a content-width detail card; no 1fr, so the card hugs its
+       content instead of stretching into empty space on wide screens */
+    grid-template-columns: minmax(300px, 340px) minmax(0, 760px);
     gap: var(--space-5);
     align-items: start;
+    max-width: 1140px;
     /* fill the viewport height under the app chrome so each column scrolls */
     min-height: calc(100vh - 160px);
 }
@@ -36,7 +39,7 @@
     border: 1px solid var(--border-color);
     border-radius: var(--radius-xl, 14px);
     padding: var(--space-5);
-    min-height: calc(100vh - 160px);
+    min-height: 480px;
 }
 
 /* --- compact list rows --- */
