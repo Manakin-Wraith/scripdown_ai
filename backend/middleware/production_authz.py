@@ -99,6 +99,10 @@ def from_production_invite_id(kwargs):
     return _lookup_production_id('production_invites', kwargs.get('invite_id'))
 
 
+def from_production_location_id(kwargs):
+    return _lookup_production_id('production_locations', kwargs.get('link_id'))
+
+
 def require_production_role(min_role=None, capability=None, resolver=from_production_id):
     """Require the caller to hold a production role (and/or a capability flag).
 

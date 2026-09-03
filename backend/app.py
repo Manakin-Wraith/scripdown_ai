@@ -23,6 +23,7 @@ from routes.series_routes import series_bp
 from routes.casting_routes import casting_bp
 from routes.production_routes import production_bp
 from routes.contact_routes import contacts_bp
+from routes.location_routes import locations_bp
 
 load_dotenv()
 
@@ -68,6 +69,7 @@ app.register_blueprint(series_bp)  # Series/season grouping routes at /api/serie
 app.register_blueprint(casting_bp)  # Cast & casting routes at /api/scripts/:id/casting, /api/casting/*
 app.register_blueprint(production_bp)  # Production entity routes at /api/productions/*
 app.register_blueprint(contacts_bp)  # Account-level contacts directory at /api/contacts/*
+app.register_blueprint(locations_bp)  # Account-level locations directory at /api/locations/*
 
 @app.route('/health')
 def health_check():

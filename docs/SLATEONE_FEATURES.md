@@ -61,8 +61,23 @@
   where it's used. Deleting a production removes its crew assignments; the
   contacts remain.
 
-Not yet: sharing a production's crew/contacts with non-owner team members
-(the `production_members` permission layer — next slice).
+#### Locations
+
+- **Locations directory** (`/locations`) — an account-level directory of
+  real-world places (name, address, permit status, parking / load-in
+  notes, restrictions, a primary contact). Canonical and reusable across
+  every production. Owner-only.
+- **Map preview** — addresses are geocoded server-side (Mapbox) on save,
+  with a static-map image on the directory, detail drawer, and production
+  tab. Coordinates can also be entered manually; the map degrades to a
+  placeholder when no Mapbox token is configured.
+- **Reference photos** — attach JPG/PNG/WebP images to a location.
+- **Production links** — each production has a Locations tab: link
+  locations from the directory with production-specific notes. Visible to
+  every production member; linking / editing / unlinking requires
+  `can_edit_production`.
+- Deleting a location that's still linked to a production is blocked with
+  a list of where it's used.
 
 ### 9. Exporting & Reporting
 - **Customizable Reports:** Generate 7+ standard production reports (Scene Breakdown, Day Out of Days (DOOD), Location, Props, Wardrobe, One-Liner, Full Binder).

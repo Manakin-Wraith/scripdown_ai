@@ -78,9 +78,8 @@ def list_crew(production_id, *, can_view_sensitive=False):
 def _production_owner_id(supabase, production_id):
     """The production owner's uid — contacts live in the OWNER's book, so every
     lookup/creation below is scoped to them, not to the acting caller."""
-    res = (supabase.table("productions").select("owner_id")
-           .eq("id", production_id).limit(1).execute())
-    return res.data[0].get("owner_id") if res.data else None
+    from services.production_service import get_production_owner_id
+    return get_production_owner_id(production_id)
 
 
 def _contact_owned_by(supabase, contact_id, user_id):
