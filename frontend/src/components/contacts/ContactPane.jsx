@@ -4,6 +4,9 @@ import { ArrowLeft } from 'lucide-react';
 import { getContact, createContact, updateContact, deleteContact } from '../../services/apiService';
 import { Spinner } from '../ui';
 import ContactForm from './ContactForm';
+import { DetailRow, DetailSection } from '../directory/DetailRow';
+
+const initials = (name) => (name || '?').trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
 
 const errMsg = (err, fallback) => err.response?.data?.error || err.message || fallback;
 
@@ -102,7 +105,7 @@ export default function ContactPane({ mode }) {
     }
     if (error && !contact && mode !== 'new') {
         return (
-            <div>
+            <div className="directory-pane">
                 {backLink}
                 <p className="production-page-error">{error}</p>
             </div>
@@ -111,7 +114,7 @@ export default function ContactPane({ mode }) {
 
     if (mode === 'new' || mode === 'edit') {
         return (
-            <div>
+            <div className="directory-pane">
                 {backLink}
                 <h3 className="directory-pane-title">{mode === 'new' ? 'New contact' : `Edit ${contact?.name || 'contact'}`}</h3>
                 {error && <p className="production-page-error">{error}</p>}
@@ -127,48 +130,61 @@ export default function ContactPane({ mode }) {
     }
 
     // view
+    const roleTags = Array.isArray(contact.role_tags) ? contact.role_tags.join(', ') : contact.role_tags;
     return (
-        <div>
+        <div className="directory-pane">
             {backLink}
-            <div className="directory-pane-head">
-                <h3 className="directory-pane-title">{contact.name}</h3>
+            <header className="directory-pane-head">
+                <div className="directory-pane-identity">
+                    <span className="directory-avatar" aria-hidden>{initials(contact.name)}</span>
+                    <div>
+                        <h3 className="directory-pane-title">{contact.name}</h3>
+                        <span className="directory-pane-subtitle">
+                            {contact.company_name || (contact.kind === 'company' ? 'Company' : 'Person')}
+                        </span>
+                    </div>
+                </div>
                 <Link className="production-new-btn" to={`/contacts/${contactId}/edit`}>Edit</Link>
-            </div>
+            </header>
             {error && <p className="production-page-error">{error}</p>}
 
-            <dl className="location-detail-fields">
-                <dt>Kind</dt><dd style={{ textTransform: 'capitalize' }}>{contact.kind}</dd>
-                {contact.company_name && (<><dt>Company</dt><dd>{contact.company_name}</dd></>)}
-                {(Array.isArray(contact.role_tags) ? contact.role_tags.length : contact.role_tags) ? (
-                    <><dt>Role tags</dt><dd>{Array.isArray(contact.role_tags) ? contact.role_tags.join(', ') : contact.role_tags}</dd></>
-                ) : null}
-                {contact.phone && (<><dt>Phone</dt><dd>{contact.phone}</dd></>)}
-                {contact.email && (<><dt>Email</dt><dd>{contact.email}</dd></>)}
-                {contact.agent_contact && (<><dt>Agent</dt><dd>{contact.agent_contact}</dd></>)}
-                {contact.standard_rate != null && (
-                    <><dt>Rate</dt><dd>{contact.standard_rate}{contact.rate_unit ? ` / ${contact.rate_unit}` : ''}</dd></>
-                )}
-                {contact.notes && (<><dt>Notes</dt><dd>{contact.notes}</dd></>)}
-            </dl>
-
-            <div className="contact-used-on">
-                <span className="contact-field-label">Used on</span>
-                {assignments.length === 0 ? (
-                    <p className="production-scripts-empty">Not assigned to any production yet.</p>
-                ) : (
-                    <ul className="contact-used-on-list">
-                        {assignments.map((a) => (
-                            <li key={a.crew_id || `${a.production_id}-${a.role}`}>
-                                <Link to={`/productions/${a.production_id}`}>{a.production_title || 'Untitled production'}</Link>
-                                {a.role && <span className="contact-used-on-role">{a.role}</span>}
-                            </li>
-                        ))}
-                    </ul>
-                )}
+            <div className="directory-detail">
+                <DetailRow label="Kind" value={contact.kind} capitalize />
+                <DetailRow label="Company" value={contact.company_name} />
+                <DetailRow label="Role tags" value={roleTags || null} />
+                <DetailRow label="Phone" value={contact.phone} />
+                <DetailRow label="Email" value={contact.email} />
+                <DetailRow label="Agent" value={contact.agent_contact} />
+                <DetailRow
+                    label="Rate"
+                    value={contact.standard_rate != null
+                        ? `${contact.standard_rate}${contact.rate_unit ? ` / ${contact.rate_unit}` : ''}`
+                        : null}
+                />
+                <DetailRow label="Notes" value={contact.notes} />
             </div>
 
-            <div className="contact-delete-row">
-                <button type="button" className="contact-delete-btn" onClick={handleDelete} disabled={deleting}>
+            <DetailSection title="Used on">
+                {assignments.length === 0 ? (
+                    <p className="directory-detail-muted">Not assigned to any production yet.</p>
+                ) : (
+                    <div className="directory-chips">
+                        {assignments.map((a) => (
+                            <Link
+                                key={a.crew_id || `${a.production_id}-${a.role}`}
+                                className="directory-chip"
+                                to={`/productions/${a.production_id}`}
+                            >
+                                {a.production_title || 'Untitled production'}
+                                {a.role && <span className="directory-chip-meta">{a.role}</span>}
+                            </Link>
+                        ))}
+                    </div>
+                )}
+            </DetailSection>
+
+            <div className="directory-pane-danger">
+                <button type="button" className="directory-danger-btn" onClick={handleDelete} disabled={deleting}>
                     {deleting ? 'Deleting…' : 'Delete contact'}
                 </button>
                 {deleteError && <p className="production-page-error">{deleteError}</p>}

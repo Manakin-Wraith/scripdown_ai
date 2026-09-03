@@ -8,6 +8,7 @@ import {
 import { Spinner } from '../ui';
 import LocationForm from './LocationForm';
 import StaticMap from './StaticMap';
+import { DetailRow, DetailSection } from '../directory/DetailRow';
 
 const errMsg = (err, fallback) => err.response?.data?.error || err.message || fallback;
 
@@ -129,12 +130,12 @@ export default function LocationPane({ mode }) {
         return <div className="directory-pane-empty"><Spinner size={24} /></div>;
     }
     if (error && !data && mode !== 'new') {
-        return <div>{backLink}<p className="production-page-error">{error}</p></div>;
+        return <div className="directory-pane">{backLink}<p className="production-page-error">{error}</p></div>;
     }
 
     if (mode === 'new' || mode === 'edit') {
         return (
-            <div>
+            <div className="directory-pane">
                 {backLink}
                 <h3 className="directory-pane-title">
                     {mode === 'new' ? 'New location' : `Edit ${data?.location?.name || 'location'}`}
@@ -158,57 +159,60 @@ export default function LocationPane({ mode }) {
     const usedIn = data.used_in || [];
 
     return (
-        <div>
+        <div className="directory-pane">
             {backLink}
-            <div className="directory-pane-head">
+            <header className="directory-pane-head">
                 <h3 className="directory-pane-title">{loc.name}</h3>
                 <Link className="production-new-btn" to={`/locations/${locationId}/edit`}>Edit</Link>
-            </div>
+            </header>
             {error && <p className="production-page-error">{error}</p>}
 
             <StaticMap lat={loc.lat} lng={loc.lng} geocodeStatus={loc.geocode_status} height={200} />
 
-            <dl className="location-detail-fields">
-                {loc.address && (<><dt>Address</dt><dd>{loc.address}</dd></>)}
-                {loc.permit_status && (<><dt>Permit</dt><dd>{loc.permit_status}</dd></>)}
-                {loc.parking_notes && (<><dt>Parking</dt><dd>{loc.parking_notes}</dd></>)}
-                {loc.loadin_notes && (<><dt>Load-in</dt><dd>{loc.loadin_notes}</dd></>)}
-                {loc.restrictions && (<><dt>Restrictions</dt><dd>{loc.restrictions}</dd></>)}
-                {loc.notes && (<><dt>Notes</dt><dd>{loc.notes}</dd></>)}
-            </dl>
-
-            <div className="location-photos">
-                <span className="contact-field-label">Reference photos</span>
-                <div className="location-photo-grid">
-                    {photos.map((p) => (
-                        <div key={p.id} className="location-photo-thumb">
-                            <img src={p.url} alt={p.caption || 'Location photo'} />
-                            <button type="button" className="location-photo-delete"
-                                onClick={() => handleDeletePhoto(p.id)} aria-label="Delete photo">×</button>
-                        </div>
-                    ))}
-                </div>
-                <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp"
-                    onChange={handleUpload} disabled={uploading} />
+            <div className="directory-detail">
+                <DetailRow label="Address" value={loc.address} />
+                <DetailRow label="Permit" value={loc.permit_status} />
+                <DetailRow label="Parking" value={loc.parking_notes} />
+                <DetailRow label="Load-in" value={loc.loadin_notes} />
+                <DetailRow label="Restrictions" value={loc.restrictions} />
+                <DetailRow label="Notes" value={loc.notes} />
             </div>
 
-            <div className="contact-used-on">
-                <span className="contact-field-label">Used on</span>
-                {usedIn.length === 0 ? (
-                    <p className="production-scripts-empty">Not linked to any production yet.</p>
-                ) : (
-                    <ul className="contact-used-on-list">
-                        {usedIn.map((u) => (
-                            <li key={u.production_id}>
-                                <Link to={`/productions/${u.production_id}`}>{u.production_title || 'Untitled production'}</Link>
-                            </li>
+            <DetailSection title="Reference photos">
+                {photos.length > 0 && (
+                    <div className="directory-photo-grid">
+                        {photos.map((p) => (
+                            <div key={p.id} className="directory-photo">
+                                <img src={p.url} alt={p.caption || 'Location photo'} />
+                                <button type="button" className="directory-photo-remove"
+                                    onClick={() => handleDeletePhoto(p.id)} aria-label="Delete photo">×</button>
+                            </div>
                         ))}
-                    </ul>
+                    </div>
                 )}
-            </div>
+                <label className="directory-photo-add">
+                    {uploading ? 'Uploading…' : 'Add photo'}
+                    <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp"
+                        onChange={handleUpload} disabled={uploading} hidden />
+                </label>
+            </DetailSection>
 
-            <div className="contact-delete-row">
-                <button type="button" className="contact-delete-btn" onClick={handleDelete} disabled={deleting}>
+            <DetailSection title="Used on">
+                {usedIn.length === 0 ? (
+                    <p className="directory-detail-muted">Not linked to any production yet.</p>
+                ) : (
+                    <div className="directory-chips">
+                        {usedIn.map((u) => (
+                            <Link key={u.production_id} className="directory-chip" to={`/productions/${u.production_id}`}>
+                                {u.production_title || 'Untitled production'}
+                            </Link>
+                        ))}
+                    </div>
+                )}
+            </DetailSection>
+
+            <div className="directory-pane-danger">
+                <button type="button" className="directory-danger-btn" onClick={handleDelete} disabled={deleting}>
                     {deleting ? 'Deleting…' : 'Delete location'}
                 </button>
                 {deleteError && <p className="production-page-error">{deleteError}</p>}
