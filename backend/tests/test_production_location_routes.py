@@ -96,6 +96,13 @@ def test_unlink(fake):
     assert pls.unlink("p1", link["id"]) == "not_found"
 
 
+def test_update_link_rejects_wrong_production(fake):
+    _seed_location(fake)
+    link = pls.link_location("p1", "loc1", owner_id="owner1")
+    assert pls.update_link("p2", link["id"], "notes") == "not_found"
+    assert pls.update_link("p1", link["id"], "notes")["production_notes"] == "notes"
+
+
 # --- route-layer tests (production_bp; mirrors test_production_member_routes.py) ---
 from types import SimpleNamespace
 from unittest.mock import patch

@@ -111,10 +111,28 @@ def test_explicit_coords_skip_geocode_and_mark_manual(fake, monkeypatch):
 
 
 def test_clearing_address_nulls_coords(fake):
-    loc = svc.create_location("u1", {"name": "X", "lat": 1, "lng": 2,
-                                     "geocode_status": "manual"})
+    loc = svc.create_location("u1", {"name": "X", "address": "1 Main Rd",
+                                     "lat": 1, "lng": 2, "geocode_status": "manual"})
     out = svc.update_location("u1", loc["id"], {"address": ""})
     assert out.get("lat") is None and out.get("geocode_status") is None
+
+
+def test_unrelated_edit_does_not_regeocode_over_manual_coords(fake, monkeypatch):
+    called = []
+    monkeypatch.setattr(svc.geocode_service, "geocode",
+                        lambda a: called.append(a) or {"lat": 9, "lng": 9})
+    loc = svc.create_location("u1", {"name": "X", "address": "1 Main Rd",
+                                     "lat": 5, "lng": 6, "geocode_status": "manual"})
+    out = svc.update_location("u1", loc["id"],
+                              {"address": "1 Main Rd", "parking_notes": "gate 3"})
+    assert called == []
+    assert out["lat"] == 5 and out["lng"] == 6 and out["geocode_status"] == "manual"
+
+
+def test_half_coordinate_is_not_persisted(fake):
+    row = svc.create_location("u1", {"name": "X", "lat": -33.9})
+    assert row.get("lat") is None and row.get("lng") is None
+    assert row.get("geocode_status") is None
 
 
 def test_update_other_owner_returns_not_found(fake):

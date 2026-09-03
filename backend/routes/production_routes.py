@@ -279,7 +279,7 @@ def link_production_location(production_id):
 @require_production_role(capability="can_edit_production", resolver=from_production_location_id)
 def update_production_location(production_id, link_id):
     data = request.get_json(silent=True) or {}
-    result = ploc_svc.update_link(link_id, data.get("production_notes"))
+    result = ploc_svc.update_link(production_id, link_id, data.get("production_notes"))
     if result == "not_found":
         return jsonify({"error": "Not found"}), 404
     return jsonify({"location": result})

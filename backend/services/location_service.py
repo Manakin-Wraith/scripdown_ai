@@ -27,20 +27,31 @@ def _get(supabase, user_id, location_id):
     return res.data[0] if res.data else None
 
 
-def _apply_geocode(fields, patch):
+def _apply_geocode(fields, patch, existing=None):
     """Fill lat/lng/geocode_status on `patch` from `fields`. Rules:
       - explicit lat AND lng supplied -> store them, status 'manual', no geocode
-      - address present/changed, no explicit coords -> geocode; ok/failed
-      - address explicitly blank -> null coords + status
+      - address new or changed, no explicit coords -> geocode; ok/failed
+      - address changed to blank -> null coords + status
+      - address supplied but unchanged (on update) -> leave coords untouched,
+        so an unrelated edit never re-geocodes over manual coordinates
     """
     has_addr = "address" in fields
     addr = (fields.get("address") or "").strip() if has_addr else None
-    explicit = fields.get("lat") is not None and fields.get("lng") is not None
+    lat, lng = fields.get("lat"), fields.get("lng")
+    if (lat is None) != (lng is None):
+        # Only one coordinate supplied -> not a usable point. Drop both (the
+        # create loop / update patch may have copied one in) and let the
+        # address branch below decide, rather than persisting a half point.
+        lat = lng = None
+        patch["lat"] = patch["lng"] = None
+    explicit = lat is not None and lng is not None
     if explicit:
-        patch["lat"], patch["lng"] = fields["lat"], fields["lng"]
+        patch["lat"], patch["lng"] = lat, lng
         patch["geocode_status"] = "manual"
         return
     if not has_addr:
+        return
+    if existing is not None and addr == (existing.get("address") or "").strip():
         return
     if not addr:
         patch["lat"] = None
@@ -58,7 +69,9 @@ def _apply_geocode(fields, patch):
 def list_locations(user_id, q=None):
     query = get_supabase_admin().table("locations").select("*").eq("owner_id", user_id)
     if q:
-        needle = q.strip().replace("%", "").replace(",", "")
+        needle = q.strip()
+        for ch in "%,()":
+            needle = needle.replace(ch, "")
         if needle:
             query = query.or_(f"name.ilike.%{needle}%,address.ilike.%{needle}%")
     return query.order("name").execute().data or []
@@ -77,12 +90,13 @@ def create_location(user_id, fields):
 
 def update_location(user_id, location_id, fields):
     supabase = get_supabase_admin()
-    if not _get(supabase, user_id, location_id):
+    existing = _get(supabase, user_id, location_id)
+    if not existing:
         return NOT_FOUND
     patch = {f: fields[f] for f in FIELDS if f in fields}
     if "name" in patch:
         patch["name"] = (patch["name"] or "").strip()
-    _apply_geocode(fields, patch)
+    _apply_geocode(fields, patch, existing)
     if not patch:
         return _get(supabase, user_id, location_id)
     res = (supabase.table("locations").update(patch)

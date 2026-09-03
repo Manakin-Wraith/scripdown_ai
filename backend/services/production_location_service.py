@@ -35,9 +35,10 @@ def _link(supabase, link_id):
     return res.data[0] if res.data else None
 
 
-def update_link(link_id, notes):
+def update_link(production_id, link_id, notes):
     supabase = get_supabase_admin()
-    if not _link(supabase, link_id):
+    row = _link(supabase, link_id)
+    if not row or row.get("production_id") != production_id:
         return "not_found"
     res = (supabase.table("production_locations").update({"production_notes": notes})
            .eq("id", link_id).execute())
