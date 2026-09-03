@@ -98,8 +98,8 @@ call-sheet parse.
 **Step 3 follow-ups (small, non-blocking — fold into a hygiene pass):**
 - Same parenthesis-in-search bug fixed in `location_service` still lives in
   `contact_service.py:42` — apply the identical `()` strip.
-- Directory split-pane redesign SHIPPED 2026-09-03 (see item 9c). Remaining
-  polish tracked in 9c / 9f / 9g: denser list rows, two-zone Locations
+- Directory split-pane redesign SHIPPED 2026-09-03 (see item 9c), incl.
+  denser list rows. Remaining polish tracked in 9f / 9g: two-zone Locations
   detail, app-wide centre-vs-left-align convention.
 - Dead CSS after the redesign: `.contact-delete-row` / `.contact-delete-btn`
   in `ProductionPages.css` are now unused (panes use `.directory-*`).
@@ -150,14 +150,16 @@ call-sheet parse.
     Shipped functional across the spine + step 2a; never had a design pass.
     Brainstorm-then-build, cosmetic.
 9c. Contacts page UI/UX pass — **DONE 2026-09-03** (merges `b7097c5`,
-    `0d747ff`, + fixups through `b4ea13e`). `/contacts` and `/locations`
-    rebuilt as a centred master/detail split-pane: URL-driven selection
-    (`/:id`, `/:id/edit`, `/new`), read-only detail view with avatar header +
-    label/value rows + Used-on chips + bottom danger zone, de-modaled
+    `0d747ff`, denser rows `bcdddc0`, + fixups through `b4ea13e`). `/contacts`
+    and `/locations` rebuilt as a centred master/detail split-pane: URL-driven
+    selection (`/:id`, `/:id/edit`, `/new`), read-only detail view with avatar
+    header + label/value rows + Used-on chips + bottom danger zone, de-modaled
     `ContactForm`/`LocationForm`, `useGuardedNav` discard prompt, responsive
-    single-column collapse. Shared `DirectoryShell` + `DetailRow`. Remaining:
-    denser list rows (option 2 from the brainstorm) and a two-zone detail for
-    Locations (option 3) — both optional follow-ups.
+    single-column collapse, denser list rows (avatar + meta line / larger map
+    thumb + 2-line address). Shared `DirectoryShell` + `DetailRow` +
+    `initials`. Remaining optional follow-up: a two-zone detail layout for
+    Locations (option 3 from the brainstorm — main fields + sidebar for
+    map/photos/used-on).
 9d. Crew tab UI/UX pass — the new Crew tab on `ProductionDetailPage`
     (crew roster, department grouping, add-from-contacts, CSV import modal,
     job/rate fields) shipped functional in step 2a but never had a design
