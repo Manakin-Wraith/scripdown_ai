@@ -83,7 +83,8 @@ unchanged address, search needle strips `()`, no half-populated
 lat/lng, `update_link` verifies the link's production). `MAPBOX_SECRET_TOKEN`
 (Railway) + `VITE_MAPBOX_PUBLIC_TOKEN` (Vercel, public `pk.` token, Prod +
 Preview) set 2026-09-03 — a frontend redeploy bakes the Vite var in.
-Migration 053 applied manually to slateone (the only environment).
+Migration 053 applied manually to slateone (the only environment). `main`
+pushed 2026-09-03.
 
 **START HERE — umbrella step 4: call sheets / sides.** Brainstorm first;
 no spec/plan yet. The spine (step 1), crew + contacts (2a), the
@@ -122,7 +123,7 @@ call-sheet parse.
 
 **Do next (unblocks the most):**
 1. **Umbrella step 4: call sheets / sides** (see START HERE above) — the
-   headline next slice, now that step 3 (locations) has shipped on branch.
+   headline next slice, now that step 3 (locations) has shipped to `main`.
    Brainstorm first; no spec/plan yet.
 2. **Cast & Casting v1 closeout** (cheap, ~1 session): `TriangleAlert`→`AlertTriangle`
    icon consistency (cosmetic). Task 13 (DOOD conflict overlay) remains open
