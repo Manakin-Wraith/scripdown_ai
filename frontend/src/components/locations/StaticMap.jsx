@@ -3,7 +3,12 @@
 const TOKEN = import.meta.env.VITE_MAPBOX_PUBLIC_TOKEN;
 
 export default function StaticMap({ lat, lng, geocodeStatus, height = 240 }) {
-    const hasCoords = lat != null && lng != null && lat !== '' && lng !== '';
+    const nLat = lat === '' || lat == null ? null : Number(lat);
+    const nLng = lng === '' || lng == null ? null : Number(lng);
+    const hasCoords = nLat != null && nLng != null;
+    const validCoords = hasCoords
+        && Number.isFinite(nLat) && Math.abs(nLat) <= 90
+        && Number.isFinite(nLng) && Math.abs(nLng) <= 180;
 
     if (!TOKEN) {
         return (
@@ -12,17 +17,20 @@ export default function StaticMap({ lat, lng, geocodeStatus, height = 240 }) {
             </div>
         );
     }
-    if (!hasCoords) {
-        const msg = geocodeStatus === 'failed'
-            ? "Address couldn't be located — add coordinates manually"
-            : 'Add an address or coordinates to show a map';
+    if (!validCoords) {
+        let msg = 'No coordinates yet — add an address or lat/lng to show a map';
+        if (hasCoords) {
+            msg = 'Coordinates out of range — latitude −90 to 90, longitude −180 to 180';
+        } else if (geocodeStatus === 'failed') {
+            msg = "Address couldn't be located — add coordinates manually";
+        }
         return (
             <div className="static-map static-map--empty" style={{ height }}>{msg}</div>
         );
     }
 
     const src = 'https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/'
-        + `pin-s+e11d48(${lng},${lat})/${lng},${lat},13/640x${Math.round(height)}@2x`
+        + `pin-s+e11d48(${nLng},${nLat})/${nLng},${nLat},13/640x${Math.round(height)}@2x`
         + `?access_token=${TOKEN}`;
     return (
         <img
