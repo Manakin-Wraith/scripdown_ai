@@ -5,10 +5,10 @@
     display: grid;
     /* list + a content-width detail card; no 1fr, so the card hugs its
        content instead of stretching into empty space on wide screens */
-    grid-template-columns: minmax(300px, 340px) minmax(0, 760px);
+    grid-template-columns: minmax(340px, 400px) minmax(0, 760px);
     gap: var(--space-5);
     align-items: start;
-    max-width: 1120px;
+    max-width: 1180px;
     /* centre the list+detail block so leftover width reads as page margin,
        not a void on the right */
     margin: 0 auto;
@@ -58,7 +58,7 @@
 .directory-row {
     display: flex;
     gap: var(--space-3);
-    align-items: center;
+    align-items: flex-start;
     width: 100%;
     text-align: left;
     padding: 10px 12px;
@@ -67,6 +67,43 @@
     background: none;
     color: var(--text-primary);
     cursor: pointer;
+}
+
+.directory-row-avatar {
+    flex-shrink: 0;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    background: var(--bg-app);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary, #6b7a94);
+}
+.directory-row.is-active .directory-row-avatar {
+    background: var(--primary-500);
+    border-color: var(--primary-500);
+    color: var(--gray-900, #0e1420);
+}
+
+.directory-row-meta {
+    font-size: 0.75rem;
+    color: var(--text-secondary, #6b7a94);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 1px;
+}
+
+.directory-row-sub--2line {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 
 .directory-row:hover {
@@ -110,9 +147,13 @@
     overflow: hidden;
     flex-shrink: 0;
 }
+.directory-row-thumb--lg {
+    width: 52px;
+    height: 52px;
+}
 
 .directory-row-thumb .static-map {
-    height: 44px !important;
+    height: 100% !important;
     border-radius: 0;
 }
 

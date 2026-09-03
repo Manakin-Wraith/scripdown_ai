@@ -5,7 +5,10 @@ import { listContacts } from '../services/apiService';
 import { Spinner } from '../components/ui';
 import DirectoryShell from '../components/directory/DirectoryShell';
 import useGuardedNav from '../components/directory/useGuardedNav';
+import { initials } from '../components/directory/initials';
 import './ProductionPages.css';
+
+const roleTagsText = (t) => (Array.isArray(t) ? t.join(', ') : t || '');
 
 export default function ContactsListPage() {
     const location = useLocation();
@@ -52,23 +55,27 @@ export default function ContactsListPage() {
         <p className="production-scripts-empty">No contacts yet — add your address book of crew and vendors.</p>
     ) : (
         <ul className="directory-row-list">
-            {contacts.map((c) => (
-                <li key={c.id}>
-                    <button
-                        type="button"
-                        className={`directory-row${c.id === contactId ? ' is-active' : ''}`}
-                        onClick={() => guardedNav(`/contacts/${c.id}`)}
-                    >
-                        <span className="directory-row-body">
-                            <span className="directory-row-title">{c.name}</span>
-                            <span className="directory-row-sub">
-                                {c.company_name || (c.kind === 'company' ? 'Company' : 'Person')}
-                                {c.email ? ` · ${c.email}` : ''}
+            {contacts.map((c) => {
+                const meta = [roleTagsText(c.role_tags), c.phone].filter(Boolean).join(' · ');
+                return (
+                    <li key={c.id}>
+                        <button
+                            type="button"
+                            className={`directory-row${c.id === contactId ? ' is-active' : ''}`}
+                            onClick={() => guardedNav(`/contacts/${c.id}`)}
+                        >
+                            <span className="directory-row-avatar" aria-hidden>{initials(c.name)}</span>
+                            <span className="directory-row-body">
+                                <span className="directory-row-title">{c.name}</span>
+                                <span className="directory-row-sub">
+                                    {c.company_name || (c.kind === 'company' ? 'Company' : 'Person')}
+                                </span>
+                                {meta && <span className="directory-row-meta">{meta}</span>}
                             </span>
-                        </span>
-                    </button>
-                </li>
-            ))}
+                        </button>
+                    </li>
+                );
+            })}
         </ul>
     );
 

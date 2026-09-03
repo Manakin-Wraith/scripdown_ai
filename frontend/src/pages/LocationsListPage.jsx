@@ -60,14 +60,15 @@ export default function LocationsListPage() {
                         className={`directory-row${l.id === locationId ? ' is-active' : ''}`}
                         onClick={() => guardedNav(`/locations/${l.id}`)}
                     >
-                        <span className="directory-row-thumb">
+                        <span className="directory-row-thumb directory-row-thumb--lg">
                             {l.lat != null && l.lng != null
-                                ? <StaticMap lat={l.lat} lng={l.lng} geocodeStatus={l.geocode_status} height={44} />
-                                : <span className="directory-row-thumb-blank"><MapPin size={16} /></span>}
+                                ? <StaticMap lat={l.lat} lng={l.lng} geocodeStatus={l.geocode_status} height={52} />
+                                : <span className="directory-row-thumb-blank"><MapPin size={18} /></span>}
                         </span>
                         <span className="directory-row-body">
                             <span className="directory-row-title">{l.name}</span>
-                            <span className="directory-row-sub">{l.address || 'No address'}</span>
+                            <span className="directory-row-sub directory-row-sub--2line">{l.address || 'No address'}</span>
+                            {l.permit_status && <span className="directory-row-meta">Permit: {l.permit_status}</span>}
                         </span>
                     </button>
                 </li>
