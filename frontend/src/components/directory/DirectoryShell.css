@@ -1,0 +1,186 @@
+/* Master/detail layout for the Contacts and Locations directory pages.
+   Left column: fixed-width list. Right column: routed detail pane. */
+
+.directory-shell {
+    display: grid;
+    grid-template-columns: minmax(320px, 380px) 1fr;
+    gap: var(--space-5);
+    align-items: start;
+    /* fill the viewport height under the app chrome so each column scrolls */
+    min-height: calc(100vh - 160px);
+}
+
+.directory-list-col {
+    position: sticky;
+    top: var(--space-4);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    max-height: calc(100vh - 140px);
+}
+
+.directory-list-col .page-header {
+    margin-bottom: 0;
+}
+
+.directory-list-scroll {
+    overflow-y: auto;
+    flex: 1;
+    margin: 0 calc(-1 * var(--space-2));
+    padding: 0 var(--space-2);
+}
+
+.directory-detail-col {
+    min-width: 0;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-xl, 14px);
+    padding: var(--space-5);
+    min-height: calc(100vh - 160px);
+}
+
+/* --- compact list rows --- */
+.directory-row-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.directory-row {
+    display: flex;
+    gap: var(--space-3);
+    align-items: center;
+    width: 100%;
+    text-align: left;
+    padding: 10px 12px;
+    border-radius: var(--radius-lg);
+    border: 1px solid transparent;
+    background: none;
+    color: var(--text-primary);
+    cursor: pointer;
+}
+
+.directory-row:hover {
+    background: var(--bg-card);
+    border-color: var(--border-color);
+}
+
+.directory-row.is-active {
+    background: var(--bg-card);
+    border-color: var(--primary-500);
+}
+
+.directory-row-body {
+    min-width: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.directory-row-title {
+    font-weight: 600;
+    font-size: 0.9375rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.directory-row-sub {
+    font-size: 0.8125rem;
+    color: var(--text-secondary, #6b7a94);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.directory-row-thumb {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-md, 8px);
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.directory-row-thumb .static-map {
+    height: 44px !important;
+    border-radius: 0;
+}
+
+.directory-row-thumb-blank {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    background: var(--bg-app);
+    color: var(--text-secondary, #6b7a94);
+}
+
+/* --- detail pane chrome --- */
+.directory-pane-back {
+    display: none; /* shown only in the mobile single-column layout */
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: none;
+    color: var(--primary-500);
+    font-size: 0.875rem;
+    cursor: pointer;
+    padding: 0 0 var(--space-3);
+}
+
+.directory-pane-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin-bottom: var(--space-4);
+}
+
+.directory-pane-title {
+    margin: 0 0 var(--space-4);
+    font-size: 1.25rem;
+}
+.directory-pane-head .directory-pane-title {
+    margin: 0;
+}
+
+.directory-pane-empty {
+    height: 100%;
+    min-height: 320px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 8px;
+    color: var(--text-secondary, #6b7a94);
+}
+
+/* --- responsive: single column --- */
+@media (max-width: 900px) {
+    .directory-shell {
+        grid-template-columns: 1fr;
+        min-height: 0;
+    }
+    .directory-list-col {
+        position: static;
+        max-height: none;
+    }
+    .directory-detail-col {
+        min-height: 0;
+    }
+    .directory-shell:not(.has-selection) .directory-detail-col {
+        display: none;
+    }
+    .directory-shell.has-selection .directory-list-col {
+        display: none;
+    }
+    .directory-pane-back {
+        display: flex;
+    }
+}
