@@ -4543,48 +4543,52 @@ def get_script_versions(script_id):
 def import_revision(script_id):
     """
     Import a new revision of a script.
-    
+
     Expects multipart form data with:
-    - file: PDF file
+    - file: PDF or Final Draft .fdx file
     - revision_color: Color for this revision (white, blue, pink, etc.)
     - notes: Optional notes about this revision
     """
     if not supabase:
         return jsonify({'error': 'Supabase not configured'}), 500
-    
+
     try:
+        from services.fdx_parser import _is_fdx
         from services.revision_service import (
             extract_scenes_from_pdf,
+            extract_scenes_from_fdx,
             diff_script_versions,
             create_version_record,
             apply_revision_changes
         )
-        
+
         # Check for file
         if 'file' not in request.files:
             return jsonify({'error': 'No file provided'}), 400
-        
+
         file = request.files['file']
         if file.filename == '':
             return jsonify({'error': 'No file selected'}), 400
-        
-        if not file.filename.lower().endswith('.pdf'):
-            return jsonify({'error': 'Only PDF files are supported'}), 400
-        
+
+        is_fdx = _is_fdx(file.filename)
+        if not is_fdx and not file.filename.lower().endswith('.pdf'):
+            return jsonify({'error': 'Only PDF or Final Draft (.fdx) files are supported'}), 400
+
         revision_color = request.form.get('revision_color', 'white')
         notes = request.form.get('notes', '')
         apply_changes = request.form.get('apply_changes', 'false').lower() == 'true'
-        
+
         # Save file temporarily
         import tempfile
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp:
+        suffix = '.fdx' if is_fdx else '.pdf'
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
             file.save(tmp.name)
             tmp_path = tmp.name
-        
+
         try:
-            # Extract scenes from new PDF
-            new_scenes = extract_scenes_from_pdf(tmp_path)
-            
+            # Extract scenes from the new revision
+            new_scenes = extract_scenes_from_fdx(tmp_path) if is_fdx else extract_scenes_from_pdf(tmp_path)
+
             # Get existing scenes
             existing_result = supabase.table('scenes').select('*').eq(
                 'script_id', script_id

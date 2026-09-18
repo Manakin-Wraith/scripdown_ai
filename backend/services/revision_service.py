@@ -2,7 +2,7 @@
 Revision Service - Script Version Comparison and Import
 
 This module handles:
-1. Importing new script revisions (PDF upload)
+1. Importing new script revisions (PDF or FDX upload)
 2. Comparing scenes between versions (diff)
 3. Tracking changes and creating version history
 """
@@ -15,6 +15,7 @@ from enum import Enum
 from datetime import datetime
 
 from services.extraction_pipeline import parse_pdf_with_pages, detect_scene_headers, compute_content_hash
+from services.fdx_parser import parse_fdx_upload
 
 
 class ChangeType(Enum):
@@ -263,7 +264,31 @@ def extract_scenes_from_pdf(file_path: str) -> List[Dict]:
     return scenes
 
 
-def create_version_record(supabase, script_id: str, revision_color: str, 
+def extract_scenes_from_fdx(file_path: str) -> List[Dict]:
+    """
+    Extract scenes from a Final Draft .fdx file using the FDX parser.
+    Returns a list of scene dictionaries in the same shape as
+    extract_scenes_from_pdf, so diff_script_versions/apply_revision_changes
+    work identically regardless of source format.
+    """
+    _pages_data, _full_text, _metadata, parsed_scenes = parse_fdx_upload(file_path)
+
+    return [
+        {
+            'scene_number': ps.scene_number_original,
+            'int_ext': ps.int_ext,
+            'setting': ps.setting,
+            'time_of_day': ps.time_of_day,
+            'page_start': ps.page_start,
+            'page_end': ps.page_end,
+            'full_text': ps.scene_text,
+            'content_hash': ps.content_hash,
+        }
+        for ps in parsed_scenes
+    ]
+
+
+def create_version_record(supabase, script_id: str, revision_color: str,
                           pdf_path: str = None, notes: str = None) -> Dict:
     """
     Create a new script version record in the database.

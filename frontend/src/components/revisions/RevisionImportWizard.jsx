@@ -34,18 +34,23 @@ const RevisionImportWizard = ({ isOpen, onClose, scriptId, scriptTitle, onImport
     const onDrop = useCallback((acceptedFiles) => {
         if (acceptedFiles.length > 0) {
             const selectedFile = acceptedFiles[0];
-            if (selectedFile.type === 'application/pdf') {
+            const isPdfOrFdx = /\.(pdf|fdx)$/i.test(selectedFile.name);
+            if (isPdfOrFdx) {
                 setFile(selectedFile);
                 setError(null);
             } else {
-                setError('Please upload a PDF file');
+                setError('Please upload a PDF or Final Draft (.fdx) file');
             }
         }
     }, []);
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop,
-        accept: { 'application/pdf': ['.pdf'] },
+        accept: {
+            'application/pdf': ['.pdf'],
+            'application/xml': ['.fdx'],
+            'text/xml': ['.fdx'],
+        },
         multiple: false
     });
 
@@ -177,7 +182,7 @@ const RevisionImportWizard = ({ isOpen, onClose, scriptId, scriptTitle, onImport
                                 ) : (
                                     <div className="dropzone-content">
                                         <Upload size={40} />
-                                        <p>Drag & drop your revised PDF here</p>
+                                        <p>Drag & drop your revised PDF or Final Draft (.fdx) here</p>
                                         <span>or click to browse</span>
                                     </div>
                                 )}

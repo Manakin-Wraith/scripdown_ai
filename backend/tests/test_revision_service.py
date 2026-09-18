@@ -405,3 +405,65 @@ def test_extract_scenes_from_pdf_groups_pages_into_scenes(monkeypatch):
     assert scenes[1]["page_start"] == 3
     assert scenes[1]["page_end"] == 3
     assert scenes[1]["content_hash"]
+
+
+# ---------------------------------------------------------------------------
+# extract_scenes_from_fdx
+# ---------------------------------------------------------------------------
+
+def test_extract_scenes_from_fdx_maps_parsed_scenes_to_pdf_shape(monkeypatch):
+    from services.screenplay_parser import ParsedScene
+
+    parsed = [
+        ParsedScene(
+            scene_number_original="1", scene_order=1, int_ext="INT",
+            setting="KITCHEN", time_of_day="DAY", page_start=1, page_end=1,
+            text_start=0, text_end=10, content_hash="h1",
+            scene_text="INT. KITCHEN - DAY\nAction here.", parse_method="fdx",
+        ),
+        ParsedScene(
+            scene_number_original="2", scene_order=2, int_ext="EXT",
+            setting="GARDEN", time_of_day="NIGHT", page_start=2, page_end=3,
+            text_start=10, text_end=30, content_hash="h2",
+            scene_text="EXT. GARDEN - NIGHT\nOutside now.", parse_method="fdx",
+        ),
+    ]
+    monkeypatch.setattr(
+        rs, "parse_fdx_upload",
+        lambda path: ([], "full text", {"title": "Test"}, parsed),
+    )
+
+    scenes = rs.extract_scenes_from_fdx("fake.fdx")
+
+    assert [s["scene_number"] for s in scenes] == ["1", "2"]
+    assert scenes[0]["full_text"] == "INT. KITCHEN - DAY\nAction here."
+    assert scenes[0]["setting"] == "KITCHEN"
+    assert scenes[1]["page_start"] == 2
+    assert scenes[1]["page_end"] == 3
+    assert scenes[1]["content_hash"] == "h2"
+
+
+def test_extract_scenes_from_fdx_feeds_diff_script_versions_like_pdf(monkeypatch):
+    """The FDX and PDF extractors must produce interchangeable scene dicts —
+    diffing an FDX revision against PDF-derived old scenes should work the
+    same as PDF-vs-PDF."""
+    from services.screenplay_parser import ParsedScene
+
+    old_scenes = [_scene("1", setting="KITCHEN")]
+    parsed = [ParsedScene(
+        scene_number_original="1", scene_order=1, int_ext="INT",
+        setting="GARDEN", time_of_day="DAY", page_start=1, page_end=1,
+        text_start=0, text_end=10, content_hash="h1",
+        scene_text="Some dialogue happens here today.", parse_method="fdx",
+    )]
+    monkeypatch.setattr(
+        rs, "parse_fdx_upload",
+        lambda path: ([], "full text", {}, parsed),
+    )
+
+    new_scenes = rs.extract_scenes_from_fdx("fake.fdx")
+    diffs = rs.diff_script_versions(old_scenes, new_scenes)
+
+    assert len(diffs) == 1
+    assert diffs[0].change_type == rs.ChangeType.MODIFIED
+    assert any("Setting changed" in c for c in diffs[0].changes)

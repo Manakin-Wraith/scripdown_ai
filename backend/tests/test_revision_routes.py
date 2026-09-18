@@ -59,6 +59,10 @@ def _pdf_file(name="revision.pdf"):
     return {"file": (io.BytesIO(b"%PDF-1.4 fake"), name)}
 
 
+def _fdx_file(name="revision.fdx"):
+    return {"file": (io.BytesIO(b"<FinalDraft/>"), name)}
+
+
 # ---------------------------------------------------------------------------
 # Auth / authorization
 # ---------------------------------------------------------------------------
@@ -96,15 +100,40 @@ def test_import_revision_missing_file_returns_400(monkeypatch):
     assert "file" in resp.get_json()["error"].lower()
 
 
-def test_import_revision_rejects_non_pdf(monkeypatch):
+def test_import_revision_rejects_unsupported_format(monkeypatch):
     _as_role(monkeypatch, "member")
     monkeypatch.setattr(sr, "supabase", FakeSupabase())
     resp = _client().post(
         "/api/scripts/s1/versions/import",
-        data=_pdf_file(name="revision.fdx"), content_type="multipart/form-data",
+        data=_pdf_file(name="revision.docx"), content_type="multipart/form-data",
     )
     assert resp.status_code == 400
     assert "pdf" in resp.get_json()["error"].lower()
+    assert "fdx" in resp.get_json()["error"].lower()
+
+
+def test_import_revision_accepts_fdx(monkeypatch):
+    _as_role(monkeypatch, "member")
+    monkeypatch.setattr(sr, "supabase", FakeSupabase(scenes=[]))
+    monkeypatch.setattr(rs, "extract_scenes_from_fdx", lambda path: [
+        {"scene_number": "1", "int_ext": "INT", "setting": "KITCHEN",
+         "time_of_day": "DAY", "full_text": "text", "page_start": 1,
+         "page_end": 1, "content_hash": "h1"},
+    ])
+
+    def _boom_if_pdf_extractor_called(*a, **k):
+        raise AssertionError("FDX upload must not go through extract_scenes_from_pdf")
+    monkeypatch.setattr(rs, "extract_scenes_from_pdf", _boom_if_pdf_extractor_called)
+
+    resp = _client().post(
+        "/api/scripts/s1/versions/import",
+        data={**_fdx_file(), "apply_changes": "false"},
+        content_type="multipart/form-data",
+    )
+    assert resp.status_code == 200
+    body = resp.get_json()
+    assert body["preview"] is True
+    assert body["diff_summary"]["added"] == 1
 
 
 # ---------------------------------------------------------------------------

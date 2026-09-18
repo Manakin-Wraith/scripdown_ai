@@ -751,18 +751,29 @@ instinct in the original Option 1 sketch. **Route now restored
 (2026-09-18) — see above — so this is reachable by a user today.**
 
 **What's actually still missing.**
-- **PDF-only.** `import_revision` rejects anything not ending `.pdf`
-  (`supabase_routes.py`) — no FDX revision-import path, unlike FDX's own
-  upload/analysis flow.
+- **PDF-only — RESOLVED 2026-09-18.** `import_revision` previously
+  rejected anything not ending `.pdf`, with no FDX revision-import path
+  despite FDX's own upload/analysis flow supporting it. Fixed by
+  mirroring the main upload route's existing FDX/PDF branching pattern:
+  `revision_service.py` gained `extract_scenes_from_fdx()` (wraps the
+  already-shared `parse_fdx_upload()` and maps its `ParsedScene` objects
+  to the same plain-dict shape `extract_scenes_from_pdf` produces, so
+  `diff_script_versions`/`apply_revision_changes` work identically on
+  either source); `import_revision` now detects `.fdx` via the shared
+  `_is_fdx()` helper and dispatches accordingly; `RevisionImportWizard.jsx`'s
+  dropzone now accepts `.fdx` (matching `DropZone.jsx`'s main-upload
+  accept config) with updated copy/error messages. 3 new tests cover
+  the FDX extractor and route dispatch (38 revision tests total).
 - **Test coverage — RESOLVED 2026-09-18.** `backend/tests/test_revision_service.py`
-  (26 tests: similarity/matching/diffing, `create_version_record`,
+  (29 tests: similarity/matching/diffing, `create_version_record`,
   `apply_revision_changes` for added/modified/removed/unchanged,
-  `get_version_history`, `get_version_diff`, `extract_scenes_from_pdf`)
-  and `backend/tests/test_revision_routes.py` (9 tests: auth/role
-  gating, file validation, preview-vs-apply behavior, GET endpoints) —
-  35 tests total, all passing, `pytest tests/` (761 passed, 1 skipped)
-  stays green. **Writing these surfaced a real bug, also fixed
-  2026-09-18:** `revision_service.py` imported a function called
+  `get_version_history`, `get_version_diff`, `extract_scenes_from_pdf`,
+  `extract_scenes_from_fdx`) and `backend/tests/test_revision_routes.py`
+  (9 tests: auth/role gating, file validation incl. FDX acceptance,
+  preview-vs-apply behavior, GET endpoints) — 38 tests total, all
+  passing, `pytest tests/` (764 passed, 1 skipped) stays green.
+  **Writing these surfaced a real bug, also fixed 2026-09-18:**
+  `revision_service.py` imported a function called
   `generate_content_hash` from `extraction_pipeline.py`, but that
   function is actually named `compute_content_hash` — the import has
   apparently never succeeded since whatever rename introduced the
@@ -795,7 +806,10 @@ instinct in the original Option 1 sketch. **Route now restored
 
 **References.**
 - `backend/services/revision_service.py` — `diff_script_versions`,
-  `apply_revision_changes`, `create_version_record`, `get_version_history`
+  `apply_revision_changes`, `create_version_record`, `get_version_history`,
+  `extract_scenes_from_pdf`, `extract_scenes_from_fdx`
+- `backend/services/fdx_parser.py` — `_is_fdx`, `parse_fdx_upload` (shared
+  with the main upload route)
 - `backend/routes/supabase_routes.py` — `import_revision`,
   `get_version_diff`, `get_version_details`, `get_script_versions`
 - `backend/tests/test_revision_service.py`, `backend/tests/test_revision_routes.py`
