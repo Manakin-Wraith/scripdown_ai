@@ -95,12 +95,25 @@ the script ever changing its production link after the fact.
 
 **Consequence:** a call sheet can only be created for a shooting day whose
 script has `scripts.production_id` set (i.e., the script's production has
-gone through step 1's association flow). Attempting to create one for an
-unassociated script's shooting day returns
-`400 {"error": "Script is not associated with a production"}`. This is a
-real, named constraint, not an edge case to paper over — schedules
-existed before productions did, so unassociated scripts with active
-schedules are expected to exist in production data today.
+gone through step 1's association flow). This is a real, named
+constraint, not an edge case to paper over — schedules existed before
+productions did, so unassociated scripts with active schedules are
+expected to exist in production data today.
+
+**Error shape (corrected):** `require_production_role`'s decorator itself
+returns a generic `404 {"error": "Not found"}` whenever its resolver
+returns a falsy `production_id` — this happens *before* the route
+handler body ever runs, so a route-level custom message (e.g. a
+distinguishing `400`) is not reachable through that path. `from_shooting_day_id`
+returning `None` for an unassociated script therefore surfaces as the
+same generic `404` the decorator already gives for "shooting day doesn't
+exist." This slice accepts that these two cases are indistinguishable to
+the caller — giving the unassociated-script case its own `400` would mean
+either bypassing the decorator for this one route (inconsistent with
+every other route in this blueprint) or extending the decorator itself
+(out of scope for this slice, and it's shared by every other
+production-scoped route). If this ambiguity proves confusing in practice,
+a follow-up can special-case it.
 
 ## Data model
 
@@ -108,6 +121,25 @@ Migration `backend/db/migrations/054_call_sheets.sql`. Follows the
 `053_locations.sql` conventions: `gen_random_uuid()` pks, manual apply
 (`run_migration.py` is dead), `update_shooting_updated_at()` trigger reuse
 (migration 030), owner-only RLS as a direct-client backstop only.
+
+**This migration also alters two existing tables**, not just adds new
+ones. `CAPABILITIES` in `production_authz.py` maps 1:1 to real boolean
+*columns* on `production_members` and `production_invites` (confirmed in
+migration 052 — `can_view_sensitive`, `can_edit_crew`, etc. are columns,
+not a JSON blob), so adding the `can_edit_call_sheets` capability requires:
+
+```sql
+ALTER TABLE production_members
+    ADD COLUMN can_edit_call_sheets boolean NOT NULL DEFAULT false;
+ALTER TABLE production_invites
+    ADD COLUMN can_edit_call_sheets boolean NOT NULL DEFAULT false;
+```
+
+Without this, `access.get('can_edit_call_sheets')` on a member row would
+be `None` (falsy) for every member forever — silently denying every
+non-owner regardless of role, since owners short-circuit to all-`True`
+and never hit the column at all. This is why owner-only manual testing
+would not have caught the gap.
 
 ### `call_sheets`
 
@@ -233,8 +265,15 @@ non-goal above — this is a known, accepted gap for this slice).
   the same `production_id` as the call sheet before inserting (a crew
   member from a different production can't be added).
 - `add_cast(call_sheet_id, casting_id, call_time, status_code, notes)` /
-  `remove_cast(...)` — verifies `casting_id`'s script resolves to the same
-  production.
+  `remove_cast(...)` — verifies `casting.script_id` (the `casting` table
+  has no `production_id`, only `script_id`) equals **the specific script
+  this shooting day belongs to** (`shooting_day → shooting_schedule →
+  script_id`), not merely "any script under the same production."
+  A production can hold multiple scripts (confirmed in the spine
+  migration's own comment), so "same production" would wrongly let cast
+  from an unrelated script in the same production onto this day's sheet
+  — e.g. Episode 2's cast appearing on an Episode 1 shoot day's call
+  sheet just because both scripts share a production.
 - `add_location(call_sheet_id, location_id, is_primary)` /
   `remove_location(...)` — on `is_primary=true`, demotes any existing
   primary row for that call sheet in the same call.
@@ -244,20 +283,39 @@ non-goal above — this is a known, accepted gap for this slice).
 
 **Sensitive-field handling on the roster:** `production_crew`'s
 `job_rate`/`standard_rate` stay redacted per the existing
-`can_view_sensitive` capability (reuse `production_crew_service._redact`)
-— a call sheet is not a payroll document. **Phone/email are always shown**
-regardless of `can_view_sensitive`, since day-of contact info is the
-entire point of a call sheet and every crew/cast member on it is, by
-construction, already someone the viewer is working with that day. This
-is a deliberate narrowing of the existing sensitive-field rule for this
-one surface, not a bug.
+`can_view_sensitive` capability — a call sheet is not a payroll document.
+**Phone/email are always shown**, since day-of contact info is the entire
+point of a call sheet and every crew/cast member on it is, by
+construction, already someone the viewer is working with that day.
+
+**This cannot literally reuse `production_crew_service._redact()`.**
+That function bundles `job_rate` (crew) with `phone` **and**
+`standard_rate` (contact) as one unit — it has no way to strip rate while
+keeping phone. `call_sheet_service.py` needs its own minimal redaction
+helper with its own field list (`job_rate`, `standard_rate` — phone
+deliberately excluded), not a call into the existing crew helper. This is
+a small, self-contained function (a handful of lines, same shape as
+`_redact`), not a refactor of the existing one — the existing crew-tab
+behavior (which does hide phone from non-`can_view_sensitive` viewers)
+is intentionally left untouched, since that's a separate, already-shipped
+decision this slice isn't revisiting.
 
 ### `middleware/production_authz.py` changes
 
-- Add `can_edit_call_sheets` to the `CAPABILITIES` tuple. Owner: always
-  `True`. Admin/coordinator: `True` by default (matches
-  `can_edit_crew`/`can_edit_production`'s defaults). Viewer: `False` by
-  default, toggleable per-member like the other override flags.
+- Add `can_edit_call_sheets` to the `CAPABILITIES` tuple in
+  `production_authz.py`.
+- Update `ROLE_PRESETS` in `production_member_service.py`. `'admin'` and
+  `'viewer'` are dict-comprehensions over `CAPABILITIES` (`{c: True for c
+  in CAPABILITIES}` / all-`False` equivalent) and pick up the new
+  capability automatically. **`'coordinator'` is a hardcoded literal
+  dict** — it must have `can_edit_call_sheets: True` added explicitly, or
+  a coordinator's preset would end up missing the key entirely (not just
+  `False` — genuinely absent, which `apply_role_preset`'s
+  `dict(ROLE_PRESETS[role])` would carry through as a missing column
+  value on insert, which the migration's `NOT NULL DEFAULT false` would
+  silently paper over as `False` — worth a test asserting the
+  coordinator preset actually contains the key with the intended value,
+  not just that inserts don't error).
 - Add `from_call_sheet_id(kwargs)` resolver — single lookup of
   `call_sheets.production_id` by `call_sheet_id`.
 - Add `from_shooting_day_id(kwargs)` resolver — resolves `production_id`
@@ -323,6 +381,12 @@ where `shooting_days` are already managed.
   script's `casting` list) and crew (from `/api/productions/<id>/crew`) —
   each added row getting a call-time input. "Publish" button flips
   `status`.
+- **Members tab** (`ProductionDetailPage`'s existing Members tab) needs a
+  new checkbox row for `can_edit_call_sheets` alongside the other three
+  per-member capability overrides — otherwise an owner has no UI to grant
+  or revoke it on an individual coordinator/viewer once the preset
+  default is applied. This is a small addition to an existing component,
+  not new UI surface.
 - `apiService.js` — new functions block: `getOrCreateCallSheet`,
   `getCallSheet`, `updateCallSheet`, `addCallSheetCrew`,
   `removeCallSheetCrew`, `addCallSheetCast`, `removeCallSheetCast`,
@@ -338,17 +402,26 @@ where `shooting_days` are already managed.
 | View call sheet (JSON or PDF) | `require_production_role('viewer')` — any production member |
 | Sensitive crew fields (rate) on the roster | Redacted per existing `can_view_sensitive`, reusing `production_crew_service._redact` |
 | Crew/cast phone/email on the roster | Always visible to anyone who can view the sheet (deliberate narrowing — see Backend section) |
-| Script not associated with a production | 400 on create — call sheets require step 1's production↔script association |
+| Script not associated with a production | 404 on create (indistinguishable from "shooting day doesn't exist" — see corrected error-shape note above) — call sheets require step 1's production↔script association |
 
 ## Testing
 
-- **`test_call_sheet_service.py`** — get-or-create idempotency; 400 on
-  unassociated script; day-info update; roster add/remove with
-  cross-production rejection (a crew/cast id from a different production
-  can't be added); primary-location demotion on re-assign; PDF generation
-  smoke test (mocks WeasyPrint or asserts bytes returned); sensitive-field
-  redaction on the roster (rate hidden, phone shown, for a
-  non-`can_view_sensitive` caller).
+- **`test_call_sheet_service.py`** — get-or-create idempotency; 404 (not
+  400 — see corrected error-shape note above) on an unassociated script's
+  shooting day; day-info update; crew add/remove with cross-production
+  rejection; **cast add/remove rejecting a `casting_id` from a different
+  script even when that script shares the same production** (the bug
+  the loose "same production" check would have allowed); primary-location
+  demotion on re-assign; PDF generation smoke test (mocks WeasyPrint or
+  asserts bytes returned); sensitive-field redaction on the roster (rate
+  hidden, phone **and email shown**, for a non-`can_view_sensitive`
+  caller) using the new call-sheet-specific redaction helper, not
+  `production_crew_service._redact`.
+- **`test_production_member_service.py`** (existing file, extend) —
+  assert `ROLE_PRESETS['coordinator']` actually contains
+  `can_edit_call_sheets: True` post-change, not just that member inserts
+  succeed (a missing-key regression would otherwise pass silently, per
+  the `NOT NULL DEFAULT false` column masking it).
 - **`test_call_sheet_routes.py`** — auth required (401 anon); non-member
   403; viewer can `GET`/PDF but not `PATCH`/roster writes (403); coordinator/
   admin/owner can edit; `can_edit_call_sheets=False` override on a
