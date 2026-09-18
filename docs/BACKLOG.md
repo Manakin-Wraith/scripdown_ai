@@ -822,12 +822,14 @@ instinct in the original Option 1 sketch. **Route now restored
   left free as a retention feature. Touches `import_revision` in
   `supabase_routes.py` (the `require_breakdown_entitlement`/
   `consume_breakdown` call it currently skips).
-- **Unification still undecided.** Now that it's discoverable via the
-  Revisions tab, "Import Revision" is still a separate, deliberate
-  action — not something that happens automatically when someone
-  re-uploads via the normal top-level script upload flow. Worth deciding
-  whether that separation is the intended UX or whether the two paths
-  should be unified.
+- **Unification — OPEN, deliberately deferred (2026-09-18).** Now that
+  it's discoverable via the Revisions tab, "Import Revision" is still a
+  separate, deliberate action — not something that happens
+  automatically when someone re-uploads a script via the normal
+  top-level upload flow. Left open on purpose: needs its own
+  brainstorm/decision on whether that separation is the intended UX
+  (two clear paths: "new script" vs. "revision of an existing script")
+  or whether the two upload flows should detect and merge into one.
 - Option 2 (partial "pink pages" upload of only changed scenes) was
   never built and is still a legitimate future idea if wanted.
 
