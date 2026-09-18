@@ -66,7 +66,7 @@ def create_invite(script_id):
     user_id = get_user_id()
 
     ent = get_entitlement(user_id)
-    if ent['seats_used'] >= ent['seats_paid']:
+    if not ent.get('is_superuser') and ent['seats_used'] >= ent['seats_paid']:
         return jsonify({
             'error': 'All paid seats are in use. Purchase more seats to invite.',
             'code': 'no_seats_available',

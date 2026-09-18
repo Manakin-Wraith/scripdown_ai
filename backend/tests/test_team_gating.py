@@ -45,6 +45,29 @@ def test_invite_blocked_when_seats_exhausted(monkeypatch):
     assert resp.get_json()['code'] == 'no_seats_available'
 
 
+def test_superuser_bypasses_exhausted_seats(monkeypatch):
+    """Same exhausted-seats state as above, but is_superuser=True must
+    bypass the block instead of returning 402."""
+    monkeypatch.setattr("middleware.auth.DEV_MODE", True)
+    monkeypatch.setattr("services.entitlement_service.get_user_id", lambda: 'owner')
+    monkeypatch.setattr("services.entitlement_service.get_entitlement",
+                        lambda uid: {'can_use_teams': True})
+    monkeypatch.setattr(ir, "get_entitlement",
+                        lambda uid: {'can_use_teams': True, 'seats_paid': 2,
+                                      'seats_used': 2, 'is_superuser': True})
+    monkeypatch.setattr(authz, "get_script_role", lambda sid, uid: 'owner')
+    monkeypatch.setattr(ir, "get_departments_list",
+                        lambda: [{'code': 'camera', 'name': 'Camera'}])
+
+    def _boom(*a, **k):
+        raise AssertionError("stop before DB work — seat gate is what's under test")
+    monkeypatch.setattr(ir, "supabase", type("S", (), {"table": _boom})())
+
+    resp = _client().post("/api/scripts/s1/invites",
+                          json={'email': 'a@b.com', 'department_code': 'camera'})
+    assert resp.status_code != 402
+
+
 def test_public_invite_token_lookup_stays_public(monkeypatch):
     # An invitee is not yet a member and may not be a tier 2 user — this must
     # NOT be gated, or nobody can ever accept an invite.

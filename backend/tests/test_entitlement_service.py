@@ -8,10 +8,11 @@ import pytest
 import services.entitlement_service as es
 
 
-def _profile(plan='tier_1_pay_per_breakdown', status='active', signup_plan=None):
+def _profile(plan='tier_1_pay_per_breakdown', status='active', signup_plan=None,
+             is_superuser=False):
     return {'subscription_plan': plan, 'subscription_status': status,
             'subscription_expires_at': '2099-01-01T00:00:00Z',
-            'signup_plan': signup_plan}
+            'signup_plan': signup_plan, 'is_superuser': is_superuser}
 
 
 def test_tier2_active_can_run_breakdown_with_zero_balance(monkeypatch):
@@ -59,6 +60,42 @@ def test_unknown_user_fails_closed(monkeypatch):
     monkeypatch.setattr(es, "_fetch_profile", lambda uid: None)
     ent = es.get_entitlement('ghost')
     assert ent['can_run_breakdown'] is False
+    assert ent['can_use_teams'] is False
+
+
+def test_superuser_gets_teams_and_breakdown_with_no_subscription(monkeypatch):
+    monkeypatch.setattr(es, "_fetch_profile",
+                         lambda uid: _profile('none', 'none', is_superuser=True))
+    monkeypatch.setattr(es, "_fetch_balance", lambda uid: 0)
+    monkeypatch.setattr(es, "_fetch_seats_paid", lambda uid: 0)
+    monkeypatch.setattr(es, "_fetch_seats_used", lambda uid: 0)
+    ent = es.get_entitlement('u1')
+    assert ent['is_superuser'] is True
+    assert ent['can_use_teams'] is True
+    assert ent['can_run_breakdown'] is True
+
+
+def test_superuser_seat_counts_stay_accurate_for_billing_display(monkeypatch):
+    """is_superuser only flags callers to bypass the seat block — it must
+    not falsify the actual purchased/used counts shown on the billing page."""
+    monkeypatch.setattr(es, "_fetch_profile",
+                         lambda uid: _profile('tier_2_annual_team', 'active', is_superuser=True))
+    monkeypatch.setattr(es, "_fetch_balance", lambda uid: 0)
+    monkeypatch.setattr(es, "_fetch_seats_paid", lambda uid: 3)
+    monkeypatch.setattr(es, "_fetch_seats_used", lambda uid: 3)
+    ent = es.get_entitlement('u1')
+    assert ent['seats_paid'] == 3
+    assert ent['seats_used'] == 3
+
+
+def test_non_superuser_unaffected(monkeypatch):
+    monkeypatch.setattr(es, "_fetch_profile",
+                         lambda uid: _profile('tier_1_pay_per_breakdown', 'active'))
+    monkeypatch.setattr(es, "_fetch_balance", lambda uid: 0)
+    monkeypatch.setattr(es, "_fetch_seats_paid", lambda uid: 0)
+    monkeypatch.setattr(es, "_fetch_seats_used", lambda uid: 0)
+    ent = es.get_entitlement('u1')
+    assert ent['is_superuser'] is False
     assert ent['can_use_teams'] is False
 
 

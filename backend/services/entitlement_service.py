@@ -55,7 +55,7 @@ class InsufficientCredits(Exception):
 def _fetch_profile(user_id: str):
     resp = get_supabase_admin().table('profiles').select(
         'subscription_plan, subscription_status, subscription_expires_at, '
-        'subscription_billing_cycle, signup_plan'
+        'subscription_billing_cycle, signup_plan, is_superuser'
     ).eq('id', user_id).limit(1).execute()
     return resp.data[0] if resp.data else None
 
@@ -171,6 +171,7 @@ def get_entitlement(user_id: str) -> dict:
 
     tier = profile.get('subscription_plan') or 'none'
     status = profile.get('subscription_status') or 'none'
+    is_superuser = bool(profile.get('is_superuser'))
     balance = _fetch_balance(user_id)
     seats_paid = _fetch_seats_paid(user_id)
     seats_used = _fetch_seats_used(user_id)
@@ -180,15 +181,20 @@ def get_entitlement(user_id: str) -> dict:
     return {
         'tier': tier,
         'status': status,
+        'is_superuser': is_superuser,
         'breakdown_balance': balance,
+        # Real purchased/used counts — kept accurate for billing display
+        # even for a superuser. Seat-gated call sites must check
+        # `is_superuser` themselves before comparing these two.
         'seats_paid': seats_paid,
         'seats_used': seats_used,
         'billing_cycle': profile.get('subscription_billing_cycle'),
         'signup_plan': profile.get('signup_plan'),
         # Tier 2 active is unlimited; everyone else needs credits.
-        'can_run_breakdown': tier2_active or balance > 0,
+        # Superuser: unmetered site admin access, no subscription required.
+        'can_run_breakdown': tier2_active or balance > 0 or is_superuser,
         # Expired tier 2 loses team writes (failed renewal => downgrade).
-        'can_use_teams': tier2_active,
+        'can_use_teams': tier2_active or is_superuser,
     }
 
 

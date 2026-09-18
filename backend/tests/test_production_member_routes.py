@@ -316,6 +316,18 @@ def test_add_member_no_seats_is_402(monkeypatch):
     assert r.status_code == 402 and r.get_json()["code"] == "no_seats_available"
 
 
+def test_add_member_superuser_bypasses_exhausted_seats(monkeypatch):
+    """Same exhausted-seats state as above, but is_superuser=True on the
+    entitlement (keyed to the production owner) must bypass the block."""
+    store = _owned_store(profiles=[{"id": DEV_USER_ID, "email": "dev@example.com"},
+                                   {"id": "u-lee", "email": "lee@x.com"}])
+    _rt_patch(monkeypatch, store)
+    monkeypatch.setattr(pms, "get_entitlement", lambda uid: {
+        "can_use_teams": True, "seats_used": 10, "seats_paid": 10, "is_superuser": True})
+    r = _client().post("/api/productions/p1/members", json={"email": "lee@x.com", "role": "viewer"})
+    assert r.status_code == 201
+
+
 def test_admin_member_cannot_create_admin(monkeypatch):
     store = {"productions": [{"id": "p1", "owner_id": "other", "title": "T"}],
              "production_members": [{"id": "m1", "production_id": "p1", "user_id": DEV_USER_ID,

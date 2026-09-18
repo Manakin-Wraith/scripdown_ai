@@ -123,7 +123,7 @@ def add_member(production_id, actor_uid, actor_access, fields):
     ent = get_entitlement(_owner_id(supabase, production_id))
     if not ent.get('can_use_teams'):
         return ('error', 'tier_2_required', 403)
-    if ent.get('seats_used', 0) >= ent.get('seats_paid', 0):
+    if not ent.get('is_superuser') and ent.get('seats_used', 0) >= ent.get('seats_paid', 0):
         return ('error', 'no_seats_available', 402)
 
     # Existing account?
