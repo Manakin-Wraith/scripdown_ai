@@ -705,14 +705,30 @@ surfaces in `ReportLibraryDrawer.jsx` (version history per report).
 
 ---
 
-## Script re-upload: detect and highlight what changed — PARTIALLY BUILT, entry corrected
+## Script re-upload: detect and highlight what changed — PARTIALLY BUILT, now reachable
 
-**Status:** Open, but narrower than originally scoped. Found 2026-07-22
-while checking the backlog for stale entries — the original premise
-below ("re-uploading means a brand-new `script_id`... discarding all
-prior breakdown work") is factually wrong; a substantial chunk of
-Option 1 already shipped as a **Revision Import** feature, apparently
-before this entry was written.
+**Status:** Open, but the blocking issue is fixed. Updated 2026-09-18:
+the dead route found earlier the same day has been restored and the
+feature now has a real nav entry point. Found 2026-07-22 while checking
+the backlog for stale entries — the original premise below
+("re-uploading means a brand-new `script_id`... discarding all prior
+breakdown work") is factually wrong; a substantial chunk of Option 1
+already shipped as a **Revision Import** feature, apparently before this
+entry was written.
+
+**2026-09-18 finding (RESOLVED same day): the feature was unreachable in
+the shipped app.** `RevisionImportWizard` only renders inside
+`SceneManager.jsx` (the "Import Revision" button in its header), but
+`SceneManager`'s route was commented out in `frontend/src/App.jsx` under
+`{/* Phase 2+ routes (deferred - commented out) */}`, and no other entry
+point into revision import existed anywhere in the app. **Fix shipped
+2026-09-18:** `SceneManager` moved out of the deferred block and mounted
+at `scripts/:scriptId/manage` in `App.jsx`; a new **"Revisions"** tab
+(History icon) was added to the per-script tab bar in
+`frontend/src/components/layout/SectionNav.jsx` (`SECTIONS` array),
+positioned right after "Scenes". `npm run build` verified clean. A user
+can now reach Import Revision via Revisions tab → Import Revision button
+→ upload/review/apply wizard.
 
 **What already exists (`git log`: `d36707c`, "Complete Phase 3 -
 Revision Import").** `backend/services/revision_service.py` +
@@ -724,11 +740,15 @@ modified ones (bumping `revision_number`, writing a `scene_history` row),
 marks removed scenes `is_omitted` instead of deleting them, and — the
 core value prop this backlog item wanted — **leaves unchanged scenes,
 and therefore their breakdown data, completely untouched**. `script_versions`
-tracks version history per script. The frontend has a real entry point:
-`RevisionImportWizard.jsx`, wired into `SceneManager.jsx`, not a dead
-component. A preview mode (`apply_changes=false`) returns the diff
+tracks version history per script. The frontend has a real component,
+`RevisionImportWizard.jsx`, wired into `SceneManager.jsx`'s header
+("Import Revision" button) — a clean 3-step modal (upload PDF + pick
+revision color + notes → review diff summary/list → completion stats
+with version badge) that follows industry-standard revision-color
+conventions. A preview mode (`apply_changes=false`) returns the diff
 without writing anything, matching the "review before committing"
-instinct in the original Option 1 sketch.
+instinct in the original Option 1 sketch. **Route now restored
+(2026-09-18) — see above — so this is reachable by a user today.**
 
 **What's actually still missing.**
 - **PDF-only.** `import_revision` rejects anything not ending `.pdf`
@@ -743,11 +763,12 @@ instinct in the original Option 1 sketch.
   up in `apply_revision_changes` as read — needs tracing through to
   confirm modified/added scenes actually get queued and unchanged ones
   don't get needlessly re-billed/re-run.
-- **Discoverability.** This is a deliberate "Import Revision" action a
-  user has to find inside `SceneManager`, not something that happens
-  automatically when someone uses the normal top-level script upload
-  flow — worth deciding whether that's the intended UX or whether the
-  two paths should be unified.
+- **Unification still undecided.** Now that it's discoverable via the
+  Revisions tab, "Import Revision" is still a separate, deliberate
+  action — not something that happens automatically when someone
+  re-uploads via the normal top-level script upload flow. Worth deciding
+  whether that separation is the intended UX or whether the two paths
+  should be unified.
 - Option 2 (partial "pink pages" upload of only changed scenes) was
   never built and is still a legitimate future idea if wanted.
 
@@ -758,6 +779,8 @@ instinct in the original Option 1 sketch.
   `get_version_diff`, `get_version_details`, `get_script_versions`
 - `frontend/src/components/revisions/RevisionImportWizard.jsx`,
   `frontend/src/components/scenes/SceneManager.jsx`
+- `frontend/src/App.jsx` (route), `frontend/src/components/layout/SectionNav.jsx`
+  (Revisions tab)
 - `script_versions`, `scene_history` tables
 
 ---

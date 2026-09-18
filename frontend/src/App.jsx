@@ -31,11 +31,11 @@ import './App.css';
 import ReportStudio from './components/reports/ReportStudio';
 import ShootingSchedulePage from './components/schedule/ShootingSchedulePage';
 import SharedReportView from './components/reports/SharedReportView';
+import SceneManager from './components/scenes/SceneManager';
 
 // Phase 2+ imports (deferred)
 // import CharacterProfile from './components/characters/CharacterProfile';
 // import ScriptEditorPage from './pages/ScriptEditorPage';
-// import SceneManager from './components/scenes/SceneManager';
 // import ShootingScriptPreview from './components/scripts/ShootingScriptPreview';
 // import DepartmentWorkspace from './components/workspace/DepartmentWorkspace';
 // import SettingsPage from './pages/SettingsPage';
@@ -78,6 +78,7 @@ function App() {
                     <Route path="scripts/:scriptId/stripboard" element={<Stripboard />} />
                     <Route path="scripts/:scriptId/reports" element={<ReportStudio />} />
                     <Route path="scripts/:scriptId/board" element={<ZoomableStripboard />} />
+                    <Route path="scripts/:scriptId/manage" element={<SceneManager />} />
                     <Route path="scripts/:scriptId/schedule" element={<ShootingSchedulePage />} />
                     <Route path="scripts/:scriptId/cast" element={<CastPage />} />
                     <Route path="profile" element={<ProfilePage />} />
@@ -104,7 +105,6 @@ function App() {
                     {/* <Route path="scenes/:scriptId/workspace/:departmentCode" element={<DepartmentWorkspace />} /> */}
                     {/* <Route path="scenes/:scriptId/workspace" element={<DepartmentWorkspace />} /> */}
                     {/* <Route path="scripts/:scriptId/edit" element={<ScriptEditorPage />} /> */}
-                    {/* <Route path="scripts/:scriptId/manage" element={<SceneManager />} /> */}
                     {/* <Route path="scripts/:scriptId/shooting-script" element={<ShootingScriptPreview />} /> */}
                     {/* <Route path="scripts/:scriptId/characters/:characterName" element={<CharacterProfile />} /> */}
                     {/* <Route path="scripts/:scriptId/workspace/:departmentCode" element={<DepartmentWorkspace />} /> */}
