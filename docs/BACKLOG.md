@@ -754,15 +754,36 @@ instinct in the original Option 1 sketch. **Route now restored
 - **PDF-only.** `import_revision` rejects anything not ending `.pdf`
   (`supabase_routes.py`) — no FDX revision-import path, unlike FDX's own
   upload/analysis flow.
-- **No test coverage at all.** `grep` across `backend/tests/` for
-  `revision_service`, `diff_script_versions`, `apply_revision_changes`,
-  or `import_revision` returns nothing — this entire feature has never
-  been exercised by an automated test.
-- **Selective AI re-analysis unconfirmed.** The backlog's "only re-queue
-  AI analysis for scenes that actually changed" isn't obviously wired
-  up in `apply_revision_changes` as read — needs tracing through to
-  confirm modified/added scenes actually get queued and unchanged ones
-  don't get needlessly re-billed/re-run.
+- **Test coverage — RESOLVED 2026-09-18.** `backend/tests/test_revision_service.py`
+  (26 tests: similarity/matching/diffing, `create_version_record`,
+  `apply_revision_changes` for added/modified/removed/unchanged,
+  `get_version_history`, `get_version_diff`, `extract_scenes_from_pdf`)
+  and `backend/tests/test_revision_routes.py` (9 tests: auth/role
+  gating, file validation, preview-vs-apply behavior, GET endpoints) —
+  35 tests total, all passing, `pytest tests/` (761 passed, 1 skipped)
+  stays green. **Writing these surfaced a real bug, also fixed
+  2026-09-18:** `revision_service.py` imported a function called
+  `generate_content_hash` from `extraction_pipeline.py`, but that
+  function is actually named `compute_content_hash` — the import has
+  apparently never succeeded since whatever rename introduced the
+  mismatch. Because the import happens lazily inside the route handler
+  (`from services.revision_service import ...`), this wasn't caught at
+  app startup — every call to `import_revision` (and anything else
+  touching the module) would have thrown `ImportError`, caught by the
+  route's bare `except Exception`, and returned a 500. So even before
+  today's route fix, this feature could never have worked end-to-end.
+  Fixed by renaming the 3 call sites to `compute_content_hash`.
+- **Selective AI re-analysis — CONFIRMED NOT WIRED UP** (was
+  "unconfirmed", traced while writing tests). `apply_revision_changes`
+  inserts/updates scene rows and writes `scene_history`, but never
+  calls into `analysis_queue_service`/`analysis_worker` or anything
+  else that would re-queue AI analysis for added or modified scenes.
+  A user who applies a revision gets updated scene text and breakdown
+  metadata carried over from the old scene (nothing re-extracted) —
+  the AI-derived breakdown data for changed scenes goes stale silently.
+  This is a real functional gap, not just untested: worth a follow-up
+  item to queue re-analysis for `added`/`modified` diffs in
+  `apply_revision_changes` (or the route, post-apply).
 - **Unification still undecided.** Now that it's discoverable via the
   Revisions tab, "Import Revision" is still a separate, deliberate
   action — not something that happens automatically when someone
@@ -777,6 +798,7 @@ instinct in the original Option 1 sketch. **Route now restored
   `apply_revision_changes`, `create_version_record`, `get_version_history`
 - `backend/routes/supabase_routes.py` — `import_revision`,
   `get_version_diff`, `get_version_details`, `get_script_versions`
+- `backend/tests/test_revision_service.py`, `backend/tests/test_revision_routes.py`
 - `frontend/src/components/revisions/RevisionImportWizard.jsx`,
   `frontend/src/components/scenes/SceneManager.jsx`
 - `frontend/src/App.jsx` (route), `frontend/src/components/layout/SectionNav.jsx`

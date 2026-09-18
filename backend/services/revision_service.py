@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from enum import Enum
 from datetime import datetime
 
-from services.extraction_pipeline import parse_pdf_with_pages, detect_scene_headers, generate_content_hash
+from services.extraction_pipeline import parse_pdf_with_pages, detect_scene_headers, compute_content_hash
 
 
 class ChangeType(Enum):
@@ -124,8 +124,8 @@ def compare_scene_content(old_scene: Dict, new_scene: Dict) -> Tuple[bool, List[
         changes.append(f"Time changed: {old_scene.get('time_of_day')} → {new_scene.get('time_of_day')}")
     
     # Compare content hash if available
-    old_hash = old_scene.get('content_hash') or generate_content_hash(old_scene.get('full_text', ''))
-    new_hash = new_scene.get('content_hash') or generate_content_hash(new_scene.get('full_text', ''))
+    old_hash = old_scene.get('content_hash') or compute_content_hash(old_scene.get('full_text', ''))
+    new_hash = new_scene.get('content_hash') or compute_content_hash(new_scene.get('full_text', ''))
     
     if old_hash != new_hash:
         changes.append("Scene content modified")
@@ -257,7 +257,7 @@ def extract_scenes_from_pdf(file_path: str) -> List[Dict]:
     # Don't forget the last scene
     if current_scene:
         current_scene['page_end'] = pages[-1].page_number if pages else 1
-        current_scene['content_hash'] = generate_content_hash(current_scene['full_text'])
+        current_scene['content_hash'] = compute_content_hash(current_scene['full_text'])
         scenes.append(current_scene)
     
     return scenes
