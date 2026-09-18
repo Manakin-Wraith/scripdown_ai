@@ -320,12 +320,21 @@ const RevisionImportWizard = ({ isOpen, onClose, scriptId, scriptTitle, onImport
                             {importResult.version && (
                                 <div className="version-info">
                                     <span>Version {importResult.version.version_number}</span>
-                                    <span className="revision-badge" style={{ 
-                                        backgroundColor: REVISION_COLORS.find(c => c.value === importResult.version.revision_color)?.hex 
+                                    <span className="revision-badge" style={{
+                                        backgroundColor: REVISION_COLORS.find(c => c.value === importResult.version.revision_color)?.hex
                                     }}>
                                         {importResult.version.revision_color?.toUpperCase()}
                                     </span>
                                 </div>
+                            )}
+
+                            {importResult.reanalysis_scene_count > 0 && (
+                                <p className="reanalysis-note">
+                                    <RefreshCw size={14} />
+                                    Re-analyzing {importResult.reanalysis_scene_count} changed scene
+                                    {importResult.reanalysis_scene_count === 1 ? '' : 's'} in the background —
+                                    breakdown data will update automatically.
+                                </p>
                             )}
                         </div>
                     )}

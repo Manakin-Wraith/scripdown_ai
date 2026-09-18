@@ -519,6 +519,23 @@
     color: var(--gray-800);
 }
 
+.reanalysis-note {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    padding: 0.65rem 1rem;
+    background: var(--bg-app);
+    border-radius: 8px;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+.reanalysis-note svg {
+    flex-shrink: 0;
+    color: var(--primary, #6366f1);
+}
+
 /* Footer */
 .wizard-footer {
     display: flex;

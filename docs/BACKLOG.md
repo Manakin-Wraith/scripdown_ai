@@ -784,17 +784,44 @@ instinct in the original Option 1 sketch. **Route now restored
   route's bare `except Exception`, and returned a 500. So even before
   today's route fix, this feature could never have worked end-to-end.
   Fixed by renaming the 3 call sites to `compute_content_hash`.
-- **Selective AI re-analysis — CONFIRMED NOT WIRED UP** (was
-  "unconfirmed", traced while writing tests). `apply_revision_changes`
-  inserts/updates scene rows and writes `scene_history`, but never
-  calls into `analysis_queue_service`/`analysis_worker` or anything
-  else that would re-queue AI analysis for added or modified scenes.
-  A user who applies a revision gets updated scene text and breakdown
-  metadata carried over from the old scene (nothing re-extracted) —
-  the AI-derived breakdown data for changed scenes goes stale silently.
-  This is a real functional gap, not just untested: worth a follow-up
-  item to queue re-analysis for `added`/`modified` diffs in
-  `apply_revision_changes` (or the route, post-apply).
+- **Selective AI re-analysis — RESOLVED 2026-09-18.** Was confirmed
+  (traced while writing tests, previous entry) as never wired up.
+  Investigating the fix surfaced that `services/analysis_queue_service.py`
+  — the queue CLAUDE.md's architecture section describes — is dead
+  SQLite-based legacy code (`db/db_connection.py` → `sqlite3`), never
+  actually wired into the live Supabase app (this repo is Supabase-only;
+  SQLite-legacy code is dead). The real, live per-scene/bulk-analysis
+  mechanism is `analyze_scene_internal` + `process_bulk_analysis_job`
+  (a Supabase `analysis_jobs` row + background `threading.Thread`),
+  used by `/api/scripts/<id>/analyze/bulk` and the failed-scene retry
+  endpoint. Wired the same pattern into revision import:
+  `apply_revision_changes` now resets `analysis_status` to `'pending'`
+  on every added/modified scene (previously left untouched, so a
+  modified scene kept presenting its old, now-stale AI breakdown as
+  current) and returns their ids as `reanalysis_scene_ids`; the
+  `import_revision` route creates an `analysis_jobs` row
+  (`job_type='revision_reanalysis'`) and spawns `process_bulk_analysis_job`
+  in a background thread for exactly those scenes, deliberately
+  **skipping** `require_breakdown_entitlement`/`consume_breakdown` —
+  **product decision (2026-09-18): free for now, revisit for
+  monetization once validated** (Tier 1 is pay-per-breakdown at ZAR
+  2,250/analysis, so auto-re-analysis on every revision import is
+  currently unmetered spend on ScripDown's side — flagged, not free
+  forever). `RevisionImportWizard.jsx`'s complete step shows a
+  "Re-analyzing N changed scenes..." note when applicable. Automatic
+  trigger was a deliberate choice over a manual "Re-analyze" button —
+  see the design conversation for the trade-off. 2 new tests (stats
+  now report `reanalysis_scene_ids`; route queues the job and spawns
+  the worker with the right scene ids) — 39 revision tests, 765
+  backend tests total.
+- **Monetize revision re-analysis (new, 2026-09-18).** Re-analysis of
+  changed scenes after a revision import is currently free/unmetered
+  (see above) — a deliberate short-term call, not a permanent one.
+  Needs a follow-up decision on how to charge for it: flat fee per
+  revision import, per-changed-scene, folded into a Tier 2 seat, or
+  left free as a retention feature. Touches `import_revision` in
+  `supabase_routes.py` (the `require_breakdown_entitlement`/
+  `consume_breakdown` call it currently skips).
 - **Unification still undecided.** Now that it's discoverable via the
   Revisions tab, "Import Revision" is still a separate, deliberate
   action — not something that happens automatically when someone
@@ -810,8 +837,10 @@ instinct in the original Option 1 sketch. **Route now restored
   `extract_scenes_from_pdf`, `extract_scenes_from_fdx`
 - `backend/services/fdx_parser.py` — `_is_fdx`, `parse_fdx_upload` (shared
   with the main upload route)
-- `backend/routes/supabase_routes.py` — `import_revision`,
-  `get_version_diff`, `get_version_details`, `get_script_versions`
+- `backend/routes/supabase_routes.py` — `import_revision` (now also
+  queues `revision_reanalysis` jobs), `analyze_scene_internal`,
+  `process_bulk_analysis_job`, `get_version_diff`, `get_version_details`,
+  `get_script_versions`
 - `backend/tests/test_revision_service.py`, `backend/tests/test_revision_routes.py`
 - `frontend/src/components/revisions/RevisionImportWizard.jsx`,
   `frontend/src/components/scenes/SceneManager.jsx`

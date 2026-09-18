@@ -1,6 +1,7 @@
 import os, sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 import io
+import threading
 import pytest
 
 import routes.supabase_routes as sr
@@ -46,13 +47,33 @@ class FakeScenesTable:
         return type("R", (), {"data": data})()
 
 
+class FakeInsertOnlyTable:
+    """Records inserts for tables import_revision writes to without reading
+    back (analysis_jobs)."""
+    def __init__(self, rows):
+        self._rows = rows
+        self._payload = None
+
+    def insert(self, payload):
+        self._payload = payload
+        return self
+
+    def execute(self):
+        self._rows.append(self._payload)
+        return type("R", (), {"data": [self._payload]})()
+
+
 class FakeSupabase:
     def __init__(self, scenes=None):
         self._scenes = scenes or []
+        self.analysis_jobs = []
 
     def table(self, name):
-        assert name == 'scenes', f"import_revision only queries scenes directly, got {name}"
-        return FakeScenesTable(self._scenes)
+        if name == 'scenes':
+            return FakeScenesTable(self._scenes)
+        if name == 'analysis_jobs':
+            return FakeInsertOnlyTable(self.analysis_jobs)
+        raise AssertionError(f"import_revision unexpectedly queried table {name}")
 
 
 def _pdf_file(name="revision.pdf"):
@@ -172,9 +193,10 @@ def test_import_revision_preview_mode_does_not_write(monkeypatch):
 
 def test_import_revision_apply_mode_creates_version_and_applies(monkeypatch):
     _as_role(monkeypatch, "member")
-    monkeypatch.setattr(sr, "supabase", FakeSupabase(scenes=[
+    fake_supabase = FakeSupabase(scenes=[
         {"id": "sc1", "script_id": "s1", "scene_number": "1"},
-    ]))
+    ])
+    monkeypatch.setattr(sr, "supabase", fake_supabase)
     monkeypatch.setattr(rs, "extract_scenes_from_pdf", lambda path: [
         {"scene_number": "1"}, {"scene_number": "2"},
     ])
@@ -186,7 +208,8 @@ def test_import_revision_apply_mode_creates_version_and_applies(monkeypatch):
     def _apply(supa, sid, version_id, diffs, new_scenes):
         calls["version_id"] = version_id
         calls["diff_count"] = len(diffs)
-        return {"added": 1, "modified": 0, "removed": 0, "unchanged": 0}
+        return {"added": 1, "modified": 0, "removed": 0, "unchanged": 0,
+                "reanalysis_scene_ids": []}
     monkeypatch.setattr(rs, "apply_revision_changes", _apply)
 
     resp = _client().post(
@@ -200,6 +223,55 @@ def test_import_revision_apply_mode_creates_version_and_applies(monkeypatch):
     assert body["version"]["id"] == "v1"
     assert body["applied_stats"]["added"] == 1
     assert calls["version_id"] == "v1"
+    # No changed scenes → no re-analysis job should be queued.
+    assert body["reanalysis_job_id"] is None
+    assert body["reanalysis_scene_count"] == 0
+    assert fake_supabase.analysis_jobs == []
+
+
+def test_import_revision_apply_mode_queues_reanalysis_for_changed_scenes(monkeypatch):
+    _as_role(monkeypatch, "member")
+    fake_supabase = FakeSupabase(scenes=[])
+    monkeypatch.setattr(sr, "supabase", fake_supabase)
+    monkeypatch.setattr(rs, "extract_scenes_from_pdf", lambda path: [])
+    monkeypatch.setattr(rs, "create_version_record",
+                         lambda supa, sid, color, pdf_path=None, notes=None:
+                         {"id": "v1", "version_number": 1, "revision_color": color})
+    monkeypatch.setattr(rs, "apply_revision_changes",
+                         lambda supa, sid, version_id, diffs, new_scenes:
+                         {"added": 1, "modified": 1, "removed": 0, "unchanged": 0,
+                          "reanalysis_scene_ids": ["sc-new", "sc-modified"]})
+
+    reanalysis_call = {}
+    done = threading.Event()
+    def _fake_worker(job_id, script_id, scene_ids):
+        reanalysis_call["job_id"] = job_id
+        reanalysis_call["script_id"] = script_id
+        reanalysis_call["scene_ids"] = scene_ids
+        done.set()
+    monkeypatch.setattr(sr, "process_bulk_analysis_job", _fake_worker)
+
+    resp = _client().post(
+        "/api/scripts/s1/versions/import",
+        data={**_pdf_file(), "apply_changes": "true"},
+        content_type="multipart/form-data",
+    )
+    assert resp.status_code == 200
+    body = resp.get_json()
+    assert body["reanalysis_scene_count"] == 2
+    assert body["reanalysis_job_id"] is not None
+
+    assert done.wait(timeout=2), "background re-analysis worker never ran"
+    assert reanalysis_call["script_id"] == "s1"
+    assert reanalysis_call["scene_ids"] == ["sc-new", "sc-modified"]
+    assert reanalysis_call["job_id"] == body["reanalysis_job_id"]
+
+    # A queued analysis_jobs row was written up front, before the thread ran.
+    assert len(fake_supabase.analysis_jobs) == 1
+    job_row = fake_supabase.analysis_jobs[0]
+    assert job_row["job_type"] == "revision_reanalysis"
+    assert job_row["status"] == "queued"
+    assert job_row["id"] == body["reanalysis_job_id"]
 
 
 def test_import_revision_apply_mode_failed_version_returns_500(monkeypatch):

@@ -4619,15 +4619,39 @@ def import_revision(script_id):
                 if version:
                     # Apply changes to database
                     stats = apply_revision_changes(
-                        supabase, script_id, version['id'], 
+                        supabase, script_id, version['id'],
                         diffs, new_scenes
                     )
-                    
+
+                    # Re-queue AI analysis for exactly the scenes whose
+                    # content changed. Free for now (no consume_breakdown /
+                    # entitlement check) — TODO: revisit monetizing
+                    # revision re-analysis once this is validated.
+                    reanalysis_scene_ids = stats.get('reanalysis_scene_ids', [])
+                    reanalysis_job_id = None
+                    if reanalysis_scene_ids:
+                        reanalysis_job_id = str(uuid.uuid4())
+                        supabase.table('analysis_jobs').insert({
+                            'id': reanalysis_job_id,
+                            'script_id': script_id,
+                            'job_type': 'revision_reanalysis',
+                            'status': 'queued',
+                            'progress': 0,
+                            'result_summary': f'Queued {len(reanalysis_scene_ids)} revised scenes for re-analysis'
+                        }).execute()
+                        threading.Thread(
+                            target=process_bulk_analysis_job,
+                            args=(reanalysis_job_id, script_id, reanalysis_scene_ids),
+                            daemon=True
+                        ).start()
+
                     return jsonify({
                         'success': True,
                         'version': version,
                         'diff_summary': diff_summary,
                         'applied_stats': stats,
+                        'reanalysis_job_id': reanalysis_job_id,
+                        'reanalysis_scene_count': len(reanalysis_scene_ids),
                         'message': f"Revision imported successfully. {stats['added']} added, {stats['modified']} modified, {stats['removed']} removed."
                     }), 200
                 else:

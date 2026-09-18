@@ -277,11 +277,16 @@ def test_apply_added_scene_inserts_row_and_history():
                    "page_end": 1, "content_hash": "h1"},
     )
     stats = rs.apply_revision_changes(client, "s1", "v1", [diff], [])
-    assert stats == {"added": 1, "modified": 0, "removed": 0, "unchanged": 0}
+    assert stats["added"] == 1
+    assert stats["modified"] == 0
+    assert stats["removed"] == 0
+    assert stats["unchanged"] == 0
     assert len(client.store["scenes"]) == 1
     assert client.store["scenes"][0]["revision_number"] == 1
+    assert client.store["scenes"][0]["analysis_status"] == "pending"
     assert len(client.store["scene_history"]) == 1
     assert client.store["scene_history"][0]["change_type"] == "created"
+    assert stats["reanalysis_scene_ids"] == [client.store["scenes"][0]["id"]]
 
 
 def test_apply_modified_scene_updates_row_bumps_revision_and_records_previous():
@@ -304,9 +309,11 @@ def test_apply_modified_scene_updates_row_bumps_revision_and_records_previous():
     updated = client.store["scenes"][0]
     assert updated["setting"] == "GARDEN"
     assert updated["revision_number"] == 2
+    assert updated["analysis_status"] == "pending"
     history = client.store["scene_history"][0]
     assert history["change_type"] == "modified"
     assert history["previous_data"]["setting"] == "KITCHEN"
+    assert stats["reanalysis_scene_ids"] == ["sc1"]
 
 
 def test_apply_removed_scene_marks_omitted_not_deleted():
@@ -325,6 +332,8 @@ def test_apply_removed_scene_marks_omitted_not_deleted():
     assert len(client.store["scenes"]) == 1
     assert client.store["scenes"][0]["is_omitted"] is True
     assert client.store["scene_history"][0]["change_type"] == "omitted"
+    # A removed scene has nothing to re-analyze.
+    assert stats["reanalysis_scene_ids"] == []
 
 
 def test_apply_unchanged_scene_writes_nothing():
@@ -334,6 +343,7 @@ def test_apply_unchanged_scene_writes_nothing():
     assert stats["unchanged"] == 1
     assert client.store.get("scenes", []) == []
     assert client.store.get("scene_history", []) == []
+    assert stats["reanalysis_scene_ids"] == []
 
 
 # ---------------------------------------------------------------------------

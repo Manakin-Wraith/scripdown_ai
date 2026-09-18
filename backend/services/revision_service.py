@@ -327,14 +327,20 @@ def apply_revision_changes(supabase, script_id: str, version_id: str,
     2. Add new scenes
     3. Mark removed scenes as omitted
     4. Create scene_history records for all changes
+
+    Added and modified scenes are reset to analysis_status='pending' —
+    their old AI-derived breakdown data no longer matches the new scene
+    text/header. stats['reanalysis_scene_ids'] lists their ids so the
+    caller can re-queue AI analysis for exactly those scenes.
     """
     stats = {
         'added': 0,
         'modified': 0,
         'removed': 0,
-        'unchanged': 0
+        'unchanged': 0,
+        'reanalysis_scene_ids': []
     }
-    
+
     for diff in diffs:
         if diff.change_type == ChangeType.ADDED:
             # Insert new scene
@@ -348,21 +354,24 @@ def apply_revision_changes(supabase, script_id: str, version_id: str,
                 'page_start': diff.new_scene.get('page_start'),
                 'page_end': diff.new_scene.get('page_end'),
                 'content_hash': diff.new_scene.get('content_hash'),
-                'revision_number': 1
+                'revision_number': 1,
+                'analysis_status': 'pending'
             }
             result = supabase.table('scenes').insert(scene_data).execute()
-            
+
             if result.data:
+                new_scene_id = result.data[0]['id']
                 # Create history record
                 supabase.table('scene_history').insert({
-                    'scene_id': result.data[0]['id'],
+                    'scene_id': new_scene_id,
                     'version_id': version_id,
                     'change_type': 'created',
                     'previous_data': None
                 }).execute()
-            
+                stats['reanalysis_scene_ids'].append(new_scene_id)
+
             stats['added'] += 1
-            
+
         elif diff.change_type == ChangeType.MODIFIED:
             # Update existing scene
             old_id = diff.old_scene.get('id')
@@ -375,8 +384,10 @@ def apply_revision_changes(supabase, script_id: str, version_id: str,
                     'full_text': diff.old_scene.get('full_text'),
                     'content_hash': diff.old_scene.get('content_hash')
                 }
-                
-                # Update scene
+
+                # Update scene — analysis_status reset to 'pending': the old
+                # AI breakdown was derived from full_text that no longer
+                # matches, so it must not be presented as current.
                 update_data = {
                     'int_ext': diff.new_scene.get('int_ext'),
                     'setting': diff.new_scene.get('setting'),
@@ -385,11 +396,12 @@ def apply_revision_changes(supabase, script_id: str, version_id: str,
                     'page_start': diff.new_scene.get('page_start'),
                     'page_end': diff.new_scene.get('page_end'),
                     'content_hash': diff.new_scene.get('content_hash'),
-                    'revision_number': (diff.old_scene.get('revision_number', 0) or 0) + 1
+                    'revision_number': (diff.old_scene.get('revision_number', 0) or 0) + 1,
+                    'analysis_status': 'pending'
                 }
-                
+
                 supabase.table('scenes').update(update_data).eq('id', old_id).execute()
-                
+
                 # Create history record
                 supabase.table('scene_history').insert({
                     'scene_id': old_id,
@@ -397,7 +409,8 @@ def apply_revision_changes(supabase, script_id: str, version_id: str,
                     'change_type': 'modified',
                     'previous_data': previous_data
                 }).execute()
-            
+                stats['reanalysis_scene_ids'].append(old_id)
+
             stats['modified'] += 1
             
         elif diff.change_type == ChangeType.REMOVED:
