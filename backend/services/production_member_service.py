@@ -17,7 +17,8 @@ from services.entitlement_service import get_entitlement
 ROLE_PRESETS = {
     'admin':       {c: True for c in CAPABILITIES},
     'coordinator': {'can_view_sensitive': False, 'can_edit_crew': True,
-                    'can_manage_members': False, 'can_edit_production': False},
+                    'can_manage_members': False, 'can_edit_production': False,
+                    'can_edit_call_sheets': True},
     'viewer':      {c: False for c in CAPABILITIES},
 }
 

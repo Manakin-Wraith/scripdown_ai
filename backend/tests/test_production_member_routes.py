@@ -152,13 +152,26 @@ def _patch(monkeypatch, store):
 def test_apply_role_preset_admin():
     assert pms.apply_role_preset("admin", None) == {
         "can_view_sensitive": True, "can_edit_crew": True,
-        "can_manage_members": True, "can_edit_production": True}
+        "can_manage_members": True, "can_edit_production": True,
+        "can_edit_call_sheets": True}
 
 
 def test_apply_role_preset_coordinator():
     assert pms.apply_role_preset("coordinator", None) == {
         "can_view_sensitive": False, "can_edit_crew": True,
-        "can_manage_members": False, "can_edit_production": False}
+        "can_manage_members": False, "can_edit_production": False,
+        "can_edit_call_sheets": True}
+
+
+def test_coordinator_preset_contains_call_sheets_key():
+    # Regression: 'coordinator' is a hardcoded literal dict in ROLE_PRESETS
+    # (unlike 'admin'/'viewer', which are dict-comprehensions over
+    # CAPABILITIES). A missing key here is NOT caught by the NOT NULL
+    # DEFAULT false column on insert -- it silently becomes False. Assert
+    # the key is actually PRESENT with the intended value, not just that
+    # inserts don't error.
+    assert 'can_edit_call_sheets' in pms.ROLE_PRESETS['coordinator']
+    assert pms.ROLE_PRESETS['coordinator']['can_edit_call_sheets'] is True
 
 
 def test_apply_role_preset_with_override():
@@ -180,7 +193,7 @@ def test_rank_ok_admin_cannot_create_admin():
 
 def test_rank_ok_admin_can_create_coordinator():
     admin = {"role": "admin", "can_manage_members": True, "can_edit_crew": True,
-             "can_view_sensitive": True, "can_edit_production": True}
+             "can_view_sensitive": True, "can_edit_production": True, "can_edit_call_sheets": True}
     assert pms.rank_ok(admin, "coordinator", pms.apply_role_preset("coordinator", None)) is True
 
 
