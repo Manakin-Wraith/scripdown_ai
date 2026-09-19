@@ -173,3 +173,43 @@ def test_get_call_sheet_assembles_roster_locations_scenes(monkeypatch):
     assert len(result["cast"]) == 1 and result["cast"][0]["casting"]["character_name"] == "HERO"
     assert len(result["locations"]) == 1 and result["locations"][0]["location"]["name"] == "Warehouse"
     assert len(result["scenes"]) == 1 and result["scenes"][0]["scene_number"] == "1"
+
+
+def test_update_call_sheet_day_info_fields(monkeypatch):
+    store = _store(call_sheets=[{"id": "cs1", "production_id": "p1",
+                                 "shooting_day_id": "d1", "status": "draft"}])
+    _patch(monkeypatch, store)
+    result = svc.update_call_sheet("cs1", {"weather": "Sunny, 24C", "nearest_hospital": "General Hospital"})
+    assert result["weather"] == "Sunny, 24C"
+    assert result["nearest_hospital"] == "General Hospital"
+
+
+def test_update_call_sheet_not_found(monkeypatch):
+    _patch(monkeypatch, _store())
+    assert svc.update_call_sheet("nope", {"weather": "x"}) is svc.NOT_FOUND
+
+
+def test_update_call_sheet_ignores_unknown_fields(monkeypatch):
+    store = _store(call_sheets=[{"id": "cs1", "production_id": "p1",
+                                 "shooting_day_id": "d1", "status": "draft"}])
+    _patch(monkeypatch, store)
+    svc.update_call_sheet("cs1", {"production_id": "HACKED"})
+    assert store["call_sheets"][0]["production_id"] == "p1"
+
+
+def test_update_call_sheet_status_draft_to_published(monkeypatch):
+    store = _store(call_sheets=[{"id": "cs1", "production_id": "p1",
+                                 "shooting_day_id": "d1", "status": "draft"}])
+    _patch(monkeypatch, store)
+    result = svc.update_call_sheet("cs1", {"status": "published"})
+    assert result["status"] == "published"
+
+
+def test_update_call_sheet_status_published_to_draft_allowed_at_service_layer(monkeypatch):
+    # Spec: rejecting published->draft is a UI-level convenience only, not
+    # enforced here -- a correction workflow may want to flip it back.
+    store = _store(call_sheets=[{"id": "cs1", "production_id": "p1",
+                                 "shooting_day_id": "d1", "status": "published"}])
+    _patch(monkeypatch, store)
+    result = svc.update_call_sheet("cs1", {"status": "draft"})
+    assert result["status"] == "draft"

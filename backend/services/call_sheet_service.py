@@ -156,3 +156,17 @@ def get_call_sheet(call_sheet_id):
         "locations": _embed_locations(supabase, locations),
         "scenes": get_day_scenes(supabase, row["shooting_day_id"]),
     }
+
+
+def update_call_sheet(call_sheet_id, fields):
+    supabase = get_supabase_admin()
+    if not _get(supabase, call_sheet_id):
+        return NOT_FOUND
+    patch = {f: fields[f] for f in DAY_INFO_FIELDS if f in fields}
+    if "status" in fields and fields["status"] in ("draft", "published"):
+        patch["status"] = fields["status"]
+    if not patch:
+        return _get(supabase, call_sheet_id)
+    res = (supabase.table("call_sheets").update(patch)
+           .eq("id", call_sheet_id).execute())
+    return res.data[0] if res.data else NOT_FOUND
