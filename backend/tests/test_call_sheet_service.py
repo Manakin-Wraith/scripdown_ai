@@ -213,3 +213,41 @@ def test_update_call_sheet_status_published_to_draft_allowed_at_service_layer(mo
     _patch(monkeypatch, store)
     result = svc.update_call_sheet("cs1", {"status": "draft"})
     assert result["status"] == "draft"
+
+
+def test_add_crew_happy_path(monkeypatch):
+    store = _store(
+        call_sheets=[{"id": "cs1", "production_id": "p1", "shooting_day_id": "d1", "status": "draft"}],
+        production_crew=[{"id": "cr1", "production_id": "p1", "contact_id": "c1", "role": "Gaffer"}],
+        contacts=[{"id": "c1", "name": "Gary"}],
+    )
+    _patch(monkeypatch, store)
+    result = svc.add_crew("cs1", "cr1", call_time="06:00", notes="bring rain gear")
+    assert result["crew"]["contact"]["name"] == "Gary"
+    assert result["call_time"] == "06:00"
+    assert len(store["call_sheet_crew"]) == 1
+
+
+def test_add_crew_missing_call_sheet_is_not_found(monkeypatch):
+    _patch(monkeypatch, _store())
+    assert svc.add_crew("nope", "cr1") == "not_found"
+
+
+def test_add_crew_from_different_production_is_rejected(monkeypatch):
+    store = _store(
+        call_sheets=[{"id": "cs1", "production_id": "p1", "shooting_day_id": "d1", "status": "draft"}],
+        production_crew=[{"id": "cr9", "production_id": "OTHER", "contact_id": "c1"}],
+    )
+    _patch(monkeypatch, store)
+    assert svc.add_crew("cs1", "cr9") == "cross_production"
+    assert store["call_sheet_crew"] == []
+
+
+def test_remove_crew(monkeypatch):
+    store = _store(
+        call_sheets=[{"id": "cs1", "production_id": "p1", "shooting_day_id": "d1", "status": "draft"}],
+        call_sheet_crew=[{"id": "csc1", "call_sheet_id": "cs1", "crew_id": "cr1"}],
+    )
+    _patch(monkeypatch, store)
+    svc.remove_crew("cs1", "cr1")
+    assert store["call_sheet_crew"] == []

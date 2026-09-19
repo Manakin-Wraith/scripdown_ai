@@ -170,3 +170,23 @@ def update_call_sheet(call_sheet_id, fields):
     res = (supabase.table("call_sheets").update(patch)
            .eq("id", call_sheet_id).execute())
     return res.data[0] if res.data else NOT_FOUND
+
+
+def add_crew(call_sheet_id, crew_id, call_time=None, notes=None):
+    supabase = get_supabase_admin()
+    sheet = _get(supabase, call_sheet_id)
+    if not sheet:
+        return "not_found"
+    crew_res = (supabase.table("production_crew").select("*")
+                .eq("id", crew_id).limit(1).execute())
+    if not crew_res.data or crew_res.data[0].get("production_id") != sheet["production_id"]:
+        return "cross_production"
+    row = {"call_sheet_id": call_sheet_id, "crew_id": crew_id,
+           "call_time": call_time, "notes": notes}
+    created = supabase.table("call_sheet_crew").insert(row).execute().data[0]
+    return _embed_crew(supabase, [created])[0]
+
+
+def remove_crew(call_sheet_id, crew_id):
+    (get_supabase_admin().table("call_sheet_crew").delete()
+     .eq("call_sheet_id", call_sheet_id).eq("crew_id", crew_id).execute())
