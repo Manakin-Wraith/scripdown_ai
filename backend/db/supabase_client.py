@@ -470,11 +470,6 @@ class SupabaseDB:
 # Try admin first, fall back to anon if service key not set
 try:
     db = SupabaseDB(use_admin=True)  # Use admin for server-side operations
-except (ValueError, Exception):
-    # Catch ValueError (env var not set) and any other exception (e.g., SupabaseException during testing)
-    print("Warning: Could not initialize admin Supabase client, using anon client (RLS applies)")
-    try:
-        db = SupabaseDB(use_admin=False)
-    except Exception:
-        print("Warning: Could not initialize Supabase client at all")
-        db = None
+except ValueError:
+    print("Warning: SUPABASE_SERVICE_KEY not set, using anon client (RLS applies)")
+    db = SupabaseDB(use_admin=False)
