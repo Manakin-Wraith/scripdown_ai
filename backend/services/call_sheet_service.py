@@ -190,3 +190,24 @@ def add_crew(call_sheet_id, crew_id, call_time=None, notes=None):
 def remove_crew(call_sheet_id, crew_id):
     (get_supabase_admin().table("call_sheet_crew").delete()
      .eq("call_sheet_id", call_sheet_id).eq("crew_id", crew_id).execute())
+
+
+def add_cast(call_sheet_id, casting_id, call_time=None, status_code=None, notes=None):
+    supabase = get_supabase_admin()
+    sheet = _get(supabase, call_sheet_id)
+    if not sheet:
+        return "not_found"
+    script_id = _script_id_for_day(supabase, sheet["shooting_day_id"])
+    casting_res = (supabase.table("casting").select("*")
+                   .eq("id", casting_id).limit(1).execute())
+    if not casting_res.data or casting_res.data[0].get("script_id") != script_id:
+        return "cross_script"
+    row = {"call_sheet_id": call_sheet_id, "casting_id": casting_id,
+           "call_time": call_time, "status_code": status_code, "notes": notes}
+    created = supabase.table("call_sheet_cast").insert(row).execute().data[0]
+    return _embed_cast(supabase, [created])[0]
+
+
+def remove_cast(call_sheet_id, casting_id):
+    (get_supabase_admin().table("call_sheet_cast").delete()
+     .eq("call_sheet_id", call_sheet_id).eq("casting_id", casting_id).execute())

@@ -251,3 +251,44 @@ def test_remove_crew(monkeypatch):
     _patch(monkeypatch, store)
     svc.remove_crew("cs1", "cr1")
     assert store["call_sheet_crew"] == []
+
+
+def test_add_cast_happy_path(monkeypatch):
+    store = _store(
+        call_sheets=[{"id": "cs1", "production_id": "p1", "shooting_day_id": "d1", "status": "draft"}],
+        casting=[{"id": "ca1", "script_id": "s1", "character_name": "HERO"}],
+    )
+    _patch(monkeypatch, store)
+    result = svc.add_cast("cs1", "ca1", call_time="07:00", status_code="SW")
+    assert result["casting"]["character_name"] == "HERO"
+    assert result["status_code"] == "SW"
+
+
+def test_add_cast_missing_call_sheet_is_not_found(monkeypatch):
+    _patch(monkeypatch, _store())
+    assert svc.add_cast("nope", "ca1") == "not_found"
+
+
+def test_add_cast_rejects_different_script_same_production(monkeypatch):
+    # The bug a loose "same production" check would have allowed: a
+    # production can hold multiple scripts (e.g. Episode 1 and Episode 2).
+    # This shooting day belongs to script s1; ca1 belongs to script s2 --
+    # even though both scripts could be under production p1, casting from
+    # s2 must NOT be addable to a call sheet for a s1 shooting day.
+    store = _store(
+        call_sheets=[{"id": "cs1", "production_id": "p1", "shooting_day_id": "d1", "status": "draft"}],
+        casting=[{"id": "ca_other", "script_id": "s2_different_episode", "character_name": "VILLAIN"}],
+    )
+    _patch(monkeypatch, store)
+    assert svc.add_cast("cs1", "ca_other") == "cross_script"
+    assert store["call_sheet_cast"] == []
+
+
+def test_remove_cast(monkeypatch):
+    store = _store(
+        call_sheets=[{"id": "cs1", "production_id": "p1", "shooting_day_id": "d1", "status": "draft"}],
+        call_sheet_cast=[{"id": "csx1", "call_sheet_id": "cs1", "casting_id": "ca1"}],
+    )
+    _patch(monkeypatch, store)
+    svc.remove_cast("cs1", "ca1")
+    assert store["call_sheet_cast"] == []
