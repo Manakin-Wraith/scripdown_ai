@@ -169,7 +169,7 @@ def test_get_call_sheet_assembles_roster_locations_scenes(monkeypatch):
     _patch(monkeypatch, store)
     result = svc.get_call_sheet("cs1")
     assert result["id"] == "cs1"
-    assert len(result["crew"]) == 1 and result["crew"][0]["contact"]["name"] == "Gary"
+    assert len(result["crew"]) == 1 and result["crew"][0]["crew"]["contact"]["name"] == "Gary"
     assert len(result["cast"]) == 1 and result["cast"][0]["casting"]["character_name"] == "HERO"
     assert len(result["locations"]) == 1 and result["locations"][0]["location"]["name"] == "Warehouse"
     assert len(result["scenes"]) == 1 and result["scenes"][0]["scene_number"] == "1"

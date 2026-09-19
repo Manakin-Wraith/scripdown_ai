@@ -91,7 +91,6 @@ def _embed_crew(supabase, rows):
         crew_row = dict(crew_by_id.get(r["crew_id"]) or {})
         crew_row["contact"] = contacts_by_id.get(crew_row.get("contact_id"))
         r["crew"] = crew_row
-        r["contact"] = crew_row.get("contact")
     return rows
 
 
