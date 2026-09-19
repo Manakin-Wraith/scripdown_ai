@@ -20,6 +20,7 @@ ROLE_RANK = {'viewer': 1, 'coordinator': 2, 'admin': 3, 'owner': 4}
 
 CAPABILITIES = (
     'can_view_sensitive', 'can_edit_crew', 'can_manage_members', 'can_edit_production',
+    'can_edit_call_sheets',
 )
 
 # Sentinel distinguishing "production does not exist" (404) from "no access" (403).
@@ -101,6 +102,37 @@ def from_production_invite_id(kwargs):
 
 def from_production_location_id(kwargs):
     return _lookup_production_id('production_locations', kwargs.get('link_id'))
+
+
+def from_call_sheet_id(kwargs):
+    return _lookup_production_id('call_sheets', kwargs.get('call_sheet_id'))
+
+
+def from_shooting_day_id(kwargs):
+    """Resolve production_id via shooting_day -> shooting_schedule -> script
+    -> scripts.production_id. Returns None (-> 404) if the day doesn't exist
+    OR if the script has never been associated with a production -- these
+    two cases are deliberately indistinguishable to the caller (see spec's
+    corrected error-shape note)."""
+    day_id = kwargs.get('day_id')
+    if not day_id:
+        return None
+    admin = get_supabase_admin()
+    day_res = (admin.table('shooting_days').select('schedule_id')
+               .eq('id', day_id).limit(1).execute())
+    if not day_res.data:
+        return None
+    schedule_id = day_res.data[0].get('schedule_id')
+    sched_res = (admin.table('shooting_schedules').select('script_id')
+                 .eq('id', schedule_id).limit(1).execute())
+    if not sched_res.data:
+        return None
+    script_id = sched_res.data[0].get('script_id')
+    script_res = (admin.table('scripts').select('production_id')
+                  .eq('id', script_id).limit(1).execute())
+    if not script_res.data:
+        return None
+    return script_res.data[0].get('production_id')
 
 
 def require_production_role(min_role=None, capability=None, resolver=from_production_id):

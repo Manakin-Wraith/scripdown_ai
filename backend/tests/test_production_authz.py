@@ -71,7 +71,7 @@ def test_access_owner_is_all_true(monkeypatch):
                          "production_members": []})
     acc = pa.get_production_access("p1", DEV_USER_ID)
     assert acc == {"role": "owner", "can_view_sensitive": True, "can_edit_crew": True,
-                   "can_manage_members": True, "can_edit_production": True}
+                   "can_manage_members": True, "can_edit_production": True, "can_edit_call_sheets": True}
 
 
 def test_access_member_returns_stored_flags(monkeypatch):
@@ -173,3 +173,43 @@ def test_from_crew_id_resolves_production(monkeypatch):
     _patch(monkeypatch, {"production_crew": [{"id": "cr1", "production_id": "p1"}]})
     assert pa.from_crew_id({"crew_id": "cr1"}) == "p1"
     assert pa.from_crew_id({"crew_id": "missing"}) is None
+
+
+def test_can_edit_call_sheets_in_capabilities():
+    assert 'can_edit_call_sheets' in pa.CAPABILITIES
+
+
+def test_from_call_sheet_id_resolves_production(monkeypatch):
+    store = {'call_sheets': [{'id': 'cs1', 'production_id': 'p1'}]}
+    monkeypatch.setattr(pa, 'get_supabase_admin', lambda: MockSupabase(store))
+    assert pa.from_call_sheet_id({'call_sheet_id': 'cs1'}) == 'p1'
+
+
+def test_from_call_sheet_id_missing_returns_none(monkeypatch):
+    monkeypatch.setattr(pa, 'get_supabase_admin', lambda: MockSupabase({'call_sheets': []}))
+    assert pa.from_call_sheet_id({'call_sheet_id': 'nope'}) is None
+
+
+def test_from_shooting_day_id_resolves_through_chain(monkeypatch):
+    store = {
+        'shooting_days': [{'id': 'd1', 'schedule_id': 'sch1'}],
+        'shooting_schedules': [{'id': 'sch1', 'script_id': 's1'}],
+        'scripts': [{'id': 's1', 'production_id': 'p1'}],
+    }
+    monkeypatch.setattr(pa, 'get_supabase_admin', lambda: MockSupabase(store))
+    assert pa.from_shooting_day_id({'day_id': 'd1'}) == 'p1'
+
+
+def test_from_shooting_day_id_unassociated_script_returns_none(monkeypatch):
+    store = {
+        'shooting_days': [{'id': 'd1', 'schedule_id': 'sch1'}],
+        'shooting_schedules': [{'id': 'sch1', 'script_id': 's1'}],
+        'scripts': [{'id': 's1', 'production_id': None}],
+    }
+    monkeypatch.setattr(pa, 'get_supabase_admin', lambda: MockSupabase(store))
+    assert pa.from_shooting_day_id({'day_id': 'd1'}) is None
+
+
+def test_from_shooting_day_id_missing_day_returns_none(monkeypatch):
+    monkeypatch.setattr(pa, 'get_supabase_admin', lambda: MockSupabase({'shooting_days': []}))
+    assert pa.from_shooting_day_id({'day_id': 'missing'}) is None
