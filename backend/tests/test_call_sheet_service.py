@@ -10,6 +10,7 @@ from types import SimpleNamespace
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import services.call_sheet_service as svc
+import services.department_service as ds
 from postgrest.exceptions import APIError
 
 
@@ -343,3 +344,58 @@ def test_remove_location(monkeypatch):
     _patch(monkeypatch, store)
     svc.remove_location("cs1", "l1")
     assert store["call_sheet_locations"] == []
+
+
+def _full_call_sheet_store():
+    return _store(
+        call_sheets=[{"id": "cs1", "production_id": "p1", "shooting_day_id": "d1",
+                     "status": "draft", "weather": "Sunny", "nearest_hospital": "General"}],
+        shooting_days=[{"id": "d1", "schedule_id": "sch1", "day_number": 4, "shoot_date": "2026-10-01"}],
+        production_crew=[{"id": "cr1", "production_id": "p1", "contact_id": "c1",
+                          "role": "Gaffer", "department_code": "camera",
+                          "job_rate": 4000}],
+        contacts=[{"id": "c1", "name": "Gary", "phone": "0821112222", "standard_rate": 4500}],
+        call_sheet_crew=[{"id": "csc1", "call_sheet_id": "cs1", "crew_id": "cr1", "call_time": "06:00"}],
+        casting=[{"id": "ca1", "script_id": "s1", "character_name": "HERO", "actor_name": "Jo"}],
+        call_sheet_cast=[{"id": "csx1", "call_sheet_id": "cs1", "casting_id": "ca1",
+                          "call_time": "07:00", "status_code": "SW"}],
+        locations=[{"id": "l1", "name": "Warehouse", "address": "1 Main St", "parking_notes": "Lot B"}],
+        call_sheet_locations=[{"id": "csl1", "call_sheet_id": "cs1", "location_id": "l1", "is_primary": True}],
+        scenes=[{"id": "sc1", "scene_number": "1", "int_ext": "INT", "setting": "WAREHOUSE",
+                 "time_of_day": "DAY", "page_length_eighths": 8}],
+        shooting_day_scenes=[{"shooting_day_id": "d1", "scene_id": "sc1", "sort_order": 0}],
+    )
+
+
+def test_redact_roster_hides_rates_keeps_phone_and_email(monkeypatch):
+    store = _full_call_sheet_store()
+    _patch(monkeypatch, store)
+    data = svc.get_call_sheet("cs1")
+    redacted = svc.redact_roster(data, can_view_sensitive=False)
+    assert "job_rate" not in redacted["crew"][0]["crew"]
+    assert "standard_rate" not in redacted["crew"][0]["crew"]["contact"]
+    # Deliberate narrowing vs. the crew-tab behaviour: phone always visible here.
+    assert redacted["crew"][0]["crew"]["contact"]["phone"] == "0821112222"
+
+
+def test_redact_roster_shows_rates_for_sensitive_viewer(monkeypatch):
+    store = _full_call_sheet_store()
+    _patch(monkeypatch, store)
+    data = svc.get_call_sheet("cs1")
+    redacted = svc.redact_roster(data, can_view_sensitive=True)
+    assert redacted["crew"][0]["crew"]["job_rate"] == 4000
+    assert redacted["crew"][0]["crew"]["contact"]["standard_rate"] == 4500
+
+
+def test_render_call_sheet_pdf_returns_pdf_bytes(monkeypatch):
+    store = _full_call_sheet_store()
+    _patch(monkeypatch, store)
+    monkeypatch.setattr(ds, "get_departments_list", lambda: [{"code": "camera", "name": "Camera", "color": "#1"}])
+    pdf_bytes = svc.render_call_sheet_pdf("cs1")
+    assert isinstance(pdf_bytes, bytes)
+    assert pdf_bytes.startswith(b"%PDF")
+
+
+def test_render_call_sheet_pdf_not_found(monkeypatch):
+    _patch(monkeypatch, _store())
+    assert svc.render_call_sheet_pdf("nope") is svc.NOT_FOUND
