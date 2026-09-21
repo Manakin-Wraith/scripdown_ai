@@ -196,6 +196,9 @@ call-sheet parse.
     directory pages now centre their block (`b4ea13e`); the rest don't yet.
     Decide on one convention (centre vs. left-align) and apply consistently.
 
+13. **Production budget feature — brainstorm** (see below, new). Not yet
+    scoped; no dependency on anything else in this list.
+
 **Infra / hygiene:**
 10. Flip `backend-tests` CI check to required; add a frontend
     `npm run build` gate.
@@ -2114,6 +2117,75 @@ than something a real production coordinator adopts day-to-day.
 - "Add CREW and production detail for scheduling + call sheets / sides —
   brainstorm" (below) — the original, still-partially-open umbrella
   scoping item this v1 was carved out of
+
+---
+
+## Production budget feature — brainstorm
+
+**Status:** Not started — needs brainstorming. No spec, no data model,
+no dependency on anything else in this list, though it will naturally
+sit alongside the production entity/data-model work (see "Production
+data model — what a production needs..." below) rather than the
+per-script model.
+
+**Context.** Nothing in the app today models money at the production
+level beyond SlateOne's own billing (PayFast tiers/seats) and the
+per-crew `job_rate`/`standard_rate` fields added for call sheets. There
+is no concept of a production budget, department/line-item allocations,
+actual-vs-budgeted tracking, or any reporting against spend — a real
+gap for a tool that already tracks crew rates, locations, and
+schedules, all of which are the inputs a budget would need.
+
+**Why it matters.** Budgeting is core to how productions actually run
+(a line producer/UPM lives in the budget daily), and SlateOne already
+holds several of the raw inputs a budget-tracking feature would need
+(crew rates via `production_crew.job_rate`, shoot days via
+`shooting_schedules`, locations via the `locations` directory) —
+without ever having modeled "budget" as a concept. This is a
+completely open, unscoped idea at this point; flagged now so it isn't
+lost, not because a direction has been picked.
+
+**Scope when picked up.** Brainstorm before implementing (see
+`superpowers:brainstorming`) — open questions, all genuinely open:
+- **What "budget" means here at all.** A single top-line number per
+  production vs. a full department/line-item budget (camera, art,
+  wardrobe, locations, etc.) vs. something narrower (e.g. just a crew
+  labor-cost rollup derived from existing `job_rate` data, which would
+  be the cheapest possible v1).
+- **Manual entry vs. derived.** Whether budget lines are entered by
+  hand (a real production budget spreadsheet has hundreds of line
+  items with industry-standard chart-of-accounts numbering) vs.
+  partially derived from data already in the app (crew rates × shoot
+  days, location fees if ever modeled).
+- **Actuals tracking.** Whether this is budget-only (planning) or also
+  tracks actual spend against it — the latter implies expense entry,
+  approvals, and probably its own permission model on top of
+  `production_members`.
+- **Reporting.** Whether this plugs into the existing `report_service.py`
+  WeasyPrint pipeline (a "budget top sheet" report) or is its own
+  standalone screen/tool.
+- **Permissions.** Rate/cost data is already gated behind
+  `can_view_sensitive` for crew — a budget feature would need the same
+  or a stricter sensitivity model, decided deliberately rather than
+  inherited by accident.
+- **Prior art.** Reference real production budget templates/software
+  (the industry has strong existing conventions — chart of accounts,
+  above-the-line/below-the-line split, contingency) before inventing a
+  shape from scratch.
+
+**References.**
+- `backend/services/production_crew_service.py` — existing `job_rate`/
+  `standard_rate` fields, the closest thing to cost data today
+  (currently gated by `can_view_sensitive`, the pattern any budget
+  sensitivity model should probably follow)
+- `backend/db/migrations/050_productions.sql`,
+  `051_contacts_crew.sql` — the production/crew schema a budget would
+  attach to
+- `backend/services/report_service.py` — existing WeasyPrint report
+  pipeline, a possible home for budget reporting
+- "Production data model — what a production needs, and how it's
+  uploaded/managed" (below) — the umbrella this would likely extend
+  rather than sit outside of
 
 ---
 
