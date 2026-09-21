@@ -464,6 +464,31 @@
     font-weight: 600;
 }
 
+.kanban-call-sheet-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background: transparent;
+    border: none;
+    border-radius: 5px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    opacity: 0;
+    transition: all 0.15s;
+}
+
+.kanban-column:hover .kanban-call-sheet-btn {
+    opacity: 0.5;
+}
+
+.kanban-call-sheet-btn:hover {
+    opacity: 1 !important;
+    color: var(--primary-500);
+    background: var(--primary-alpha-10, rgba(245, 158, 11, 0.15));
+}
+
 .kanban-delete-day {
     display: flex;
     align-items: center;

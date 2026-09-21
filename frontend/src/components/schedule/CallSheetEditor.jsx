@@ -45,7 +45,10 @@ const CallSheetEditor = ({ dayId, dayNumber, productionId, scriptId, onClose }) 
                     listProductionLocations(productionId),
                 ]);
                 setCrewOptions(crewRes.crew || []);
-                setLocationOptions((locRes.locations || []).map((l) => l.location || l));
+                setLocationOptions((locRes.locations || []).map((l) => {
+                    const loc = l.location || l;
+                    return { ...loc, id: loc.id || l.location_id };
+                }));
             }
             if (scriptId) {
                 const castRes = await getCasting(scriptId);
