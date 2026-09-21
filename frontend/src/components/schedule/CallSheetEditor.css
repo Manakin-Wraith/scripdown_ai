@@ -1,0 +1,91 @@
+.cs-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.cs-modal {
+    background: var(--surface, #fff);
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    max-width: 640px;
+    width: 92vw;
+    max-height: 88vh;
+    overflow-y: auto;
+    padding: 1.5rem;
+}
+
+.cs-modal-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.cs-modal-header h3 {
+    flex: 1;
+    margin: 0;
+}
+
+.cs-modal-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+.cs-status-chip {
+    font-size: 0.75rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    text-transform: uppercase;
+}
+
+.cs-status-draft { background: #fef3c7; color: #92400e; }
+.cs-status-published { background: #d1fae5; color: #065f46; }
+
+.cs-section {
+    margin-bottom: 1.25rem;
+}
+
+.cs-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin-bottom: 0.5rem;
+}
+
+.cs-roster-list {
+    list-style: none;
+    padding: 0;
+    margin: 0.5rem 0 0;
+}
+
+.cs-roster-list li {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0;
+}
+
+.cs-scene-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+.cs-scene-table th, .cs-scene-table td {
+    text-align: left;
+    padding: 0.25rem 0.5rem;
+    border-bottom: 1px solid #eee;
+}
+
+.cs-modal-footer {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}

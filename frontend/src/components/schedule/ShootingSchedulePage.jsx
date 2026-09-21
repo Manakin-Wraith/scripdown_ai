@@ -11,6 +11,7 @@ import {
 } from '../../services/apiService';
 import ScheduleKanban from './ScheduleKanban';
 import ConflictPanel from './ConflictPanel';
+import CallSheetEditor from './CallSheetEditor';
 import './ShootingSchedule.css';
 
 const ShootingSchedulePage = () => {
@@ -32,6 +33,7 @@ const ShootingSchedulePage = () => {
     const [editingScheduleId, setEditingScheduleId] = useState(null);
     const [editingScheduleName, setEditingScheduleName] = useState('');
     const [genMenuOpen, setGenMenuOpen] = useState(false);
+    const [callSheetDay, setCallSheetDay] = useState(null);
     const scheduleNameInputRef = useRef(null);
     const zoomApiRef = useRef(null);
 
@@ -319,6 +321,7 @@ const ShootingSchedulePage = () => {
                     conflictScenes={conflictScenes}
                     acknowledgedScenes={acknowledgedScenes}
                     onResolve={handleResolve}
+                    onOpenCallSheet={setCallSheetDay}
                 />
             ) : (
                 <EmptyState
@@ -330,6 +333,16 @@ const ShootingSchedulePage = () => {
                             <Plus size={16} /> Create Schedule
                         </button>
                     }
+                />
+            )}
+
+            {callSheetDay && (
+                <CallSheetEditor
+                    dayId={callSheetDay.id}
+                    dayNumber={callSheetDay.day_number}
+                    productionId={null}
+                    scriptId={scriptId}
+                    onClose={() => setCallSheetDay(null)}
                 />
             )}
         </div>

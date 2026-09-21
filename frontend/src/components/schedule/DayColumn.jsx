@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef } from 'react';
-import { Trash2, FileText, Users, MapPin, CalendarDays } from 'lucide-react';
+import { Trash2, FileText, Users, MapPin, CalendarDays, ClipboardList } from 'lucide-react';
 import { useConfirmDialog } from '../../context/ConfirmDialogContext';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
@@ -9,7 +9,7 @@ import { formatEighths, getSceneEighths } from '../../utils/sceneUtils';
 import { locationKey } from '../../utils/locationKey';
 import { useToast } from '../../context/ToastContext';
 
-const DayColumn = ({ day, hasConflict, conflictScenes, acknowledgedScenes, onResolve, refreshDays, selectedSceneIds, onToggleSelect }) => {
+const DayColumn = ({ day, hasConflict, conflictScenes, acknowledgedScenes, onResolve, refreshDays, selectedSceneIds, onToggleSelect, onOpenCallSheet }) => {
     const [editingDate, setEditingDate] = useState(false);
     const [localDate, setLocalDate] = useState(day.shoot_date || '');
     const dateInputRef = useRef(null);
@@ -138,6 +138,13 @@ const DayColumn = ({ day, hasConflict, conflictScenes, acknowledgedScenes, onRes
                 </div>
                 <div className="kanban-col-actions">
                     <span className="kanban-scene-count">{scenes.length}</span>
+                    <button
+                        className="kanban-call-sheet-btn"
+                        onClick={() => onOpenCallSheet?.(day)}
+                        title="Call sheet for this day"
+                    >
+                        <ClipboardList size={13} />
+                    </button>
                     <button className="kanban-delete-day" onClick={handleDeleteDay} title="Delete this day">
                         <Trash2 size={13} />
                     </button>
