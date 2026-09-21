@@ -2623,6 +2623,126 @@ export const importProductionCrew = async (productionId, file) => {
 };
 
 // ============================================
+// Call sheets (build-sequence step 4)
+// ============================================
+
+export const getOrCreateCallSheet = async (dayId) => {
+    try {
+        const response = await api.post(`/api/shooting-days/${dayId}/call-sheet`);
+        return response.data;
+    } catch (error) {
+        console.error('Error creating call sheet:', error);
+        throw error;
+    }
+};
+
+export const getCallSheet = async (callSheetId) => {
+    try {
+        const response = await api.get(`/api/call-sheets/${callSheetId}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error getting call sheet:', error);
+        throw error;
+    }
+};
+
+export const updateCallSheet = async (callSheetId, payload) => {
+    try {
+        const response = await api.patch(`/api/call-sheets/${callSheetId}`, payload);
+        return response.data;
+    } catch (error) {
+        console.error('Error updating call sheet:', error);
+        throw error;
+    }
+};
+
+export const addCallSheetCrew = async (callSheetId, payload) => {
+    try {
+        const response = await api.post(`/api/call-sheets/${callSheetId}/crew`, payload);
+        return response.data;
+    } catch (error) {
+        console.error('Error adding call sheet crew:', error);
+        throw error;
+    }
+};
+
+export const removeCallSheetCrew = async (callSheetId, crewId) => {
+    try {
+        const response = await api.delete(`/api/call-sheets/${callSheetId}/crew/${crewId}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error removing call sheet crew:', error);
+        throw error;
+    }
+};
+
+export const addCallSheetCast = async (callSheetId, payload) => {
+    try {
+        const response = await api.post(`/api/call-sheets/${callSheetId}/cast`, payload);
+        return response.data;
+    } catch (error) {
+        console.error('Error adding call sheet cast:', error);
+        throw error;
+    }
+};
+
+export const removeCallSheetCast = async (callSheetId, castingId) => {
+    try {
+        const response = await api.delete(`/api/call-sheets/${callSheetId}/cast/${castingId}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error removing call sheet cast:', error);
+        throw error;
+    }
+};
+
+export const addCallSheetLocation = async (callSheetId, payload) => {
+    try {
+        const response = await api.post(`/api/call-sheets/${callSheetId}/locations`, payload);
+        return response.data;
+    } catch (error) {
+        console.error('Error adding call sheet location:', error);
+        throw error;
+    }
+};
+
+export const removeCallSheetLocation = async (callSheetId, locationId) => {
+    try {
+        const response = await api.delete(`/api/call-sheets/${callSheetId}/locations/${locationId}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error removing call sheet location:', error);
+        throw error;
+    }
+};
+
+/**
+ * Download a call sheet as PDF
+ * @param {string} callSheetId
+ * @param {number} dayNumber - used for the downloaded filename
+ * @returns {Promise<void>} Downloads the PDF file
+ */
+export const downloadCallSheetPdf = async (callSheetId, dayNumber) => {
+    try {
+        const response = await api.get(`/api/call-sheets/${callSheetId}/pdf`, {
+            responseType: 'blob'
+        });
+        const blob = new Blob([response.data], { type: 'application/pdf' });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `Call_Sheet_Day_${dayNumber || ''}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error('Error downloading call sheet PDF:', error);
+        throw error;
+    }
+};
+
+// ============================================
 // Locations directory + production locations (build-sequence step 3)
 // ============================================
 
