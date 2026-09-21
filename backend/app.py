@@ -24,6 +24,7 @@ from routes.casting_routes import casting_bp
 from routes.production_routes import production_bp
 from routes.contact_routes import contacts_bp
 from routes.location_routes import locations_bp
+from routes.call_sheet_routes import call_sheet_bp
 
 load_dotenv()
 
@@ -70,6 +71,7 @@ app.register_blueprint(casting_bp)  # Cast & casting routes at /api/scripts/:id/
 app.register_blueprint(production_bp)  # Production entity routes at /api/productions/*
 app.register_blueprint(contacts_bp)  # Account-level contacts directory at /api/contacts/*
 app.register_blueprint(locations_bp)  # Account-level locations directory at /api/locations/*
+app.register_blueprint(call_sheet_bp)  # Call sheet routes at /api/shooting-days/:id/call-sheet, /api/call-sheets/*
 
 @app.route('/health')
 def health_check():
