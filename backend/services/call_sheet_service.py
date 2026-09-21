@@ -211,3 +211,20 @@ def add_cast(call_sheet_id, casting_id, call_time=None, status_code=None, notes=
 def remove_cast(call_sheet_id, casting_id):
     (get_supabase_admin().table("call_sheet_cast").delete()
      .eq("call_sheet_id", call_sheet_id).eq("casting_id", casting_id).execute())
+
+
+def add_location(call_sheet_id, location_id, is_primary=False):
+    supabase = get_supabase_admin()
+    if not _get(supabase, call_sheet_id):
+        return "not_found"
+    if is_primary:
+        (supabase.table("call_sheet_locations").update({"is_primary": False})
+         .eq("call_sheet_id", call_sheet_id).execute())
+    row = {"call_sheet_id": call_sheet_id, "location_id": location_id, "is_primary": bool(is_primary)}
+    created = supabase.table("call_sheet_locations").insert(row).execute().data[0]
+    return _embed_locations(supabase, [created])[0]
+
+
+def remove_location(call_sheet_id, location_id):
+    (get_supabase_admin().table("call_sheet_locations").delete()
+     .eq("call_sheet_id", call_sheet_id).eq("location_id", location_id).execute())

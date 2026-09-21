@@ -292,3 +292,54 @@ def test_remove_cast(monkeypatch):
     _patch(monkeypatch, store)
     svc.remove_cast("cs1", "ca1")
     assert store["call_sheet_cast"] == []
+
+
+def test_add_location_happy_path(monkeypatch):
+    store = _store(
+        call_sheets=[{"id": "cs1", "production_id": "p1", "shooting_day_id": "d1", "status": "draft"}],
+        locations=[{"id": "l1", "name": "Warehouse"}],
+    )
+    _patch(monkeypatch, store)
+    result = svc.add_location("cs1", "l1", is_primary=True)
+    assert result["location"]["name"] == "Warehouse"
+    assert result["is_primary"] is True
+
+
+def test_add_location_missing_call_sheet_is_not_found(monkeypatch):
+    _patch(monkeypatch, _store())
+    assert svc.add_location("nope", "l1") == "not_found"
+
+
+def test_add_second_primary_demotes_first(monkeypatch):
+    store = _store(
+        call_sheets=[{"id": "cs1", "production_id": "p1", "shooting_day_id": "d1", "status": "draft"}],
+        locations=[{"id": "l1", "name": "Warehouse"}, {"id": "l2", "name": "Backlot"}],
+        call_sheet_locations=[{"id": "csl1", "call_sheet_id": "cs1", "location_id": "l1", "is_primary": True}],
+    )
+    _patch(monkeypatch, store)
+    svc.add_location("cs1", "l2", is_primary=True)
+    primaries = [r for r in store["call_sheet_locations"] if r["is_primary"]]
+    assert len(primaries) == 1
+    assert primaries[0]["location_id"] == "l2"
+
+
+def test_add_non_primary_does_not_demote_existing_primary(monkeypatch):
+    store = _store(
+        call_sheets=[{"id": "cs1", "production_id": "p1", "shooting_day_id": "d1", "status": "draft"}],
+        locations=[{"id": "l1", "name": "Warehouse"}, {"id": "l2", "name": "Backlot"}],
+        call_sheet_locations=[{"id": "csl1", "call_sheet_id": "cs1", "location_id": "l1", "is_primary": True}],
+    )
+    _patch(monkeypatch, store)
+    svc.add_location("cs1", "l2", is_primary=False)
+    primaries = [r for r in store["call_sheet_locations"] if r["is_primary"]]
+    assert len(primaries) == 1 and primaries[0]["location_id"] == "l1"
+
+
+def test_remove_location(monkeypatch):
+    store = _store(
+        call_sheets=[{"id": "cs1", "production_id": "p1", "shooting_day_id": "d1", "status": "draft"}],
+        call_sheet_locations=[{"id": "csl1", "call_sheet_id": "cs1", "location_id": "l1"}],
+    )
+    _patch(monkeypatch, store)
+    svc.remove_location("cs1", "l1")
+    assert store["call_sheet_locations"] == []

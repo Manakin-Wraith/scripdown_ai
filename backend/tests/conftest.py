@@ -1,4 +1,21 @@
 import pytest
+import sys
+from unittest.mock import patch, MagicMock
+
+
+# Patch the supabase create_client before any imports happen
+# This allows tests to run with dummy env vars without connection errors
+def pytest_configure(config):
+    """Patch supabase.create_client to avoid real connection attempts during tests."""
+    from supabase import create_client as real_create_client
+
+    def mock_create_client(url, key, options=None):
+        """Mock that returns a MagicMock instead of trying to connect."""
+        return MagicMock()
+
+    # Patch it in the supabase module itself
+    import supabase
+    supabase.create_client = mock_create_client
 
 
 class FakeTable:
