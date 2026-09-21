@@ -1,7 +1,7 @@
 .cs-modal-backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(6, 10, 20, 0.7);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -9,14 +9,16 @@
 }
 
 .cs-modal {
-    background: var(--surface, #fff);
+    background: var(--bg-card, #1e293b);
+    border: 1px solid var(--border-color, #334155);
     border-radius: 10px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--shadow-lg, 0 10px 15px rgba(0, 0, 0, 0.5));
     max-width: 640px;
     width: 92vw;
     max-height: 88vh;
     overflow-y: auto;
     padding: 1.5rem;
+    color: var(--text-primary, #f8fafc);
 }
 
 .cs-modal-header {
@@ -24,17 +26,28 @@
     align-items: center;
     gap: 0.75rem;
     margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border-color, #334155);
 }
 
 .cs-modal-header h3 {
     flex: 1;
     margin: 0;
+    color: var(--text-primary, #f8fafc);
+    font-size: 1.05rem;
 }
 
 .cs-modal-close {
     background: none;
     border: none;
+    color: var(--text-secondary, #94a3b8);
     cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
+.cs-modal-close:hover {
+    color: var(--text-primary, #f8fafc);
 }
 
 .cs-status-chip {
@@ -42,13 +55,21 @@
     padding: 0.15rem 0.5rem;
     border-radius: 999px;
     text-transform: uppercase;
+    font-weight: 600;
 }
 
-.cs-status-draft { background: #fef3c7; color: #92400e; }
-.cs-status-published { background: #d1fae5; color: #065f46; }
+.cs-status-draft { background: var(--warning-bg, rgba(245, 158, 11, 0.1)); color: var(--primary-500, #f59e0b); }
+.cs-status-published { background: var(--success-bg, rgba(34, 197, 94, 0.1)); color: var(--success, #22c55e); }
 
 .cs-section {
     margin-bottom: 1.25rem;
+}
+
+.cs-section h4 {
+    margin: 0 0 0.5rem;
+    color: var(--text-primary, #f8fafc);
+    font-size: 0.9rem;
+    font-weight: 600;
 }
 
 .cs-field {
@@ -56,6 +77,41 @@
     flex-direction: column;
     gap: 0.25rem;
     margin-bottom: 0.5rem;
+}
+
+.cs-field > span {
+    font-size: 0.8rem;
+    color: var(--text-secondary, #94a3b8);
+    font-weight: 600;
+}
+
+.cs-modal input[type="text"],
+.cs-modal input[type="time"],
+.cs-modal textarea,
+.cs-modal select {
+    padding: 0.5rem 0.75rem;
+    background-color: var(--gray-800, #1e293b) !important;
+    border: 1px solid var(--border-color, #334155);
+    border-radius: 8px;
+    color: var(--text-primary, #f8fafc) !important;
+    font-size: 0.875rem;
+    font-family: inherit;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.cs-modal input[type="text"]:focus,
+.cs-modal input[type="time"]:focus,
+.cs-modal textarea:focus,
+.cs-modal select:focus {
+    outline: none;
+    border-color: var(--primary-500, #f59e0b);
+    box-shadow: 0 0 0 3px var(--primary-alpha-10, rgba(245, 158, 11, 0.1));
+}
+
+.cs-modal input[type="time"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.6);
+    cursor: pointer;
 }
 
 .cs-roster-list {
@@ -68,19 +124,50 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.25rem 0;
+    padding: 0.4rem 0;
+    color: var(--text-primary, #f8fafc);
+    font-size: 0.875rem;
+}
+
+.cs-roster-list li input[type="time"] {
+    width: auto;
+}
+
+.cs-roster-list li button {
+    background: none;
+    border: 1px solid var(--border-color, #334155);
+    color: var(--text-secondary, #94a3b8);
+    border-radius: 6px;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.75rem;
+    cursor: pointer;
+    margin-left: auto;
+}
+
+.cs-roster-list li button:hover {
+    border-color: var(--danger, #ef4444);
+    color: var(--danger, #ef4444);
 }
 
 .cs-scene-table {
     width: 100%;
     border-collapse: collapse;
     font-size: 0.85rem;
+    color: var(--text-primary, #f8fafc);
 }
 
-.cs-scene-table th, .cs-scene-table td {
+.cs-scene-table th {
     text-align: left;
     padding: 0.25rem 0.5rem;
-    border-bottom: 1px solid #eee;
+    color: var(--text-secondary, #94a3b8);
+    font-weight: 600;
+    border-bottom: 1px solid var(--border-color, #334155);
+}
+
+.cs-scene-table td {
+    text-align: left;
+    padding: 0.25rem 0.5rem;
+    border-bottom: 1px solid var(--border-subtle, #1e293b);
 }
 
 .cs-modal-footer {
@@ -88,9 +175,42 @@
     justify-content: space-between;
     gap: 0.5rem;
     margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color, #334155);
+}
+
+.cs-download-btn,
+.cs-publish-btn,
+.cs-unpublish-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--border-color, #334155);
+    background: var(--bg-elevated, #334155);
+    color: var(--text-primary, #f8fafc);
+}
+
+.cs-publish-btn {
+    background: var(--primary-500, #f59e0b);
+    border-color: var(--primary-500, #f59e0b);
+    color: #1e293b;
+}
+
+.cs-download-btn:hover,
+.cs-unpublish-btn:hover {
+    border-color: var(--primary-500, #f59e0b);
+}
+
+.cs-publish-btn:hover {
+    background: var(--primary-600, #d97706);
 }
 
 .cs-load-error {
-    color: var(--text-secondary, #6b7280);
+    color: var(--text-secondary, #94a3b8);
     margin: 0;
 }
