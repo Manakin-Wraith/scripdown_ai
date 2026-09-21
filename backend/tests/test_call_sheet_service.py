@@ -107,6 +107,7 @@ def _store(**overrides):
         "call_sheets": [], "call_sheet_crew": [], "call_sheet_cast": [], "call_sheet_locations": [],
         "shooting_day_scenes": [], "scenes": [],
         "production_crew": [], "contacts": [], "casting": [], "locations": [],
+        "production_locations": [],
     }
     base.update(overrides)
     return base
@@ -174,6 +175,23 @@ def test_get_call_sheet_assembles_roster_locations_scenes(monkeypatch):
     assert len(result["cast"]) == 1 and result["cast"][0]["casting"]["character_name"] == "HERO"
     assert len(result["locations"]) == 1 and result["locations"][0]["location"]["name"] == "Warehouse"
     assert len(result["scenes"]) == 1 and result["scenes"][0]["scene_number"] == "1"
+
+
+def test_get_by_day_returns_existing_without_creating(monkeypatch):
+    store = _store(
+        call_sheets=[{"id": "cs1", "production_id": "p1", "shooting_day_id": "d1", "status": "draft"}],
+    )
+    _patch(monkeypatch, store)
+    result = svc.get_by_day("d1")
+    assert result["id"] == "cs1"
+    assert len(store["call_sheets"]) == 1  # unchanged -- no new row created
+
+
+def test_get_by_day_missing_is_not_found_and_creates_nothing(monkeypatch):
+    store = _store()
+    _patch(monkeypatch, store)
+    assert svc.get_by_day("d1") is svc.NOT_FOUND
+    assert store["call_sheets"] == []
 
 
 def test_update_call_sheet_day_info_fields(monkeypatch):
@@ -244,6 +262,35 @@ def test_add_crew_from_different_production_is_rejected(monkeypatch):
     assert store["call_sheet_crew"] == []
 
 
+def test_update_crew_call_edits_existing_row_no_duplicate(monkeypatch):
+    # Regression for the UNIQUE (call_sheet_id, crew_id) violation: editing
+    # an existing row's call time must UPDATE it in place, not insert a
+    # second row.
+    store = _store(
+        call_sheets=[{"id": "cs1", "production_id": "p1", "shooting_day_id": "d1", "status": "draft"}],
+        production_crew=[{"id": "cr1", "production_id": "p1", "contact_id": "c1", "role": "Gaffer"}],
+        contacts=[{"id": "c1", "name": "Gary"}],
+        call_sheet_crew=[{"id": "csc1", "call_sheet_id": "cs1", "crew_id": "cr1", "call_time": "06:00"}],
+    )
+    _patch(monkeypatch, store)
+    result = svc.update_crew_call("cs1", "cr1", {"call_time": "07:30"})
+    assert result["call_time"] == "07:30"
+    assert result["crew"]["contact"]["name"] == "Gary"
+    assert len(store["call_sheet_crew"]) == 1
+    assert store["call_sheet_crew"][0]["call_time"] == "07:30"
+
+
+def test_update_crew_call_missing_row_is_not_found(monkeypatch):
+    store = _store(call_sheets=[{"id": "cs1", "production_id": "p1", "shooting_day_id": "d1", "status": "draft"}])
+    _patch(monkeypatch, store)
+    assert svc.update_crew_call("cs1", "cr_missing", {"call_time": "07:30"}) == "not_found"
+
+
+def test_update_crew_call_missing_sheet_is_not_found(monkeypatch):
+    _patch(monkeypatch, _store())
+    assert svc.update_crew_call("nope", "cr1", {"call_time": "07:30"}) == "not_found"
+
+
 def test_remove_crew(monkeypatch):
     store = _store(
         call_sheets=[{"id": "cs1", "production_id": "p1", "shooting_day_id": "d1", "status": "draft"}],
@@ -285,6 +332,26 @@ def test_add_cast_rejects_different_script_same_production(monkeypatch):
     assert store["call_sheet_cast"] == []
 
 
+def test_update_cast_call_edits_existing_row_no_duplicate(monkeypatch):
+    store = _store(
+        call_sheets=[{"id": "cs1", "production_id": "p1", "shooting_day_id": "d1", "status": "draft"}],
+        casting=[{"id": "ca1", "script_id": "s1", "character_name": "HERO"}],
+        call_sheet_cast=[{"id": "csx1", "call_sheet_id": "cs1", "casting_id": "ca1", "call_time": "07:00"}],
+    )
+    _patch(monkeypatch, store)
+    result = svc.update_cast_call("cs1", "ca1", {"call_time": "08:15", "status_code": "W"})
+    assert result["call_time"] == "08:15"
+    assert result["status_code"] == "W"
+    assert result["casting"]["character_name"] == "HERO"
+    assert len(store["call_sheet_cast"]) == 1
+
+
+def test_update_cast_call_missing_row_is_not_found(monkeypatch):
+    store = _store(call_sheets=[{"id": "cs1", "production_id": "p1", "shooting_day_id": "d1", "status": "draft"}])
+    _patch(monkeypatch, store)
+    assert svc.update_cast_call("cs1", "ca_missing", {"call_time": "08:15"}) == "not_found"
+
+
 def test_remove_cast(monkeypatch):
     store = _store(
         call_sheets=[{"id": "cs1", "production_id": "p1", "shooting_day_id": "d1", "status": "draft"}],
@@ -299,6 +366,7 @@ def test_add_location_happy_path(monkeypatch):
     store = _store(
         call_sheets=[{"id": "cs1", "production_id": "p1", "shooting_day_id": "d1", "status": "draft"}],
         locations=[{"id": "l1", "name": "Warehouse"}],
+        production_locations=[{"id": "pl1", "production_id": "p1", "location_id": "l1"}],
     )
     _patch(monkeypatch, store)
     result = svc.add_location("cs1", "l1", is_primary=True)
@@ -311,10 +379,29 @@ def test_add_location_missing_call_sheet_is_not_found(monkeypatch):
     assert svc.add_location("nope", "l1") == "not_found"
 
 
+def test_add_location_not_linked_to_production_is_rejected(monkeypatch):
+    # A location that exists but was never linked to THIS call sheet's
+    # production (via production_locations) must not be attachable, even
+    # though the locations row itself is readable -- otherwise any editor
+    # could disclose another production's location details (address, GPS,
+    # parking notes) into their own call sheet / PDF.
+    store = _store(
+        call_sheets=[{"id": "cs1", "production_id": "p1", "shooting_day_id": "d1", "status": "draft"}],
+        locations=[{"id": "l_other", "name": "Someone Else's Warehouse"}],
+    )
+    _patch(monkeypatch, store)
+    assert svc.add_location("cs1", "l_other") == "cross_production"
+    assert store["call_sheet_locations"] == []
+
+
 def test_add_second_primary_demotes_first(monkeypatch):
     store = _store(
         call_sheets=[{"id": "cs1", "production_id": "p1", "shooting_day_id": "d1", "status": "draft"}],
         locations=[{"id": "l1", "name": "Warehouse"}, {"id": "l2", "name": "Backlot"}],
+        production_locations=[
+            {"id": "pl1", "production_id": "p1", "location_id": "l1"},
+            {"id": "pl2", "production_id": "p1", "location_id": "l2"},
+        ],
         call_sheet_locations=[{"id": "csl1", "call_sheet_id": "cs1", "location_id": "l1", "is_primary": True}],
     )
     _patch(monkeypatch, store)
@@ -328,6 +415,10 @@ def test_add_non_primary_does_not_demote_existing_primary(monkeypatch):
     store = _store(
         call_sheets=[{"id": "cs1", "production_id": "p1", "shooting_day_id": "d1", "status": "draft"}],
         locations=[{"id": "l1", "name": "Warehouse"}, {"id": "l2", "name": "Backlot"}],
+        production_locations=[
+            {"id": "pl1", "production_id": "p1", "location_id": "l1"},
+            {"id": "pl2", "production_id": "p1", "location_id": "l2"},
+        ],
         call_sheet_locations=[{"id": "csl1", "call_sheet_id": "cs1", "location_id": "l1", "is_primary": True}],
     )
     _patch(monkeypatch, store)

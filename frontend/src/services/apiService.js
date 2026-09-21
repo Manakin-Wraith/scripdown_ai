@@ -2646,6 +2646,19 @@ export const getCallSheet = async (callSheetId) => {
     }
 };
 
+// Viewer-accessible: looks up an existing call sheet for a shooting day
+// WITHOUT creating one (404 if none exists yet). Unlike getOrCreateCallSheet
+// (POST, gated on can_edit_call_sheets), this is gated at viewer level.
+export const getCallSheetByDay = async (dayId) => {
+    try {
+        const response = await api.get(`/api/shooting-days/${dayId}/call-sheet`);
+        return response.data;
+    } catch (error) {
+        console.error('Error getting call sheet by day:', error);
+        throw error;
+    }
+};
+
 export const updateCallSheet = async (callSheetId, payload) => {
     try {
         const response = await api.patch(`/api/call-sheets/${callSheetId}`, payload);
@@ -2666,6 +2679,16 @@ export const addCallSheetCrew = async (callSheetId, payload) => {
     }
 };
 
+export const updateCallSheetCrew = async (callSheetId, crewId, payload) => {
+    try {
+        const response = await api.patch(`/api/call-sheets/${callSheetId}/crew/${crewId}`, payload);
+        return response.data;
+    } catch (error) {
+        console.error('Error updating call sheet crew:', error);
+        throw error;
+    }
+};
+
 export const removeCallSheetCrew = async (callSheetId, crewId) => {
     try {
         const response = await api.delete(`/api/call-sheets/${callSheetId}/crew/${crewId}`);
@@ -2682,6 +2705,16 @@ export const addCallSheetCast = async (callSheetId, payload) => {
         return response.data;
     } catch (error) {
         console.error('Error adding call sheet cast:', error);
+        throw error;
+    }
+};
+
+export const updateCallSheetCast = async (callSheetId, castingId, payload) => {
+    try {
+        const response = await api.patch(`/api/call-sheets/${callSheetId}/cast/${castingId}`, payload);
+        return response.data;
+    } catch (error) {
+        console.error('Error updating call sheet cast:', error);
         throw error;
     }
 };

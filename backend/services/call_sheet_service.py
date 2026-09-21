@@ -146,6 +146,20 @@ def get_day_scenes(supabase, shooting_day_id):
     return ordered
 
 
+def get_by_day(shooting_day_id):
+    """Look up an existing call sheet for a shooting day WITHOUT creating one
+    -- the read-only counterpart to get_or_create, gated at viewer level so a
+    read-only production member can open a call sheet without ever needing
+    the (edit-gated) POST get_or_create endpoint. Returns NOT_FOUND if no
+    call sheet exists yet for this day."""
+    supabase = get_supabase_admin()
+    existing = (supabase.table("call_sheets").select("id")
+                .eq("shooting_day_id", shooting_day_id).limit(1).execute())
+    if not existing.data:
+        return NOT_FOUND
+    return get_call_sheet(existing.data[0]["id"])
+
+
 def get_call_sheet(call_sheet_id):
     supabase = get_supabase_admin()
     row = _get(supabase, call_sheet_id)
@@ -201,6 +215,30 @@ def remove_crew(call_sheet_id, crew_id):
      .eq("call_sheet_id", call_sheet_id).eq("crew_id", crew_id).execute())
 
 
+_CREW_CALL_FIELDS = ("call_time", "notes")
+
+
+def update_crew_call(call_sheet_id, crew_id, fields):
+    """UPDATE (not insert) an existing call_sheet_crew row -- crew rows are
+    added once via add_crew and then edited in place (e.g. setting the call
+    time from the roster UI); a plain insert there would collide with the
+    UNIQUE (call_sheet_id, crew_id) constraint."""
+    supabase = get_supabase_admin()
+    if not _get(supabase, call_sheet_id):
+        return "not_found"
+    existing = (supabase.table("call_sheet_crew").select("*")
+                .eq("call_sheet_id", call_sheet_id).eq("crew_id", crew_id)
+                .limit(1).execute())
+    if not existing.data:
+        return "not_found"
+    patch = {f: fields[f] for f in _CREW_CALL_FIELDS if f in fields}
+    if not patch:
+        return _embed_crew(supabase, existing.data)[0]
+    res = (supabase.table("call_sheet_crew").update(patch)
+           .eq("call_sheet_id", call_sheet_id).eq("crew_id", crew_id).execute())
+    return _embed_crew(supabase, [res.data[0]])[0] if res.data else "not_found"
+
+
 def add_cast(call_sheet_id, casting_id, call_time=None, status_code=None, notes=None):
     supabase = get_supabase_admin()
     sheet = _get(supabase, call_sheet_id)
@@ -222,10 +260,38 @@ def remove_cast(call_sheet_id, casting_id):
      .eq("call_sheet_id", call_sheet_id).eq("casting_id", casting_id).execute())
 
 
-def add_location(call_sheet_id, location_id, is_primary=False):
+_CAST_CALL_FIELDS = ("call_time", "status_code", "notes")
+
+
+def update_cast_call(call_sheet_id, casting_id, fields):
+    """UPDATE counterpart to add_cast -- see update_crew_call's docstring;
+    same UNIQUE (call_sheet_id, casting_id) constraint applies here."""
     supabase = get_supabase_admin()
     if not _get(supabase, call_sheet_id):
         return "not_found"
+    existing = (supabase.table("call_sheet_cast").select("*")
+                .eq("call_sheet_id", call_sheet_id).eq("casting_id", casting_id)
+                .limit(1).execute())
+    if not existing.data:
+        return "not_found"
+    patch = {f: fields[f] for f in _CAST_CALL_FIELDS if f in fields}
+    if not patch:
+        return _embed_cast(supabase, existing.data)[0]
+    res = (supabase.table("call_sheet_cast").update(patch)
+           .eq("call_sheet_id", call_sheet_id).eq("casting_id", casting_id).execute())
+    return _embed_cast(supabase, [res.data[0]])[0] if res.data else "not_found"
+
+
+def add_location(call_sheet_id, location_id, is_primary=False):
+    supabase = get_supabase_admin()
+    sheet = _get(supabase, call_sheet_id)
+    if not sheet:
+        return "not_found"
+    link_res = (supabase.table("production_locations").select("id")
+                .eq("production_id", sheet["production_id"]).eq("location_id", location_id)
+                .limit(1).execute())
+    if not link_res.data:
+        return "cross_production"
     if is_primary:
         (supabase.table("call_sheet_locations").update({"is_primary": False})
          .eq("call_sheet_id", call_sheet_id).execute())
@@ -319,7 +385,7 @@ def _render_pdf_html(data, day):
             continue
         label = department_service.get_department_name(code) if code else "Other"
         rows_html = "".join(
-            f'<tr><td>{_esc((r.get("crew") or {}).get("contact", {}).get("name"))}</td>'
+            f'<tr><td>{_esc(((r.get("crew") or {}).get("contact") or {}).get("name"))}</td>'
             f'<td>{_esc((r.get("crew") or {}).get("role") or "")}</td>'
             f'<td>{_esc(r.get("call_time") or "")}</td></tr>'
             for r in rows

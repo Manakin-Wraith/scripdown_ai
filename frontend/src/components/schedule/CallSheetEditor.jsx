@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { X, Download } from 'lucide-react';
 import {
-    getOrCreateCallSheet, getCallSheet, updateCallSheet,
-    addCallSheetCrew, removeCallSheetCrew,
-    addCallSheetCast, removeCallSheetCast,
+    getOrCreateCallSheet, getCallSheet, getCallSheetByDay, updateCallSheet,
+    addCallSheetCrew, updateCallSheetCrew, removeCallSheetCrew,
+    addCallSheetCast, updateCallSheetCast, removeCallSheetCast,
     addCallSheetLocation, removeCallSheetLocation,
     downloadCallSheetPdf,
     listProductionCrew, listProductionLocations, getCasting,
@@ -28,21 +28,45 @@ const CallSheetEditor = ({ dayId, dayNumber, productionId, scriptId, onClose }) 
     const toast = useToast();
     const [callSheet, setCallSheet] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState(null);
     const [saving, setSaving] = useState(false);
     const [crewOptions, setCrewOptions] = useState([]);
     const [locationOptions, setLocationOptions] = useState([]);
     const [castOptions, setCastOptions] = useState([]);
 
+    // Sequencing matters here: production_id isn't known until the call
+    // sheet itself has loaded, so the crew/location fetches (keyed off it)
+    // run AFTER that resolves rather than in the same Promise.all batch.
     const load = useCallback(async () => {
         setLoading(true);
+        setLoadError(null);
         try {
-            const created = await getOrCreateCallSheet(dayId);
-            const full = await getCallSheet(created.call_sheet.id);
+            let full;
+            try {
+                // Viewer-accessible GET first -- a read-only member can open
+                // an existing call sheet without ever hitting the edit-gated
+                // POST below.
+                full = await getCallSheetByDay(dayId);
+            } catch (err) {
+                if (err.response?.status !== 404) throw err;
+                try {
+                    const created = await getOrCreateCallSheet(dayId);
+                    full = await getCallSheet(created.call_sheet.id);
+                } catch (createErr) {
+                    if (createErr.response?.status === 403) {
+                        setLoadError("You don't have permission to create a call sheet for this day.");
+                        return;
+                    }
+                    throw createErr;
+                }
+            }
             setCallSheet(full.call_sheet);
-            if (productionId) {
+
+            const pid = full.call_sheet.production_id;
+            if (pid) {
                 const [crewRes, locRes] = await Promise.all([
-                    listProductionCrew(productionId),
-                    listProductionLocations(productionId),
+                    listProductionCrew(pid),
+                    listProductionLocations(pid),
                 ]);
                 setCrewOptions(crewRes.crew || []);
                 setLocationOptions((locRes.locations || []).map((l) => {
@@ -56,11 +80,12 @@ const CallSheetEditor = ({ dayId, dayNumber, productionId, scriptId, onClose }) 
             }
         } catch (err) {
             console.error('Failed to load call sheet:', err);
+            setLoadError('Could not load the call sheet for this day.');
             toast.error('Error', 'Could not load the call sheet for this day.');
         } finally {
             setLoading(false);
         }
-    }, [dayId, productionId, scriptId, toast]);
+    }, [dayId, scriptId, toast]);
 
     useEffect(() => { load(); }, [load]);
 
@@ -87,6 +112,15 @@ const CallSheetEditor = ({ dayId, dayNumber, productionId, scriptId, onClose }) 
             await load();
         } catch (err) {
             toast.error('Error', err.response?.data?.error || 'Could not add crew member.');
+        }
+    };
+
+    const updateCrewCallTime = async (crewId, callTime) => {
+        try {
+            await updateCallSheetCrew(callSheet.id, crewId, { call_time: callTime || null });
+            await load();
+        } catch (err) {
+            toast.error('Error', err.response?.data?.error || 'Could not update call time.');
         }
     };
 
@@ -120,15 +154,38 @@ const CallSheetEditor = ({ dayId, dayNumber, productionId, scriptId, onClose }) 
         }
     };
 
+    const updateCastCallTime = async (castingId, callTime) => {
+        try {
+            await updateCallSheetCast(callSheet.id, castingId, { call_time: callTime || null });
+            await load();
+        } catch (err) {
+            toast.error('Error', err.response?.data?.error || 'Could not update call time.');
+        }
+    };
+
     const removeCastRow = async (castingId) => {
         await removeCallSheetCast(callSheet.id, castingId);
         await load();
     };
 
-    if (loading || !callSheet) {
+    if (loading || (!callSheet && !loadError)) {
         return (
             <div className="cs-modal-backdrop" onClick={onClose}>
                 <div className="cs-modal" onClick={(e) => e.stopPropagation()}><Spinner /></div>
+            </div>
+        );
+    }
+
+    if (loadError) {
+        return (
+            <div className="cs-modal-backdrop" onClick={onClose}>
+                <div className="cs-modal" onClick={(e) => e.stopPropagation()}>
+                    <div className="cs-modal-header">
+                        <h3>Call Sheet &middot; Day {dayNumber}</h3>
+                        <button className="cs-modal-close" onClick={onClose}><X size={18} /></button>
+                    </div>
+                    <p className="cs-load-error">{loadError}</p>
+                </div>
             </div>
         );
     }
@@ -157,7 +214,7 @@ const CallSheetEditor = ({ dayId, dayNumber, productionId, scriptId, onClose }) 
                                     <input
                                         type={type}
                                         defaultValue={callSheet[field] || ''}
-                                        onBlur={(e) => patchField(field, e.target.value)}
+                                        onBlur={(e) => patchField(field, type === 'time' ? (e.target.value || null) : e.target.value)}
                                     />
                                 )}
                             </label>
@@ -197,7 +254,7 @@ const CallSheetEditor = ({ dayId, dayNumber, productionId, scriptId, onClose }) 
                                     <input
                                         type="time"
                                         defaultValue={row.call_time || ''}
-                                        onBlur={(e) => addCallSheetCrew(callSheet.id, { crew_id: row.crew_id, call_time: e.target.value }).then(load)}
+                                        onBlur={(e) => updateCrewCallTime(row.crew_id, e.target.value)}
                                     />
                                     <button onClick={() => removeCrewRow(row.crew_id)}>Remove</button>
                                 </li>
@@ -220,7 +277,7 @@ const CallSheetEditor = ({ dayId, dayNumber, productionId, scriptId, onClose }) 
                                     <input
                                         type="time"
                                         defaultValue={row.call_time || ''}
-                                        onBlur={(e) => addCallSheetCast(callSheet.id, { casting_id: row.casting_id, call_time: e.target.value }).then(load)}
+                                        onBlur={(e) => updateCastCallTime(row.casting_id, e.target.value)}
                                     />
                                     <button onClick={() => removeCastRow(row.casting_id)}>Remove</button>
                                 </li>

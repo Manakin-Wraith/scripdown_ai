@@ -24,6 +24,17 @@ def get_or_create_call_sheet(day_id):
     return jsonify({"call_sheet": result})
 
 
+@call_sheet_bp.route("/api/shooting-days/<day_id>/call-sheet", methods=["GET"])
+@require_auth
+@require_production_role(min_role="viewer", resolver=from_shooting_day_id)
+def get_call_sheet_by_day(day_id):
+    result = svc.get_by_day(day_id)
+    if result is svc.NOT_FOUND:
+        return jsonify({"error": "Call sheet not found"}), 404
+    result = svc.redact_roster(result, g.production_access["can_view_sensitive"])
+    return jsonify({"call_sheet": result})
+
+
 @call_sheet_bp.route("/api/call-sheets/<call_sheet_id>", methods=["GET"])
 @require_auth
 @require_production_role(min_role="viewer", resolver=from_call_sheet_id)
@@ -59,7 +70,20 @@ def add_call_sheet_crew(call_sheet_id):
         return jsonify({"error": "Call sheet not found"}), 404
     if result == "cross_production":
         return jsonify({"error": "That crew member is not part of this production"}), 400
+    result = svc.redact_roster({"crew": [result]}, g.production_access["can_view_sensitive"])["crew"][0]
     return jsonify({"crew": result}), 201
+
+
+@call_sheet_bp.route("/api/call-sheets/<call_sheet_id>/crew/<crew_id>", methods=["PATCH"])
+@require_auth
+@require_production_role(capability="can_edit_call_sheets", resolver=from_call_sheet_id)
+def update_call_sheet_crew(call_sheet_id, crew_id):
+    data = request.get_json(silent=True) or {}
+    result = svc.update_crew_call(call_sheet_id, crew_id, data)
+    if result == "not_found":
+        return jsonify({"error": "Call sheet or crew row not found"}), 404
+    result = svc.redact_roster({"crew": [result]}, g.production_access["can_view_sensitive"])["crew"][0]
+    return jsonify({"crew": result})
 
 
 @call_sheet_bp.route("/api/call-sheets/<call_sheet_id>/crew/<crew_id>", methods=["DELETE"])
@@ -87,6 +111,17 @@ def add_call_sheet_cast(call_sheet_id):
     return jsonify({"cast": result}), 201
 
 
+@call_sheet_bp.route("/api/call-sheets/<call_sheet_id>/cast/<casting_id>", methods=["PATCH"])
+@require_auth
+@require_production_role(capability="can_edit_call_sheets", resolver=from_call_sheet_id)
+def update_call_sheet_cast(call_sheet_id, casting_id):
+    data = request.get_json(silent=True) or {}
+    result = svc.update_cast_call(call_sheet_id, casting_id, data)
+    if result == "not_found":
+        return jsonify({"error": "Call sheet or cast row not found"}), 404
+    return jsonify({"cast": result})
+
+
 @call_sheet_bp.route("/api/call-sheets/<call_sheet_id>/cast/<casting_id>", methods=["DELETE"])
 @require_auth
 @require_production_role(capability="can_edit_call_sheets", resolver=from_call_sheet_id)
@@ -106,6 +141,8 @@ def add_call_sheet_location(call_sheet_id):
     result = svc.add_location(call_sheet_id, location_id, bool(data.get("is_primary")))
     if result == "not_found":
         return jsonify({"error": "Call sheet not found"}), 404
+    if result == "cross_production":
+        return jsonify({"error": "That location is not part of this production"}), 400
     return jsonify({"location": result}), 201
 
 

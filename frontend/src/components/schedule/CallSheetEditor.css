@@ -89,3 +89,8 @@
     gap: 0.5rem;
     margin-top: 1rem;
 }
+
+.cs-load-error {
+    color: var(--text-secondary, #6b7280);
+    margin: 0;
+}
