@@ -15,6 +15,7 @@ const CAP_LABELS = {
     can_edit_crew: 'Edit crew',
     can_manage_members: 'Manage members',
     can_edit_production: 'Edit production',
+    can_edit_call_sheets: 'Edit call sheets',
 };
 
 const PRESETS = {
@@ -23,18 +24,21 @@ const PRESETS = {
         can_edit_crew: true,
         can_manage_members: true,
         can_edit_production: true,
+        can_edit_call_sheets: true,
     },
     coordinator: {
         can_view_sensitive: false,
         can_edit_crew: true,
         can_manage_members: false,
         can_edit_production: false,
+        can_edit_call_sheets: true,
     },
     viewer: {
         can_view_sensitive: false,
         can_edit_crew: false,
         can_manage_members: false,
         can_edit_production: false,
+        can_edit_call_sheets: false,
     },
 };
 
