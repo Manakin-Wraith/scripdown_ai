@@ -167,3 +167,26 @@ def test_production_scoped_routes_carry_authz_marker():
         view = app.view_functions[rule.endpoint]
         assert hasattr(view, "_authz_min_role") or hasattr(view, "_authz_capability"), \
             f"{rule.endpoint} is production-scoped but has no require_production_role marker"
+
+
+def test_call_sheet_routes_carry_authz_marker():
+    """Every call_sheet_bp route must carry require_production_role -- i.e.
+    expose an _authz_min_role or _authz_capability marker on its view
+    function. Mirrors test_production_scoped_routes_carry_authz_marker
+    above, for the separate call_sheet_bp blueprint."""
+    from routes.call_sheet_routes import call_sheet_bp
+    from flask import Flask
+
+    app = Flask(__name__)
+    app.register_blueprint(call_sheet_bp)
+
+    SCOPED_ARGS = {"day_id", "call_sheet_id", "crew_id", "casting_id", "location_id"}
+
+    for rule in app.url_map.iter_rules():
+        if not rule.endpoint.startswith("call_sheet."):
+            continue
+        if not (set(rule.arguments) & SCOPED_ARGS):
+            continue
+        view = app.view_functions[rule.endpoint]
+        assert hasattr(view, "_authz_min_role") or hasattr(view, "_authz_capability"), \
+            f"{rule.endpoint} is call-sheet-scoped but has no require_production_role marker"
