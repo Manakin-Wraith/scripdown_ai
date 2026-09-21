@@ -74,7 +74,7 @@ Owner-only RLS backstop, as in 054.
   "sections": [{"key": "day_info", "label": "Day info", "visible": true}],
   "day_fields": [
     {"key": "wind", "label": "Wind", "type": "text", "section": "day_info",
-     "default": "", "sensitive": false, "builtin": false}
+     "default": "", "sensitive": false, "visible": true, "builtin": false}
   ],
   "cast_columns":  [{"key": "pickup", "label": "P/U at base",
                      "type": "time", "sensitive": false}],
@@ -126,7 +126,11 @@ Owner-only RLS backstop, as in 054.
   `extras`. Absent entries are prefilled at render/edit time from roster
   counts (crew, non-background cast, none, background cast).
 - `call_sheets.header_values` — `{key: value}` per-day overrides of the
-  template's header fields and `key_crew` entries.
+  template's `key_crew` entries. (Header day fields are ordinary
+  `day_fields` with `section: "header"` and live in `custom_values` / the
+  built-in columns.)
+- `call_sheets.block_overrides` — `{block_key: body}` per-day overrides of
+  the template's boilerplate blocks ("Edit for this day only").
 - `call_sheet_cast.extra`, `call_sheet_crew.extra` — `{column_key: value}`.
 - `call_sheets.general_call` — new nullable `TIME` column (the built-in).
 
@@ -191,8 +195,10 @@ Changed:
 - `GET /api/call-sheets/<id>` (and the by-day GET) also returns the
   effective template and the sheet's custom data.
 - `PATCH /api/call-sheets/<id>` accepts `custom_values`, `dept_overrides`,
-  `scene_extras`, `catering`, `header_values`, `general_call`, with the merge
-  and unknown-key rules above.
+  `scene_extras`, `catering`, `header_values`, `block_overrides`,
+  `general_call`, with the merge and unknown-key rules above. The response
+  is `{"call_sheet": row, "ignored_keys": [...]}`.
+- Day fields also carry a `visible` boolean (built-ins can be hidden).
 - The existing cast/crew add and PATCH endpoints accept `extra`; the
   service whitelists (`_CREW_CALL_FIELDS`, `_CAST_CALL_FIELDS`) and
   `add_crew`/`add_cast` signatures gain it.
