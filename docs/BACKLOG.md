@@ -86,10 +86,22 @@ Preview) set 2026-09-03 — a frontend redeploy bakes the Vite var in.
 Migration 053 applied manually to slateone (the only environment). `main`
 pushed 2026-09-03.
 
-**START HERE — umbrella step 4: call sheets / sides.** Brainstorm first;
-no spec/plan yet. The spine (step 1), crew + contacts (2a), the
-`production_members` permission layer (2b), and the locations directory
-(step 3) precede it.
+**Umbrella step 4: call sheets / sides — SHIPPED (functional v1) 2026-09-21.**
+Merged to `main` (`5b2f120`), 15-task plan + a final whole-branch review
+fix wave. Migration `054_call_sheets.sql` (`call_sheets` +
+`call_sheet_crew`/`call_sheet_cast`/`call_sheet_locations`) applied to
+Supabase. Backend: `call_sheet_service.py` (get-or-create, day-info
+update, status transition, crew/cast/location roster with
+cross-production/cross-script guards, rate redaction, WeasyPrint PDF
+render) + `call_sheet_bp` gated by a new `can_edit_call_sheets`
+production-role capability. Frontend: `CallSheetEditor.jsx` modal wired
+into the shooting-schedule kanban (a call-sheet icon per day column) +
+a Members-tab checkbox for the new capability. Sides explicitly not
+built — only call sheets shipped from this umbrella step's original
+scope. **Only a functional v1** — see "Call sheets: robustness +
+per-production customization pass" below for the real follow-up work
+already known to be needed before this is genuinely production-ready
+for varied productions' needs.
 
 **Step 3 deferred (not built):** scene-`setting`→location creative
 mapping (own brainstorm), contact photos, CSV import for locations, AI
@@ -125,9 +137,9 @@ call-sheet parse.
   via try/except, not a 400.
 
 **Do next (unblocks the most):**
-1. **Umbrella step 4: call sheets / sides** (see START HERE above) — the
-   headline next slice, now that step 3 (locations) has shipped to `main`.
-   Brainstorm first; no spec/plan yet.
+1. **Call sheets: robustness + per-production customization pass** (see
+   below) — the shipped v1 (above) is fixed-field and same-shape for
+   every production; this is the real next slice on this feature.
 2. **Cast & Casting v1 closeout** (cheap, ~1 session): `TriangleAlert`→`AlertTriangle`
    icon consistency (cosmetic). Task 13 (DOOD conflict overlay) remains open
    but not blocking v1. Docs entry now complete via Cast tab v2
@@ -2021,6 +2033,87 @@ shoot-days/hours-per-day and other production parameters get entered.
   exists and can be consumed as a scheduling constraint) and the
   "Add CREW and production detail…" item below; "Board/Schedule a series
   with numerous episodes" (above)
+
+---
+
+## Call sheets: robustness + per-production customization pass — brainstorm
+
+**Status:** Not started — needs brainstorming. Umbrella step 4 (see the
+priority snapshot above) shipped 2026-09-21 as a **fixed-shape, one-size
+v1**: same day-info fields, same roster sections, same PDF layout, for
+every production regardless of format (feature, series, commercial,
+documentary), scale (2-person crew vs. 80-person crew), or what a given
+1st AD/production actually needs on their sheet. Flagged by the account
+owner immediately after the v1 shipped and a first live click-through —
+this entry exists to make that concrete before it's picked up.
+
+**Context — what shipped.** `call_sheets` (day info: weather,
+sunrise/sunset, breakfast/lunch, nearest hospital, parking notes, safety
+officer, general notes — a fixed column list on the table itself, not a
+schema), `call_sheet_crew`/`call_sheet_cast`/`call_sheet_locations`
+(roster join tables, each row a fixed shape: call time + notes, or
+primary flag for locations), a draft/published status toggle, and a
+WeasyPrint-rendered PDF with a fixed section order (day info → locations
+→ scene schedule → cast call list → crew call list grouped by
+department → footer). None of this is configurable per production: no
+custom fields, no optional/hidden sections, no reordering, no
+alternate layouts (e.g. a stripped-down sheet for a 3-person doc crew
+vs. a full-format union sheet for a 60-person feature), no
+production-level defaults or templates carried over day-to-day (weather
+source, standard crew call, house sheet notes that repeat every day).
+
+**Why it matters.** Real call sheets vary enormously by production —
+format, scale, department mix, and house style all drive what fields
+actually matter. A fixed schema either forces irrelevant fields on
+small crews or is missing fields a bigger/union production legally or
+contractually needs (e.g. specific safety/COVID officer requirements,
+second-unit info, additional department call-time blocks, transport/
+parking maps, specific insurance or union boilerplate). Without
+per-production customization this stays a demo-quality feature rather
+than something a real production coordinator adopts day-to-day.
+
+**Scope when picked up.** Brainstorm before implementing (see
+`superpowers:brainstorming`) — open questions:
+- **Custom fields.** Whether day-info gets an extensible
+  key/value-style field set per production (vs. the current fixed
+  columns on `call_sheets`), and how that's authored (a per-production
+  "call sheet template" settings screen?) vs. rendered (PDF layout
+  needs to handle a variable field set gracefully).
+- **Optional/reorderable sections.** Whether locations/cast/crew/scene-
+  schedule sections can be hidden, reordered, or given production-
+  specific labels, and whether that's a per-production setting or a
+  per-sheet override.
+- **Production-level defaults/templates.** Carrying forward
+  boilerplate (standard general crew call, house safety notes,
+  standing second-unit/base-camp info) across days without re-typing
+  it each time — likely a new `production`-scoped "call sheet defaults"
+  concept the per-day sheet inherits from and can override.
+- **Department/scale variance.** Whether a lean crew (a documentary
+  or 2nd-unit-only day) needs a genuinely different, simpler layout
+  than a full union feature call — one template with everything
+  optional, or actual named templates to choose from.
+- **What's actually required vs. nice-to-have.** Reference real
+  call-sheet templates (union/non-union, different formats) and,
+  ideally, a working 1st AD/production coordinator, rather than
+  guessing at the field list a second time — the original umbrella
+  step 4 scope note already flagged this same gap and it shipped
+  without being resolved.
+- Whether any of this reopens the redaction model (`redact_roster` in
+  `call_sheet_service.py` — currently a fixed job_rate/standard_rate
+  strip) if custom fields ever carry sensitive data.
+
+**References.**
+- `backend/db/migrations/054_call_sheets.sql` — the fixed schema to extend
+- `backend/services/call_sheet_service.py` — day-info fields, roster
+  logic, redaction, `_render_pdf_html` (fixed section order/layout)
+- `frontend/src/components/schedule/CallSheetEditor.jsx` — fixed
+  `DAY_INFO_FIELDS` array driving the modal's day-info section
+- `docs/superpowers/specs/2026-09-18-call-sheets-design.md`,
+  `docs/superpowers/plans/2026-09-19-call-sheets-implementation.md` —
+  the v1 design/plan this extends
+- "Add CREW and production detail for scheduling + call sheets / sides —
+  brainstorm" (below) — the original, still-partially-open umbrella
+  scoping item this v1 was carved out of
 
 ---
 
