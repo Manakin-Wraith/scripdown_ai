@@ -2056,6 +2056,7 @@ Migration `055_call_sheet_templates.sql` must be applied to Supabase.
 - Cross-production template copy.
 - First-class scheduled per-scene timings.
 - Config `v2` migration story.
+- **Live/rendered preview in the template builder** — the "Call Sheet" template tab edits config with no visual feedback on what the resulting PDF/day-editor will actually look like; a preview pane would let an admin see section order, custom fields, and layout before saving. Needs a brainstorm (see `superpowers:brainstorming`) — open questions: render an actual PDF sample inline vs. a lighter HTML mock; live-updating as fields change vs. an explicit "Preview" action; sample data source (fabricated vs. a real day's data, which raises the same sensitive-data-redaction question the shipped feature already solved for real call sheets).
 
 **Note on sections below:** The "Context" and "Scope" sections below describe the v1 (pre-customization) state and the questions posed before this slice. They are superseded by the Status line above and the "Still open" list — kept as historical reference.
 
