@@ -188,3 +188,75 @@ def test_update_cast_call_merges_extra(monkeypatch):
     patch_svc(monkeypatch, store)
     row = svc.update_cast_call("cs1", "ca1", {"extra": {"pickup": "07:30", "zzz": "1"}})
     assert row["extra"] == {"pickup": "07:30"}
+
+
+def _sensitive_cfg():
+    cfg = full_config()
+    cfg["crew_columns"] = [
+        {"key": "vehicle", "label": "Vehicle", "type": "text", "sensitive": True},
+        {"key": "note", "label": "Note", "type": "text", "sensitive": False}]
+    cfg["cast_columns"] = [
+        {"key": "pickup", "label": "P/U", "type": "time", "sensitive": False},
+        {"key": "fee", "label": "Fee", "type": "text", "sensitive": True}]
+    cfg["scene_columns"] = [
+        {"key": "story_day", "label": "Story day", "type": "text", "sensitive": False},
+        {"key": "budget", "label": "Budget", "type": "text", "sensitive": True}]
+    cfg["day_fields"] += [{"key": "secret", "label": "Secret", "type": "text", "section": "notes",
+                           "default": "", "sensitive": True, "visible": True, "builtin": False}]
+    next(f for f in cfg["day_fields"] if f["key"] == "nearest_hospital")["sensitive"] = True
+    return cfg
+
+
+def _sensitive_data(monkeypatch):
+    store = make_store(
+        cfg=_sensitive_cfg(),
+        call_sheets=[sheet_row(nearest_hospital="City Hospital",
+                               custom_values={"secret": "s3", "wind": "SSW"},
+                               scene_extras={"sc1": {"story_day": "4", "budget": "9"}})],
+        production_crew=[{"id": "cr1", "production_id": "p1", "contact_id": None, "job_rate": 5}],
+        call_sheet_crew=[{"id": "x", "call_sheet_id": "cs1", "crew_id": "cr1",
+                          "extra": {"vehicle": "Van", "note": "n"}}],
+        casting=[{"id": "ca1", "script_id": "s1", "character_name": "H", "tier": "lead"}],
+        call_sheet_cast=[{"id": "y", "call_sheet_id": "cs1", "casting_id": "ca1",
+                          "extra": {"pickup": "06:00", "fee": "1000"}}],
+    )
+    patch_svc(monkeypatch, store)
+    return svc.get_call_sheet("cs1")
+
+
+def test_redact_strips_sensitive_custom_data(monkeypatch):
+    data = svc.redact_roster(_sensitive_data(monkeypatch), can_view_sensitive=False)
+    assert data["crew"][0]["extra"] == {"note": "n"}
+    assert data["cast"][0]["extra"] == {"pickup": "06:00"}
+    assert data["scene_extras"] == {"sc1": {"story_day": "4"}}
+    assert data["custom_values"] == {"wind": "SSW"}
+    assert data["nearest_hospital"] is None            # sensitive builtin blanked
+    assert "job_rate" not in data["crew"][0]["crew"]   # v1 behaviour retained
+
+
+def test_redact_noop_for_sensitive_viewer(monkeypatch):
+    data = svc.redact_roster(_sensitive_data(monkeypatch), can_view_sensitive=True)
+    assert data["crew"][0]["extra"]["vehicle"] == "Van"
+    assert data["custom_values"]["secret"] == "s3"
+    assert data["nearest_hospital"] == "City Hospital"
+
+
+def test_redact_row_with_explicit_template(monkeypatch):
+    row = {"crew": [{"extra": {"vehicle": "Van", "note": "n"}}]}
+    out = svc.redact_roster(row, False, _sensitive_cfg())
+    assert out["crew"][0]["extra"] == {"note": "n"}
+
+
+def test_pdf_render_redacts_by_default(monkeypatch):
+    _sensitive_data(monkeypatch)
+    captured = {}
+
+    def fake_render(data, day):
+        captured["data"] = data
+        return "<html></html>"
+
+    monkeypatch.setattr(svc, "_render_pdf_html", fake_render)
+    svc.render_call_sheet_pdf("cs1")
+    assert captured["data"]["cast"][0]["extra"] == {"pickup": "06:00"}
+    svc.render_call_sheet_pdf("cs1", can_view_sensitive=True)
+    assert captured["data"]["cast"][0]["extra"]["fee"] == "1000"

@@ -15,6 +15,13 @@ from services import call_sheet_template_service as tpl
 call_sheet_bp = Blueprint("call_sheet", __name__)
 
 
+def _redact_one(kind, row):
+    """Redact a single crew/cast row using this production's template."""
+    template = tpl.get_template(g.resolved_production_id)["config"]
+    return svc.redact_roster({kind: [row]}, g.production_access["can_view_sensitive"],
+                             template)[kind][0]
+
+
 @call_sheet_bp.route("/api/shooting-days/<day_id>/call-sheet", methods=["POST"])
 @require_auth
 @require_production_role(capability="can_edit_call_sheets", resolver=from_shooting_day_id)
@@ -33,6 +40,7 @@ def get_call_sheet_by_day(day_id):
     if result is svc.NOT_FOUND:
         return jsonify({"error": "Call sheet not found"}), 404
     result = svc.redact_roster(result, g.production_access["can_view_sensitive"])
+    result["can_view_sensitive"] = bool(g.production_access["can_view_sensitive"])
     return jsonify({"call_sheet": result})
 
 
@@ -44,6 +52,7 @@ def get_call_sheet(call_sheet_id):
     if result is svc.NOT_FOUND:
         return jsonify({"error": "Call sheet not found"}), 404
     result = svc.redact_roster(result, g.production_access["can_view_sensitive"])
+    result["can_view_sensitive"] = bool(g.production_access["can_view_sensitive"])
     return jsonify({"call_sheet": result})
 
 
@@ -69,13 +78,16 @@ def add_call_sheet_crew(call_sheet_id):
     crew_id = data.get("crew_id")
     if not crew_id:
         return jsonify({"error": "crew_id is required"}), 400
-    result = svc.add_crew(call_sheet_id, crew_id, data.get("call_time"), data.get("notes"))
+    try:
+        result = svc.add_crew(call_sheet_id, crew_id, data.get("call_time"),
+                              data.get("notes"), data.get("extra"))
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
     if result == "not_found":
         return jsonify({"error": "Call sheet not found"}), 404
     if result == "cross_production":
         return jsonify({"error": "That crew member is not part of this production"}), 400
-    result = svc.redact_roster({"crew": [result]}, g.production_access["can_view_sensitive"])["crew"][0]
-    return jsonify({"crew": result}), 201
+    return jsonify({"crew": _redact_one("crew", result)}), 201
 
 
 @call_sheet_bp.route("/api/call-sheets/<call_sheet_id>/crew/<crew_id>", methods=["PATCH"])
@@ -83,11 +95,13 @@ def add_call_sheet_crew(call_sheet_id):
 @require_production_role(capability="can_edit_call_sheets", resolver=from_call_sheet_id)
 def update_call_sheet_crew(call_sheet_id, crew_id):
     data = request.get_json(silent=True) or {}
-    result = svc.update_crew_call(call_sheet_id, crew_id, data)
+    try:
+        result = svc.update_crew_call(call_sheet_id, crew_id, data)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
     if result == "not_found":
         return jsonify({"error": "Call sheet or crew row not found"}), 404
-    result = svc.redact_roster({"crew": [result]}, g.production_access["can_view_sensitive"])["crew"][0]
-    return jsonify({"crew": result})
+    return jsonify({"crew": _redact_one("crew", result)})
 
 
 @call_sheet_bp.route("/api/call-sheets/<call_sheet_id>/crew/<crew_id>", methods=["DELETE"])
@@ -106,13 +120,16 @@ def add_call_sheet_cast(call_sheet_id):
     casting_id = data.get("casting_id")
     if not casting_id:
         return jsonify({"error": "casting_id is required"}), 400
-    result = svc.add_cast(call_sheet_id, casting_id, data.get("call_time"),
-                          data.get("status_code"), data.get("notes"))
+    try:
+        result = svc.add_cast(call_sheet_id, casting_id, data.get("call_time"),
+                              data.get("status_code"), data.get("notes"), data.get("extra"))
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
     if result == "not_found":
         return jsonify({"error": "Call sheet not found"}), 404
     if result == "cross_script":
         return jsonify({"error": "That cast member is not part of this shooting day's script"}), 400
-    return jsonify({"cast": result}), 201
+    return jsonify({"cast": _redact_one("cast", result)}), 201
 
 
 @call_sheet_bp.route("/api/call-sheets/<call_sheet_id>/cast/<casting_id>", methods=["PATCH"])
@@ -120,10 +137,13 @@ def add_call_sheet_cast(call_sheet_id):
 @require_production_role(capability="can_edit_call_sheets", resolver=from_call_sheet_id)
 def update_call_sheet_cast(call_sheet_id, casting_id):
     data = request.get_json(silent=True) or {}
-    result = svc.update_cast_call(call_sheet_id, casting_id, data)
+    try:
+        result = svc.update_cast_call(call_sheet_id, casting_id, data)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
     if result == "not_found":
         return jsonify({"error": "Call sheet or cast row not found"}), 404
-    return jsonify({"cast": result})
+    return jsonify({"cast": _redact_one("cast", result)})
 
 
 @call_sheet_bp.route("/api/call-sheets/<call_sheet_id>/cast/<casting_id>", methods=["DELETE"])
@@ -162,7 +182,7 @@ def remove_call_sheet_location(call_sheet_id, location_id):
 @require_auth
 @require_production_role(min_role="viewer", resolver=from_call_sheet_id)
 def download_call_sheet_pdf(call_sheet_id):
-    pdf_bytes = svc.render_call_sheet_pdf(call_sheet_id)
+    pdf_bytes = svc.render_call_sheet_pdf(call_sheet_id, g.production_access["can_view_sensitive"])
     if pdf_bytes is svc.NOT_FOUND:
         return jsonify({"error": "Call sheet not found"}), 404
     return Response(pdf_bytes, mimetype="application/pdf",

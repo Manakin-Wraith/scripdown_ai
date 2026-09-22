@@ -409,18 +409,77 @@ _SENSITIVE_CREW = ("job_rate",)
 _SENSITIVE_CONTACT = ("standard_rate",)
 
 
-def redact_roster(call_sheet_data, can_view_sensitive):
+def _drop_keys(mapping, keys):
+    """Return a copy of mapping with keys removed -- never mutates the
+    original in place. redact_roster's inputs (crew/cast `extra`,
+    scene_extras, custom_values) are references into rows fetched from the
+    DB layer; mutating them in place would risk corrupting whatever object
+    the caller (or, in the test double, the in-memory store) still holds."""
+    if not isinstance(mapping, dict):
+        return mapping
+    return {k: v for k, v in mapping.items() if k not in keys}
+
+
+def _sensitive_keys(template, list_key):
+    return {c["key"] for c in template.get(list_key, []) if c.get("sensitive")}
+
+
+def redact_roster(call_sheet_data, can_view_sensitive, template=None):
+    """Strip rate fields (v1) plus any column/field the template flags
+    `sensitive`. `template` falls back to the data's own, then the default.
+    Builds redacted copies rather than mutating shared row/extra objects."""
     if can_view_sensitive:
         return call_sheet_data
-    for row in call_sheet_data.get("crew", []):
-        crew = row.get("crew")
-        if isinstance(crew, dict):
-            for k in _SENSITIVE_CREW:
-                crew.pop(k, None)
-            contact = crew.get("contact")
-            if isinstance(contact, dict):
-                for k in _SENSITIVE_CONTACT:
-                    contact.pop(k, None)
+    template = template or call_sheet_data.get("template") or tpl.default_config()
+
+    if "crew" in call_sheet_data:
+        crew_cols = _sensitive_keys(template, "crew_columns")
+        new_rows = []
+        for row in call_sheet_data["crew"]:
+            row = dict(row)
+            row["extra"] = _drop_keys(row.get("extra"), crew_cols)
+            crew = row.get("crew")
+            if isinstance(crew, dict):
+                crew = dict(crew)
+                for k in _SENSITIVE_CREW:
+                    crew.pop(k, None)
+                contact = crew.get("contact")
+                if isinstance(contact, dict):
+                    contact = dict(contact)
+                    for k in _SENSITIVE_CONTACT:
+                        contact.pop(k, None)
+                    crew["contact"] = contact
+                row["crew"] = crew
+            new_rows.append(row)
+        call_sheet_data["crew"] = new_rows
+
+    if "cast" in call_sheet_data:
+        cast_cols = _sensitive_keys(template, "cast_columns")
+        call_sheet_data["cast"] = [
+            {**row, "extra": _drop_keys(row.get("extra"), cast_cols)}
+            for row in call_sheet_data["cast"]
+        ]
+
+    scene_extras = call_sheet_data.get("scene_extras")
+    if isinstance(scene_extras, dict):
+        scene_cols = _sensitive_keys(template, "scene_columns")
+        call_sheet_data["scene_extras"] = {
+            sid: _drop_keys(extras, scene_cols) for sid, extras in scene_extras.items()
+        }
+
+    custom_values = call_sheet_data.get("custom_values")
+    custom_values = dict(custom_values) if isinstance(custom_values, dict) else custom_values
+    for field in template.get("day_fields", []):
+        if not field.get("sensitive"):
+            continue
+        if field.get("builtin"):
+            if field["key"] in call_sheet_data:
+                call_sheet_data[field["key"]] = None
+        elif isinstance(custom_values, dict):
+            custom_values.pop(field["key"], None)
+    if isinstance(custom_values, dict):
+        call_sheet_data["custom_values"] = custom_values
+
     return call_sheet_data
 
 
@@ -508,13 +567,14 @@ def _render_pdf_html(data, day):
     """
 
 
-def render_call_sheet_pdf(call_sheet_id):
+def render_call_sheet_pdf(call_sheet_id, can_view_sensitive=False):
     if not WEASYPRINT_AVAILABLE:
         raise ImportError("weasyprint is not installed")
     supabase = get_supabase_admin()
     data = get_call_sheet(call_sheet_id)
     if data is NOT_FOUND:
         return NOT_FOUND
+    data = redact_roster(data, can_view_sensitive)
     day_res = (supabase.table("shooting_days").select("*")
                .eq("id", data["shooting_day_id"]).limit(1).execute())
     day = day_res.data[0] if day_res.data else {}
