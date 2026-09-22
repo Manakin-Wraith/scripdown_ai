@@ -137,9 +137,11 @@ call-sheet parse.
   via try/except, not a 400.
 
 **Do next (unblocks the most):**
-1. **Call sheets: robustness + per-production customization pass** (see
-   below) — the shipped v1 (above) is fixed-field and same-shape for
-   every production; this is the real next slice on this feature.
+1. **Call sheets: robustness + per-production customization pass** — COMPLETE.
+   The customization pass (per-production templates, section visibility/order,
+   custom day fields, custom cast/crew/scene columns, department calls,
+   boilerplate blocks, header/key-crew, catering) shipped 2026-09-22.
+   See "Still open" above for the next slice.
 2. **Cast & Casting v1 closeout** (cheap, ~1 session): `TriangleAlert`→`AlertTriangle`
    icon consistency (cosmetic). Task 13 (DOOD conflict overlay) remains open
    but not blocking v1. Docs entry now complete via Cast tab v2
@@ -2041,14 +2043,19 @@ shoot-days/hours-per-day and other production parameters get entered.
 
 ## Call sheets: robustness + per-production customization pass — brainstorm
 
-**Status:** Not started — needs brainstorming. Umbrella step 4 (see the
-priority snapshot above) shipped 2026-09-21 as a **fixed-shape, one-size
-v1**: same day-info fields, same roster sections, same PDF layout, for
-every production regardless of format (feature, series, commercial,
-documentary), scale (2-person crew vs. 80-person crew), or what a given
-1st AD/production actually needs on their sheet. Flagged by the account
-owner immediately after the v1 shipped and a first live click-through —
-this entry exists to make that concrete before it's picked up.
+**Status:** SHIPPED (per-production templates) — 2026-09-22. Design:
+`docs/superpowers/specs/2026-09-21-call-sheet-customization-design.md`,
+plan: `docs/superpowers/plans/2026-09-21-call-sheet-customization.md`.
+Migration `055_call_sheet_templates.sql` must be applied to Supabase.
+
+**Still open after this slice:**
+- Multi-script shoot days (reference sheet covers 3 episodes in one day; schedules/casting are per script).
+- Extras from `casting_groups`.
+- Drag-and-drop section reordering.
+- Multiple named templates.
+- Cross-production template copy.
+- First-class scheduled per-scene timings.
+- Config `v2` migration story.
 
 **Context — what shipped.** `call_sheets` (day info: weather,
 sunrise/sunset, breakfast/lunch, nearest hospital, parking notes, safety

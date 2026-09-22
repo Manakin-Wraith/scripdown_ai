@@ -190,6 +190,8 @@ Owner-only RLS backstop, as in 054.
 | `GET /api/productions/<production_id>/call-sheet-template` | any member; stored config or the default, never creates a row |
 | `PUT /api/productions/<production_id>/call-sheet-template` | `can_edit_call_sheet_template`; validates, upserts, 409 on stale `expected_updated_at` |
 
+The template GET response also carries `default_config` (used by the editor's "Reset to default").
+
 Changed:
 
 - `GET /api/call-sheets/<id>` (and the by-day GET) also returns the
@@ -303,7 +305,10 @@ applied to the PDF. This slice:
    columns).
 2. Deploy backend, then frontend. Existing sheets and productions are
    unaffected: a missing template resolves to the v1-equivalent default.
-3. No env vars, no backfill.
+3. No env vars. The migration backfills `can_edit_call_sheet_template = true`
+   for existing admin/coordinator members and pending invites so current
+   admins aren't locked out of the template (presets only apply to members
+   created afterwards).
 4. Afterwards update the backlog entry (including the multi-script
    follow-up) and `SLATEONE_FEATURES.md`.
 

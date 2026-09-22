@@ -105,6 +105,7 @@
 
 ### 3. Call Sheet Generation
 - Generate detailed daily Call Sheets (the "Plan") that seamlessly sync with the schedule and feed directly into the next day's DPR (the "Reality").
+- Per-production call sheet templates: each production has one template (Production → Call Sheet tab) controlling section visibility/order/labels, custom day fields, custom cast/crew/scene columns, department call times, boilerplate blocks and a header/key-crew block; sensitive columns are hidden from members without "See rates & phone"; days inherit the template and can override.
 
 ### 4. On-Set Offline Mode
 - Service worker and local database support allowing crew to log department notes and DPR data in remote locations with zero cellular service, auto-syncing when a connection is restored.
