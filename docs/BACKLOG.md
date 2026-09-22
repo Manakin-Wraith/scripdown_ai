@@ -141,7 +141,7 @@ call-sheet parse.
    The customization pass (per-production templates, section visibility/order,
    custom day fields, custom cast/crew/scene columns, department calls,
    boilerplate blocks, header/key-crew, catering) shipped 2026-09-22.
-   See "Still open" above for the next slice.
+   See "Still open" below for the next slice.
 2. **Cast & Casting v1 closeout** (cheap, ~1 session): `TriangleAlert`→`AlertTriangle`
    icon consistency (cosmetic). Task 13 (DOOD conflict overlay) remains open
    but not blocking v1. Docs entry now complete via Cast tab v2
@@ -2056,6 +2056,8 @@ Migration `055_call_sheet_templates.sql` must be applied to Supabase.
 - Cross-production template copy.
 - First-class scheduled per-scene timings.
 - Config `v2` migration story.
+
+**Note on sections below:** The "Context" and "Scope" sections below describe the v1 (pre-customization) state and the questions posed before this slice. They are superseded by the Status line above and the "Still open" list — kept as historical reference.
 
 **Context — what shipped.** `call_sheets` (day info: weather,
 sunrise/sunset, breakfast/lunch, nearest hospital, parking notes, safety
