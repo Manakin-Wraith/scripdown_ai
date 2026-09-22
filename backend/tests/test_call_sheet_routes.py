@@ -9,6 +9,7 @@ from types import SimpleNamespace
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import services.call_sheet_service as cs_svc
+import services.call_sheet_template_service as tpl
 import middleware.production_authz as pa
 from middleware.auth import DEV_USER_ID
 from postgrest.exceptions import APIError
@@ -144,6 +145,7 @@ def _patch(monkeypatch, store):
     monkeypatch.setattr("middleware.auth.DEV_MODE", True)
     mock = MockSupabase(store)
     monkeypatch.setattr(cs_svc, "get_supabase_admin", lambda: mock)
+    monkeypatch.setattr(tpl, "get_supabase_admin", lambda: mock)
     monkeypatch.setattr(pa, "get_supabase_admin", lambda: mock)
     monkeypatch.setattr(pa, "get_user_id", lambda: DEV_USER_ID)
 

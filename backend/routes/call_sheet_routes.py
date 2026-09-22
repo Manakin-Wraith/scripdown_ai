@@ -10,6 +10,7 @@ from middleware.production_authz import (
     require_production_role, from_call_sheet_id, from_shooting_day_id,
 )
 from services import call_sheet_service as svc
+from services import call_sheet_template_service as tpl
 
 call_sheet_bp = Blueprint("call_sheet", __name__)
 
@@ -163,3 +164,29 @@ def download_call_sheet_pdf(call_sheet_id):
         return jsonify({"error": "Call sheet not found"}), 404
     return Response(pdf_bytes, mimetype="application/pdf",
                     headers={"Content-Disposition": "attachment; filename=call_sheet.pdf"})
+
+
+@call_sheet_bp.route("/api/productions/<production_id>/call-sheet-template", methods=["GET"])
+@require_auth
+@require_production_role(min_role="viewer")
+def get_call_sheet_template(production_id):
+    template = dict(tpl.get_template(production_id))
+    # Lets the editor's "Reset to default" work without duplicating the default client-side.
+    template["default_config"] = tpl.default_config()
+    return jsonify({"template": template})
+
+
+@call_sheet_bp.route("/api/productions/<production_id>/call-sheet-template", methods=["PUT"])
+@require_auth
+@require_production_role(capability="can_edit_call_sheet_template")
+def put_call_sheet_template(production_id):
+    data = request.get_json(silent=True) or {}
+    try:
+        saved = tpl.save_template(production_id, data.get("config"), get_user_id(),
+                                  data.get("expected_updated_at"))
+    except tpl.ConfigError as e:
+        return jsonify({"error": "Invalid template", "details": e.errors}), 400
+    except tpl.StaleTemplate:
+        return jsonify({"error": "The template was changed by someone else",
+                        "code": "stale_template"}), 409
+    return jsonify({"template": saved})

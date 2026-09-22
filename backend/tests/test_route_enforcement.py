@@ -180,7 +180,7 @@ def test_call_sheet_routes_carry_authz_marker():
     app = Flask(__name__)
     app.register_blueprint(call_sheet_bp)
 
-    SCOPED_ARGS = {"day_id", "call_sheet_id", "crew_id", "casting_id", "location_id"}
+    SCOPED_ARGS = {"day_id", "call_sheet_id", "crew_id", "casting_id", "location_id", "production_id"}
 
     for rule in app.url_map.iter_rules():
         if not rule.endpoint.startswith("call_sheet."):
