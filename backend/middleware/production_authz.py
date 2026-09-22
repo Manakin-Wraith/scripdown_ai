@@ -20,7 +20,7 @@ ROLE_RANK = {'viewer': 1, 'coordinator': 2, 'admin': 3, 'owner': 4}
 
 CAPABILITIES = (
     'can_view_sensitive', 'can_edit_crew', 'can_manage_members', 'can_edit_production',
-    'can_edit_call_sheets',
+    'can_edit_call_sheets', 'can_edit_call_sheet_template',
 )
 
 # Sentinel distinguishing "production does not exist" (404) from "no access" (403).

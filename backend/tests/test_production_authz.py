@@ -71,7 +71,8 @@ def test_access_owner_is_all_true(monkeypatch):
                          "production_members": []})
     acc = pa.get_production_access("p1", DEV_USER_ID)
     assert acc == {"role": "owner", "can_view_sensitive": True, "can_edit_crew": True,
-                   "can_manage_members": True, "can_edit_production": True, "can_edit_call_sheets": True}
+                   "can_manage_members": True, "can_edit_production": True, "can_edit_call_sheets": True,
+                   "can_edit_call_sheet_template": True}
 
 
 def test_access_member_returns_stored_flags(monkeypatch):

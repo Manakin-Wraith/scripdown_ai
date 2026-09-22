@@ -153,14 +153,14 @@ def test_apply_role_preset_admin():
     assert pms.apply_role_preset("admin", None) == {
         "can_view_sensitive": True, "can_edit_crew": True,
         "can_manage_members": True, "can_edit_production": True,
-        "can_edit_call_sheets": True}
+        "can_edit_call_sheets": True, "can_edit_call_sheet_template": True}
 
 
 def test_apply_role_preset_coordinator():
     assert pms.apply_role_preset("coordinator", None) == {
         "can_view_sensitive": False, "can_edit_crew": True,
         "can_manage_members": False, "can_edit_production": False,
-        "can_edit_call_sheets": True}
+        "can_edit_call_sheets": True, "can_edit_call_sheet_template": True}
 
 
 def test_coordinator_preset_contains_call_sheets_key():
@@ -193,7 +193,8 @@ def test_rank_ok_admin_cannot_create_admin():
 
 def test_rank_ok_admin_can_create_coordinator():
     admin = {"role": "admin", "can_manage_members": True, "can_edit_crew": True,
-             "can_view_sensitive": True, "can_edit_production": True, "can_edit_call_sheets": True}
+             "can_view_sensitive": True, "can_edit_production": True, "can_edit_call_sheets": True,
+             "can_edit_call_sheet_template": True}
     assert pms.rank_ok(admin, "coordinator", pms.apply_role_preset("coordinator", None)) is True
 
 
