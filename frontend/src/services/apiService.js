@@ -2669,6 +2669,29 @@ export const updateCallSheet = async (callSheetId, payload) => {
     }
 };
 
+export const getCallSheetTemplate = async (productionId) => {
+    try {
+        const response = await api.get(`/api/productions/${productionId}/call-sheet-template`);
+        return response.data;
+    } catch (error) {
+        console.error('Error getting call sheet template:', error);
+        throw error;
+    }
+};
+
+export const saveCallSheetTemplate = async (productionId, config, expectedUpdatedAt) => {
+    try {
+        const response = await api.put(`/api/productions/${productionId}/call-sheet-template`, {
+            config,
+            expected_updated_at: expectedUpdatedAt ?? null,
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error saving call sheet template:', error);
+        throw error;
+    }
+};
+
 export const addCallSheetCrew = async (callSheetId, payload) => {
     try {
         const response = await api.post(`/api/call-sheets/${callSheetId}/crew`, payload);

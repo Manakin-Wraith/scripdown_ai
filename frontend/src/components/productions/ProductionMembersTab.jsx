@@ -16,6 +16,7 @@ const CAP_LABELS = {
     can_manage_members: 'Manage members',
     can_edit_production: 'Edit production',
     can_edit_call_sheets: 'Edit call sheets',
+    can_edit_call_sheet_template: 'Edit call sheet template',
 };
 
 const PRESETS = {
@@ -25,6 +26,7 @@ const PRESETS = {
         can_manage_members: true,
         can_edit_production: true,
         can_edit_call_sheets: true,
+        can_edit_call_sheet_template: true,
     },
     coordinator: {
         can_view_sensitive: false,
@@ -32,6 +34,7 @@ const PRESETS = {
         can_manage_members: false,
         can_edit_production: false,
         can_edit_call_sheets: true,
+        can_edit_call_sheet_template: true,
     },
     viewer: {
         can_view_sensitive: false,
@@ -39,6 +42,7 @@ const PRESETS = {
         can_manage_members: false,
         can_edit_production: false,
         can_edit_call_sheets: false,
+        can_edit_call_sheet_template: false,
     },
 };
 
