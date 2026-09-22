@@ -173,3 +173,83 @@ def test_unknown_section_key_in_config_is_a_noop(monkeypatch):
     cfg = tpl.default_config()
     cfg["sections"].append({"key": "mystery", "label": "Mystery", "visible": True})
     assert "Mystery" not in _html(_data(cfg))
+
+
+def _enable(cfg, *keys):
+    for s in cfg["sections"]:
+        if s["key"] in keys:
+            s["visible"] = True
+    return cfg
+
+
+def test_extras_section_lists_background_rows(monkeypatch):
+    _patch_depts(monkeypatch)
+    cfg = _enable(full_config(), "extras")
+    lead = {"call_time": "06:00", "extra": {}, "casting": {"character_name": "HERO", "actor_name": "Jo", "tier": "lead"}}
+    bg = {"call_time": "07:00", "extra": {"pickup": "06:30"},
+          "casting": {"character_name": "CROWD", "actor_name": "Extras Co", "tier": "background"}}
+    html = _html(_data(cfg, cast=[lead, bg]))
+    extras_part = html[html.index("Extras"):]
+    assert "CROWD" in extras_part and "06:30" in extras_part
+    cast_part = html[html.index("Cast Call List"):html.index("Extras")]
+    assert "HERO" in cast_part and "CROWD" not in cast_part
+
+
+def test_extras_section_omitted_when_no_background(monkeypatch):
+    _patch_depts(monkeypatch)
+    assert "Extras" not in _html(_data(_enable(full_config(), "extras")))
+
+
+def test_dept_calls_use_default_then_override(monkeypatch):
+    _patch_depts(monkeypatch)
+    cfg = _enable(full_config(), "dept_calls")
+    html = _html(_data(cfg))
+    assert "Wardrobe" in html and "06:00" in html and "Pippa" in html
+    html = _html(_data(cfg, dept_overrides={"wardrobe": {"call": "07:15", "as_per": "Sam"}}))
+    assert "07:15" in html and "Sam" in html and "Pippa" not in html
+
+
+def test_dept_calls_omitted_when_none_configured(monkeypatch):
+    _patch_depts(monkeypatch)
+    cfg = _enable(tpl.default_config(), "dept_calls")
+    assert "Department Calls" not in _html(_data(cfg))
+
+
+def test_catering_grid_uses_effective_counts_and_totals(monkeypatch):
+    _patch_depts(monkeypatch)
+    cfg = _enable(full_config(), "catering")
+    eff = {m: {"crew": 40, "cast": 10, "add_crew": 0, "extras": 1}
+           for m in ("craft", "breakfast", "lunch", "dinner")}
+    eff["dinner"] = {"crew": 0, "cast": 0, "add_crew": 0, "extras": 0}
+    html = _html(_data(cfg, catering_effective=eff))
+    assert "Catering" in html and "<td>40</td>" in html and "<td>51</td>" in html
+
+
+def test_catering_falls_back_to_roster_counts(monkeypatch):
+    _patch_depts(monkeypatch)
+    cfg = _enable(full_config(), "catering")
+    html = _html(_data(cfg))       # 1 crew + 1 cast in _data()
+    assert "Catering" in html and "<td>2</td>" in html
+
+
+def test_catering_omitted_when_everything_is_zero(monkeypatch):
+    _patch_depts(monkeypatch)
+    cfg = _enable(full_config(), "catering")
+    assert "Catering" not in _html(_data(cfg, crew=[], cast=[]))
+
+
+def test_advanced_schedule_renders_next_day_scenes(monkeypatch):
+    _patch_depts(monkeypatch)
+    cfg = _enable(full_config(), "advanced")
+    ctx = dict(CTX, advanced={
+        "day": {"day_number": 4, "shoot_date": "2026-10-02"},
+        "scenes": [{"id": "n1", "scene_number": "44", "int_ext": "EXT", "setting": "FARM",
+                    "time_of_day": "NIGHT", "page_length_eighths": 5}]})
+    html = _html(_data(cfg), ctx)
+    assert "Advanced Schedule" in html and "Day 4" in html and "FARM" in html and "5/8" in html
+
+
+def test_advanced_schedule_omitted_without_next_day(monkeypatch):
+    _patch_depts(monkeypatch)
+    cfg = _enable(full_config(), "advanced")
+    assert "Advanced Schedule" not in _html(_data(cfg), CTX)

@@ -489,11 +489,19 @@ def _render_context(supabase, data, day):
             .eq("id", data["production_id"]).limit(1).execute().data or [])
     days = (supabase.table("shooting_days").select("*")
             .eq("schedule_id", day.get("schedule_id")).execute().data or []) if day else []
+    current = (day or {}).get("day_number") or 0
+    later = [d for d in days if (d.get("day_number") or 0) > current]
+    advanced = None
+    if later:
+        nxt = min(later, key=lambda d: d["day_number"])
+        scenes = get_day_scenes(supabase, nxt["id"])
+        if scenes:
+            advanced = {"day": nxt, "scenes": scenes}
     return {
         "day": day,
         "production_title": prod[0].get("title") if prod else None,
         "days_total": len(days) or None,
-        "advanced": None,
+        "advanced": advanced,
     }
 
 

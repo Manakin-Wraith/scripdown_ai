@@ -185,14 +185,75 @@ def _render_notes(data, cfg, ctx):
     return _fields_html(data, cfg, "notes") + blocks
 
 
+GROUP_LABELS = (("crew", "Crew"), ("cast", "Cast"), ("add_crew", "Add. crew"), ("extras", "Extras"))
+MEAL_LABELS = (("craft", "Craft"), ("breakfast", "Breakfast"), ("lunch", "Lunch"), ("dinner", "Dinner"))
+
+
+def _render_extras(data, cfg, ctx):
+    _, extras = split_cast(data, cfg)
+    if not extras:
+        return None
+    return _cast_table(extras, cfg, first_labels=("Role", "Name", "Status", "Call Time"))
+
+
+def _render_dept_calls(data, cfg, ctx):
+    overrides = data.get("dept_overrides") or {}
+    rows = ""
+    for dept in cfg.get("departments", []):
+        ov = overrides.get(dept["key"]) or {}
+        call = ov.get("call") or dept.get("default_call") or ""
+        as_per = ov.get("as_per") or dept.get("as_per") or ""
+        if call or as_per:
+            rows += f'<tr><td>{esc(dept["label"])}</td><td>{esc(call)}</td><td>{esc(as_per)}</td></tr>'
+    if not rows:
+        return None
+    return ('<table class="report-table"><thead><tr><th>Department</th><th>Call</th>'
+            f'<th>As per</th></tr></thead><tbody>{rows}</tbody></table>')
+
+
+def _render_catering(data, cfg, ctx):
+    eff = data.get("catering_effective") or values.effective_catering(
+        values.catering_defaults(data.get("crew", []), data.get("cast", [])), data.get("catering"))
+    totals = {m: sum(eff.get(m, {}).get(g, 0) for g, _ in GROUP_LABELS) for m, _ in MEAL_LABELS}
+    if not any(totals.values()):
+        return None
+    head = "<th></th>" + "".join(f"<th>{label}</th>" for _, label in MEAL_LABELS)
+    rows = "".join(
+        f"<tr><td>{glabel}</td>"
+        + "".join(f'<td>{esc(eff.get(m, {}).get(g, 0))}</td>' for m, _ in MEAL_LABELS) + "</tr>"
+        for g, glabel in GROUP_LABELS)
+    total_row = "<tr><td><strong>Total</strong></td>" + \
+        "".join(f"<td>{esc(totals[m])}</td>" for m, _ in MEAL_LABELS) + "</tr>"
+    return f'<table class="report-table"><thead><tr>{head}</tr></thead><tbody>{rows}{total_row}</tbody></table>'
+
+
+def _render_advanced(data, cfg, ctx):
+    adv = ctx.get("advanced")
+    if not adv:
+        return None
+    day = adv["day"]
+    caption = f'<p>Day {esc(day.get("day_number"))} &middot; {esc(day.get("shoot_date") or "")}</p>'
+    rows = "".join(
+        f'<tr><td>{esc(s.get("scene_number"))}</td><td>{esc(s.get("int_ext"))}</td>'
+        f'<td>{esc(s.get("setting") or s.get("location_canonical"))}</td>'
+        f'<td>{esc(s.get("time_of_day"))}</td><td>{esc(s.get("page_length_eighths", 8))}/8</td></tr>'
+        for s in adv["scenes"])
+    return (f'{caption}<table class="report-table"><thead><tr><th>Sc</th><th>I/E</th><th>Set</th>'
+            f'<th>D/N</th><th>Pgs</th></tr></thead><tbody>{rows}</tbody></table>')
+
+
 SECTION_RENDERERS = {
     "header": _render_header,
     "day_info": _render_day_info,
     "locations": _render_locations,
     "scenes": _render_scenes,
     "cast": _render_cast,
+    "extras": _render_extras,
     "crew": _render_crew,
+    "dept_calls": _render_dept_calls,
+    "catering": _render_catering,
     "notes": _render_notes,
+    "advanced": _render_advanced,
 }
 
 

@@ -260,3 +260,39 @@ def test_pdf_html_redacts_by_default(monkeypatch):
     assert captured["data"]["cast"][0]["extra"] == {"pickup": "06:00"}
     svc.build_call_sheet_html("cs1", can_view_sensitive=True)
     assert captured["data"]["cast"][0]["extra"]["fee"] == "1000"
+
+
+def _multi_day_store(**overrides):
+    return make_store(
+        shooting_days=[
+            {"id": "d1", "schedule_id": "sch1", "day_number": 1, "shoot_date": "2026-10-01"},
+            {"id": "d2", "schedule_id": "sch1", "day_number": 2, "shoot_date": "2026-10-02"},
+            {"id": "d3", "schedule_id": "sch1", "day_number": 3, "shoot_date": "2026-10-03"},
+            {"id": "x9", "schedule_id": "other", "day_number": 2, "shoot_date": "2026-10-09"}],
+        **overrides)
+
+
+def test_render_context_finds_next_day_with_scenes(monkeypatch):
+    store = _multi_day_store(
+        scenes=[{"id": "sc2", "scene_number": "7"}],
+        shooting_day_scenes=[{"shooting_day_id": "d2", "scene_id": "sc2", "sort_order": 0}])
+    sb = patch_svc(monkeypatch, store)
+    data = svc.get_call_sheet("cs1")
+    day = store["shooting_days"][0]
+    ctx = svc._render_context(sb, data, day)
+    assert ctx["days_total"] == 3                      # other schedule's day excluded
+    assert ctx["advanced"]["day"]["id"] == "d2"
+    assert [s["id"] for s in ctx["advanced"]["scenes"]] == ["sc2"]
+
+
+def test_render_context_advanced_none_when_next_day_has_no_scenes(monkeypatch):
+    sb = patch_svc(monkeypatch, _multi_day_store())
+    ctx = svc._render_context(sb, svc.get_call_sheet("cs1"), _multi_day_store()["shooting_days"][0])
+    assert ctx["advanced"] is None
+
+
+def test_render_context_advanced_none_on_last_day(monkeypatch):
+    store = _multi_day_store(call_sheets=[sheet_row(shooting_day_id="d3")])
+    sb = patch_svc(monkeypatch, store)
+    ctx = svc._render_context(sb, svc.get_call_sheet("cs1"), store["shooting_days"][2])
+    assert ctx["advanced"] is None
