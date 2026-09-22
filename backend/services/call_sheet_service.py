@@ -19,6 +19,7 @@ from services.report_service import report_service
 from services import department_service
 from services import call_sheet_template_service as tpl
 from services import call_sheet_values as values
+from services import call_sheet_render as render
 
 NOT_FOUND = object()
 
@@ -483,93 +484,20 @@ def redact_roster(call_sheet_data, can_view_sensitive, template=None):
     return call_sheet_data
 
 
-def _esc(value):
-    import html as _html
-    return _html.escape(str(value)) if value is not None else ""
+def _render_context(supabase, data, day):
+    prod = (supabase.table("productions").select("title")
+            .eq("id", data["production_id"]).limit(1).execute().data or [])
+    days = (supabase.table("shooting_days").select("*")
+            .eq("schedule_id", day.get("schedule_id")).execute().data or []) if day else []
+    return {
+        "day": day,
+        "production_title": prod[0].get("title") if prod else None,
+        "days_total": len(days) or None,
+        "advanced": None,
+    }
 
 
-def _render_pdf_html(data, day):
-    status = data.get("status", "draft")
-    draft_banner = '<div class="cs-draft-banner">DRAFT</div>' if status == "draft" else ""
-
-    day_info = (
-        f'<div class="cs-day-info">'
-        f'<span>Weather: {_esc(data.get("weather") or "-")}</span>'
-        f'<span>Sunrise: {_esc(data.get("sunrise_time") or "-")}</span>'
-        f'<span>Sunset: {_esc(data.get("sunset_time") or "-")}</span>'
-        f'<span>Breakfast: {_esc(data.get("breakfast_time") or "-")}</span>'
-        f'<span>Lunch: {_esc(data.get("lunch_time") or "-")}</span>'
-        f'</div>'
-    )
-
-    locs = sorted(data.get("locations", []), key=lambda r: (not r.get("is_primary"), r.get("sort_order", 0)))
-    loc_html = "".join(
-        f'<div class="cs-location"><strong>{_esc((l.get("location") or {}).get("name"))}</strong>'
-        f'{" (Primary)" if l.get("is_primary") else ""}<br>'
-        f'{_esc((l.get("location") or {}).get("address") or "")}<br>'
-        f'Parking: {_esc((l.get("location") or {}).get("parking_notes") or "-")}</div>'
-        for l in locs
-    )
-
-    scene_rows = "".join(
-        f'<tr><td>{_esc(s.get("scene_number"))}</td><td>{_esc(s.get("int_ext"))}</td>'
-        f'<td>{_esc(s.get("setting") or s.get("location_canonical"))}</td>'
-        f'<td>{_esc(s.get("time_of_day"))}</td><td>{s.get("page_length_eighths", 8)}/8</td></tr>'
-        for s in data.get("scenes", [])
-    )
-
-    cast_rows = "".join(
-        f'<tr><td>{_esc((c.get("casting") or {}).get("character_name"))}</td>'
-        f'<td>{_esc((c.get("casting") or {}).get("actor_name"))}</td>'
-        f'<td>{_esc(c.get("status_code") or "")}</td><td>{_esc(c.get("call_time") or "")}</td></tr>'
-        for c in data.get("cast", [])
-    )
-
-    dept_order = [d["code"] for d in department_service.get_departments_list()]
-    crew_rows = data.get("crew", [])
-    crew_by_dept = {}
-    for row in crew_rows:
-        code = (row.get("crew") or {}).get("department_code")
-        crew_by_dept.setdefault(code, []).append(row)
-    crew_sections = []
-    for code in dept_order + [c for c in crew_by_dept if c not in dept_order]:
-        rows = crew_by_dept.get(code)
-        if not rows:
-            continue
-        label = department_service.get_department_name(code) if code else "Other"
-        rows_html = "".join(
-            f'<tr><td>{_esc(((r.get("crew") or {}).get("contact") or {}).get("name"))}</td>'
-            f'<td>{_esc((r.get("crew") or {}).get("role") or "")}</td>'
-            f'<td>{_esc(r.get("call_time") or "")}</td></tr>'
-            for r in rows
-        )
-        crew_sections.append(f'<h4>{_esc(label)}</h4><table class="report-table">{rows_html}</table>')
-
-    return f"""
-    <html><body>
-    {draft_banner}
-    <div class="cs-header"><h1>Day {day.get("day_number")} &middot; {_esc(day.get("shoot_date") or "")}</h1></div>
-    {day_info}
-    <h3>Locations</h3>{loc_html}
-    <h3>Scene Schedule</h3><table class="report-table">
-      <thead><tr><th>Sc</th><th>I/E</th><th>Set</th><th>D/N</th><th>Pgs</th></tr></thead>
-      <tbody>{scene_rows}</tbody></table>
-    <h3>Cast Call List</h3><table class="report-table">
-      <thead><tr><th>Character</th><th>Actor</th><th>Status</th><th>Call Time</th></tr></thead>
-      <tbody>{cast_rows}</tbody></table>
-    <h3>Crew Call List</h3>{''.join(crew_sections)}
-    <div class="cs-footer">
-      <p>Nearest Hospital: {_esc(data.get("nearest_hospital") or "-")}</p>
-      <p>Safety/COVID: {_esc(data.get("safety_notes") or "-")}</p>
-      <p>{_esc(data.get("general_notes") or "")}</p>
-    </div>
-    </body></html>
-    """
-
-
-def render_call_sheet_pdf(call_sheet_id, can_view_sensitive=False):
-    if not WEASYPRINT_AVAILABLE:
-        raise ImportError("weasyprint is not installed")
+def build_call_sheet_html(call_sheet_id, can_view_sensitive=False):
     supabase = get_supabase_admin()
     data = get_call_sheet(call_sheet_id)
     if data is NOT_FOUND:
@@ -578,7 +506,15 @@ def render_call_sheet_pdf(call_sheet_id, can_view_sensitive=False):
     day_res = (supabase.table("shooting_days").select("*")
                .eq("id", data["shooting_day_id"]).limit(1).execute())
     day = day_res.data[0] if day_res.data else {}
-    html_content = _render_pdf_html(data, day)
+    return render.render_html(data, _render_context(supabase, data, day))
+
+
+def render_call_sheet_pdf(call_sheet_id, can_view_sensitive=False):
+    if not WEASYPRINT_AVAILABLE:
+        raise ImportError("weasyprint is not installed")
+    html_content = build_call_sheet_html(call_sheet_id, can_view_sensitive)
+    if html_content is NOT_FOUND:
+        return NOT_FOUND
     css = report_service._get_report_css()
     from weasyprint import CSS
     return HTML(string=html_content).write_pdf(stylesheets=[CSS(string=css)])

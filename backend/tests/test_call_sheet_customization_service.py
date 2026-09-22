@@ -247,16 +247,16 @@ def test_redact_row_with_explicit_template(monkeypatch):
     assert out["crew"][0]["extra"] == {"note": "n"}
 
 
-def test_pdf_render_redacts_by_default(monkeypatch):
+def test_pdf_html_redacts_by_default(monkeypatch):
     _sensitive_data(monkeypatch)
     captured = {}
 
-    def fake_render(data, day):
+    def fake_render(data, ctx):
         captured["data"] = data
         return "<html></html>"
 
-    monkeypatch.setattr(svc, "_render_pdf_html", fake_render)
-    svc.render_call_sheet_pdf("cs1")
+    monkeypatch.setattr(svc.render, "render_html", fake_render)
+    svc.build_call_sheet_html("cs1")
     assert captured["data"]["cast"][0]["extra"] == {"pickup": "06:00"}
-    svc.render_call_sheet_pdf("cs1", can_view_sensitive=True)
+    svc.build_call_sheet_html("cs1", can_view_sensitive=True)
     assert captured["data"]["cast"][0]["extra"]["fee"] == "1000"
