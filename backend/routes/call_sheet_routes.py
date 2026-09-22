@@ -29,6 +29,11 @@ def get_or_create_call_sheet(day_id):
     result = svc.get_or_create(day_id, get_user_id())
     if result == "no_production":
         return jsonify({"error": "Not found"}), 404
+    # get_or_create is idempotent: on an existing sheet it returns the raw
+    # call_sheets row (every column), which needs the same redaction as the
+    # GET/PATCH routes -- see update_call_sheet's comment.
+    template = tpl.get_template(g.resolved_production_id)["config"]
+    result = svc.redact_roster(result, g.production_access["can_view_sensitive"], template)
     return jsonify({"call_sheet": result})
 
 

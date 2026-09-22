@@ -115,6 +115,24 @@ def test_patch_redacts_sensitive_day_fields_for_non_sensitive_member(monkeypatch
     assert body["weather"] == "Sunny"
 
 
+def test_get_or_create_redacts_existing_sheets_sensitive_day_fields(monkeypatch):
+    """get_or_create is idempotent -- on an existing sheet it returns the raw
+    call_sheets row (every column) the same way update_call_sheet does, so it
+    needs the same redaction."""
+    cfg = _cfg()
+    next(f for f in cfg["day_fields"] if f["key"] == "nearest_hospital")["sensitive"] = True
+    store = _member_store("coordinator", can_edit_call_sheets=True)
+    store["casting"] = [{"id": "ca1", "script_id": "s1", "character_name": "HERO", "tier": "lead"}]
+    store["call_sheet_templates"] = [{"id": "t1", "production_id": "p1", "config": cfg,
+                                      "updated_at": "t"}]
+    store["call_sheets"] = [{"id": "cs1", "production_id": "p1", "shooting_day_id": "d1",
+                             "status": "draft", "nearest_hospital": "City Hospital"}]
+    _patch(monkeypatch, store)
+    resp = _client().post("/api/shooting-days/d1/call-sheet")
+    assert resp.status_code == 200
+    assert resp.get_json()["call_sheet"]["nearest_hospital"] is None
+
+
 def test_pdf_route_passes_sensitivity(monkeypatch):
     seen = {}
 
