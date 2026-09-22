@@ -67,6 +67,13 @@ def update_call_sheet(call_sheet_id):
         return jsonify({"error": str(e)}), 400
     if result is svc.NOT_FOUND:
         return jsonify({"error": "Call sheet not found"}), 404
+    # update_call_sheet_with_report returns the raw call_sheets row (every
+    # column, not just the ones this PATCH touched) -- redact it the same as
+    # the GET routes, or a caller without can_view_sensitive could read back
+    # previously-stored sensitive day-field/custom_values data just by
+    # PATCHing something unrelated.
+    template = tpl.get_template(g.resolved_production_id)["config"]
+    result = svc.redact_roster(result, g.production_access["can_view_sensitive"], template)
     return jsonify({"call_sheet": result, "ignored_keys": ignored})
 
 

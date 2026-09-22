@@ -94,6 +94,27 @@ def test_patch_invalid_value_is_400(monkeypatch):
     assert resp.status_code == 400 and "map" in resp.get_json()["error"]
 
 
+def test_patch_redacts_sensitive_day_fields_for_non_sensitive_member(monkeypatch):
+    """update_call_sheet returns the raw call_sheets row (every column,
+    including ones never touched by this PATCH) -- it must be redacted the
+    same as the GET routes, or a coordinator without can_view_sensitive can
+    read back previously-stored sensitive data just by PATCHing anything."""
+    cfg = _cfg()
+    next(f for f in cfg["day_fields"] if f["key"] == "nearest_hospital")["sensitive"] = True
+    store = _member_store("coordinator", can_edit_call_sheets=True)
+    store["casting"] = [{"id": "ca1", "script_id": "s1", "character_name": "HERO", "tier": "lead"}]
+    store["call_sheet_templates"] = [{"id": "t1", "production_id": "p1", "config": cfg,
+                                      "updated_at": "t"}]
+    store["call_sheets"] = [{"id": "cs1", "production_id": "p1", "shooting_day_id": "d1",
+                             "status": "draft", "nearest_hospital": "City Hospital"}]
+    _patch(monkeypatch, store)
+    resp = _client().patch("/api/call-sheets/cs1", json={"weather": "Sunny"})
+    assert resp.status_code == 200
+    body = resp.get_json()["call_sheet"]
+    assert body["nearest_hospital"] is None
+    assert body["weather"] == "Sunny"
+
+
 def test_pdf_route_passes_sensitivity(monkeypatch):
     seen = {}
 
