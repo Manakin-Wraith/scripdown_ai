@@ -67,7 +67,8 @@ def get_call_sheet(call_sheet_id):
 def update_call_sheet(call_sheet_id):
     data = request.get_json(silent=True) or {}
     try:
-        result, ignored = svc.update_call_sheet_with_report(call_sheet_id, data)
+        result, ignored = svc.update_call_sheet_with_report(
+            call_sheet_id, data, g.production_access["can_view_sensitive"])
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
     if result is svc.NOT_FOUND:
@@ -92,7 +93,8 @@ def add_call_sheet_crew(call_sheet_id):
         return jsonify({"error": "crew_id is required"}), 400
     try:
         result = svc.add_crew(call_sheet_id, crew_id, data.get("call_time"),
-                              data.get("notes"), data.get("extra"))
+                              data.get("notes"), data.get("extra"),
+                              g.production_access["can_view_sensitive"])
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
     if result == "not_found":
@@ -108,7 +110,8 @@ def add_call_sheet_crew(call_sheet_id):
 def update_call_sheet_crew(call_sheet_id, crew_id):
     data = request.get_json(silent=True) or {}
     try:
-        result = svc.update_crew_call(call_sheet_id, crew_id, data)
+        result = svc.update_crew_call(call_sheet_id, crew_id, data,
+                                      g.production_access["can_view_sensitive"])
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
     if result == "not_found":
@@ -134,7 +137,8 @@ def add_call_sheet_cast(call_sheet_id):
         return jsonify({"error": "casting_id is required"}), 400
     try:
         result = svc.add_cast(call_sheet_id, casting_id, data.get("call_time"),
-                              data.get("status_code"), data.get("notes"), data.get("extra"))
+                              data.get("status_code"), data.get("notes"), data.get("extra"),
+                              g.production_access["can_view_sensitive"])
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
     if result == "not_found":
@@ -150,7 +154,8 @@ def add_call_sheet_cast(call_sheet_id):
 def update_call_sheet_cast(call_sheet_id, casting_id):
     data = request.get_json(silent=True) or {}
     try:
-        result = svc.update_cast_call(call_sheet_id, casting_id, data)
+        result = svc.update_cast_call(call_sheet_id, casting_id, data,
+                                      g.production_access["can_view_sensitive"])
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
     if result == "not_found":

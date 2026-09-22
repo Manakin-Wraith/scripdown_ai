@@ -296,3 +296,105 @@ def test_render_context_advanced_none_on_last_day(monkeypatch):
     sb = patch_svc(monkeypatch, store)
     ctx = svc._render_context(sb, svc.get_call_sheet("cs1"), store["shooting_days"][2])
     assert ctx["advanced"] is None
+
+
+# ---------- Fix 1: write-side sensitivity gating ----------
+# A member with can_edit_call_sheets but WITHOUT can_view_sensitive must not
+# be able to WRITE a sensitive key just because redact_roster only filters
+# what's read back. can_view_sensitive=False must strip sensitive keys
+# before they ever reach merge_values/merge_nested.
+
+def test_patch_without_sensitive_access_drops_sensitive_custom_value(monkeypatch):
+    store = make_store(cfg=_sensitive_cfg(), call_sheets=[sheet_row(custom_values={})])
+    patch_svc(monkeypatch, store)
+    row, ignored = svc.update_call_sheet_with_report(
+        "cs1", {"custom_values": {"secret": "leaked", "wind": "SSW"}}, can_view_sensitive=False)
+    assert row["custom_values"] == {"wind": "SSW"}
+    assert "secret" in ignored
+    # Confirm it never reached the store, not just that the response omits it.
+    stored = next(r for r in store["call_sheets"] if r["id"] == "cs1")
+    assert stored["custom_values"] == {"wind": "SSW"}
+
+
+def test_patch_without_sensitive_access_drops_sensitive_scene_extra(monkeypatch):
+    store = make_store(
+        cfg=_sensitive_cfg(),
+        scenes=[{"id": "sc1", "scene_number": "1"}],
+        shooting_day_scenes=[{"shooting_day_id": "d1", "scene_id": "sc1", "sort_order": 0}],
+        call_sheets=[sheet_row(scene_extras={})],
+    )
+    patch_svc(monkeypatch, store)
+    row, ignored = svc.update_call_sheet_with_report(
+        "cs1", {"scene_extras": {"sc1": {"budget": "9999", "story_day": "Day 4"}}},
+        can_view_sensitive=False)
+    assert row["scene_extras"] == {"sc1": {"story_day": "Day 4"}}
+    assert "sc1.budget" in ignored
+    stored = next(r for r in store["call_sheets"] if r["id"] == "cs1")
+    assert stored["scene_extras"] == {"sc1": {"story_day": "Day 4"}}
+
+
+def test_patch_with_sensitive_access_keeps_sensitive_values(monkeypatch):
+    store = make_store(cfg=_sensitive_cfg(), call_sheets=[sheet_row(custom_values={})])
+    patch_svc(monkeypatch, store)
+    row, ignored = svc.update_call_sheet_with_report(
+        "cs1", {"custom_values": {"secret": "ok-to-see"}}, can_view_sensitive=True)
+    assert row["custom_values"] == {"secret": "ok-to-see"}
+    assert ignored == []
+
+
+def test_add_crew_without_sensitive_access_drops_sensitive_extra_key(monkeypatch):
+    patch_svc(monkeypatch, make_store(cfg=_sensitive_cfg(),
+                                       production_crew=[{"id": "cr1", "production_id": "p1", "contact_id": None}]))
+    row = svc.add_crew("cs1", "cr1", extra={"vehicle": "Van 2", "note": "n"}, can_view_sensitive=False)
+    assert row["extra"] == {"note": "n"}
+
+
+def test_add_cast_without_sensitive_access_drops_sensitive_extra_key(monkeypatch):
+    patch_svc(monkeypatch, make_store(
+        cfg=_sensitive_cfg(),
+        casting=[{"id": "ca1", "script_id": "s1", "character_name": "HERO", "actor_name": "Jo", "tier": "lead"}]))
+    row = svc.add_cast("cs1", "ca1", extra={"pickup": "06:15:00", "fee": "1000"}, can_view_sensitive=False)
+    assert row["extra"] == {"pickup": "06:15"}
+
+
+def test_add_crew_with_sensitive_access_keeps_sensitive_extra_key(monkeypatch):
+    patch_svc(monkeypatch, make_store(cfg=_sensitive_cfg(),
+                                       production_crew=[{"id": "cr1", "production_id": "p1", "contact_id": None}]))
+    row = svc.add_crew("cs1", "cr1", extra={"vehicle": "Van 2"}, can_view_sensitive=True)
+    assert row["extra"] == {"vehicle": "Van 2"}
+
+
+def test_update_crew_call_without_sensitive_access_drops_sensitive_extra_key(monkeypatch):
+    store = make_store(
+        cfg=_sensitive_cfg(),
+        production_crew=[{"id": "cr1", "production_id": "p1", "contact_id": None}],
+        call_sheet_crew=[{"id": "x", "call_sheet_id": "cs1", "crew_id": "cr1", "call_time": None, "extra": {}}])
+    patch_svc(monkeypatch, store)
+    row = svc.update_crew_call("cs1", "cr1", {"extra": {"vehicle": "Sneaky", "note": "n"}},
+                               can_view_sensitive=False)
+    assert row["extra"] == {"note": "n"}
+    stored = next(r for r in store["call_sheet_crew"] if r["crew_id"] == "cr1")
+    assert stored["extra"] == {"note": "n"}
+
+
+def test_update_cast_call_without_sensitive_access_drops_sensitive_extra_key(monkeypatch):
+    store = make_store(
+        cfg=_sensitive_cfg(),
+        casting=[{"id": "ca1", "script_id": "s1", "character_name": "H", "tier": "lead"}],
+        call_sheet_cast=[{"id": "y", "call_sheet_id": "cs1", "casting_id": "ca1", "call_time": None, "extra": {}}])
+    patch_svc(monkeypatch, store)
+    row = svc.update_cast_call("cs1", "ca1", {"extra": {"fee": "9999", "pickup": "08:00:00"}},
+                               can_view_sensitive=False)
+    assert row["extra"] == {"pickup": "08:00"}
+    stored = next(r for r in store["call_sheet_cast"] if r["casting_id"] == "ca1")
+    assert stored["extra"] == {"pickup": "08:00"}
+
+
+def test_update_cast_call_with_sensitive_access_keeps_sensitive_extra_key(monkeypatch):
+    store = make_store(
+        cfg=_sensitive_cfg(),
+        casting=[{"id": "ca1", "script_id": "s1", "character_name": "H", "tier": "lead"}],
+        call_sheet_cast=[{"id": "y", "call_sheet_id": "cs1", "casting_id": "ca1", "call_time": None, "extra": {}}])
+    patch_svc(monkeypatch, store)
+    row = svc.update_cast_call("cs1", "ca1", {"extra": {"fee": "9999"}}, can_view_sensitive=True)
+    assert row["extra"] == {"fee": "9999"}

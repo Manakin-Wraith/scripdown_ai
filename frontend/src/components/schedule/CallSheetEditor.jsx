@@ -240,16 +240,22 @@ const CallSheetEditor = ({ dayId, dayNumber, productionId, scriptId, onClose }) 
                         </ul>
                     </>
                 );
-            case 'scenes':
+            case 'scenes': {
+                const hasSceneColumns = template.scene_columns.some((c) => canSeeSensitive || !c.sensitive);
                 return (
                     <table className="cs-scene-table">
-                        <thead><tr><th>Sc</th><th>I/E</th><th>Set</th><th>D/N</th></tr></thead>
+                        <thead>
+                            <tr>
+                                <th>Sc</th><th>I/E</th><th>Set</th><th>D/N</th>
+                                {hasSceneColumns && <th>Custom</th>}
+                            </tr>
+                        </thead>
                         <tbody>
                             {(callSheet.scenes || []).map((s) => (
                                 <tr key={s.id}>
                                     <td>{s.scene_number}</td><td>{s.int_ext}</td>
                                     <td>{s.setting || s.location_canonical}</td><td>{s.time_of_day}</td>
-                                    {template.scene_columns.some((c) => canSeeSensitive || !c.sensitive) && (
+                                    {hasSceneColumns && (
                                         <td>
                                             <ColumnInputs columns={template.scene_columns}
                                                           values={(callSheet.scene_extras || {})[s.id]}
@@ -262,6 +268,7 @@ const CallSheetEditor = ({ dayId, dayNumber, productionId, scriptId, onClose }) 
                         </tbody>
                     </table>
                 );
+            }
             case 'cast':
                 return (
                     <>

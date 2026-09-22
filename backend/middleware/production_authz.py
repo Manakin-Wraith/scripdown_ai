@@ -58,7 +58,7 @@ def get_production_role(production_id, user_id):
 
 
 def get_production_access(production_id, user_id):
-    """dict(role + 4 capability booleans) | None | PRODUCTION_NOT_FOUND.
+    """dict(role + 6 capability booleans) | None | PRODUCTION_NOT_FOUND.
 
     Owner short-circuits to all-true. A member returns its row's stored
     flags. A non-member returns None.

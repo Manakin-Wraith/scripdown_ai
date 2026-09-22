@@ -185,8 +185,13 @@ def _render_notes(data, cfg, ctx):
     return _fields_html(data, cfg, "notes") + blocks
 
 
-GROUP_LABELS = (("crew", "Crew"), ("cast", "Cast"), ("add_crew", "Add. crew"), ("extras", "Extras"))
-MEAL_LABELS = (("craft", "Craft"), ("breakfast", "Breakfast"), ("lunch", "Lunch"), ("dinner", "Dinner"))
+# Derived from values.MEALS / values.CATERING_GROUPS -- the canonical sets
+# -- rather than listed independently, so this table's columns/rows can
+# never drift out of sync with what merge_nested actually accepts.
+_GROUP_DISPLAY = {"crew": "Crew", "cast": "Cast", "add_crew": "Add. crew", "extras": "Extras"}
+_MEAL_DISPLAY = {"craft": "Craft", "breakfast": "Breakfast", "lunch": "Lunch", "dinner": "Dinner"}
+GROUP_LABELS = tuple((g, _GROUP_DISPLAY.get(g, g.replace("_", " ").title())) for g in values.CATERING_GROUPS)
+MEAL_LABELS = tuple((m, _MEAL_DISPLAY.get(m, m.title())) for m in values.MEALS)
 
 
 def _render_extras(data, cfg, ctx):

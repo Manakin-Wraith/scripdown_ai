@@ -214,9 +214,50 @@ def get_call_sheet(call_sheet_id):
     }
 
 
-def update_call_sheet_with_report(call_sheet_id, fields):
+def _drop_sensitive_scalar_keys(incoming, sensitive_keys):
+    """Split a flat {key: value} payload into (kept, dropped_keys) -- used to
+    strip sensitive keys BEFORE they reach values.merge_values, so a writer
+    without can_view_sensitive can't sneak a sensitive value in even though
+    they'd never see it read back (redact_roster only filters responses)."""
+    if not isinstance(incoming, dict) or not sensitive_keys:
+        return incoming, []
+    dropped = [k for k in incoming if k in sensitive_keys]
+    if not dropped:
+        return incoming, []
+    return {k: v for k, v in incoming.items() if k not in sensitive_keys}, dropped
+
+
+def _drop_sensitive_nested_keys(incoming, sensitive_inner_keys):
+    """Same as _drop_sensitive_scalar_keys but for {outer: {inner: value}}
+    payloads (scene_extras, dept_overrides, catering) -- strips sensitive
+    inner keys per outer group. Returns (kept, dropped_paths) where dropped
+    paths are reported as 'outer.inner', matching merge_nested's own
+    ignored-key format."""
+    if not isinstance(incoming, dict) or not sensitive_inner_keys:
+        return incoming, []
+    kept, dropped = {}, []
+    for outer, inner in incoming.items():
+        if isinstance(inner, dict):
+            clean_inner, ign = _drop_sensitive_scalar_keys(inner, sensitive_inner_keys)
+            dropped.extend(f"{outer}.{k}" for k in ign)
+            kept[outer] = clean_inner
+        else:
+            kept[outer] = inner
+    return kept, dropped
+
+
+def update_call_sheet_with_report(call_sheet_id, fields, can_view_sensitive=True):
     """Returns (row | NOT_FOUND, ignored_keys). Raises ValueError on invalid values.
-    JSONB payloads merge per key; unknown keys are ignored, not stored."""
+    JSONB payloads merge per key; unknown keys are ignored, not stored.
+
+    `can_view_sensitive` gates writes too, not just the response redaction in
+    redact_roster: a caller without it has any sensitive key in
+    custom_values/dept_overrides/scene_extras/catering/header_values/
+    block_overrides silently dropped before it ever reaches merge_values, and
+    reported via the same ignored_keys list as unknown keys. Defaults to True
+    so any caller that doesn't pass it explicitly keeps prior behaviour --
+    the route layer is the one real caller and always passes the actual
+    capability."""
     supabase = get_supabase_admin()
     sheet = _get(supabase, call_sheet_id)
     if not sheet:
@@ -235,10 +276,17 @@ def update_call_sheet_with_report(call_sheet_id, fields):
 
     if "custom_values" in fields:
         types = {d["key"]: d["type"] for d in cfg["day_fields"] if not d["builtin"]}
+        incoming = fields["custom_values"]
+        if not can_view_sensitive:
+            sensitive = {d["key"] for d in cfg["day_fields"] if not d["builtin"] and d.get("sensitive")}
+            incoming, dropped = _drop_sensitive_scalar_keys(incoming, sensitive)
+            ignored += dropped
         patch["custom_values"], ign = values.merge_values(
-            sheet.get("custom_values"), fields["custom_values"], types)
+            sheet.get("custom_values"), incoming, types)
         ignored += ign
     if "dept_overrides" in fields:
+        # departments carry no per-field sensitivity flag (see
+        # call_sheet_template_service) -- nothing to drop here.
         patch["dept_overrides"], ign = values.merge_nested(
             sheet.get("dept_overrides"), fields["dept_overrides"],
             {d["key"] for d in cfg["departments"]}, {"call": "time", "as_per": "text"})
@@ -246,10 +294,16 @@ def update_call_sheet_with_report(call_sheet_id, fields):
     if "scene_extras" in fields:
         scene_ids = {s["id"] for s in get_day_scenes(supabase, sheet["shooting_day_id"])}
         types = {c["key"]: c["type"] for c in cfg["scene_columns"]}
+        incoming = fields["scene_extras"]
+        if not can_view_sensitive:
+            sensitive = _sensitive_keys(cfg, "scene_columns")
+            incoming, dropped = _drop_sensitive_nested_keys(incoming, sensitive)
+            ignored += dropped
         patch["scene_extras"], ign = values.merge_nested(
-            sheet.get("scene_extras"), fields["scene_extras"], scene_ids, types)
+            sheet.get("scene_extras"), incoming, scene_ids, types)
         ignored += ign
     if "catering" in fields:
+        # catering counts aren't template-column-flagged sensitive; nothing to drop.
         patch["catering"], ign = values.merge_nested(
             sheet.get("catering"), fields["catering"], set(values.MEALS),
             {g: "count" for g in values.CATERING_GROUPS})
@@ -272,11 +326,26 @@ def update_call_sheet_with_report(call_sheet_id, fields):
     return (res.data[0] if res.data else NOT_FOUND), ignored
 
 
-def update_call_sheet(call_sheet_id, fields):
-    return update_call_sheet_with_report(call_sheet_id, fields)[0]
+def update_call_sheet(call_sheet_id, fields, can_view_sensitive=True):
+    return update_call_sheet_with_report(call_sheet_id, fields, can_view_sensitive)[0]
 
 
-def add_crew(call_sheet_id, crew_id, call_time=None, notes=None, extra=None):
+def _strip_sensitive_extra(supabase, sheet, list_key, extra, can_view_sensitive):
+    """Drop sensitive `list_key` columns (crew_columns/cast_columns) from an
+    `extra` payload before it reaches values.merge_values, when the caller
+    lacks can_view_sensitive. Dropped keys are silently discarded -- same
+    treatment as any other invalid/unknown key in this roster `extra`
+    merge, per the module's existing pattern (no ignored_keys reporting here)."""
+    if can_view_sensitive or not extra:
+        return extra
+    cfg = tpl.get_template(sheet["production_id"], supabase)["config"]
+    sensitive = _sensitive_keys(cfg, list_key)
+    if not sensitive:
+        return extra
+    return {k: v for k, v in extra.items() if k not in sensitive}
+
+
+def add_crew(call_sheet_id, crew_id, call_time=None, notes=None, extra=None, can_view_sensitive=True):
     supabase = get_supabase_admin()
     sheet = _get(supabase, call_sheet_id)
     if not sheet:
@@ -285,6 +354,7 @@ def add_crew(call_sheet_id, crew_id, call_time=None, notes=None, extra=None):
                 .eq("id", crew_id).limit(1).execute())
     if not crew_res.data or crew_res.data[0].get("production_id") != sheet["production_id"]:
         return "cross_production"
+    extra = _strip_sensitive_extra(supabase, sheet, "crew_columns", extra, can_view_sensitive)
     extra_clean, _ = values.merge_values(
         {}, extra or {}, _column_types(supabase, sheet, "crew_columns"))
     row = {"call_sheet_id": call_sheet_id, "crew_id": crew_id,
@@ -301,7 +371,7 @@ def remove_crew(call_sheet_id, crew_id):
 _CREW_CALL_FIELDS = ("call_time", "notes")
 
 
-def update_crew_call(call_sheet_id, crew_id, fields):
+def update_crew_call(call_sheet_id, crew_id, fields, can_view_sensitive=True):
     """UPDATE (not insert) an existing call_sheet_crew row -- crew rows are
     added once via add_crew and then edited in place (a plain insert would
     collide with UNIQUE (call_sheet_id, crew_id)). `extra` merges per key."""
@@ -316,8 +386,9 @@ def update_crew_call(call_sheet_id, crew_id, fields):
         return "not_found"
     patch = {f: fields[f] for f in _CREW_CALL_FIELDS if f in fields}
     if "extra" in fields:
+        extra = _strip_sensitive_extra(supabase, sheet, "crew_columns", fields["extra"], can_view_sensitive)
         patch["extra"], _ = values.merge_values(
-            existing.data[0].get("extra"), fields["extra"],
+            existing.data[0].get("extra"), extra,
             _column_types(supabase, sheet, "crew_columns"))
     if not patch:
         return _embed_crew(supabase, existing.data)[0]
@@ -326,7 +397,8 @@ def update_crew_call(call_sheet_id, crew_id, fields):
     return _embed_crew(supabase, [res.data[0]])[0] if res.data else "not_found"
 
 
-def add_cast(call_sheet_id, casting_id, call_time=None, status_code=None, notes=None, extra=None):
+def add_cast(call_sheet_id, casting_id, call_time=None, status_code=None, notes=None, extra=None,
+             can_view_sensitive=True):
     supabase = get_supabase_admin()
     sheet = _get(supabase, call_sheet_id)
     if not sheet:
@@ -336,6 +408,7 @@ def add_cast(call_sheet_id, casting_id, call_time=None, status_code=None, notes=
                    .eq("id", casting_id).limit(1).execute())
     if not casting_res.data or casting_res.data[0].get("script_id") != script_id:
         return "cross_script"
+    extra = _strip_sensitive_extra(supabase, sheet, "cast_columns", extra, can_view_sensitive)
     extra_clean, _ = values.merge_values(
         {}, extra or {}, _column_types(supabase, sheet, "cast_columns"))
     row = {"call_sheet_id": call_sheet_id, "casting_id": casting_id,
@@ -353,7 +426,7 @@ def remove_cast(call_sheet_id, casting_id):
 _CAST_CALL_FIELDS = ("call_time", "status_code", "notes")
 
 
-def update_cast_call(call_sheet_id, casting_id, fields):
+def update_cast_call(call_sheet_id, casting_id, fields, can_view_sensitive=True):
     """UPDATE counterpart to add_cast -- same UNIQUE constraint rationale;
     `extra` merges per key."""
     supabase = get_supabase_admin()
@@ -367,8 +440,9 @@ def update_cast_call(call_sheet_id, casting_id, fields):
         return "not_found"
     patch = {f: fields[f] for f in _CAST_CALL_FIELDS if f in fields}
     if "extra" in fields:
+        extra = _strip_sensitive_extra(supabase, sheet, "cast_columns", fields["extra"], can_view_sensitive)
         patch["extra"], _ = values.merge_values(
-            existing.data[0].get("extra"), fields["extra"],
+            existing.data[0].get("extra"), extra,
             _column_types(supabase, sheet, "cast_columns"))
     if not patch:
         return _embed_cast(supabase, existing.data)[0]
