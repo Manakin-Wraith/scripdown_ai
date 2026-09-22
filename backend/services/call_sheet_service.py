@@ -17,13 +17,25 @@ except ImportError:
 
 from services.report_service import report_service
 from services import department_service
+from services import call_sheet_template_service as tpl
+from services import call_sheet_values as values
 
 NOT_FOUND = object()
 
 DAY_INFO_FIELDS = (
     "weather", "sunrise_time", "sunset_time", "breakfast_time", "lunch_time",
     "nearest_hospital", "parking_notes", "safety_notes", "general_notes",
+    "general_call",
 )
+_TIME_FIELDS = ("sunrise_time", "sunset_time", "breakfast_time", "lunch_time", "general_call")
+
+
+def _safe_time(value):
+    """HH:MM:SS -> HH:MM for display; leave anything unparseable untouched."""
+    try:
+        return values.normalize_time(value)
+    except ValueError:
+        return value
 
 
 def _resolve_production_id(supabase, shooting_day_id):
@@ -172,27 +184,89 @@ def get_call_sheet(call_sheet_id):
     locations = (supabase.table("call_sheet_locations").select("*")
                  .eq("call_sheet_id", call_sheet_id)
                  .order("sort_order", desc=False).execute().data or [])
+    crew = _embed_crew(supabase, crew)
+    cast = _embed_cast(supabase, cast)
+    for r in crew + cast:
+        r["call_time"] = _safe_time(r.get("call_time"))
+    sheet = dict(row)
+    for f in _TIME_FIELDS:
+        if f in sheet:
+            sheet[f] = _safe_time(sheet[f])
+    template = tpl.get_template(row["production_id"], supabase)
+    defaults = values.catering_defaults(crew, cast)
     return {
-        **row,
-        "crew": _embed_crew(supabase, crew),
-        "cast": _embed_cast(supabase, cast),
+        **sheet,
+        "crew": crew,
+        "cast": cast,
         "locations": _embed_locations(supabase, locations),
         "scenes": get_day_scenes(supabase, row["shooting_day_id"]),
+        "template": template["config"],
+        "template_updated_at": template["updated_at"],
+        "catering_defaults": defaults,
+        "catering_effective": values.effective_catering(defaults, row.get("catering")),
     }
 
 
-def update_call_sheet(call_sheet_id, fields):
+def update_call_sheet_with_report(call_sheet_id, fields):
+    """Returns (row | NOT_FOUND, ignored_keys). Raises ValueError on invalid values.
+    JSONB payloads merge per key; unknown keys are ignored, not stored."""
     supabase = get_supabase_admin()
-    if not _get(supabase, call_sheet_id):
-        return NOT_FOUND
-    patch = {f: fields[f] for f in DAY_INFO_FIELDS if f in fields}
+    sheet = _get(supabase, call_sheet_id)
+    if not sheet:
+        return NOT_FOUND, []
+    cfg = tpl.get_template(sheet["production_id"], supabase)["config"]
+    patch, ignored = {}, []
+
+    for f in DAY_INFO_FIELDS:
+        if f in fields:
+            try:
+                patch[f] = values.validate_value(tpl.BUILTIN_TYPES[f], fields[f])
+            except ValueError as e:
+                raise ValueError(f"{f}: {e}")
     if "status" in fields and fields["status"] in ("draft", "published"):
         patch["status"] = fields["status"]
+
+    if "custom_values" in fields:
+        types = {d["key"]: d["type"] for d in cfg["day_fields"] if not d["builtin"]}
+        patch["custom_values"], ign = values.merge_values(
+            sheet.get("custom_values"), fields["custom_values"], types)
+        ignored += ign
+    if "dept_overrides" in fields:
+        patch["dept_overrides"], ign = values.merge_nested(
+            sheet.get("dept_overrides"), fields["dept_overrides"],
+            {d["key"] for d in cfg["departments"]}, {"call": "time", "as_per": "text"})
+        ignored += ign
+    if "scene_extras" in fields:
+        scene_ids = {s["id"] for s in get_day_scenes(supabase, sheet["shooting_day_id"])}
+        types = {c["key"]: c["type"] for c in cfg["scene_columns"]}
+        patch["scene_extras"], ign = values.merge_nested(
+            sheet.get("scene_extras"), fields["scene_extras"], scene_ids, types)
+        ignored += ign
+    if "catering" in fields:
+        patch["catering"], ign = values.merge_nested(
+            sheet.get("catering"), fields["catering"], set(values.MEALS),
+            {g: "count" for g in values.CATERING_GROUPS})
+        ignored += ign
+    if "header_values" in fields:
+        patch["header_values"], ign = values.merge_values(
+            sheet.get("header_values"), fields["header_values"],
+            {k["key"]: "text" for k in cfg["key_crew"]})
+        ignored += ign
+    if "block_overrides" in fields:
+        patch["block_overrides"], ign = values.merge_values(
+            sheet.get("block_overrides"), fields["block_overrides"],
+            {b["key"]: "textarea" for b in cfg["blocks"]})
+        ignored += ign
+
     if not patch:
-        return _get(supabase, call_sheet_id)
+        return _get(supabase, call_sheet_id), ignored
     res = (supabase.table("call_sheets").update(patch)
            .eq("id", call_sheet_id).execute())
-    return res.data[0] if res.data else NOT_FOUND
+    return (res.data[0] if res.data else NOT_FOUND), ignored
+
+
+def update_call_sheet(call_sheet_id, fields):
+    return update_call_sheet_with_report(call_sheet_id, fields)[0]
 
 
 def add_crew(call_sheet_id, crew_id, call_time=None, notes=None):

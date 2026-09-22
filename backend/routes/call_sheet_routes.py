@@ -52,10 +52,13 @@ def get_call_sheet(call_sheet_id):
 @require_production_role(capability="can_edit_call_sheets", resolver=from_call_sheet_id)
 def update_call_sheet(call_sheet_id):
     data = request.get_json(silent=True) or {}
-    result = svc.update_call_sheet(call_sheet_id, data)
+    try:
+        result, ignored = svc.update_call_sheet_with_report(call_sheet_id, data)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
     if result is svc.NOT_FOUND:
         return jsonify({"error": "Call sheet not found"}), 404
-    return jsonify({"call_sheet": result})
+    return jsonify({"call_sheet": result, "ignored_keys": ignored})
 
 
 @call_sheet_bp.route("/api/call-sheets/<call_sheet_id>/crew", methods=["POST"])
