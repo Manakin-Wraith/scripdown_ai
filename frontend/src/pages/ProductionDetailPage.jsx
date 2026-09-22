@@ -10,11 +10,12 @@ import ProductionOverviewTab from '../components/productions/ProductionOverviewT
 import ProductionCrewTab from '../components/productions/ProductionCrewTab';
 import ProductionLocationsTab from '../components/productions/ProductionLocationsTab';
 import ProductionMembersTab from '../components/productions/ProductionMembersTab';
+import ProductionCallSheetTab from '../components/productions/ProductionCallSheetTab';
 import './ProductionPages.css';
 
 const NO_ACCESS = {
     role: null, can_view_sensitive: false, can_edit_crew: false,
-    can_manage_members: false, can_edit_production: false,
+    can_manage_members: false, can_edit_production: false, can_edit_call_sheet_template: false,
 };
 
 export default function ProductionDetailPage() {
@@ -61,6 +62,7 @@ export default function ProductionDetailPage() {
     useEffect(() => {
         if (activeTab === 'crew' && !isMember) setActiveTab('overview');
         if (activeTab === 'locations' && !isMember) setActiveTab('overview');
+        if (activeTab === 'callsheet' && !isMember) setActiveTab('overview');
         if (activeTab === 'members' && !canManageMembers) setActiveTab('overview');
     }, [activeTab, isMember, canManageMembers]);
 
@@ -116,6 +118,7 @@ export default function ProductionDetailPage() {
     const tabs = [{ id: 'overview', label: 'Overview' }];
     if (isMember) tabs.push({ id: 'crew', label: 'Crew' });
     if (isMember) tabs.push({ id: 'locations', label: 'Locations' });
+    if (isMember) tabs.push({ id: 'callsheet', label: 'Call Sheet' });
     if (canManageMembers) tabs.push({ id: 'members', label: 'Members' });
 
     return (
@@ -157,6 +160,9 @@ export default function ProductionDetailPage() {
             )}
             {activeTab === 'locations' && isMember && (
                 <ProductionLocationsTab productionId={productionId} access={access} />
+            )}
+            {activeTab === 'callsheet' && isMember && (
+                <ProductionCallSheetTab productionId={productionId} access={access} />
             )}
             {activeTab === 'members' && canManageMembers && (
                 <ProductionMembersTab productionId={productionId} access={access} />

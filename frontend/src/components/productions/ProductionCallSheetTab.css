@@ -1,0 +1,35 @@
+.cst-tab { display: flex; flex-direction: column; gap: 16px; padding-top: 16px; color: #e6ecf5; }
+.cst-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.cst-intro { margin: 0; color: #9fb0c9; font-size: 14px; }
+.cst-toolbar-actions { display: flex; align-items: center; gap: 8px; }
+.cst-toolbar button, .cst-add {
+    background: #26324a; color: #e6ecf5; border: none; border-radius: 6px;
+    padding: 6px 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;
+}
+.cst-toolbar button:hover, .cst-add:hover { background: #33415a; }
+.cst-toolbar button:disabled { opacity: 0.5; cursor: default; }
+.cst-primary { background: #f5b301 !important; color: #1a1300 !important; font-weight: 600; }
+.cst-dirty { color: #f5b301; font-size: 13px; }
+.cst-panel { background: #182135; border: 1px solid #26324a; border-radius: 8px; padding: 12px 14px; }
+.cst-panel-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 8px; flex-wrap: wrap; }
+.cst-panel-head h4 { margin: 0; font-size: 14px; }
+.cst-hint { color: #6b7a94; font-size: 12px; }
+.cst-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 4px 0; }
+.cst-row input:not([type="checkbox"]), .cst-row select, .cst-row textarea {
+    background: #0f1729; color: #e6ecf5; border: 1px solid #26324a; border-radius: 6px;
+    padding: 5px 8px; font-size: 13px; font-family: inherit;
+}
+.cst-row input:not([type="checkbox"]) { flex: 1 1 140px; min-width: 0; }
+.cst-row textarea { flex: 2 1 260px; }
+.cst-row input:disabled, .cst-row select:disabled, .cst-row textarea:disabled { opacity: 0.6; }
+.cst-check { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: #9fb0c9; }
+.cst-key { color: #6b7a94; font-size: 11px; font-family: monospace; }
+.cst-actions { display: inline-flex; gap: 4px; }
+.cst-actions button {
+    background: none; border: 1px solid #26324a; color: #9fb0c9; border-radius: 6px;
+    padding: 4px; cursor: pointer; display: inline-flex;
+}
+.cst-actions button:hover:not(:disabled) { color: #e6ecf5; border-color: #33415a; }
+.cst-actions button:disabled { opacity: 0.35; cursor: default; }
+.cst-add { margin-top: 8px; }
+.cst-error { flex-basis: 100%; color: #f87171; font-size: 12px; }
