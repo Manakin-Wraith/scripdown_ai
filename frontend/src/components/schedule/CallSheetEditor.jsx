@@ -10,19 +10,10 @@ import {
 } from '../../services/apiService';
 import { Spinner } from '../ui';
 import { useToast } from '../../context/ToastContext';
+import {
+    DayFieldsPanel, KeyCrewPanel, BlocksPanel, DeptCallsPanel, CateringPanel, ColumnInputs,
+} from './CallSheetPanels';
 import './CallSheetEditor.css';
-
-const DAY_INFO_FIELDS = [
-    ['weather', 'Weather', 'text'],
-    ['sunrise_time', 'Sunrise', 'time'],
-    ['sunset_time', 'Sunset', 'time'],
-    ['breakfast_time', 'Breakfast', 'time'],
-    ['lunch_time', 'Lunch', 'time'],
-    ['nearest_hospital', 'Nearest Hospital', 'text'],
-    ['parking_notes', 'Parking Notes', 'text'],
-    ['safety_notes', 'Safety / COVID Officer', 'text'],
-    ['general_notes', 'General Notes', 'textarea'],
-];
 
 const CallSheetEditor = ({ dayId, dayNumber, productionId, scriptId, onClose }) => {
     const toast = useToast();
@@ -89,21 +80,30 @@ const CallSheetEditor = ({ dayId, dayNumber, productionId, scriptId, onClose }) 
 
     useEffect(() => { load(); }, [load]);
 
-    const patchField = async (field, value) => {
+    // One save path for every day-level edit. Keys the template no longer
+    // defines come back in ignored_keys -> reload so the UI matches the template.
+    const patchCallSheet = async (payload, { reload = false } = {}) => {
         setSaving(true);
         try {
-            const res = await updateCallSheet(callSheet.id, { [field]: value });
-            setCallSheet((prev) => ({ ...prev, ...res.call_sheet }));
+            const res = await updateCallSheet(callSheet.id, payload);
+            if (res.ignored_keys?.length) {
+                toast.warning('Template changed', 'Some fields were removed from the template. Reloading.');
+                await load();
+            } else if (reload) {
+                await load();
+            } else {
+                setCallSheet((prev) => ({ ...prev, ...res.call_sheet }));
+            }
         } catch (err) {
             console.error('Failed to update call sheet:', err);
-            toast.error('Update Failed', 'Could not save that change.');
+            toast.error('Update Failed', err.response?.data?.error || 'Could not save that change.');
         } finally {
             setSaving(false);
         }
     };
 
-    const publish = () => patchField('status', 'published');
-    const unpublish = () => patchField('status', 'draft');
+    const publish = () => patchCallSheet({ status: 'published' });
+    const unpublish = () => patchCallSheet({ status: 'draft' });
 
     const addCrewRow = async (crewId) => {
         if (!crewId) return;
@@ -115,12 +115,12 @@ const CallSheetEditor = ({ dayId, dayNumber, productionId, scriptId, onClose }) 
         }
     };
 
-    const updateCrewCallTime = async (crewId, callTime) => {
+    const updateCrewRow = async (crewId, payload) => {
         try {
-            await updateCallSheetCrew(callSheet.id, crewId, { call_time: callTime || null });
+            await updateCallSheetCrew(callSheet.id, crewId, payload);
             await load();
         } catch (err) {
-            toast.error('Error', err.response?.data?.error || 'Could not update call time.');
+            toast.error('Error', err.response?.data?.error || 'Could not update crew row.');
         }
     };
 
@@ -154,12 +154,12 @@ const CallSheetEditor = ({ dayId, dayNumber, productionId, scriptId, onClose }) 
         }
     };
 
-    const updateCastCallTime = async (castingId, callTime) => {
+    const updateCastRow = async (castingId, payload) => {
         try {
-            await updateCallSheetCast(callSheet.id, castingId, { call_time: callTime || null });
+            await updateCallSheetCast(callSheet.id, castingId, payload);
             await load();
         } catch (err) {
-            toast.error('Error', err.response?.data?.error || 'Could not update call time.');
+            toast.error('Error', err.response?.data?.error || 'Could not update cast row.');
         }
     };
 
@@ -190,6 +190,133 @@ const CallSheetEditor = ({ dayId, dayNumber, productionId, scriptId, onClose }) 
         );
     }
 
+    const template = callSheet.template;
+    const canSeeSensitive = !!callSheet.can_view_sensitive;
+    const extrasVisible = template.sections.some((s) => s.key === 'extras' && s.visible);
+    const isBackground = (row) => row.casting?.tier === 'background';
+    const castRows = extrasVisible ? (callSheet.cast || []).filter((r) => !isBackground(r)) : (callSheet.cast || []);
+    const extrasRows = extrasVisible ? (callSheet.cast || []).filter(isBackground) : [];
+
+    const castList = (rows) => (
+        <ul className="cs-roster-list">
+            {rows.map((row) => (
+                <li key={row.id}>
+                    {row.casting?.character_name} ({row.casting?.actor_name || 'unbooked'})
+                    <input type="time" defaultValue={row.call_time || ''}
+                           onBlur={(e) => updateCastRow(row.casting_id, { call_time: e.target.value || null })} />
+                    <button onClick={() => removeCastRow(row.casting_id)}>Remove</button>
+                    <ColumnInputs columns={template.cast_columns} values={row.extra} canSeeSensitive={canSeeSensitive}
+                                  onCommit={(key, value) => updateCastRow(row.casting_id, { extra: { [key]: value } })} />
+                </li>
+            ))}
+        </ul>
+    );
+
+    const renderSection = (key) => {
+        switch (key) {
+            case 'header':
+                return (
+                    <>
+                        <DayFieldsPanel callSheet={callSheet} section="header" onPatch={patchCallSheet} />
+                        <KeyCrewPanel callSheet={callSheet} onPatch={patchCallSheet} />
+                    </>
+                );
+            case 'day_info':
+                return <DayFieldsPanel callSheet={callSheet} section="day_info" onPatch={patchCallSheet} />;
+            case 'locations':
+                return (
+                    <>
+                        <select defaultValue="" onChange={(e) => addLocationRow(e.target.value)}>
+                            <option value="" disabled>Add a location…</option>
+                            {locationOptions.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+                        </select>
+                        <ul className="cs-roster-list">
+                            {(callSheet.locations || []).map((row) => (
+                                <li key={row.id}>
+                                    {row.location?.name} {row.is_primary && '(Primary)'}
+                                    <button onClick={() => removeLocationRow(row.location_id)}>Remove</button>
+                                </li>
+                            ))}
+                        </ul>
+                    </>
+                );
+            case 'scenes':
+                return (
+                    <table className="cs-scene-table">
+                        <thead><tr><th>Sc</th><th>I/E</th><th>Set</th><th>D/N</th></tr></thead>
+                        <tbody>
+                            {(callSheet.scenes || []).map((s) => (
+                                <tr key={s.id}>
+                                    <td>{s.scene_number}</td><td>{s.int_ext}</td>
+                                    <td>{s.setting || s.location_canonical}</td><td>{s.time_of_day}</td>
+                                    {template.scene_columns.some((c) => canSeeSensitive || !c.sensitive) && (
+                                        <td>
+                                            <ColumnInputs columns={template.scene_columns}
+                                                          values={(callSheet.scene_extras || {})[s.id]}
+                                                          canSeeSensitive={canSeeSensitive}
+                                                          onCommit={(k, v) => patchCallSheet({ scene_extras: { [s.id]: { [k]: v } } })} />
+                                        </td>
+                                    )}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                );
+            case 'cast':
+                return (
+                    <>
+                        <select defaultValue="" onChange={(e) => addCastRow(e.target.value)}>
+                            <option value="" disabled>Add a cast member…</option>
+                            {castOptions.map((c) => (
+                                <option key={c.id} value={c.id}>{c.character_name} — {c.actor_name || 'unbooked'}</option>
+                            ))}
+                        </select>
+                        {castList(castRows)}
+                    </>
+                );
+            case 'extras':
+                return extrasRows.length
+                    ? castList(extrasRows)
+                    : <p className="cs-note">Background cast added in the Cast section appear here.</p>;
+            case 'crew':
+                return (
+                    <>
+                        <select defaultValue="" onChange={(e) => addCrewRow(e.target.value)}>
+                            <option value="" disabled>Add a crew member…</option>
+                            {crewOptions.map((c) => <option key={c.id} value={c.id}>{c.contact?.name} — {c.role}</option>)}
+                        </select>
+                        <ul className="cs-roster-list">
+                            {(callSheet.crew || []).map((row) => (
+                                <li key={row.id}>
+                                    {row.crew?.contact?.name}
+                                    <input type="time" defaultValue={row.call_time || ''}
+                                           onBlur={(e) => updateCrewRow(row.crew_id, { call_time: e.target.value || null })} />
+                                    <button onClick={() => removeCrewRow(row.crew_id)}>Remove</button>
+                                    <ColumnInputs columns={template.crew_columns} values={row.extra} canSeeSensitive={canSeeSensitive}
+                                                  onCommit={(k, v) => updateCrewRow(row.crew_id, { extra: { [k]: v } })} />
+                                </li>
+                            ))}
+                        </ul>
+                    </>
+                );
+            case 'dept_calls':
+                return <DeptCallsPanel callSheet={callSheet} onPatch={patchCallSheet} />;
+            case 'catering':
+                return <CateringPanel callSheet={callSheet} onPatch={patchCallSheet} />;
+            case 'notes':
+                return (
+                    <>
+                        <DayFieldsPanel callSheet={callSheet} section="notes" onPatch={patchCallSheet} />
+                        <BlocksPanel callSheet={callSheet} onPatch={patchCallSheet} />
+                    </>
+                );
+            case 'advanced':
+                return <p className="cs-note">The next shooting day&rsquo;s scenes are added to the PDF automatically.</p>;
+            default:
+                return null;
+        }
+    };
+
     return (
         <div className="cs-modal-backdrop" onClick={onClose}>
             <div className="cs-modal" onClick={(e) => e.stopPropagation()}>
@@ -200,112 +327,16 @@ const CallSheetEditor = ({ dayId, dayNumber, productionId, scriptId, onClose }) 
                 </div>
 
                 <div className="cs-modal-body">
-                    <section className="cs-section">
-                        <h4>Day Info</h4>
-                        {DAY_INFO_FIELDS.map(([field, label, type]) => (
-                            <label key={field} className="cs-field">
-                                <span>{label}</span>
-                                {type === 'textarea' ? (
-                                    <textarea
-                                        defaultValue={callSheet[field] || ''}
-                                        onBlur={(e) => patchField(field, e.target.value)}
-                                    />
-                                ) : (
-                                    <input
-                                        type={type}
-                                        defaultValue={callSheet[field] || ''}
-                                        onBlur={(e) => patchField(field, type === 'time' ? (e.target.value || null) : e.target.value)}
-                                    />
-                                )}
-                            </label>
-                        ))}
-                    </section>
-
-                    <section className="cs-section">
-                        <h4>Locations</h4>
-                        <select defaultValue="" onChange={(e) => addLocationRow(e.target.value)}>
-                            <option value="" disabled>Add a location…</option>
-                            {locationOptions.map((l) => (
-                                <option key={l.id} value={l.id}>{l.name}</option>
-                            ))}
-                        </select>
-                        <ul className="cs-roster-list">
-                            {(callSheet.locations || []).map((row) => (
-                                <li key={row.id}>
-                                    {row.location?.name} {row.is_primary && '(Primary)'}
-                                    <button onClick={() => removeLocationRow(row.location_id)}>Remove</button>
-                                </li>
-                            ))}
-                        </ul>
-                    </section>
-
-                    <section className="cs-section">
-                        <h4>Crew</h4>
-                        <select defaultValue="" onChange={(e) => addCrewRow(e.target.value)}>
-                            <option value="" disabled>Add a crew member…</option>
-                            {crewOptions.map((c) => (
-                                <option key={c.id} value={c.id}>{c.contact?.name} — {c.role}</option>
-                            ))}
-                        </select>
-                        <ul className="cs-roster-list">
-                            {(callSheet.crew || []).map((row) => (
-                                <li key={row.id}>
-                                    {row.crew?.contact?.name}
-                                    <input
-                                        type="time"
-                                        defaultValue={row.call_time || ''}
-                                        onBlur={(e) => updateCrewCallTime(row.crew_id, e.target.value)}
-                                    />
-                                    <button onClick={() => removeCrewRow(row.crew_id)}>Remove</button>
-                                </li>
-                            ))}
-                        </ul>
-                    </section>
-
-                    <section className="cs-section">
-                        <h4>Cast</h4>
-                        <select defaultValue="" onChange={(e) => addCastRow(e.target.value)}>
-                            <option value="" disabled>Add a cast member…</option>
-                            {castOptions.map((c) => (
-                                <option key={c.id} value={c.id}>{c.character_name} — {c.actor_name || 'unbooked'}</option>
-                            ))}
-                        </select>
-                        <ul className="cs-roster-list">
-                            {(callSheet.cast || []).map((row) => (
-                                <li key={row.id}>
-                                    {row.casting?.character_name} ({row.casting?.actor_name || 'unbooked'})
-                                    <input
-                                        type="time"
-                                        defaultValue={row.call_time || ''}
-                                        onBlur={(e) => updateCastCallTime(row.casting_id, e.target.value)}
-                                    />
-                                    <button onClick={() => removeCastRow(row.casting_id)}>Remove</button>
-                                </li>
-                            ))}
-                        </ul>
-                    </section>
-
-                    <section className="cs-section">
-                        <h4>Scene Schedule</h4>
-                        <table className="cs-scene-table">
-                            <thead><tr><th>Sc</th><th>I/E</th><th>Set</th><th>D/N</th></tr></thead>
-                            <tbody>
-                                {(callSheet.scenes || []).map((s) => (
-                                    <tr key={s.id}>
-                                        <td>{s.scene_number}</td><td>{s.int_ext}</td>
-                                        <td>{s.setting || s.location_canonical}</td><td>{s.time_of_day}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </section>
+                    {template.sections.filter((s) => s.visible).map((s) => (
+                        <section key={s.key} className="cs-section">
+                            <h4>{s.label}</h4>
+                            {renderSection(s.key)}
+                        </section>
+                    ))}
                 </div>
 
                 <div className="cs-modal-footer">
-                    <button
-                        className="cs-download-btn"
-                        onClick={() => downloadCallSheetPdf(callSheet.id, dayNumber)}
-                    >
+                    <button className="cs-download-btn" onClick={() => downloadCallSheetPdf(callSheet.id, dayNumber)}>
                         <Download size={14} /> Download PDF
                     </button>
                     {callSheet.status === 'draft' ? (
