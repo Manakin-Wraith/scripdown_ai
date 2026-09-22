@@ -74,6 +74,12 @@ def _get(supabase, call_sheet_id):
     return res.data[0] if res.data else None
 
 
+def _column_types(supabase, sheet, list_key):
+    """{column_key: type} for cast_columns / crew_columns / scene_columns."""
+    cfg = tpl.get_template(sheet["production_id"], supabase)["config"]
+    return {c["key"]: c["type"] for c in cfg[list_key]}
+
+
 def get_or_create(shooting_day_id, user_id):
     """Idempotent: returns the existing call_sheets row for this day, or
     creates one. Returns the string 'no_production' if the day doesn't
@@ -269,7 +275,7 @@ def update_call_sheet(call_sheet_id, fields):
     return update_call_sheet_with_report(call_sheet_id, fields)[0]
 
 
-def add_crew(call_sheet_id, crew_id, call_time=None, notes=None):
+def add_crew(call_sheet_id, crew_id, call_time=None, notes=None, extra=None):
     supabase = get_supabase_admin()
     sheet = _get(supabase, call_sheet_id)
     if not sheet:
@@ -278,8 +284,10 @@ def add_crew(call_sheet_id, crew_id, call_time=None, notes=None):
                 .eq("id", crew_id).limit(1).execute())
     if not crew_res.data or crew_res.data[0].get("production_id") != sheet["production_id"]:
         return "cross_production"
+    extra_clean, _ = values.merge_values(
+        {}, extra or {}, _column_types(supabase, sheet, "crew_columns"))
     row = {"call_sheet_id": call_sheet_id, "crew_id": crew_id,
-           "call_time": call_time, "notes": notes}
+           "call_time": call_time, "notes": notes, "extra": extra_clean}
     created = supabase.table("call_sheet_crew").insert(row).execute().data[0]
     return _embed_crew(supabase, [created])[0]
 
@@ -294,11 +302,11 @@ _CREW_CALL_FIELDS = ("call_time", "notes")
 
 def update_crew_call(call_sheet_id, crew_id, fields):
     """UPDATE (not insert) an existing call_sheet_crew row -- crew rows are
-    added once via add_crew and then edited in place (e.g. setting the call
-    time from the roster UI); a plain insert there would collide with the
-    UNIQUE (call_sheet_id, crew_id) constraint."""
+    added once via add_crew and then edited in place (a plain insert would
+    collide with UNIQUE (call_sheet_id, crew_id)). `extra` merges per key."""
     supabase = get_supabase_admin()
-    if not _get(supabase, call_sheet_id):
+    sheet = _get(supabase, call_sheet_id)
+    if not sheet:
         return "not_found"
     existing = (supabase.table("call_sheet_crew").select("*")
                 .eq("call_sheet_id", call_sheet_id).eq("crew_id", crew_id)
@@ -306,6 +314,10 @@ def update_crew_call(call_sheet_id, crew_id, fields):
     if not existing.data:
         return "not_found"
     patch = {f: fields[f] for f in _CREW_CALL_FIELDS if f in fields}
+    if "extra" in fields:
+        patch["extra"], _ = values.merge_values(
+            existing.data[0].get("extra"), fields["extra"],
+            _column_types(supabase, sheet, "crew_columns"))
     if not patch:
         return _embed_crew(supabase, existing.data)[0]
     res = (supabase.table("call_sheet_crew").update(patch)
@@ -313,7 +325,7 @@ def update_crew_call(call_sheet_id, crew_id, fields):
     return _embed_crew(supabase, [res.data[0]])[0] if res.data else "not_found"
 
 
-def add_cast(call_sheet_id, casting_id, call_time=None, status_code=None, notes=None):
+def add_cast(call_sheet_id, casting_id, call_time=None, status_code=None, notes=None, extra=None):
     supabase = get_supabase_admin()
     sheet = _get(supabase, call_sheet_id)
     if not sheet:
@@ -323,8 +335,11 @@ def add_cast(call_sheet_id, casting_id, call_time=None, status_code=None, notes=
                    .eq("id", casting_id).limit(1).execute())
     if not casting_res.data or casting_res.data[0].get("script_id") != script_id:
         return "cross_script"
+    extra_clean, _ = values.merge_values(
+        {}, extra or {}, _column_types(supabase, sheet, "cast_columns"))
     row = {"call_sheet_id": call_sheet_id, "casting_id": casting_id,
-           "call_time": call_time, "status_code": status_code, "notes": notes}
+           "call_time": call_time, "status_code": status_code, "notes": notes,
+           "extra": extra_clean}
     created = supabase.table("call_sheet_cast").insert(row).execute().data[0]
     return _embed_cast(supabase, [created])[0]
 
@@ -338,10 +353,11 @@ _CAST_CALL_FIELDS = ("call_time", "status_code", "notes")
 
 
 def update_cast_call(call_sheet_id, casting_id, fields):
-    """UPDATE counterpart to add_cast -- see update_crew_call's docstring;
-    same UNIQUE (call_sheet_id, casting_id) constraint applies here."""
+    """UPDATE counterpart to add_cast -- same UNIQUE constraint rationale;
+    `extra` merges per key."""
     supabase = get_supabase_admin()
-    if not _get(supabase, call_sheet_id):
+    sheet = _get(supabase, call_sheet_id)
+    if not sheet:
         return "not_found"
     existing = (supabase.table("call_sheet_cast").select("*")
                 .eq("call_sheet_id", call_sheet_id).eq("casting_id", casting_id)
@@ -349,6 +365,10 @@ def update_cast_call(call_sheet_id, casting_id, fields):
     if not existing.data:
         return "not_found"
     patch = {f: fields[f] for f in _CAST_CALL_FIELDS if f in fields}
+    if "extra" in fields:
+        patch["extra"], _ = values.merge_values(
+            existing.data[0].get("extra"), fields["extra"],
+            _column_types(supabase, sheet, "cast_columns"))
     if not patch:
         return _embed_cast(supabase, existing.data)[0]
     res = (supabase.table("call_sheet_cast").update(patch)

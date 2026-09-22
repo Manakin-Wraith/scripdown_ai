@@ -132,3 +132,59 @@ def test_update_call_sheet_wrapper_returns_row_only(monkeypatch):
 def test_update_not_found(monkeypatch):
     patch_svc(monkeypatch, make_store())
     assert svc.update_call_sheet_with_report("nope", {"weather": "x"}) == (svc.NOT_FOUND, [])
+
+
+def _roster_store(**overrides):
+    return make_store(
+        production_crew=[{"id": "cr1", "production_id": "p1", "contact_id": None}],
+        casting=[{"id": "ca1", "script_id": "s1", "character_name": "HERO",
+                  "actor_name": "Jo", "tier": "lead"}],
+        **overrides)
+
+
+def test_add_crew_stores_valid_extra_and_drops_unknown(monkeypatch):
+    patch_svc(monkeypatch, _roster_store())
+    row = svc.add_crew("cs1", "cr1", "06:00", None, {"vehicle": "Van 2", "bogus": "x"})
+    assert row["extra"] == {"vehicle": "Van 2"}
+
+
+def test_add_crew_extra_defaults_to_empty(monkeypatch):
+    patch_svc(monkeypatch, _roster_store())
+    assert svc.add_crew("cs1", "cr1")["extra"] == {}
+
+
+def test_add_cast_validates_extra_types(monkeypatch):
+    patch_svc(monkeypatch, _roster_store())
+    with pytest.raises(ValueError, match="pickup"):
+        svc.add_cast("cs1", "ca1", extra={"pickup": "noon"})
+    row = svc.add_cast("cs1", "ca1", "07:00", "W", None, {"pickup": "06:15:00"})
+    assert row["extra"] == {"pickup": "06:15"}
+
+
+def test_update_crew_call_merges_extra(monkeypatch):
+    store = _roster_store(call_sheet_crew=[
+        {"id": "x", "call_sheet_id": "cs1", "crew_id": "cr1", "call_time": None,
+         "extra": {"vehicle": "Van 2"}}])
+    patch_svc(monkeypatch, store)
+    row = svc.update_crew_call("cs1", "cr1", {"extra": {"vehicle": None}})
+    assert row["extra"] == {}
+    row = svc.update_crew_call("cs1", "cr1", {"extra": {"vehicle": "Truck"}})
+    assert row["extra"] == {"vehicle": "Truck"}
+
+
+def test_update_crew_call_leaves_extra_alone_when_not_sent(monkeypatch):
+    store = _roster_store(call_sheet_crew=[
+        {"id": "x", "call_sheet_id": "cs1", "crew_id": "cr1", "call_time": None,
+         "extra": {"vehicle": "Van 2"}}])
+    patch_svc(monkeypatch, store)
+    row = svc.update_crew_call("cs1", "cr1", {"call_time": "05:00"})
+    assert row["extra"] == {"vehicle": "Van 2"} and row["call_time"] == "05:00"
+
+
+def test_update_cast_call_merges_extra(monkeypatch):
+    store = _roster_store(call_sheet_cast=[
+        {"id": "y", "call_sheet_id": "cs1", "casting_id": "ca1", "call_time": None,
+         "extra": {"pickup": "06:00"}}])
+    patch_svc(monkeypatch, store)
+    row = svc.update_cast_call("cs1", "ca1", {"extra": {"pickup": "07:30", "zzz": "1"}})
+    assert row["extra"] == {"pickup": "07:30"}
