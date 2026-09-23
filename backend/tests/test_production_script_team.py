@@ -111,6 +111,33 @@ def test_move_converts_live_invites_silently_revokes_script_invite(monkeypatch):
     assert not any(kind == "revoked" for kind, _ in sent)
 
 
+def test_move_invite_for_existing_member_raises_access_without_invite(monkeypatch):
+    store = _store(
+        production_members=[
+            {"id": "pm1", "production_id": "p1", "user_id": "sam",
+             "role": "viewer", "script_access": "view"},
+        ],
+        script_invites=[
+            {"id": "si3", "script_id": "s1", "email": "SAM@x.com", "role": "member",
+             "status": "pending", "expires_at": FUTURE},
+        ],
+        profiles=[{"id": DEV_USER_ID, "email": "dev@example.com", "full_name": "Owner"},
+                  {"id": "jane", "email": "jane@x.com", "full_name": "Jane"},
+                  {"id": "tom", "email": "tom@x.com", "full_name": "Tom"},
+                  {"id": "sam", "email": "sam@x.com", "full_name": "Sam"}],
+    )
+    sent = []
+    _patch(monkeypatch, store, sent)
+    team.move_script_team_to_production("p1", "s1", DEV_USER_ID)
+    assert not any((i.get("email") or "").lower() == "sam@x.com"
+                   for i in store["production_invites"])
+    pm = {r["user_id"]: r for r in store["production_members"]}
+    assert pm["sam"]["script_access"] == "edit"
+    status = {i["id"]: i["status"] for i in store["script_invites"] if i["id"] == "si3"}
+    assert status == {"si3": "revoked"}
+    assert not any(kind == "prod_invite" and email == "sam@x.com" for kind, email in sent)
+
+
 def test_move_raises_existing_pending_production_invite(monkeypatch):
     store = _store(production_invites=[
         {"id": "pi1", "production_id": "p1", "email": "NEW@x.com", "role": "viewer",

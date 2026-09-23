@@ -122,7 +122,23 @@ def move_script_team_to_production(production_id, script_id, actor_uid):
     for inv in live:
         email = (inv.get('email') or '').strip().lower()
         mapped = SCRIPT_ROLE_TO_ACCESS.get(inv.get('role'), 'view')
-        if email in by_email:
+
+        prof = (supabase.table('profiles').select('id')
+                .ilike('email', email).limit(1).execute().data or [])
+        existing_member = None
+        if prof:
+            existing_member = (supabase.table('production_members').select('*')
+                                .eq('production_id', production_id)
+                                .eq('user_id', prof[0]['id'])
+                                .limit(1).execute().data or [])
+        if existing_member:
+            # Already a production member — raise their access, no invite/email.
+            row = existing_member[0]
+            new = _raise_access(row.get('script_access'), mapped)
+            if new != (row.get('script_access') or 'none'):
+                (supabase.table('production_members').update({'script_access': new})
+                 .eq('id', row['id']).execute())
+        elif email in by_email:
             p = by_email[email]
             new = _raise_access(p.get('script_access'), mapped)
             if new != (p.get('script_access') or 'none'):
