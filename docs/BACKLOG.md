@@ -1992,6 +1992,53 @@ mechanism, workspaces as the container.
   mechanism this would build on
 - "Extras / background artists — needs CRUD editing" (above)
 - `backend/services/report_service.py` — `aggregate_scene_data`
+
+---
+
+## User workspace + department-specific access — brainstorm
+
+**Status:** Not started — needs brainstorming. Added 2026-09-23. Companion
+to "Department Workspaces" (above): that entry is the per-department
+*working surface*; this one is the per-*user* landing view and the
+*access rule* that decides what each user sees in it.
+
+**Context.** Access today is production-role based (`production_members`:
+admin/coordinator/viewer presets + capability toggles, step 2b) and
+script-role based (`script_members`). Neither is department-aware: a
+viewer on a production sees every department's breakdown, reports, and
+call-sheet data. Department-scoped script/report access for HODs was
+explicitly left out of step 2b and deferred to umbrella step 7. There is
+also no "my workspace" view — a crew member joined to a production lands
+on the same owner-oriented pages (`/productions`, script tabs) as the
+account owner, with no view filtered to their own department, their
+assigned days, or their own call times.
+
+**Scope when picked up.** Brainstorm before implementing (see
+`superpowers:brainstorming`) — open questions:
+- **User workspace:** what a crew member sees on login (their productions,
+  their department's elements/reports, upcoming call sheets they're on,
+  their own call time); whether it's a new page or a filtered mode of
+  existing ones; how it differs for owners vs. joined members.
+- **Department-specific access:** where the department binding lives
+  (`production_crew.department` already exists — reuse it, or a new
+  per-member department scope on `production_members`); whether scope is
+  view-only filtering or also gates edits (props coordinator edits props
+  only); multi-department members; what stays visible to everyone (script
+  text, schedule, call sheets) vs. department-only (element lists,
+  department reports, rates); server-side enforcement (extend
+  `production_authz` / `CAPABILITIES`, redact in the same place crew rates
+  are already redacted) rather than frontend-only hiding.
+- Interaction with seat counting (`_fetch_seats_used`) and Team License
+  entitlement — does a department-scoped member still consume a full seat.
+
+**References.**
+- "Department Workspaces — brainstorm" (above) — the container this access
+  rule would scope
+- Step 2b in the priority snapshot (top of file) — `production_members`,
+  `production_authz`, `require_production_role`, rate redaction
+- `docs/superpowers/specs/2026-08-31-production-data-model-design.md` —
+  umbrella step 7
+- `docs/superpowers/specs/2026-09-01-production-members-design.md`
 - `frontend/src/components/breakdown/` — existing breakdown UI
 
 ---
