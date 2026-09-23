@@ -417,3 +417,8 @@
     font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em;
     border-radius: 999px; background: #26324a; color: #9fb0c9;
 }
+
+.production-attach-list { list-style: none; padding: 0; margin: 8px 0 12px; }
+.production-attach-list li { padding: 4px 0; }
+.production-attach-list span { color: #6b7a94; }
+.production-attach-note { color: #6b7a94; font-size: 13px; }

@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import {
     getProduction, updateProduction, deleteProduction,
-    addScriptToProduction, removeScriptFromProduction,
+    addScriptToProduction, removeScriptFromProduction, listProductionMembers,
 } from '../services/apiService';
 import { Spinner } from '../components/ui';
 import ProductionOverviewTab from '../components/productions/ProductionOverviewTab';
@@ -11,6 +11,7 @@ import ProductionCrewTab from '../components/productions/ProductionCrewTab';
 import ProductionLocationsTab from '../components/productions/ProductionLocationsTab';
 import ProductionMembersTab from '../components/productions/ProductionMembersTab';
 import ProductionCallSheetTab from '../components/productions/ProductionCallSheetTab';
+import DetachScriptModal from '../components/productions/DetachScriptModal';
 import './ProductionPages.css';
 
 const NO_ACCESS = {
@@ -18,6 +19,8 @@ const NO_ACCESS = {
     can_manage_members: false, can_edit_production: false, can_edit_call_sheet_template: false,
     script_access: 'none',
 };
+
+const TAB_IDS = ['overview', 'crew', 'locations', 'callsheet', 'members'];
 
 export default function ProductionDetailPage() {
     const { productionId } = useParams();
@@ -31,7 +34,12 @@ export default function ProductionDetailPage() {
     const [saving, setSaving] = useState(false);
     const [picking, setPicking] = useState(false);
     const [access, setAccess] = useState(NO_ACCESS);
-    const [activeTab, setActiveTab] = useState('overview');
+    const [searchParams] = useSearchParams();
+    const [activeTab, setActiveTab] = useState(() => {
+        const t = searchParams.get('tab');
+        return TAB_IDS.includes(t) ? t : 'overview';
+    });
+    const [detaching, setDetaching] = useState(null);
 
     const isOwner = access.role === 'owner';
     const canManageMembers = isOwner || access.can_manage_members;
@@ -61,11 +69,12 @@ export default function ProductionDetailPage() {
     useEffect(load, [load]);
 
     useEffect(() => {
+        if (loading) return;
         if (activeTab === 'crew' && !isMember) setActiveTab('overview');
         if (activeTab === 'locations' && !isMember) setActiveTab('overview');
         if (activeTab === 'callsheet' && !isMember) setActiveTab('overview');
         if (activeTab === 'members' && !canManageMembers) setActiveTab('overview');
-    }, [activeTab, isMember, canManageMembers]);
+    }, [activeTab, isMember, canManageMembers, loading]);
 
     const save = async (e) => {
         e.preventDefault();
@@ -88,7 +97,17 @@ export default function ProductionDetailPage() {
     };
 
     const handleDelete = async () => {
-        if (!window.confirm('Delete this production? Its scripts are kept and just unlinked.')) return;
+        let memberCount = 0;
+        try {
+            const d = await listProductionMembers(productionId);
+            memberCount = (d.members || []).length;
+        } catch {
+            // Count is only for the warning copy; proceed without it.
+        }
+        const warn = memberCount > 0
+            ? ` ${memberCount} member${memberCount === 1 ? '' : 's'} will lose access to its ${scripts.length} script${scripts.length === 1 ? '' : 's'}.`
+            : '';
+        if (!window.confirm(`Delete this production? Its scripts are kept and just unlinked.${warn}`)) return;
         try {
             await deleteProduction(productionId);
             navigate('/productions');
@@ -97,20 +116,19 @@ export default function ProductionDetailPage() {
         }
     };
 
-    const handlePick = async (scriptId) => {
-        await addScriptToProduction(productionId, scriptId);
+    const handlePick = async (scriptId, membersAction = null) => {
+        await addScriptToProduction(productionId, scriptId, membersAction);
         setPicking(false);
         load();
     };
 
-    const handleRemove = async (scriptId) => {
-        try {
-            await removeScriptFromProduction(productionId, scriptId);
-            setScripts((prev) => prev.filter((s) => s.id !== scriptId));
-            setError(null);
-        } catch (err) {
-            setError(err.response?.data?.error || err.message || 'Failed to remove script');
-        }
+    const handleRemove = (script) => setDetaching(script);
+
+    const confirmDetach = async (keepUserIds) => {
+        await removeScriptFromProduction(productionId, detaching.id, keepUserIds);
+        setScripts((prev) => prev.filter((s) => s.id !== detaching.id));
+        setDetaching(null);
+        setError(null);
     };
 
     if (loading) return <div className="production-page-loading"><Spinner size={32} /></div>;
@@ -167,6 +185,15 @@ export default function ProductionDetailPage() {
             )}
             {activeTab === 'members' && canManageMembers && (
                 <ProductionMembersTab productionId={productionId} access={access} scriptCount={scripts.length} />
+            )}
+
+            {detaching && (
+                <DetachScriptModal
+                    productionId={productionId}
+                    script={detaching}
+                    onConfirm={confirmDetach}
+                    onClose={() => setDetaching(null)}
+                />
             )}
         </div>
     );

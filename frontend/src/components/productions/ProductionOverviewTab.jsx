@@ -62,7 +62,9 @@ export default function ProductionOverviewTab({
                     )}
                 </div>
                 {scripts.length === 0 ? (
-                    <p className="production-scripts-empty">No scripts attached yet.</p>
+                    <p className="production-scripts-empty">
+                        {canDelete ? 'No scripts attached yet.' : 'No scripts shared with you in this production.'}
+                    </p>
                 ) : (
                     <ul className="production-scripts-list">
                         {scripts.map((s) => (
@@ -70,7 +72,7 @@ export default function ProductionOverviewTab({
                                 <Link to={`/scenes/${s.id}`}>{s.title || 'Untitled script'}</Link>
                                 {canDelete && (
                                     <button className="production-script-remove"
-                                        onClick={() => onRemove(s.id)} aria-label="Remove script">
+                                        onClick={() => onRemove(s)} aria-label="Remove script">
                                         <X size={14} />
                                     </button>
                                 )}
