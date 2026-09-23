@@ -198,7 +198,9 @@ const ScriptTable = ({ scripts, onView, onDelete, onRename, onUpdateWriter, onAs
                         {script.is_owner === false && (
                             <span
                                 className="shared-badge"
-                                title={script.membership?.role ? `Shared with you — role: ${script.membership.role}` : 'Shared with you'}
+                                title={script.membership?.via_production
+                                    ? `Shared via ${script.production_title || 'a production'}${script.membership?.role ? ` — role: ${script.membership.role}` : ''}`
+                                    : (script.membership?.role ? `Shared with you — role: ${script.membership.role}` : 'Shared with you')}
                             >
                                 <Users size={12} /> Shared
                             </span>

@@ -35,13 +35,16 @@ import './TeamDrawer.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-const TeamDrawer = ({ 
-    isOpen, 
-    onClose, 
+const TeamDrawer = ({
+    isOpen,
+    onClose,
     scriptId,
     scriptTitle,
     currentUserId,
-    isOwner
+    isOwner,
+    productionId,
+    productionTitle,
+    canManageProductionMembers
 }) => {
     const toast = useToast();
     const { confirm } = useConfirmDialog();
@@ -66,18 +69,18 @@ const TeamDrawer = ({
     // If the Owner just came back from buying seats, resume the invite
     // they had in progress instead of making them retype it.
     useEffect(() => {
-        if (!isOpen || !scriptId) return;
+        if (!isOpen || !scriptId || productionId) return;
         const draft = readPendingSeatInviteDraft();
         if (draft && draft.scriptId === scriptId) {
             clearPendingSeatInviteDraft();
             setResumedDraft(draft);
             setInviteModalOpen(true);
         }
-    }, [isOpen, scriptId]);
+    }, [isOpen, scriptId, productionId]);
 
     // Fetch team data when drawer opens
     useEffect(() => {
-        if (!isOpen || !scriptId || !hasTeamAccess) return;
+        if (!isOpen || !scriptId || !hasTeamAccess || productionId) return;
 
         const fetchTeamData = async () => {
             setLoading(true);
@@ -127,7 +130,7 @@ const TeamDrawer = ({
         };
 
         fetchTeamData();
-    }, [isOpen, scriptId, isOwner, hasTeamAccess]);
+    }, [isOpen, scriptId, isOwner, hasTeamAccess, productionId]);
 
     const handleRemoveMember = async (memberId, memberName) => {
         try {
@@ -295,7 +298,25 @@ const TeamDrawer = ({
                 subtitle={scriptTitle}
             >
                 <div className="team-drawer-body">
-                    {!hasTeamAccess ? (
+                    {productionId ? (
+                        <div className="team-drawer-managed">
+                            <p>
+                                Access for this script is managed in{' '}
+                                {canManageProductionMembers ? (
+                                    <Link to={`/productions/${productionId}?tab=members`} onClick={onClose}>
+                                        <strong>{productionTitle || 'its production'} → Members</strong>
+                                    </Link>
+                                ) : (
+                                    <strong>{productionTitle || 'its production'} → Members</strong>
+                                )}
+                                .
+                            </p>
+                            <p className="team-drawer-managed-hint">
+                                Everyone in the production can open this script at the script
+                                access level set there.
+                            </p>
+                        </div>
+                    ) : !hasTeamAccess ? (
                         <div className="team-drawer-locked">
                             <div className="locked-icon">
                                 <Users size={32} />

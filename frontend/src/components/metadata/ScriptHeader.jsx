@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import TeamDrawer from '../team/TeamDrawer';
+import { canEditScript } from '../../utils/scriptRole';
 import './ScriptHeader.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -73,7 +74,12 @@ const ScriptHeader = ({ metadata, sceneCount = 0 }) => {
                 </span>
             )}
             <span className="scene-count-badge">{sceneCount} Scenes</span>
-            
+            {metadata?.my_role && !canEditScript(metadata.my_role) && (
+                <span className="script-view-only-badge" title="You have view-only access to this script">
+                    View only
+                </span>
+            )}
+
             {/* Phase 1: Membership badge deferred */}
             
             <div className="header-spacer"></div>
@@ -151,6 +157,9 @@ const ScriptHeader = ({ metadata, sceneCount = 0 }) => {
                 scriptTitle={scriptName}
                 currentUserId={user?.id}
                 isOwner={isOwner}
+                productionId={metadata?.production_id || null}
+                productionTitle={metadata?.production_title || null}
+                canManageProductionMembers={isOwner || !!metadata?.can_manage_production_members}
             />
         </div>
     );

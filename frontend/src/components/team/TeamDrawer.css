@@ -414,3 +414,7 @@
     transform: translateY(-2px);
     box-shadow: 0 4px 12px var(--primary-alpha-30);
 }
+
+.team-drawer-managed { padding: 16px 4px; line-height: 1.5; }
+.team-drawer-managed a { color: inherit; }
+.team-drawer-managed-hint { color: #6b7a94; font-size: 13px; margin-top: 8px; }
