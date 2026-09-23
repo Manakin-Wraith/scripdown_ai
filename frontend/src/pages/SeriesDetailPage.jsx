@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { Layers, ChevronRight } from 'lucide-react';
-import { listSeries, listSeasons } from '../services/apiService';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { Layers, ChevronRight, Trash2 } from 'lucide-react';
+import { listSeries, listSeasons, deleteSeries, deleteSeason } from '../services/apiService';
+import { useConfirmDialog } from '../context/ConfirmDialogContext';
+import { useToast } from '../context/ToastContext';
 import PageHeader from '../components/layout/PageHeader';
-import { Spinner } from '../components/ui';
+import { Button, Spinner } from '../components/ui';
 import './SeriesPages.css';
 
 export default function SeriesDetailPage() {
@@ -12,6 +14,10 @@ export default function SeriesDetailPage() {
     const [seasons, setSeasons] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [deletingId, setDeletingId] = useState(null);
+    const navigate = useNavigate();
+    const { confirm } = useConfirmDialog();
+    const toast = useToast();
 
     useEffect(() => {
         Promise.all([
@@ -27,6 +33,51 @@ export default function SeriesDetailPage() {
             .finally(() => setLoading(false));
     }, [seriesId]);
 
+    // `series` is only found when the caller owns it (listSeries is
+    // owner-scoped), so it doubles as the gate for the delete actions.
+    const seasonLabel = (season) => season.title || `Season ${season.season_number}`;
+
+    const handleDeleteSeries = async () => {
+        const title = series?.title || 'this series';
+        const seasonCount = `${seasons.length} season${seasons.length === 1 ? '' : 's'}`;
+        const confirmed = await confirm({
+            title: `Delete "${title}"?`,
+            message: `Its ${seasonCount} will be removed. Episode scripts are not deleted — they stay in My Scripts as standalone scripts.`,
+            variant: 'danger',
+        });
+        if (!confirmed) return;
+
+        setDeletingId(seriesId);
+        try {
+            await deleteSeries(seriesId);
+            toast.success('Series deleted', `"${title}" was removed.`);
+            navigate('/series');
+        } catch (err) {
+            toast.error('Could not delete series', err.response?.data?.error || err.message);
+            setDeletingId(null);
+        }
+    };
+
+    const handleDeleteSeason = async (season) => {
+        const confirmed = await confirm({
+            title: `Delete ${seasonLabel(season)}?`,
+            message: 'Episode scripts in this season are not deleted — they stay in My Scripts as standalone scripts.',
+            variant: 'danger',
+        });
+        if (!confirmed) return;
+
+        setDeletingId(season.id);
+        try {
+            await deleteSeason(season.id);
+            setSeasons((prev) => prev.filter((item) => item.id !== season.id));
+            toast.success('Season deleted', `${seasonLabel(season)} was removed.`);
+        } catch (err) {
+            toast.error('Could not delete season', err.response?.data?.error || err.message);
+        } finally {
+            setDeletingId(null);
+        }
+    };
+
     if (loading) {
         return (
             <div className="series-page-loading">
@@ -41,7 +92,21 @@ export default function SeriesDetailPage() {
 
     return (
         <div className="series-page">
-            <PageHeader title={series?.title || 'Series'} subtitle="Seasons" />
+            <PageHeader
+                title={series?.title || 'Series'}
+                subtitle="Seasons"
+                actions={series && (
+                    <Button
+                        variant="secondary"
+                        size="sm"
+                        icon={Trash2}
+                        onClick={handleDeleteSeries}
+                        loading={deletingId === seriesId}
+                    >
+                        Delete series
+                    </Button>
+                )}
+            />
 
             {seasons.length === 0 ? (
                 <div className="series-empty-state">
@@ -59,21 +124,32 @@ export default function SeriesDetailPage() {
             ) : (
                 <div className="series-row-list">
                     {seasons.map((season) => (
-                        <Link
-                            key={season.id}
-                            to={`/series/${seriesId}/seasons/${season.id}`}
-                            className="series-row"
-                        >
-                            <div className="series-row-left">
-                                <span className="series-row-badge">
-                                    <span className="series-row-num">{season.season_number}</span>
-                                </span>
-                                <span className="series-row-title">
-                                    {season.title || `Season ${season.season_number}`}
-                                </span>
-                            </div>
-                            <ChevronRight size={18} className="series-row-chevron" />
-                        </Link>
+                        <div key={season.id} className="series-row-item">
+                            <Link
+                                to={`/series/${seriesId}/seasons/${season.id}`}
+                                className="series-row"
+                            >
+                                <div className="series-row-left">
+                                    <span className="series-row-badge">
+                                        <span className="series-row-num">{season.season_number}</span>
+                                    </span>
+                                    <span className="series-row-title">{seasonLabel(season)}</span>
+                                </div>
+                                <ChevronRight size={18} className="series-row-chevron" />
+                            </Link>
+                            {series && (
+                                <button
+                                    type="button"
+                                    className="series-row-delete"
+                                    onClick={() => handleDeleteSeason(season)}
+                                    disabled={deletingId === season.id}
+                                    aria-label={`Delete ${seasonLabel(season)}`}
+                                    title="Delete season"
+                                >
+                                    <Trash2 size={16} />
+                                </button>
+                            )}
+                        </div>
                     ))}
                 </div>
             )}

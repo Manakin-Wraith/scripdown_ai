@@ -172,6 +172,77 @@ def list_seasons(series_id):
         return jsonify({'error': str(e)}), 500
 
 
+def _ungroup_season_episodes(supabase, season_id):
+    """Detach every script from a season before it's deleted. The FK's
+    ON DELETE SET NULL only clears season_id; episode_number would linger
+    as a meaningless value on a now-standalone script, so clear both."""
+    supabase.table('scripts').update({
+        'season_id': None, 'episode_number': None,
+    }).eq('season_id', season_id).execute()
+
+
+@series_bp.route('/api/series/<series_id>', methods=['DELETE'])
+@require_auth
+def delete_series(series_id):
+    """
+    Delete a series and its seasons. Series-owner only.
+
+    Removes the grouping only -- every episode script survives as a
+    standalone script (season_id / episode_number cleared). Scripts and
+    their breakdowns are never deleted here.
+    """
+    try:
+        supabase = get_supabase_admin()
+        user_id = get_user_id()
+
+        series = _get_series(supabase, series_id)
+        if not series:
+            return jsonify({'error': 'Series not found'}), 404
+        if series.get('owner_id') != user_id:
+            return jsonify({'error': 'Insufficient permissions'}), 403
+
+        seasons_result = supabase.table('seasons').select('id').eq(
+            'series_id', series_id
+        ).execute()
+        for season in (seasons_result.data or []):
+            _ungroup_season_episodes(supabase, season['id'])
+
+        supabase.table('seasons').delete().eq('series_id', series_id).execute()
+        supabase.table('series').delete().eq('id', series_id).execute()
+
+        return jsonify({'success': True})
+    except Exception as e:
+        print(f"Error deleting series: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@series_bp.route('/api/seasons/<season_id>', methods=['DELETE'])
+@require_auth
+def delete_season(season_id):
+    """
+    Delete a season. Owner of the parent series only.
+
+    Like delete_series, its episode scripts are ungrouped, not deleted.
+    """
+    try:
+        supabase = get_supabase_admin()
+        user_id = get_user_id()
+
+        season = fetch_single(supabase.table('seasons').select('*').eq('id', season_id).single())
+        if not season:
+            return jsonify({'error': 'Season not found'}), 404
+        if not _user_owns_series(supabase, season['series_id'], user_id):
+            return jsonify({'error': 'Insufficient permissions'}), 403
+
+        _ungroup_season_episodes(supabase, season_id)
+        supabase.table('seasons').delete().eq('id', season_id).execute()
+
+        return jsonify({'success': True})
+    except Exception as e:
+        print(f"Error deleting season: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 def _visible_episode_scripts(supabase, season_id, user_id):
     """Scripts in this season, filtered to ones the caller can access,
     ordered by episode_number. Shared by list_episodes and (Task 4's)

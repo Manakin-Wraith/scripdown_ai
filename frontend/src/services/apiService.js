@@ -2355,6 +2355,37 @@ export const listSeasons = async (seriesId) => {
 };
 
 /**
+ * Delete a series and its seasons. Episode scripts are kept -- they become
+ * standalone scripts again.
+ * @param {string} seriesId
+ * @returns {Promise<{success: boolean}>}
+ */
+export const deleteSeries = async (seriesId) => {
+    try {
+        const response = await api.delete(`/api/series/${seriesId}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error deleting series:', error);
+        throw error;
+    }
+};
+
+/**
+ * Delete a season. Its episode scripts are kept as standalone scripts.
+ * @param {string} seasonId
+ * @returns {Promise<{success: boolean}>}
+ */
+export const deleteSeason = async (seasonId) => {
+    try {
+        const response = await api.delete(`/api/seasons/${seasonId}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error deleting season:', error);
+        throw error;
+    }
+};
+
+/**
  * List a season's episodes (filtered to the caller's accessible scripts).
  * @param {string} seasonId
  * @returns {Promise<{episodes: object[]}>}

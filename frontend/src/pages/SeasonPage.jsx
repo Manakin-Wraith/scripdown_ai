@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { Film, ChevronRight } from 'lucide-react';
-import { listSeasons, listEpisodes, getSeasonCast } from '../services/apiService';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { Film, ChevronRight, Trash2 } from 'lucide-react';
+import { listSeries, listSeasons, listEpisodes, getSeasonCast, deleteSeason } from '../services/apiService';
+import { useConfirmDialog } from '../context/ConfirmDialogContext';
+import { useToast } from '../context/ToastContext';
 import PageHeader from '../components/layout/PageHeader';
-import { Spinner } from '../components/ui';
+import { Button, Spinner } from '../components/ui';
 import './SeriesPages.css';
 
 export default function SeasonPage() {
@@ -13,14 +15,23 @@ export default function SeasonPage() {
     const [cast, setCast] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [deleting, setDeleting] = useState(false);
+    // Only the series owner can delete; team members reach this page via
+    // shared episode access. listSeries is owner-scoped, so a match = owner.
+    const [isOwner, setIsOwner] = useState(false);
+    const navigate = useNavigate();
+    const { confirm } = useConfirmDialog();
+    const toast = useToast();
 
     useEffect(() => {
         Promise.all([
+            listSeries(),
             listSeasons(seriesId),
             listEpisodes(seasonId),
             getSeasonCast(seasonId),
         ])
-            .then(([seasonsData, episodesData, castData]) => {
+            .then(([seriesData, seasonsData, episodesData, castData]) => {
+                setIsOwner((seriesData.series || []).some((s) => s.id === seriesId));
                 const match = (seasonsData.seasons || []).find((s) => s.id === seasonId);
                 setSeason(match || null);
                 setEpisodes(episodesData.episodes || []);
@@ -29,6 +40,27 @@ export default function SeasonPage() {
             .catch((err) => setError(err.message || 'Failed to load season'))
             .finally(() => setLoading(false));
     }, [seriesId, seasonId]);
+
+    const handleDelete = async () => {
+        const label = season?.title || `Season ${season?.season_number ?? ''}`;
+        const episodeCount = `${episodes.length} episode script${episodes.length === 1 ? '' : 's'}`;
+        const confirmed = await confirm({
+            title: `Delete ${label}?`,
+            message: `The ${episodeCount} in this season will not be deleted — they stay in My Scripts as standalone scripts.`,
+            variant: 'danger',
+        });
+        if (!confirmed) return;
+
+        setDeleting(true);
+        try {
+            await deleteSeason(seasonId);
+            toast.success('Season deleted', `${label} was removed.`);
+            navigate(`/series/${seriesId}`);
+        } catch (err) {
+            toast.error('Could not delete season', err.response?.data?.error || err.message);
+            setDeleting(false);
+        }
+    };
 
     if (loading) {
         return (
@@ -47,6 +79,17 @@ export default function SeasonPage() {
             <PageHeader
                 title={season?.title || `Season ${season?.season_number ?? ''}`}
                 subtitle={`${episodes.length} episode${episodes.length === 1 ? '' : 's'}`}
+                actions={season && isOwner && (
+                    <Button
+                        variant="secondary"
+                        size="sm"
+                        icon={Trash2}
+                        onClick={handleDelete}
+                        loading={deleting}
+                    >
+                        Delete season
+                    </Button>
+                )}
             />
 
             <section>

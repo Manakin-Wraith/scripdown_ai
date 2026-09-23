@@ -99,6 +99,41 @@
     flex-shrink: 0;
 }
 
+/* Row + trailing delete button (series / season lists) */
+.series-row-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+.series-row-item .series-row {
+    flex: 1;
+    min-width: 0;
+}
+
+.series-row-delete {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: color 0.15s ease, border-color 0.15s ease;
+}
+.series-row-delete:hover:not(:disabled),
+.series-row-delete:focus-visible {
+    color: var(--danger);
+    border-color: var(--danger);
+}
+.series-row-delete:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
 /* Combined cast table */
 .series-cast-table {
     width: 100%;

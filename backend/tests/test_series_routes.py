@@ -44,6 +44,10 @@ class MockTable:
         self._payload = data
         return self
 
+    def delete(self):
+        self._op = "delete"
+        return self
+
     def eq(self, col, val):
         self._filters[col] = val
         return self
@@ -98,6 +102,10 @@ class MockTable:
             matches = self._filtered()
             for row in matches:
                 row.update(self._payload)
+            return SimpleNamespace(data=matches)
+        if self._op == "delete":
+            matches = self._filtered()
+            self.store[self.name] = [r for r in self._rows() if r not in matches]
             return SimpleNamespace(data=matches)
         return SimpleNamespace(data=None)
 
@@ -423,3 +431,104 @@ def test_combined_cast_only_includes_accessible_episodes(monkeypatch):
 
     names = {row["name"] for row in resp.get_json()["cast"]}
     assert names == {"JOHN"}  # SECRET (from the inaccessible ep2) never leaks
+
+
+def _delete_store():
+    """One owned series with two seasons; episodes in both, plus an
+    unrelated standalone script that must stay untouched."""
+    store = _base_store()
+    store["series"] = [{"id": "ser1", "owner_id": DEV_USER_ID, "title": "Mine"}]
+    store["seasons"] = [
+        {"id": "sea1", "series_id": "ser1", "season_number": 1},
+        {"id": "sea2", "series_id": "ser1", "season_number": 2},
+    ]
+    store["scripts"] = [
+        {"id": "s1", "user_id": DEV_USER_ID, "season_id": "sea1", "episode_number": 1},
+        {"id": "s2", "user_id": DEV_USER_ID, "season_id": "sea2", "episode_number": 1},
+        {"id": "s3", "user_id": DEV_USER_ID, "season_id": None, "episode_number": None},
+    ]
+    return store
+
+
+def test_delete_series_removes_seasons_and_ungroups_episodes(monkeypatch):
+    """Deleting a series removes only the grouping -- every episode script
+    survives as a standalone script (season + episode number cleared)."""
+    monkeypatch.setattr("middleware.auth.DEV_MODE", True)
+    store = _delete_store()
+    monkeypatch.setattr(sr, "get_supabase_admin", lambda: MockSupabase(store))
+
+    resp = _client().delete("/api/series/ser1")
+
+    assert resp.status_code == 200
+    assert store["series"] == []
+    assert store["seasons"] == []
+    assert [s["id"] for s in store["scripts"]] == ["s1", "s2", "s3"]
+    for script in store["scripts"]:
+        assert script["season_id"] is None
+        assert script["episode_number"] is None
+
+
+def test_delete_series_requires_ownership(monkeypatch):
+    monkeypatch.setattr("middleware.auth.DEV_MODE", True)
+    store = _delete_store()
+    store["series"][0]["owner_id"] = "someone-else"
+    monkeypatch.setattr(sr, "get_supabase_admin", lambda: MockSupabase(store))
+
+    resp = _client().delete("/api/series/ser1")
+
+    assert resp.status_code == 403
+    assert len(store["series"]) == 1
+    assert len(store["seasons"]) == 2
+    assert store["scripts"][0]["season_id"] == "sea1"
+
+
+def test_delete_series_nonexistent_returns_404(monkeypatch):
+    monkeypatch.setattr("middleware.auth.DEV_MODE", True)
+    store = _base_store()
+    monkeypatch.setattr(sr, "get_supabase_admin", lambda: MockSupabase(store))
+
+    resp = _client().delete("/api/series/nope")
+
+    assert resp.status_code == 404
+    assert "not found" in resp.get_json()["error"].lower()
+
+
+def test_delete_season_ungroups_only_its_episodes(monkeypatch):
+    monkeypatch.setattr("middleware.auth.DEV_MODE", True)
+    store = _delete_store()
+    monkeypatch.setattr(sr, "get_supabase_admin", lambda: MockSupabase(store))
+
+    resp = _client().delete("/api/seasons/sea1")
+
+    assert resp.status_code == 200
+    assert [s["id"] for s in store["seasons"]] == ["sea2"]
+    assert len(store["series"]) == 1
+    by_id = {s["id"]: s for s in store["scripts"]}
+    assert by_id["s1"]["season_id"] is None
+    assert by_id["s1"]["episode_number"] is None
+    assert by_id["s2"]["season_id"] == "sea2"
+    assert by_id["s2"]["episode_number"] == 1
+
+
+def test_delete_season_requires_series_ownership(monkeypatch):
+    monkeypatch.setattr("middleware.auth.DEV_MODE", True)
+    store = _delete_store()
+    store["series"][0]["owner_id"] = "someone-else"
+    monkeypatch.setattr(sr, "get_supabase_admin", lambda: MockSupabase(store))
+
+    resp = _client().delete("/api/seasons/sea1")
+
+    assert resp.status_code == 403
+    assert len(store["seasons"]) == 2
+    assert store["scripts"][0]["season_id"] == "sea1"
+
+
+def test_delete_season_nonexistent_returns_404(monkeypatch):
+    monkeypatch.setattr("middleware.auth.DEV_MODE", True)
+    store = _base_store()
+    monkeypatch.setattr(sr, "get_supabase_admin", lambda: MockSupabase(store))
+
+    resp = _client().delete("/api/seasons/nope")
+
+    assert resp.status_code == 404
+    assert "not found" in resp.get_json()["error"].lower()
