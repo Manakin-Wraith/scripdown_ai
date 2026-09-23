@@ -58,6 +58,22 @@ const SCRIPT_ACCESS_OPTIONS = [
 ];
 const ACCESS_RANK = { none: 0, view: 1, edit: 2 };
 
+// Clamp a script_access value to the highest level `accessAllowed` permits,
+// walking SCRIPT_ACCESS_OPTIONS from highest down when the value itself isn't allowed.
+const clampScriptAccess = (accessAllowed, value) => {
+    if (accessAllowed(value)) return value;
+    for (let i = SCRIPT_ACCESS_OPTIONS.length - 1; i >= 0; i -= 1) {
+        if (accessAllowed(SCRIPT_ACCESS_OPTIONS[i].value)) return SCRIPT_ACCESS_OPTIONS[i].value;
+    }
+    return 'none';
+};
+
+// Apply a role preset with its script_access clamped to what the actor may grant.
+const clampPreset = (preset, accessAllowed) => ({
+    ...preset,
+    script_access: clampScriptAccess(accessAllowed, preset.script_access),
+});
+
 // Machine-readable `code` values the members API returns → friendly copy.
 const CODE_MESSAGES = {
     no_seats_available: 'All paid seats are in use. Purchase more seats to add members.',
@@ -111,7 +127,8 @@ export default function ProductionMembersTab({ productionId, access, scriptCount
             setMembers((prev) => prev.map((x) => (x.id === member.id ? member : x)));
             setError(null);
         } catch (e) {
-            setError(e.response?.data?.error || 'Update failed');
+            const code = e.response?.data?.code;
+            setError(CODE_MESSAGES[code] || e.response?.data?.error || 'Update failed');
         }
     };
 
@@ -181,7 +198,7 @@ export default function ProductionMembersTab({ productionId, access, scriptCount
                                             disabled={locked}
                                             onChange={(e) => patchMember(m, {
                                                 role: e.target.value,
-                                                ...PRESETS[e.target.value],
+                                                ...clampPreset(PRESETS[e.target.value], accessAllowed),
                                             })}
                                         >
                                             {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
@@ -280,13 +297,13 @@ export default function ProductionMembersTab({ productionId, access, scriptCount
 function AddMemberModal({ productionId, myRank, isOwner, accessAllowed, onClose, onDone, setError }) {
     const [email, setEmail] = useState('');
     const [role, setRole] = useState('viewer');
-    const [flags, setFlags] = useState(PRESETS.viewer);
+    const [flags, setFlags] = useState(() => clampPreset(PRESETS.viewer, accessAllowed));
     const [touched, setTouched] = useState(false);
     const [submitting, setSubmitting] = useState(false);
 
     const changeRole = (r) => {
         setRole(r);
-        if (!touched) setFlags(PRESETS[r]);
+        if (!touched) setFlags(clampPreset(PRESETS[r], accessAllowed));
     };
 
     const roleAllowed = (r) => isOwner || RANK[r] < myRank;
