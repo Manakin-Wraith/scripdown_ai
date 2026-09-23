@@ -72,6 +72,17 @@ def create_invite(script_id):
             'code': 'no_seats_available',
         }), 402
 
+    # Scripts in a production are shared via the production's Members tab.
+    prod_row = (supabase.table('scripts').select('production_id')
+                .eq('id', script_id).limit(1).execute())
+    production_id = prod_row.data[0].get('production_id') if prod_row.data else None
+    if production_id:
+        return jsonify({
+            'error': 'Access to this script is managed by its production',
+            'code': 'managed_by_production',
+            'production_id': production_id,
+        }), 409
+
     data = request.get_json()
 
     if not data:
