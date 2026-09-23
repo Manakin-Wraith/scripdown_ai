@@ -104,7 +104,7 @@ already known to be needed before this is genuinely production-ready
 for varied productions' needs.
 
 **Production script access — SHIPPED, merged from branch
-`feat/production-script-access` 2026-09-23, merged to `main` (`89cd941`).** Production
+`feat/production-script-access` 2026-09-23, merged to `main` (rebased linear, top `c7f08e1`).** Production
 membership now grants access to every script attached to the production,
 via a per-member `script_access` level (`none`/`view`/`edit`; presets
 admin→edit, coordinator→edit, viewer→view). `get_script_role` resolves it
@@ -118,8 +118,8 @@ invites, attach/detach prompts, `?tab=` deep link, Team drawer shows a
 "managed in {Production} → Members" notice for production scripts,
 "View only" badge on the script header, "Shared via {Production}" tooltip.
 Backend suite 1027 passed / 1 skipped; `npm run build` green.
-**Migration `056_production_script_access.sql` must be applied manually
-to Supabase before the backend deploys** (`get_script_role` and member
+Migration `056_production_script_access.sql` applied manually to Supabase
+2026-09-23 (`get_script_role` and member
 routes read `script_access`). Spec
 `docs/superpowers/specs/2026-09-23-production-script-access-design.md`,
 plan `docs/superpowers/plans/2026-09-23-production-script-access.md`.
