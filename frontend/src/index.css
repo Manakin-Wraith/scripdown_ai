@@ -2,6 +2,10 @@
   /* ========================================
      DARK THEME: Slate & Amber (Cinematic)
      ======================================== */
+
+  /* Tell the browser the UI is dark so native controls (date/time picker
+     icons and popups, scrollbars, select menus) render light-on-dark. */
+  color-scheme: dark;
   
   /* Brand Colors - Amber/Gold Accent */
   --primary-50: #fffbeb;
