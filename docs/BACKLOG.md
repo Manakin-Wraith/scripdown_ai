@@ -155,7 +155,8 @@ call-sheet parse.
    type) — recurring need to correct AI output.
 7. Separate Location (production) from Sets (creative).
 8. Series page redesign + finish-or-drop `worktree-series-accordion`,
-   style `SeriesAssignmentModal`.
+   style `SeriesAssignmentModal`. (Series/season delete shipped
+   2026-09-23 — the accordion branch must re-home it; see Series entry.)
 9. Report version control; CSV export industry-standard audit.
 9a. Cast drawer (`CastingDetailPanel`) UI/UX layout pass — cosmetic,
     brainstorm-then-build; drawer grew organically across Cast v1/v2.
@@ -983,6 +984,36 @@ changes; `SeriesAssignmentModal.jsx`'s classic-tabs usage is unaffected
 (it never passes `initialSeriesId`/`initialSeasonId`, so `isKnownSeries`
 is always `false` there) — confirmed both in task review and the final
 whole-branch review.
+
+**Done: delete a series / season — RESOLVED, shipped 2026-09-23**
+(`209b99a`, pushed to `main`, verified live in production by the
+account owner). There was previously no way to remove a series or
+season once created. New `DELETE /api/series/<id>` and
+`DELETE /api/seasons/<id>` in `series_routes.py`, both series-owner only
+(404 missing / 403 non-owner). **Deleting removes the grouping only —
+scripts are never deleted:** every episode script becomes standalone
+again with `season_id` *and* `episode_number` cleared (the FK's
+`ON DELETE SET NULL` alone would have left a stray `episode_number`),
+via a shared `_ungroup_season_episodes` helper; breakdown data is
+untouched. No migration. Frontend: trash icon per row on
+`SeriesListPage` (series) and `SeriesDetailPage` (seasons), plus
+"Delete series" / "Delete season" header actions on
+`SeriesDetailPage` / `SeasonPage`; `useConfirmDialog` danger confirm
+(copy states episodes stay in My Scripts) + toasts; delete actions are
+shown to the series owner only (gated on the owner-scoped `listSeries`)
+so team members arriving via shared episode access never see a delete
+they can't perform. `deleteSeries` / `deleteSeason` in `apiService.js`.
+6 new tests in `test_series_routes.py` (ungroup-not-delete, sibling
+season untouched, 403, 404); backend suite 974 passed / 1 skipped,
+`npm run build` green. Removing a *single* episode from a season was
+already possible via the My Scripts "Series" action — not duplicated.
+
+**Merge-conflict warning for `worktree-series-accordion` (below):** that
+branch deletes `SeriesDetailPage.jsx` and reworks `SeriesListPage.jsx`
+into an accordion — both files now carry the delete actions above. On
+resume, the per-season delete must be re-homed into the accordion's
+inline season rows (and the series delete kept on the series row), or
+it is silently lost.
 
 **In progress (started 2026-07-23, paused mid-verification): `/series`
 3-level click-through collapsed to an accordion.** Brainstormed,
