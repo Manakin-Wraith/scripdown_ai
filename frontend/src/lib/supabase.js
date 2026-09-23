@@ -19,12 +19,15 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 // Auth Helpers
 // ============================================
 
-export const signUp = async (email, password) => {
+export const signUp = async (email, password, fullName) => {
     const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-            emailRedirectTo: `${window.location.origin}/auth/callback?type=signup`
+            emailRedirectTo: `${window.location.origin}/auth/callback?type=signup`,
+            // Stored on the auth user so the backend can fill profiles.full_name
+            // even if email verification happens in another browser.
+            data: { full_name: fullName?.trim() || undefined }
         }
     });
     return { data, error };

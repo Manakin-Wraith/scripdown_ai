@@ -179,10 +179,12 @@ def set_plan():
     }
 
     # Email from the token, not the body, for the same reason as user_id.
-    email = (get_current_user() or {}).get('email')
+    current_user = get_current_user() or {}
+    email = current_user.get('email')
     if email:
         profile['email'] = email
-    full_name = body.get('full_name')
+    full_name = body.get('full_name') or \
+        (current_user.get('user_metadata') or {}).get('full_name')
     if full_name:
         profile['full_name'] = full_name
 
