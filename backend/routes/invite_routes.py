@@ -737,7 +737,11 @@ def update_member_role(script_id, member_id):
 @invite_bp.route('/api/scripts/<script_id>/my-membership', methods=['GET'])
 @require_auth
 def get_my_membership(script_id):
-    """Get the current user's membership info for a script."""
+    """Get the current user's DIRECT script_members membership for a script.
+
+    Does not report production-derived access (get_script_role does). No
+    frontend caller today; use GET /api/scripts/<id>/metadata `my_role`.
+    """
     if not supabase:
         return jsonify({'error': 'Database not configured'}), 500
     

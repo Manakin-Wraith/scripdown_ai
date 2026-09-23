@@ -257,3 +257,84 @@ def test_accept_invite_copies_script_access(monkeypatch):
     _svc_patch(monkeypatch, store)
     pms_task3.accept_invite("t", "u2", "jane@x.com")
     assert store["production_members"][0]["script_access"] == "edit"
+
+
+from types import SimpleNamespace
+import routes.supabase_routes as sr
+
+
+class _Q:
+    """Chainable read-only query over a list of dict rows."""
+    def __init__(self, rows):
+        self._rows = list(rows); self._single = False
+
+    def select(self, *_a, **_k): return self
+    def eq(self, col, val):
+        self._rows = [r for r in self._rows if r.get(col) == val]; return self
+    def in_(self, col, values):
+        values = set(values); self._rows = [r for r in self._rows if r.get(col) in values]; return self
+    def is_(self, col, _v):
+        self._rows = [r for r in self._rows if r.get(col) is None]; return self
+    def limit(self, _n): return self
+    def order(self, *_a, **_k): return self
+    def single(self): self._single = True; return self
+    def execute(self):
+        if self._single:
+            return SimpleNamespace(data=self._rows[0] if self._rows else None)
+        return SimpleNamespace(data=self._rows)
+
+
+class _DB:
+    def __init__(self, tables): self.tables = tables
+    def table(self, name): return _Q(self.tables.get(name, []))
+
+
+def _app_client():
+    from app import app
+    app.config["TESTING"] = True
+    return app.test_client()
+
+
+_SCRIPT = {"id": "s1", "user_id": "owner", "production_id": "p1", "title": "Ep 1",
+           "created_at": "2026-09-01T00:00:00Z"}
+
+
+def _list_db():
+    return _DB({
+        "scripts": [_SCRIPT],
+        "production_members": [{"production_id": "p1", "user_id": "u", "role": "viewer",
+                                "script_access": "view"}],
+        "productions": [{"id": "p1", "title": "Farm", "owner_id": "owner"}],
+        "script_members": [], "scenes": [],
+    })
+
+
+def test_get_scripts_includes_production_derived(monkeypatch):
+    monkeypatch.setattr("middleware.auth.DEV_MODE", True)
+    monkeypatch.setattr(sr, "get_user_id", lambda: "u")
+    monkeypatch.setattr(sr, "supabase", _list_db())
+    body = _app_client().get("/api/scripts").get_json()
+    [s] = [x for x in body["scripts"] if x["id"] == "s1"]
+    assert s["is_owner"] is False
+    assert s["membership"] == {"role": "viewer", "department_code": None, "via_production": True}
+    assert s["production_title"] == "Farm"
+
+
+def test_user_can_access_script_via_production(monkeypatch):
+    monkeypatch.setattr(sr, "supabase", _list_db())
+    assert sr._user_can_access_script("s1", "u") is True
+    assert sr._user_can_access_script("s1", "stranger") is False
+
+
+def test_script_metadata_returns_role_and_production(monkeypatch):
+    monkeypatch.setattr("middleware.auth.DEV_MODE", True)
+    monkeypatch.setattr(sr, "get_user_id", lambda: "u")
+    monkeypatch.setattr(authz, "get_script_role", lambda sid, uid: "viewer")
+    db = _list_db()
+    monkeypatch.setattr(sr, "supabase", db)
+    monkeypatch.setattr("middleware.production_authz.get_supabase_admin", lambda: db)
+    body = _app_client().get("/api/scripts/s1/metadata").get_json()
+    assert body["my_role"] == "viewer"
+    assert body["production_id"] == "p1"
+    assert body["production_title"] == "Farm"
+    assert body["can_manage_production_members"] is False

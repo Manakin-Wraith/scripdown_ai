@@ -11,7 +11,7 @@ import json
 import uuid
 import time
 import threading
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 
@@ -22,7 +22,9 @@ from middleware.auth import require_auth, optional_auth, get_user_id, get_curren
 from middleware.authorization import (
     require_script_role, from_scene, from_note, from_item,
     get_script_role, ROLE_RANK, SCRIPT_NOT_FOUND,
+    production_derived_role, production_script_roles,
 )
+from middleware.production_authz import get_production_access
 from services.entitlement_service import (
     require_breakdown_entitlement, consume_breakdown, InsufficientCredits,
 )
@@ -180,7 +182,20 @@ def get_scripts():
                                 'script': script_result.data,
                                 'membership': next((m for m in member_result.data if m['script_id'] == script_id), None)
                             }
-            
+
+            # Scripts reached through production membership (script_access view/edit)
+            for script_id, prod_role in production_script_roles(supabase, user_id).items():
+                if script_id in script_ids:
+                    continue
+                script_result = supabase.table('scripts').select('*').eq('id', script_id).single().execute()
+                if script_result.data:
+                    script_ids.add(script_id)
+                    member_scripts[script_id] = {
+                        'script': script_result.data,
+                        'membership': {'role': prod_role, 'department_code': None,
+                                       'via_production': True},
+                    }
+
             # Also include scripts with no owner (legacy)
             legacy_result = supabase.table('scripts').select('*').is_('user_id', 'null').execute()
             for script in legacy_result.data or []:
@@ -247,7 +262,8 @@ def get_scripts():
                 'is_owner': False,
                 'membership': {
                     'department_code': membership['department_code'] if membership else None,
-                    'role': membership['role'] if membership else None
+                    'role': membership['role'] if membership else None,
+                    'via_production': bool(membership.get('via_production')) if membership else False,
                 }
             })
 
@@ -352,10 +368,22 @@ def get_script_metadata(script_id):
     
     try:
         result = supabase.table('scripts').select(
-            'id, user_id, title, writer_name, draft_version, genre, logline, total_pages, created_at, analysis_status'
+            'id, user_id, title, writer_name, draft_version, genre, logline, total_pages, '
+            'created_at, analysis_status, production_id'
         ).eq('id', script_id).single().execute()
-        
-        return jsonify(result.data), 200
+
+        data = dict(result.data or {})
+        data['my_role'] = g.script_role
+        data['production_title'] = None
+        data['can_manage_production_members'] = False
+        if data.get('production_id'):
+            prod = (supabase.table('productions').select('title')
+                    .eq('id', data['production_id']).limit(1).execute())
+            data['production_title'] = prod.data[0].get('title') if prod.data else None
+            access = get_production_access(data['production_id'], get_user_id())
+            data['can_manage_production_members'] = bool(
+                isinstance(access, dict) and access.get('can_manage_members'))
+        return jsonify(data), 200
     except Exception as e:
         print(f"Error getting script metadata: {e}")
         return jsonify({'error': str(e)}), 500
@@ -4924,15 +4952,15 @@ def _user_can_access_script(script_id, user_id):
     """True if the user may act on this script.
 
     Mirrors the access model of the scripts-list endpoint: the script owner,
-    a team member, a superuser, or any authenticated user for a legacy
-    no-owner script. The backend uses the Supabase service-role key (bypasses
-    RLS), so every script-scoped endpoint MUST gate on this explicitly — do
-    not rely on RLS.
+    a team member, a production member with script access, a superuser, or
+    any authenticated user for a legacy no-owner script. The backend uses
+    the Supabase service-role key (bypasses RLS), so every script-scoped
+    endpoint MUST gate on this explicitly — do not rely on RLS.
     """
     if not user_id:
         return False
     try:
-        script = supabase.table('scripts').select('user_id').eq(
+        script = supabase.table('scripts').select('user_id, production_id').eq(
             'id', script_id).limit(1).execute()
         if not script.data:
             return False  # script doesn't exist
@@ -4944,6 +4972,9 @@ def _user_can_access_script(script_id, user_id):
         member = supabase.table('script_members').select('script_id').eq(
             'script_id', script_id).eq('user_id', user_id).limit(1).execute()
         if member.data:
+            return True
+        # Production member with script_access view/edit.
+        if production_derived_role(supabase, script.data[0].get('production_id'), user_id):
             return True
         # Superuser (admins can access every script, matching require_superuser).
         prof = supabase.table('profiles').select('is_superuser').eq(
@@ -5582,6 +5613,8 @@ def get_location_health_counts():
         member_result = supabase.table('script_members').select('script_id').eq('user_id', user_id).execute()
         for m in member_result.data or []:
             script_ids.add(m['script_id'])
+
+        script_ids.update(production_script_roles(supabase, user_id))
 
         counts = {}
         for script_id in script_ids:
