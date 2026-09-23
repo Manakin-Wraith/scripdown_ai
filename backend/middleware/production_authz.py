@@ -1,9 +1,10 @@
 """
 Production-axis authorization for SlateOne.
 
-Parallel to middleware/authorization.py (the script axis) — deliberately a
-separate module because the production axis is independent: a production
-member gets zero script access and vice versa.
+Parallel to middleware/authorization.py (the script axis). A production
+member's production-level capabilities live here; their access to the
+production's SCRIPTS is the `script_access` level (none/view/edit), which
+middleware/authorization.get_script_role reads via scripts.production_id.
 
 Answers: may THIS user act on THIS production, at what role, with which
 capability flags? Enforcement is app-layer (the backend uses the
@@ -17,6 +18,13 @@ from db.supabase_client import get_supabase_admin
 from middleware.auth import get_user_id
 
 ROLE_RANK = {'viewer': 1, 'coordinator': 2, 'admin': 3, 'owner': 4}
+
+# Per-member access to the production's scripts. A level, not a boolean,
+# so it is deliberately NOT part of CAPABILITIES.
+SCRIPT_ACCESS_LEVELS = ('none', 'view', 'edit')
+SCRIPT_ACCESS_RANK = {'none': 0, 'view': 1, 'edit': 2}
+SCRIPT_ACCESS_TO_ROLE = {'view': 'viewer', 'edit': 'member'}   # none → no access
+SCRIPT_ROLE_TO_ACCESS = {'viewer': 'view', 'member': 'edit', 'admin': 'edit'}
 
 CAPABILITIES = (
     'can_view_sensitive', 'can_edit_crew', 'can_manage_members', 'can_edit_production',
@@ -58,7 +66,7 @@ def get_production_role(production_id, user_id):
 
 
 def get_production_access(production_id, user_id):
-    """dict(role + 6 capability booleans) | None | PRODUCTION_NOT_FOUND.
+    """dict(role + script_access + capability booleans) | None | PRODUCTION_NOT_FOUND.
 
     Owner short-circuits to all-true. A member returns its row's stored
     flags. A non-member returns None.
@@ -69,11 +77,13 @@ def get_production_access(production_id, user_id):
     if owner_id is PRODUCTION_NOT_FOUND:
         return PRODUCTION_NOT_FOUND
     if owner_id == user_id:
-        return {'role': 'owner', **{c: True for c in CAPABILITIES}}
+        return {'role': 'owner', 'script_access': 'edit',
+                **{c: True for c in CAPABILITIES}}
     row = _get_member_row(production_id, user_id)
     if not row:
         return None
-    return {'role': row['role'], **{c: bool(row.get(c)) for c in CAPABILITIES}}
+    return {'role': row['role'], 'script_access': row.get('script_access') or 'none',
+            **{c: bool(row.get(c)) for c in CAPABILITIES}}
 
 
 def _lookup_production_id(table, id_value, id_col='id'):
