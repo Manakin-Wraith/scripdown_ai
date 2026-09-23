@@ -27,6 +27,7 @@ const PRESETS = {
         can_edit_production: true,
         can_edit_call_sheets: true,
         can_edit_call_sheet_template: true,
+        script_access: 'edit',
     },
     coordinator: {
         can_view_sensitive: false,
@@ -35,6 +36,7 @@ const PRESETS = {
         can_edit_production: false,
         can_edit_call_sheets: true,
         can_edit_call_sheet_template: true,
+        script_access: 'edit',
     },
     viewer: {
         can_view_sensitive: false,
@@ -43,10 +45,18 @@ const PRESETS = {
         can_edit_production: false,
         can_edit_call_sheets: false,
         can_edit_call_sheet_template: false,
+        script_access: 'view',
     },
 };
 
 const RANK = { viewer: 1, coordinator: 2, admin: 3, owner: 4 };
+
+const SCRIPT_ACCESS_OPTIONS = [
+    { value: 'none', label: 'None' },
+    { value: 'view', label: 'View' },
+    { value: 'edit', label: 'Edit' },
+];
+const ACCESS_RANK = { none: 0, view: 1, edit: 2 };
 
 // Machine-readable `code` values the members API returns → friendly copy.
 const CODE_MESSAGES = {
@@ -57,9 +67,10 @@ const CODE_MESSAGES = {
     rank_denied: 'You cannot grant a role or permission above your own.',
     bad_role: 'Pick one of: viewer, coordinator, admin.',
     cannot_target_owner: 'The production owner already has full access.',
+    bad_script_access: 'Script access must be None, View or Edit.',
 };
 
-export default function ProductionMembersTab({ productionId, access }) {
+export default function ProductionMembersTab({ productionId, access, scriptCount = 0 }) {
     const [members, setMembers] = useState([]);
     const [invites, setInvites] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -68,6 +79,8 @@ export default function ProductionMembersTab({ productionId, access }) {
 
     const myRank = RANK[access?.role] || 0;
     const isOwner = access?.role === 'owner';
+    const myAccessRank = isOwner ? ACCESS_RANK.edit : (ACCESS_RANK[access?.script_access] ?? 0);
+    const accessAllowed = (v) => isOwner || ACCESS_RANK[v] <= myAccessRank;
 
     // `isActive` lets the mount effect below cancel state updates after unmount;
     // manual refreshes call load() with no argument and always apply.
@@ -137,6 +150,10 @@ export default function ProductionMembersTab({ productionId, access }) {
                 </div>
             </div>
 
+            <p className="members-script-hint">
+                Script access applies to all scripts in this production ({scriptCount}).
+            </p>
+
             {error && <p className="production-page-error">{error}</p>}
 
             <div className="members-table-wrap">
@@ -146,6 +163,7 @@ export default function ProductionMembersTab({ productionId, access }) {
                             <th>Name</th>
                             <th>Email</th>
                             <th>Role</th>
+                            <th>Script access</th>
                             {Object.values(CAP_LABELS).map((l) => <th key={l}>{l}</th>)}
                             <th aria-label="Actions" />
                         </tr>
@@ -169,6 +187,20 @@ export default function ProductionMembersTab({ productionId, access }) {
                                             {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
                                         </select>
                                     </td>
+                                    <td>
+                                        <select
+                                            value={m.script_access || 'none'}
+                                            disabled={locked}
+                                            onChange={(e) => patchMember(m, { script_access: e.target.value })}
+                                        >
+                                            {SCRIPT_ACCESS_OPTIONS.map((o) => (
+                                                <option key={o.value} value={o.value}
+                                                    disabled={!accessAllowed(o.value) && o.value !== m.script_access}>
+                                                    {o.label}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </td>
                                     {Object.keys(CAP_LABELS).map((c) => (
                                         <td key={c} className="members-cap-cell">
                                             <input
@@ -189,7 +221,7 @@ export default function ProductionMembersTab({ productionId, access }) {
                         })}
                         {members.length === 0 && (
                             <tr>
-                                <td colSpan={3 + Object.keys(CAP_LABELS).length + 1} className="members-empty">
+                                <td colSpan={4 + Object.keys(CAP_LABELS).length + 1} className="members-empty">
                                     No members yet.
                                 </td>
                             </tr>
@@ -207,6 +239,7 @@ export default function ProductionMembersTab({ productionId, access }) {
                                 <tr>
                                     <th>Email</th>
                                     <th>Role</th>
+                                    <th>Script access</th>
                                     <th>Sent</th>
                                     <th aria-label="Actions" />
                                 </tr>
@@ -216,6 +249,7 @@ export default function ProductionMembersTab({ productionId, access }) {
                                     <tr key={inv.id}>
                                         <td>{inv.email}</td>
                                         <td>{inv.role}</td>
+                                        <td>{inv.script_access || 'none'}</td>
                                         <td>{(inv.created_at || '').slice(0, 10)}</td>
                                         <td className="members-row-actions">
                                             <button type="button" onClick={() => revoke(inv)}>Revoke</button>
@@ -233,6 +267,7 @@ export default function ProductionMembersTab({ productionId, access }) {
                     productionId={productionId}
                     myRank={myRank}
                     isOwner={isOwner}
+                    accessAllowed={accessAllowed}
                     onClose={() => setAdding(false)}
                     onDone={() => { setAdding(false); load(); }}
                     setError={setError}
@@ -242,7 +277,7 @@ export default function ProductionMembersTab({ productionId, access }) {
     );
 }
 
-function AddMemberModal({ productionId, myRank, isOwner, onClose, onDone, setError }) {
+function AddMemberModal({ productionId, myRank, isOwner, accessAllowed, onClose, onDone, setError }) {
     const [email, setEmail] = useState('');
     const [role, setRole] = useState('viewer');
     const [flags, setFlags] = useState(PRESETS.viewer);
@@ -291,6 +326,21 @@ function AddMemberModal({ productionId, myRank, isOwner, onClose, onDone, setErr
                         <select value={role} onChange={(e) => changeRole(e.target.value)}>
                             {ROLES.filter(roleAllowed).map((r) => (
                                 <option key={r} value={r}>{r}</option>
+                            ))}
+                        </select>
+                    </label>
+
+                    <label className="contact-field">
+                        <span>Script access</span>
+                        <select
+                            value={flags.script_access}
+                            onChange={(e) => {
+                                setTouched(true);
+                                setFlags((f) => ({ ...f, script_access: e.target.value }));
+                            }}
+                        >
+                            {SCRIPT_ACCESS_OPTIONS.filter((o) => accessAllowed(o.value)).map((o) => (
+                                <option key={o.value} value={o.value}>{o.label}</option>
                             ))}
                         </select>
                     </label>

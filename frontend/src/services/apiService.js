@@ -2514,13 +2514,17 @@ export const deleteProduction = async (id) => {
 
 /**
  * Attach a script the caller owns to a production. 409 if the script is
- * already in a production.
+ * already in a production, or 409 {code: 'script_has_members', members,
+ * invites} when the script has its own team and no membersAction was given.
  * @param {string} id  production id
  * @param {string} scriptId
+ * @param {'move'|'drop'|null} membersAction
  */
-export const addScriptToProduction = async (id, scriptId) => {
+export const addScriptToProduction = async (id, scriptId, membersAction = null) => {
     try {
-        const response = await api.post(`/api/productions/${id}/scripts`, { script_id: scriptId });
+        const body = { script_id: scriptId };
+        if (membersAction) body.members_action = membersAction;
+        const response = await api.post(`/api/productions/${id}/scripts`, body);
         return response.data;
     } catch (error) {
         console.error('Error adding script to production:', error);
@@ -2529,13 +2533,17 @@ export const addScriptToProduction = async (id, scriptId) => {
 };
 
 /**
- * Detach a script from a production.
+ * Detach a script from a production. Production members lose access unless
+ * listed in keepUserIds (they get a direct script-team row).
  * @param {string} id  production id
  * @param {string} scriptId
+ * @param {string[]} keepUserIds
  */
-export const removeScriptFromProduction = async (id, scriptId) => {
+export const removeScriptFromProduction = async (id, scriptId, keepUserIds = []) => {
     try {
-        const response = await api.delete(`/api/productions/${id}/scripts/${scriptId}`);
+        const response = await api.delete(`/api/productions/${id}/scripts/${scriptId}`, {
+            data: { keep_user_ids: keepUserIds },
+        });
         return response.data;
     } catch (error) {
         console.error('Error removing script from production:', error);

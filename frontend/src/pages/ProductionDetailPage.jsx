@@ -16,6 +16,7 @@ import './ProductionPages.css';
 const NO_ACCESS = {
     role: null, can_view_sensitive: false, can_edit_crew: false,
     can_manage_members: false, can_edit_production: false, can_edit_call_sheet_template: false,
+    script_access: 'none',
 };
 
 export default function ProductionDetailPage() {
@@ -165,7 +166,7 @@ export default function ProductionDetailPage() {
                 <ProductionCallSheetTab productionId={productionId} access={access} />
             )}
             {activeTab === 'members' && canManageMembers && (
-                <ProductionMembersTab productionId={productionId} access={access} />
+                <ProductionMembersTab productionId={productionId} access={access} scriptCount={scripts.length} />
             )}
         </div>
     );

@@ -374,6 +374,7 @@
 
 /* ---- Production members tab (Task 14) ---- */
 .production-members { margin-top: 4px; }
+.members-script-hint { color: #6b7a94; margin: 4px 0 12px; font-size: 13px; }
 .members-invites-heading {
     margin: 28px 0 0; font-size: 13px; text-transform: uppercase;
     letter-spacing: 0.04em; color: #9fb0c9;
