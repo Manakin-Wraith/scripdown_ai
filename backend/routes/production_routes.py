@@ -11,6 +11,7 @@ from middleware.production_authz import (
     from_production_location_id,
 )
 from services import production_service as svc
+from services import production_script_team_service as team_svc
 from services import production_crew_service as crew_svc
 from services import production_member_service as member_svc
 from services import production_location_service as ploc_svc
@@ -135,15 +136,42 @@ def add_script_to_production(production_id):
             return jsonify({"error": "Production not found"}), 404
         if not svc._user_owns_production(production_id, user_id):
             return jsonify({"error": "Insufficient permissions"}), 403
-        script_id = (request.get_json(silent=True) or {}).get("script_id")
+        body = request.get_json(silent=True) or {}
+        script_id = body.get("script_id")
+        members_action = body.get("members_action")
         if not script_id:
             return jsonify({"error": "script_id is required"}), 400
+        if members_action not in (None, "move", "drop"):
+            return jsonify({"error": "members_action must be 'move' or 'drop'"}), 400
+
+        # Ownership + "already elsewhere" first, so a stranger's script team is
+        # never disclosed and a conflict never reaches the members prompt.
+        script = svc.get_owned_script(script_id, user_id)
+        if not script:
+            return jsonify({"error": "You do not own that script"}), 403
+        if script.get("production_id") not in (None, production_id):
+            return jsonify({"error": "Script already belongs to a production"}), 409
+
+        members, live, _expired = team_svc.load_script_team(script_id)
+        if (members or live) and members_action is None:
+            return jsonify({"error": "This script has its own team",
+                            "code": "script_has_members",
+                            **team_svc.describe_script_team(members, live)}), 409
+
         outcome = svc.add_script(production_id, script_id, user_id)
         if outcome == "not_owned":
             return jsonify({"error": "You do not own that script"}), 403
         if outcome == "conflict":
             return jsonify({"error": "Script already belongs to a production"}), 409
-        return jsonify({"success": True})
+
+        # Re-read inside move/drop (load_script_team is called again there), so
+        # an invite created between the check above and the attach is handled.
+        result = {"moved_members": 0, "moved_invites": 0}
+        if members_action == "move":
+            result = team_svc.move_script_team_to_production(production_id, script_id, user_id)
+        elif members_action == "drop":
+            result = team_svc.drop_script_team(script_id, user_id)
+        return jsonify({"success": True, **result})
     except Exception as e:
         print(f"Error adding script to production: {e}")
         return jsonify({"error": str(e)}), 500
@@ -158,8 +186,19 @@ def remove_script_from_production(production_id, script_id):
             return jsonify({"error": "Production not found"}), 404
         if not svc._user_owns_production(production_id, user_id):
             return jsonify({"error": "Insufficient permissions"}), 403
+        keep = (request.get_json(silent=True) or {}).get("keep_user_ids") or []
+        if not isinstance(keep, list):
+            return jsonify({"error": "keep_user_ids must be a list"}), 400
+        # Keep only applies to a script that really is in THIS production —
+        # otherwise the owner could add members to any script by id.
+        in_this = (svc.get_supabase_admin().table("scripts").select("id")
+                   .eq("id", script_id).eq("production_id", production_id)
+                   .limit(1).execute().data or [])
         svc.remove_script(production_id, script_id)
-        return jsonify({"success": True})
+        kept = 0
+        if in_this and keep:
+            kept = team_svc.keep_members_on_script(production_id, script_id, keep, user_id)
+        return jsonify({"success": True, "kept": kept})
     except Exception as e:
         print(f"Error removing script from production: {e}")
         return jsonify({"error": str(e)}), 500

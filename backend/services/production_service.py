@@ -128,10 +128,19 @@ def delete_production(production_id):
     get_supabase_admin().table("productions").delete().eq("id", production_id).execute()
 
 
+def get_owned_script(script_id, user_id):
+    """The script row (id, production_id) if the caller owns it, else None."""
+    rows = (get_supabase_admin().table("scripts").select("id, production_id")
+            .eq("id", script_id).eq("user_id", user_id).limit(1).execute().data or [])
+    return rows[0] if rows else None
+
+
 def add_script(production_id, script_id, user_id):
     """Single conditional UPDATE -- no read-then-write race.
 
-    Returns 'ok' | 'not_owned' | 'conflict'.
+    Returns 'ok' | 'not_owned' | 'conflict' | 'already_attached'.
+    'already_attached' (the script already points at THIS production) lets a
+    retried attach continue to its member-move step.
     """
     supabase = get_supabase_admin()
     owned = (supabase.table("scripts").select("id")
@@ -143,7 +152,13 @@ def add_script(production_id, script_id, user_id):
            .eq("id", script_id).eq("user_id", user_id)
            .is_("production_id", "null")
            .execute())
-    return "ok" if res.data else "conflict"
+    if res.data:
+        return "ok"
+    again = (supabase.table("scripts").select("production_id")
+             .eq("id", script_id).limit(1).execute().data or [])
+    if again and again[0].get("production_id") == production_id:
+        return "already_attached"
+    return "conflict"
 
 
 def remove_script(production_id, script_id):

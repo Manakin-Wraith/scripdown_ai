@@ -192,3 +192,144 @@ def test_keep_members_on_script_maps_roles(monkeypatch):
     [row] = store["script_members"]
     assert row["user_id"] == "jane" and row["role"] == "member"
     assert row["invited_by"] == DEV_USER_ID
+
+
+# --- Attach/detach routes (Task 7) -------------------------------------------
+
+def _client():
+    from flask import Flask
+    from routes.production_routes import production_bp
+    app = Flask(__name__); app.config["TESTING"] = True
+    app.register_blueprint(production_bp)
+    return app.test_client()
+
+
+def _rt(monkeypatch, store, sent=None):
+    monkeypatch.setattr("middleware.auth.DEV_MODE", True)
+    monkeypatch.setattr("middleware.production_authz.get_user_id", lambda: DEV_USER_ID)
+    return _patch(monkeypatch, store, sent)
+
+
+def test_attach_with_team_and_no_action_is_409_and_writes_nothing(monkeypatch):
+    store = _store()
+    _rt(monkeypatch, store)
+    resp = _client().post("/api/productions/p1/scripts", json={"script_id": "s1"})
+    assert resp.status_code == 409
+    body = resp.get_json()
+    assert body["code"] == "script_has_members"
+    assert len(body["members"]) == 2 and len(body["invites"]) == 1
+    assert store["scripts"][0]["production_id"] is None
+    assert len(store["script_members"]) == 2
+
+
+def test_attach_expired_invites_only_does_not_prompt(monkeypatch):
+    store = _store(script_members=[], script_invites=[
+        {"id": "si2", "script_id": "s1", "email": "old@x.com", "role": "member",
+         "status": "pending", "expires_at": PAST}])
+    _rt(monkeypatch, store)
+    resp = _client().post("/api/productions/p1/scripts", json={"script_id": "s1"})
+    assert resp.status_code == 200
+    assert store["scripts"][0]["production_id"] == "p1"
+
+
+def test_attach_move(monkeypatch):
+    store = _store()
+    _rt(monkeypatch, store)
+    resp = _client().post("/api/productions/p1/scripts",
+                          json={"script_id": "s1", "members_action": "move"})
+    assert resp.status_code == 200
+    assert resp.get_json() == {"success": True, "moved_members": 2, "moved_invites": 1}
+    assert store["scripts"][0]["production_id"] == "p1"
+    assert store["script_members"] == []
+
+
+def test_attach_drop(monkeypatch):
+    store = _store()
+    _rt(monkeypatch, store)
+    resp = _client().post("/api/productions/p1/scripts",
+                          json={"script_id": "s1", "members_action": "drop"})
+    assert resp.status_code == 200
+    assert store["script_members"] == [] and store["production_members"] == []
+
+
+def test_attach_bad_action_is_400(monkeypatch):
+    _rt(monkeypatch, _store())
+    resp = _client().post("/api/productions/p1/scripts",
+                          json={"script_id": "s1", "members_action": "merge"})
+    assert resp.status_code == 400
+
+
+def test_attach_script_in_other_production_conflicts_before_members(monkeypatch):
+    store = _store(
+        productions=[{"id": "p1", "owner_id": DEV_USER_ID, "title": "Farm"},
+                     {"id": "p2", "owner_id": DEV_USER_ID, "title": "Other"}],
+        scripts=[{"id": "s1", "user_id": DEV_USER_ID, "production_id": "p2", "title": "Ep 1"}])
+    _rt(monkeypatch, store)
+    resp = _client().post("/api/productions/p1/scripts",
+                          json={"script_id": "s1", "members_action": "move"})
+    assert resp.status_code == 409
+    assert resp.get_json().get("code") != "script_has_members"
+    assert len(store["script_members"]) == 2
+    assert store["production_members"] == []
+
+
+def test_attach_not_owned_does_not_leak_team(monkeypatch):
+    store = _store(scripts=[{"id": "s1", "user_id": "someone", "production_id": None}])
+    _rt(monkeypatch, store)
+    resp = _client().post("/api/productions/p1/scripts", json={"script_id": "s1"})
+    assert resp.status_code == 403
+    assert "members" not in resp.get_json()
+
+
+def test_attach_retry_when_already_attached_here_succeeds(monkeypatch):
+    store = _store(scripts=[{"id": "s1", "user_id": DEV_USER_ID, "production_id": "p1"}])
+    _rt(monkeypatch, store)
+    resp = _client().post("/api/productions/p1/scripts",
+                          json={"script_id": "s1", "members_action": "move"})
+    assert resp.status_code == 200
+    assert store["script_members"] == []
+
+
+def test_detach_without_keep(monkeypatch):
+    store = _store(script_members=[], script_invites=[],
+                   scripts=[{"id": "s1", "user_id": DEV_USER_ID, "production_id": "p1"}],
+                   production_members=[{"id": "pm1", "production_id": "p1", "user_id": "jane",
+                                        "role": "viewer", "script_access": "edit"}])
+    _rt(monkeypatch, store)
+    resp = _client().delete("/api/productions/p1/scripts/s1")
+    assert resp.status_code == 200
+    assert resp.get_json() == {"success": True, "kept": 0}
+    assert store["scripts"][0]["production_id"] is None
+    assert store["script_members"] == []
+
+
+def test_detach_with_keep(monkeypatch):
+    store = _store(script_members=[], script_invites=[],
+                   scripts=[{"id": "s1", "user_id": DEV_USER_ID, "production_id": "p1"}],
+                   production_members=[{"id": "pm1", "production_id": "p1", "user_id": "jane",
+                                        "role": "viewer", "script_access": "view"}])
+    _rt(monkeypatch, store)
+    resp = _client().delete("/api/productions/p1/scripts/s1",
+                            json={"keep_user_ids": ["jane"]})
+    assert resp.get_json() == {"success": True, "kept": 1}
+    assert store["script_members"][0]["role"] == "viewer"
+
+
+def test_detach_keep_ignored_for_script_not_in_this_production(monkeypatch):
+    store = _store(script_members=[], script_invites=[],
+                   scripts=[{"id": "s1", "user_id": "someone", "production_id": "p2"}],
+                   production_members=[{"id": "pm1", "production_id": "p1", "user_id": "jane",
+                                        "role": "viewer", "script_access": "edit"}])
+    _rt(monkeypatch, store)
+    resp = _client().delete("/api/productions/p1/scripts/s1",
+                            json={"keep_user_ids": ["jane"]})
+    assert resp.get_json()["kept"] == 0
+    assert store["script_members"] == []
+    assert store["scripts"][0]["production_id"] == "p2"
+
+
+def test_detach_keep_must_be_list(monkeypatch):
+    store = _store(scripts=[{"id": "s1", "user_id": DEV_USER_ID, "production_id": "p1"}])
+    _rt(monkeypatch, store)
+    resp = _client().delete("/api/productions/p1/scripts/s1", json={"keep_user_ids": "jane"})
+    assert resp.status_code == 400

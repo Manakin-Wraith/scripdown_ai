@@ -141,6 +141,8 @@ def _patch(monkeypatch, store):
     monkeypatch.setattr("middleware.authorization.get_supabase_admin", lambda: mock)
     # get_production_access() in middleware.production_authz has its own too
     monkeypatch.setattr("middleware.production_authz.get_supabase_admin", lambda: mock)
+    # attach now reads the script's own team via this service
+    monkeypatch.setattr("services.production_script_team_service.get_supabase_admin", lambda: mock)
 
 
 def test_create_production_makes_production_and_main_unit(monkeypatch):
