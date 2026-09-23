@@ -103,8 +103,8 @@ per-production customization pass" below for the real follow-up work
 already known to be needed before this is genuinely production-ready
 for varied productions' needs.
 
-**Production script access — BUILT on branch
-`feat/production-script-access` 2026-09-23, not yet merged.** Production
+**Production script access — SHIPPED, merged from branch
+`feat/production-script-access` 2026-09-23, merged to `main` (`89cd941`).** Production
 membership now grants access to every script attached to the production,
 via a per-member `script_access` level (`none`/`view`/`edit`; presets
 admin→edit, coordinator→edit, viewer→view). `get_script_role` resolves it
