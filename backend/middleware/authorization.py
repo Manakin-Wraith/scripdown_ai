@@ -7,6 +7,7 @@ Enforcement is app-layer because the backend uses the service-role key.
 """
 import logging
 from db.supabase_client import get_supabase_admin
+from middleware.production_authz import SCRIPT_ACCESS_TO_ROLE
 
 logger = logging.getLogger(__name__)
 
@@ -19,32 +20,74 @@ SCRIPT_NOT_FOUND = object()
 def get_script_role(script_id, user_id):
     """Return the caller's effective role on a script.
 
-    Returns:
-        'owner'                 if scripts.user_id == user_id
-        a script_members.role   if the user is a member
-        None                    if the script exists but the user has no access
-        SCRIPT_NOT_FOUND        if the script does not exist
+    Sources, highest role wins:
+      - scripts.user_id == user_id                      → 'owner'
+      - a script_members row                            → its role
+      - scripts.production_id → production_members.script_access
+                                                        → 'member' (edit) / 'viewer' (view)
+
+    Returns a role string, None (exists, no access), or SCRIPT_NOT_FOUND.
     """
     if not script_id or not user_id:
         return None
 
     supabase = get_supabase_admin()
     script = (supabase.table('scripts')
-              .select('user_id').eq('id', script_id).limit(1).execute())
+              .select('user_id, production_id').eq('id', script_id).limit(1).execute())
     if not script.data:
         return SCRIPT_NOT_FOUND
 
-    owner_id = script.data[0].get('user_id')
-    if owner_id == user_id:
+    row = script.data[0]
+    if row.get('user_id') == user_id:
         return 'owner'
 
     member = (supabase.table('script_members')
               .select('role').eq('script_id', script_id)
               .eq('user_id', user_id).limit(1).execute())
-    if member.data:
-        return member.data[0].get('role')
+    direct = member.data[0].get('role') if member.data else None
+    derived = production_derived_role(supabase, row.get('production_id'), user_id)
+    return _higher_role(direct, derived)
 
-    return None
+
+def _higher_role(a, b):
+    if a is None:
+        return b
+    if b is None:
+        return a
+    return a if ROLE_RANK.get(a, 0) >= ROLE_RANK.get(b, 0) else b
+
+
+def production_derived_role(client, production_id, user_id):
+    """Script role granted by production membership, or None."""
+    if not production_id or not user_id:
+        return None
+    rows = (client.table('production_members').select('script_access')
+            .eq('production_id', production_id).eq('user_id', user_id)
+            .limit(1).execute().data or [])
+    if not rows:
+        return None
+    return SCRIPT_ACCESS_TO_ROLE.get(rows[0].get('script_access'))
+
+
+def production_script_roles(client, user_id):
+    """{script_id: role} for scripts the user reaches only through production
+    membership (script_access view/edit). Excludes scripts they own.
+
+    `client` is passed in so route modules with their own module-level
+    Supabase client (supabase_routes.supabase) can reuse it.
+    """
+    if not user_id:
+        return {}
+    rows = (client.table('production_members').select('production_id, script_access')
+            .eq('user_id', user_id).execute().data or [])
+    access_by_prod = {r['production_id']: r.get('script_access') for r in rows
+                      if SCRIPT_ACCESS_TO_ROLE.get(r.get('script_access'))}
+    if not access_by_prod:
+        return {}
+    scripts = (client.table('scripts').select('id, user_id, production_id')
+               .in_('production_id', list(access_by_prod)).execute().data or [])
+    return {s['id']: SCRIPT_ACCESS_TO_ROLE[access_by_prod[s['production_id']]]
+            for s in scripts if s.get('user_id') != user_id}
 
 
 def _lookup_script_id(table, id_value, id_col='id', script_col='script_id'):
