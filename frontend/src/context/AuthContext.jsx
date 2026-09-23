@@ -236,7 +236,7 @@ export const AuthProvider = ({ children }) => {
         const plan = PLAN_ALIASES[rawPlan] || null;
         const source = urlParams.get('source') || 'direct';
         
-        const { data, error } = await signUp(email, password);
+        const { data, error } = await signUp(email, password, fullName);
         
         if (error) {
             setError(error.message);

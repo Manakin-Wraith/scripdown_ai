@@ -203,21 +203,29 @@ def _ensure_profile_exists(payload: dict) -> None:
     first tries to write a row referencing profiles(id) — e.g. billing
     checkout's `payfast_transactions.user_id` FK.
 
+    Signup stores the name in Supabase `user_metadata.full_name` (carried in
+    the JWT), so it is written here too, and fills an existing profile's
+    empty `full_name` — never overwrites a name already set.
+
     Never raises — a failure here must not block the actual request.
     """
     user_id = payload.get('sub') or payload.get('id')
     if not user_id:
         return
+    full_name = ((payload.get('user_metadata') or {}).get('full_name') or '').strip()
     try:
         from db.supabase_client import get_supabase_admin
         admin = get_supabase_admin()
-        existing = admin.table('profiles').select('id').eq('id', user_id).execute()
+        existing = admin.table('profiles').select('id, full_name').eq('id', user_id).execute()
         if existing.data:
+            if full_name and not existing.data[0].get('full_name'):
+                admin.table('profiles').update({'full_name': full_name}) \
+                    .eq('id', user_id).is_('full_name', 'null').execute()
             return
-        admin.table('profiles').insert({
-            'id': user_id,
-            'email': payload.get('email'),
-        }).execute()
+        row = {'id': user_id, 'email': payload.get('email')}
+        if full_name:
+            row['full_name'] = full_name
+        admin.table('profiles').insert(row).execute()
     except Exception as e:
         logger.warning(f"Could not ensure profile exists for {user_id}: {e}")
 
