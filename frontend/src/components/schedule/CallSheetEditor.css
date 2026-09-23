@@ -110,7 +110,6 @@
 }
 
 .cs-modal input[type="time"]::-webkit-calendar-picker-indicator {
-    filter: invert(0.6);
     cursor: pointer;
 }
 
