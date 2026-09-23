@@ -103,6 +103,29 @@ per-production customization pass" below for the real follow-up work
 already known to be needed before this is genuinely production-ready
 for varied productions' needs.
 
+**Production script access — BUILT on branch
+`feat/production-script-access` 2026-09-23, not yet merged.** Production
+membership now grants access to every script attached to the production,
+via a per-member `script_access` level (`none`/`view`/`edit`; presets
+admin→edit, coordinator→edit, viewer→view). `get_script_role` resolves it
+at check time from `scripts.production_id` → `production_members`
+(`view`→`viewer`, `edit`→`member`; no synced rows). Attaching a script
+with its own team prompts the owner to move that team into the production
+(bypasses seat/Team-tier gates, drops `department_code`) or drop it;
+detaching can keep chosen members. Script invites are refused for
+production scripts. Frontend: script access setting on Members tab +
+invites, attach/detach prompts, `?tab=` deep link, Team drawer shows a
+"managed in {Production} → Members" notice for production scripts,
+"View only" badge on the script header, "Shared via {Production}" tooltip.
+Backend suite 1027 passed / 1 skipped; `npm run build` green.
+**Migration `056_production_script_access.sql` must be applied manually
+to Supabase before the backend deploys** (`get_script_role` and member
+routes read `script_access`). Spec
+`docs/superpowers/specs/2026-09-23-production-script-access-design.md`,
+plan `docs/superpowers/plans/2026-09-23-production-script-access.md`.
+Deferred: hiding edit controls from script viewers — see "Role-aware edit
+controls on script pages" below (item 9h).
+
 **Step 3 deferred (not built):** scene-`setting`→location creative
 mapping (own brainstorm), contact photos, CSV import for locations, AI
 call-sheet parse.
@@ -198,6 +221,9 @@ call-sheet parse.
     900px, others), leaving a void on the right on wide screens. The
     directory pages now centre their block (`b4ea13e`); the rest don't yet.
     Decide on one convention (centre vs. left-align) and apply consistently.
+9h. Role-aware edit controls on script pages — production script access
+    puts many members at script `viewer`, who still see write controls that
+    403. Needs its own plan; see the entry of the same name below.
 
 13. **Production budget feature — brainstorm** (see below, new). Not yet
     scoped; no dependency on anything else in this list.
@@ -1545,6 +1571,27 @@ webhook) is worth adding as a fallback.
 
 ---
 
+## Role-aware edit controls on script pages (production script access D1 follow-up)
+
+**Status:** Not started — needs its own plan. Added 2026-09-23.
+
+**Context.** Production script access (spec
+`docs/superpowers/specs/2026-09-23-production-script-access-design.md`) puts
+many members at script `viewer`. The foundation shipped: script metadata
+returns `my_role`, `frontend/src/utils/scriptRole.js` exports
+`canEditScript`, and `ScriptHeader` shows a "View only" badge. Viewers still
+see write controls that 403.
+
+**Work.** For each script page (`SceneViewer`, `SceneManager`, `Stripboard`,
+`ZoomableStripboard`, `ShootingSchedulePage`, `ReportStudio`, `CastPage`)
+and its children, hide/disable write controls when `!canEditScript(my_role)`
+— but first audit each write call's backend `require_script_role(min_role)`
+so controls viewers ARE allowed (e.g. anything gated at `viewer`) stay
+visible. Add a `useScriptRole(scriptId)` hook reading `my_role` from
+`getScriptMetadata`.
+
+---
+
 ## Separate Location (production element) from Sets (creative element)
 
 **Status:** Not started — feature request, needs brainstorming. Related:
@@ -2035,9 +2082,13 @@ to "Department Workspaces" (above): that entry is the per-department
 
 **Context.** Access today is production-role based (`production_members`:
 admin/coordinator/viewer presets + capability toggles, step 2b) and
-script-role based (`script_members`). Neither is department-aware: a
-viewer on a production sees every department's breakdown, reports, and
-call-sheet data. Department-scoped script/report access for HODs was
+script-role based (`script_members`), and since production script access
+(2026-09-23) production members also reach every attached script via a
+per-member `script_access` level (`none`/`view`/`edit`) resolved in
+`get_script_role`. None of it is department-aware: a production member
+with `script_access` sees every department's breakdown, reports, and
+call-sheet data — department scoping would most naturally narrow
+`script_access` rather than add a parallel rule. Department-scoped script/report access for HODs was
 explicitly left out of step 2b and deferred to umbrella step 7. There is
 also no "my workspace" view — a crew member joined to a production lands
 on the same owner-oriented pages (`/productions`, script tabs) as the
@@ -2070,6 +2121,8 @@ assigned days, or their own call times.
 - `docs/superpowers/specs/2026-08-31-production-data-model-design.md` —
   umbrella step 7
 - `docs/superpowers/specs/2026-09-01-production-members-design.md`
+- `docs/superpowers/specs/2026-09-23-production-script-access-design.md` —
+  `script_access` and production-derived script roles
 - `frontend/src/components/breakdown/` — existing breakdown UI
 
 ---
