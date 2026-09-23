@@ -1,16 +1,17 @@
 """
 Production membership + invite lifecycle (build-sequence step 2b).
 
-A production_members row grants production-level access only (crew now;
-locations / schedule / call sheets / DPR later). It grants ZERO script
-access. Enforcement is app-layer via middleware/production_authz.py; this
-module is the data logic the routes call.
+A production_members row grants production-level access (crew, locations,
+call sheets, …) plus access to the production's scripts at the member's
+`script_access` level (none/view/edit), which get_script_role resolves via
+scripts.production_id. Enforcement is app-layer via
+middleware/production_authz.py; this module is the data logic the routes call.
 """
 import secrets
 from datetime import datetime, timedelta, timezone
 
 from db.supabase_client import get_supabase_admin
-from middleware.production_authz import ROLE_RANK, CAPABILITIES
+from middleware.production_authz import ROLE_RANK, CAPABILITIES, SCRIPT_ACCESS_RANK
 from services.production_service import _get_production
 from services.entitlement_service import get_entitlement
 
@@ -48,6 +49,28 @@ def rank_ok(actor_access, target_role, new_flags):
     return True
 
 
+DEFAULT_SCRIPT_ACCESS = {'admin': 'edit', 'coordinator': 'edit', 'viewer': 'view'}
+
+
+def resolve_script_access(role, fields, current=None):
+    """Explicit valid value wins; else `current` (updates keep what they have);
+    else the role's default. Returns None when an explicit value is invalid."""
+    val = (fields or {}).get('script_access')
+    if val is not None:
+        return val if val in SCRIPT_ACCESS_RANK else None
+    if current is not None:
+        return current
+    return DEFAULT_SCRIPT_ACCESS[role]
+
+
+def script_access_ok(actor_access, level):
+    """A non-owner may not grant script access above their own."""
+    if actor_access.get('role') == 'owner':
+        return True
+    mine = SCRIPT_ACCESS_RANK.get(actor_access.get('script_access') or 'none', 0)
+    return SCRIPT_ACCESS_RANK[level] <= mine
+
+
 def _profiles_by_id(supabase, ids):
     if not ids:
         return {}
@@ -64,6 +87,7 @@ def _member_view(row, profile):
         'name': profile.get('full_name') or profile.get('email') or 'Unknown',
         'email': profile.get('email'),
         'role': row['role'],
+        'script_access': row.get('script_access') or 'none',
         **{c: bool(row.get(c)) for c in CAPABILITIES},
         'created_at': row.get('created_at'),
     }
@@ -74,6 +98,7 @@ def _invite_view(row):
         'id': row['id'],
         'email': row['email'],
         'role': row['role'],
+        'script_access': row.get('script_access') or 'none',
         **{c: bool(row.get(c)) for c in CAPABILITIES},
         'expires_at': row.get('expires_at'),
         'created_at': row.get('created_at'),
@@ -121,6 +146,12 @@ def add_member(production_id, actor_uid, actor_access, fields):
     if not rank_ok(actor_access, role, flags):
         return ('error', 'rank_denied', 403)
 
+    script_access = resolve_script_access(role, fields)
+    if script_access is None:
+        return ('error', 'bad_script_access', 400)
+    if not script_access_ok(actor_access, script_access):
+        return ('error', 'rank_denied', 403)
+
     # Entitlement gate — keyed to the PRODUCTION OWNER, never the acting caller.
     ent = get_entitlement(_owner_id(supabase, production_id))
     if not ent.get('can_use_teams'):
@@ -142,7 +173,7 @@ def add_member(production_id, actor_uid, actor_access, fields):
             return ('error', 'duplicate_member', 409)
         row = supabase.table('production_members').insert({
             'production_id': production_id, 'user_id': target_uid, 'role': role,
-            'invited_by': actor_uid, **flags,
+            'invited_by': actor_uid, 'script_access': script_access, **flags,
         }).execute().data[0]
         _notify_member_added(supabase, production_id, target_uid, role)
         profiles = _profiles_by_id(supabase, {target_uid})
@@ -158,7 +189,7 @@ def add_member(production_id, actor_uid, actor_access, fields):
     inv = supabase.table('production_invites').insert({
         'production_id': production_id, 'email': email, 'role': role,
         'token': _generate_token(), 'status': 'pending', 'invited_by': actor_uid,
-        'expires_at': expires, **flags,
+        'expires_at': expires, 'script_access': script_access, **flags,
     }).execute().data[0]
     _send_invite_email(supabase, production_id, inv)
     return {'invite': _invite_view(inv)}
@@ -182,7 +213,14 @@ def update_member(production_id, member_id, actor_uid, actor_access, fields):
     if (not rank_ok(actor_access, current['role'], {})
             or not rank_ok(actor_access, new_role, merged)):
         return ('error', 'rank_denied', 403)
-    (supabase.table('production_members').update({'role': new_role, **merged})
+    script_access = resolve_script_access(
+        new_role, fields, current.get('script_access') or 'none')
+    if script_access is None:
+        return ('error', 'bad_script_access', 400)
+    if (script_access != (current.get('script_access') or 'none')
+            and not script_access_ok(actor_access, script_access)):
+        return ('error', 'rank_denied', 403)
+    (supabase.table('production_members').update({'role': new_role, 'script_access': script_access, **merged})
      .eq('id', member_id).eq('production_id', production_id).execute())
     updated = (supabase.table('production_members').select('*')
                .eq('id', member_id).limit(1).execute().data[0])
@@ -316,6 +354,7 @@ def accept_invite(token, user_id, user_email):
         supabase.table('production_members').insert({
             'production_id': inv['production_id'], 'user_id': user_id, 'role': inv['role'],
             'invited_by': inv.get('invited_by'),
+            'script_access': inv.get('script_access') or 'none',
             **{c: bool(inv.get(c)) for c in CAPABILITIES},
         }).execute()
     except Exception as e:

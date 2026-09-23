@@ -138,3 +138,122 @@ def test_production_script_roles_lists_reachable_scripts(monkeypatch):
 def test_production_script_roles_empty_when_no_memberships(monkeypatch):
     mock = _patch_authz(monkeypatch, {"production_members": [], "scripts": []})
     assert production_script_roles(mock, "u") == {}
+
+
+import services.production_member_service as pms_task3
+from middleware.auth import DEV_USER_ID
+
+
+def test_resolve_script_access_defaults_and_overrides():
+    assert pms_task3.resolve_script_access("admin", {}) == "edit"
+    assert pms_task3.resolve_script_access("coordinator", None) == "edit"
+    assert pms_task3.resolve_script_access("viewer", {}) == "view"
+    assert pms_task3.resolve_script_access("viewer", {"script_access": "none"}) == "none"
+    assert pms_task3.resolve_script_access("viewer", {"script_access": "bogus"}) is None
+    assert pms_task3.resolve_script_access("admin", {}, current="view") == "view"
+
+
+def test_script_access_ok():
+    assert pms_task3.script_access_ok({"role": "owner"}, "edit") is True
+    assert pms_task3.script_access_ok({"role": "admin", "script_access": "view"}, "edit") is False
+    assert pms_task3.script_access_ok({"role": "admin", "script_access": "edit"}, "edit") is True
+    assert pms_task3.script_access_ok({"role": "admin"}, "view") is False   # missing → none
+
+
+def _svc_patch(monkeypatch, store):
+    mock = MockSupabase(store)
+    monkeypatch.setattr(pms_task3, "get_supabase_admin", lambda: mock)
+    monkeypatch.setattr(pms_task3, "get_entitlement", lambda uid: {
+        "can_use_teams": True, "seats_used": 0, "seats_paid": 10})
+    monkeypatch.setattr("services.email_service.is_configured", lambda: False)
+    return mock
+
+
+def _base_store(**ov):
+    base = {"productions": [{"id": "p1", "owner_id": DEV_USER_ID, "title": "Farm"}],
+            "production_members": [], "production_invites": [], "notifications": [],
+            "profiles": [{"id": DEV_USER_ID, "email": "dev@example.com"},
+                         {"id": "u2", "email": "jane@x.com", "full_name": "Jane"}]}
+    base.update(ov)
+    return base
+
+
+OWNER = {"role": "owner"}
+
+
+def test_add_member_uses_role_default_script_access(monkeypatch):
+    store = _base_store()
+    _svc_patch(monkeypatch, store)
+    out = pms_task3.add_member("p1", DEV_USER_ID, OWNER, {"email": "jane@x.com", "role": "viewer"})
+    assert out["member"]["script_access"] == "view"
+    assert store["production_members"][0]["script_access"] == "view"
+
+
+def test_add_member_explicit_script_access(monkeypatch):
+    store = _base_store()
+    _svc_patch(monkeypatch, store)
+    pms_task3.add_member("p1", DEV_USER_ID, OWNER,
+                   {"email": "jane@x.com", "role": "admin", "script_access": "none"})
+    assert store["production_members"][0]["script_access"] == "none"
+
+
+def test_add_member_bad_script_access(monkeypatch):
+    _svc_patch(monkeypatch, _base_store())
+    out = pms_task3.add_member("p1", DEV_USER_ID, OWNER,
+                         {"email": "jane@x.com", "role": "viewer", "script_access": "all"})
+    assert out == ("error", "bad_script_access", 400)
+
+
+def test_add_member_rank_denied_above_own_script_access(monkeypatch):
+    _svc_patch(monkeypatch, _base_store())
+    actor = {"role": "admin", "script_access": "view", "can_manage_members": True}
+    out = pms_task3.add_member("p1", "actor", actor,
+                         {"email": "jane@x.com", "role": "viewer", "script_access": "edit"})
+    assert out == ("error", "rank_denied", 403)
+
+
+def test_invite_carries_script_access(monkeypatch):
+    store = _base_store()
+    _svc_patch(monkeypatch, store)
+    out = pms_task3.add_member("p1", DEV_USER_ID, OWNER, {"email": "new@x.com", "role": "coordinator"})
+    assert out["invite"]["script_access"] == "edit"
+    assert store["production_invites"][0]["script_access"] == "edit"
+
+
+def test_update_member_role_change_keeps_script_access(monkeypatch):
+    store = _base_store(production_members=[{
+        "id": "m1", "production_id": "p1", "user_id": "u2", "role": "viewer",
+        "script_access": "none"}])
+    _svc_patch(monkeypatch, store)
+    out = pms_task3.update_member("p1", "m1", DEV_USER_ID, OWNER, {"role": "coordinator"})
+    assert out["member"]["script_access"] == "none"
+
+
+def test_update_member_sets_script_access(monkeypatch):
+    store = _base_store(production_members=[{
+        "id": "m1", "production_id": "p1", "user_id": "u2", "role": "viewer",
+        "script_access": "view"}])
+    _svc_patch(monkeypatch, store)
+    out = pms_task3.update_member("p1", "m1", DEV_USER_ID, OWNER, {"script_access": "edit"})
+    assert out["member"]["script_access"] == "edit"
+
+
+def test_update_member_unchanged_script_access_not_rank_checked(monkeypatch):
+    # Actor holds only 'view' but is not changing the member's 'edit'.
+    store = _base_store(production_members=[{
+        "id": "m1", "production_id": "p1", "user_id": "u2", "role": "viewer",
+        "script_access": "edit"}])
+    _svc_patch(monkeypatch, store)
+    actor = {"role": "admin", "script_access": "view", "can_manage_members": True}
+    out = pms_task3.update_member("p1", "m1", "actor", actor, {"role": "viewer"})
+    assert not isinstance(out, tuple)
+
+
+def test_accept_invite_copies_script_access(monkeypatch):
+    store = _base_store(production_invites=[{
+        "id": "i1", "production_id": "p1", "email": "jane@x.com", "role": "viewer",
+        "token": "t", "status": "pending", "expires_at": "2099-01-01T00:00:00+00:00",
+        "script_access": "edit"}])
+    _svc_patch(monkeypatch, store)
+    pms_task3.accept_invite("t", "u2", "jane@x.com")
+    assert store["production_members"][0]["script_access"] == "edit"

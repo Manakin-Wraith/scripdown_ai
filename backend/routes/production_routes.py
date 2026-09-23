@@ -22,7 +22,7 @@ production_bp = Blueprint("production", __name__)
 # the service already carries the HTTP status.
 _MEMBER_ERR_WITH_CODE = {'rank_denied', 'tier_2_required', 'no_seats_available',
                          'duplicate_member', 'duplicate_invite', 'bad_role',
-                         'cannot_target_owner'}
+                         'cannot_target_owner', 'bad_script_access'}
 
 
 def _member_error(result):
