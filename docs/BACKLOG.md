@@ -228,6 +228,9 @@ call-sheet parse.
 9h. Role-aware edit controls on script pages — production script access
     puts many members at script `viewer`, who still see write controls that
     403. Needs its own plan; see the entry of the same name below.
+9i. Productions page as the owner's workspace — brainstorm (see the entry
+    of the same name below). Make `/productions` the owner's home base,
+    with scripts reached from there rather than only via My Scripts.
 
 13. **Production budget feature — brainstorm** (see below, new). Not yet
     scoped; no dependency on anything else in this list.
@@ -2428,6 +2431,68 @@ details.
 - `backend/routes/supabase_routes.py` — `merge_characters` (character
   identity system casting would key off)
 - `frontend/src/components/schedule/` — stripboard / schedule UI
+
+---
+
+## Productions page as the owner's workspace — brainstorm
+
+**Status:** Not started — needs brainstorming. Added 2026-09-25. The
+owner-side counterpart of "User workspace + department-specific access"
+(above), which covers what a *joined crew member* lands on.
+
+**Context.** The app's home is still script-centric: `/` redirects to
+`/scripts` (My Scripts), and a production is one more nav destination.
+Since production script access (2026-09-23) a production is effectively
+the team and the container for its scripts, but the Productions pages
+don't reflect that: `ProductionDetailPage` is a set of admin tabs
+(Overview / Crew / Locations / Call Sheet / Members), and scripts appear
+only as a plain linked list on the Overview tab (`ProductionOverviewTab`,
+links to `/scenes/<id>`) with attach/detach. Nothing on the production
+surfaces each script's status (analysis progress, breakdown, schedule,
+reports, call sheets), and there's no way to work across the
+production's scripts from one place.
+
+**Goal.** Turn the Productions page into the **owner's workspace**: the
+place an owner runs their production from, including opening and working
+on its scripts, without going back to My Scripts.
+
+**Scope when picked up.** Brainstorm before implementing (see
+`superpowers:brainstorming`) — open questions:
+- **Landing / nav:** should owners land on `/productions` (or a single
+  production) instead of `/scripts`? What happens for owners with no
+  production, or only standalone scripts? Does My Scripts stay as-is,
+  become a "standalone scripts" view, or group by production (like the
+  existing series grouping)?
+- **Scripts inside the production:** a dedicated Scripts tab vs. the
+  Overview list; per-script cards with status (analysis state, scene
+  count, schedule/report/call-sheet readiness, last updated, who's
+  working on it); upload a new script straight into the production;
+  quick links into Scenes / Board / Schedule / Reports / Cast.
+- **Navigation context:** when a script is opened from a production,
+  should the script pages keep a production breadcrumb/back-link and
+  production-level nav, so the owner doesn't lose their place?
+- **Production-level rollups:** what belongs on the Overview as a
+  dashboard (shoot dates, upcoming call sheets, crew/cast gaps, members,
+  open conflicts) vs. staying on each script. Ties to the per-script
+  schedule rollup already in the production data model spec.
+- **Series/seasons interplay:** a production can hold episodes from a
+  series; how the series grouping shows inside the production workspace.
+- **Joined members:** whether the same workspace (filtered by their
+  role / `script_access`) becomes the member landing too — coordinate
+  with the User workspace item so the two don't diverge.
+- **Tier:** Solo users without productions — does anything change for
+  them.
+
+**References.**
+- "User workspace + department-specific access — brainstorm" (above)
+- "Production script access" in the priority snapshot (top of file)
+- 9b (Production pages UI/UX pass) — overlapping design surface; likely
+  fold into this brainstorm
+- `frontend/src/pages/ProductionsListPage.jsx`,
+  `frontend/src/pages/ProductionDetailPage.jsx`,
+  `frontend/src/components/productions/ProductionOverviewTab.jsx`
+- `frontend/src/App.jsx` — `/` → `/scripts` redirect
+- `docs/superpowers/specs/2026-08-31-production-data-model-design.md`
 
 ---
 
