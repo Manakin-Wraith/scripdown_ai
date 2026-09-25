@@ -210,6 +210,10 @@ call-sheet parse.
     production OWNER, so a coordinator adding a member can be blocked by the
     owner's missing seat; the current error surface for that case needs a
     clear, actionable message (who needs to buy a seat, and where).
+    Also: a member with no `full_name` shows their email in both the Name
+    and Email columns — show a muted "—" (or "No name set") instead of
+    duplicating the email. Root cause of missing names is fixed (see
+    "Signup full name not saved" below); this is display polish only.
 9f. Locations pages UI/UX pass — the `/locations` **directory** page got the
     split-pane redesign with 9c (DONE 2026-09-03): detail view, map preview,
     photo grid, geocode/manual-coords flow + error copy, StaticMap
@@ -234,6 +238,12 @@ call-sheet parse.
 11. FAQ page (in the `~/slateone` repo — spec already written).
 12. Revision-import: FDX path + test coverage + confirm selective
     re-analysis. FDX Tagger ingestion stays blocked on a sample file.
+14. Settings theme toggle is a no-op — `SettingsPage.jsx` writes
+    `localStorage.theme` and sets `data-theme` on `<html>`, but no CSS
+    reads `[data-theme]`; the app is dark-only (`index.css` `:root`, which
+    also declares `color-scheme: dark` since 2026-09-23). Either remove the
+    toggle or build a real light theme (token overrides under
+    `[data-theme="light"]` + `color-scheme: light`). Decide first.
 
 **Deferred by decision — revisit at scale:** renewal automation,
 failed-renewal downgrade, Teams→Solo downgrade, live PayFast ITN inbound
@@ -1568,6 +1578,36 @@ webhook) is worth adding as a fallback.
 - Vercel dashboard: Project → Settings → Git (integration config)
 - `gh api repos/Manakin-Wraith/scripdown_ai/commits/<sha>/status` — how
   the missing Vercel status was confirmed
+
+---
+
+## Signup full name not saved — members shown by email — RESOLVED, fixed
+
+**Fixed 2026-09-23** (`d168365`, merge `eb96443`, pushed, deployed).
+The signup form's name only lived in the signup browser's
+`localStorage` and was written by `/api/auth/set-plan` on `SIGNED_IN`,
+so verifying the email in another browser (or any path that skipped
+set-plan — e.g. the auth middleware's `_ensure_profile_exists` safety
+net creating the profile first) left `profiles.full_name` empty, and the
+production Members tab / script team showed the email as the name.
+Signup now passes `full_name` in Supabase `options.data`
+(`user_metadata`, carried in the JWT); `_ensure_profile_exists` writes it
+on create and fills an empty `full_name` (never overwrites a name set
+later on the Profile page); `set-plan` falls back to it. 5 tests in
+`backend/tests/test_signup_full_name.py`. The 2 pre-existing nameless
+profiles (no metadata to backfill from) were set by hand at the owner's
+request. Follow-up display polish tracked under 9e.
+
+## Native date/time picker icons invisible on dark inputs — RESOLVED, fixed
+
+**Fixed 2026-09-23** (`178428c`, merge `577eb1d`, pushed, deployed).
+The browser drew `<input type="date|time">` picker icons dark-on-dark
+(reported on the production Overview Shoot start/end fields) because the
+app never declared a dark `color-scheme`. `index.css` `:root` now sets
+`color-scheme: dark`, fixing every native date/time input app-wide plus
+picker popups, scrollbars and select menus; the Call Sheet time-input
+`invert(0.6)` workaround was removed as redundant. Related open item:
+the dead theme toggle (Infra/hygiene item 14).
 
 ---
 
