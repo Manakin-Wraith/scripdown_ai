@@ -338,3 +338,27 @@ def test_script_metadata_returns_role_and_production(monkeypatch):
     assert body["production_id"] == "p1"
     assert body["production_title"] == "Farm"
     assert body["can_manage_production_members"] is False
+
+
+def test_production_admin_with_edit_gets_script_admin(monkeypatch):
+    store = _prod_store("edit")
+    store["production_members"][0]["role"] = "admin"
+    _patch_authz(monkeypatch, store)
+    assert get_script_role("s1", "u") == "admin"
+
+
+def test_production_admin_with_view_stays_viewer(monkeypatch):
+    store = _prod_store("view")
+    store["production_members"][0]["role"] = "admin"
+    _patch_authz(monkeypatch, store)
+    assert get_script_role("s1", "u") == "viewer"
+
+
+def test_production_script_roles_admin_member(monkeypatch):
+    mock = _patch_authz(monkeypatch, {
+        "production_members": [
+            {"production_id": "p1", "user_id": "u", "role": "admin", "script_access": "edit"},
+        ],
+        "scripts": [{"id": "s1", "user_id": "owner", "production_id": "p1"}],
+    })
+    assert production_script_roles(mock, "u") == {"s1": "admin"}

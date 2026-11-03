@@ -61,12 +61,24 @@ def production_derived_role(client, production_id, user_id):
     """Script role granted by production membership, or None."""
     if not production_id or not user_id:
         return None
-    rows = (client.table('production_members').select('script_access')
+    rows = (client.table('production_members').select('role, script_access')
             .eq('production_id', production_id).eq('user_id', user_id)
             .limit(1).execute().data or [])
     if not rows:
         return None
-    return SCRIPT_ACCESS_TO_ROLE.get(rows[0].get('script_access'))
+    return _member_script_role(rows[0])
+
+
+def _member_script_role(row):
+    """Script role for a production_members row.
+
+    A production admin with edit access is a full script admin (casting,
+    members, etc.); everyone else maps edit->member, view->viewer.
+    """
+    role = SCRIPT_ACCESS_TO_ROLE.get(row.get('script_access'))
+    if role == 'member' and row.get('role') == 'admin':
+        return 'admin'
+    return role
 
 
 def production_script_roles(client, user_id):
@@ -78,15 +90,15 @@ def production_script_roles(client, user_id):
     """
     if not user_id:
         return {}
-    rows = (client.table('production_members').select('production_id, script_access')
+    rows = (client.table('production_members').select('production_id, role, script_access')
             .eq('user_id', user_id).execute().data or [])
-    access_by_prod = {r['production_id']: r.get('script_access') for r in rows
-                      if SCRIPT_ACCESS_TO_ROLE.get(r.get('script_access'))}
-    if not access_by_prod:
+    role_by_prod = {r['production_id']: _member_script_role(r) for r in rows
+                    if SCRIPT_ACCESS_TO_ROLE.get(r.get('script_access'))}
+    if not role_by_prod:
         return {}
     scripts = (client.table('scripts').select('id, user_id, production_id')
-               .in_('production_id', list(access_by_prod)).execute().data or [])
-    return {s['id']: SCRIPT_ACCESS_TO_ROLE[access_by_prod[s['production_id']]]
+               .in_('production_id', list(role_by_prod)).execute().data or [])
+    return {s['id']: role_by_prod[s['production_id']]
             for s in scripts if s.get('user_id') != user_id}
 
 
