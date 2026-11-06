@@ -58,7 +58,7 @@ const CATEGORY_DEPARTMENTS = {
     animals: ['production_design', 'director'],
     extras: ['casting', 'director'],
     stunts: ['stunts', 'director', 'safety'],
-    general: ['director', 'producer', 'dop', 'production_design', 'costume', 'casting', 'locations', 'vfx', 'sound', 'makeup_hair', 'writer', 'actor']
+    general: ['director', 'production', 'dop', 'production_design', 'costume', 'casting', 'locations', 'vfx', 'sound', 'makeup_hair', 'writer', 'actor']
 };
 
 // Icon mapping
