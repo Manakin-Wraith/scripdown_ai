@@ -15,7 +15,8 @@ locations_bp = Blueprint("locations", __name__)
 @locations_bp.route("/api/locations", methods=["GET"])
 @require_auth
 def list_locations():
-    return jsonify({"locations": svc.list_locations(get_user_id(), request.args.get("q"))})
+    return jsonify({"locations": svc.list_locations(
+        get_user_id(), request.args.get("q"), production_id=request.args.get("production_id"))})
 
 
 @locations_bp.route("/api/locations", methods=["POST"])

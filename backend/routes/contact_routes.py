@@ -21,7 +21,8 @@ def _field_error(data):
 @contacts_bp.route("/api/contacts", methods=["GET"])
 @require_auth
 def list_contacts():
-    rows = svc.list_contacts(get_user_id(), request.args.get("q"), request.args.get("kind"))
+    rows = svc.list_contacts(get_user_id(), request.args.get("q"), request.args.get("kind"),
+                             production_id=request.args.get("production_id"))
     return jsonify({"contacts": rows})
 
 

@@ -7,7 +7,7 @@ import { Spinner } from '../ui';
  * Props: { onPick, onClose, excludeIds }
  *   onPick(locationId, notes) — the caller then calls linkProductionLocation.
  */
-export default function LocationPickerModal({ onPick, onClose, excludeIds = [] }) {
+export default function LocationPickerModal({ productionId, onPick, onClose, excludeIds = [] }) {
     const [locations, setLocations] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -16,7 +16,7 @@ export default function LocationPickerModal({ onPick, onClose, excludeIds = [] }
     const [busyId, setBusyId] = useState(null);
 
     useEffect(() => {
-        listLocations()
+        listLocations(productionId ? { production_id: productionId } : {})
             .then((data) => setLocations(data.locations || []))
             .catch((err) => setError(err.response?.data?.error || err.message || 'Failed to load locations'))
             .finally(() => setLoading(false));

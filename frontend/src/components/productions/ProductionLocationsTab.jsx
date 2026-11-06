@@ -147,6 +147,7 @@ export default function ProductionLocationsTab({ productionId, access }) {
 
             {picking && (
                 <LocationPickerModal
+                    productionId={productionId}
                     onPick={handlePick}
                     onClose={() => setPicking(false)}
                     excludeIds={rows.map((r) => r.location_id)}

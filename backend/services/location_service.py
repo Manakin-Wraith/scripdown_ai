@@ -1,12 +1,13 @@
 # backend/services/location_service.py
 # Account-level locations DIRECTORY (build-sequence step 3). NOT the creative
 # scene-setting resolver in location_resolver.py.
-"""Owner-scoped locations directory. Every query filters owner_id == caller;
-no script or production axis. Mirrors services/contact_service.py."""
+"""Owner-scoped locations directory, plus locations linked to a production the
+caller edits (see production_sharing). No script axis. Mirrors services/contact_service.py."""
 import uuid as _uuid
 
 from db.supabase_client import get_supabase_admin
 from services import geocode_service
+from services.production_sharing import shared_location_ids, pooled_owner_ids
 
 NOT_FOUND = object()
 
@@ -22,9 +23,16 @@ SIGNED_URL_TTL = 3600
 
 
 def _get(supabase, user_id, location_id):
+    """The location if the caller owns it OR it is linked to a production they edit."""
     res = (supabase.table("locations").select("*")
            .eq("id", location_id).eq("owner_id", user_id).limit(1).execute())
-    return res.data[0] if res.data else None
+    if res.data:
+        return res.data[0]
+    if location_id in shared_location_ids(supabase, user_id):
+        res = (supabase.table("locations").select("*")
+               .eq("id", location_id).limit(1).execute())
+        return res.data[0] if res.data else None
+    return None
 
 
 def _apply_geocode(fields, patch, existing=None):
@@ -66,15 +74,34 @@ def _apply_geocode(fields, patch, existing=None):
         patch["geocode_status"] = "failed"
 
 
-def list_locations(user_id, q=None):
-    query = get_supabase_admin().table("locations").select("*").eq("owner_id", user_id)
-    if q:
-        needle = q.strip()
-        for ch in "%,()":
-            needle = needle.replace(ch, "")
-        if needle:
-            query = query.or_(f"name.ilike.%{needle}%,address.ilike.%{needle}%")
-    return query.order("name").execute().data or []
+def list_locations(user_id, q=None, production_id=None):
+    """Caller's own locations; with `production_id`, the pooled locations of that
+    production's owner and admins (when the caller is one of them)."""
+    supabase = get_supabase_admin()
+
+    def _filtered(query):
+        if q:
+            needle = q.strip()
+            for ch in "%,()":
+                needle = needle.replace(ch, "")
+            if needle:
+                query = query.or_(f"name.ilike.%{needle}%,address.ilike.%{needle}%")
+        return query.order("name").execute().data or []
+
+    rows = _filtered(supabase.table("locations").select("*").eq("owner_id", user_id))
+    if production_id:
+        circle = pooled_owner_ids(supabase, user_id, production_id, "can_edit_production")
+        if circle:
+            seen = {r["id"] for r in rows}
+            extra = _filtered(supabase.table("locations").select("*").in_("owner_id", list(circle)))
+            extra += _filtered(supabase.table("locations").select("*").in_(
+                "id", list(shared_location_ids(supabase, user_id, production_id)) or ["-"]))
+            for r in extra:
+                if r["id"] not in seen:
+                    seen.add(r["id"])
+                    rows.append(r)
+            rows.sort(key=lambda r: (r.get("name") or "").lower())
+    return rows
 
 
 def create_location(user_id, fields):
@@ -99,8 +126,7 @@ def update_location(user_id, location_id, fields):
     _apply_geocode(fields, patch, existing)
     if not patch:
         return _get(supabase, user_id, location_id)
-    res = (supabase.table("locations").update(patch)
-           .eq("id", location_id).eq("owner_id", user_id).execute())
+    res = supabase.table("locations").update(patch).eq("id", location_id).execute()
     return res.data[0] if res.data else NOT_FOUND
 
 

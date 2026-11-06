@@ -305,9 +305,10 @@ def link_production_location(production_id):
         return jsonify({"error": "location_id is required"}), 400
     owner_id = svc.get_production_owner_id(production_id)
     result = ploc_svc.link_location(production_id, location_id, owner_id,
-                                    notes=data.get("production_notes"))
+                                    notes=data.get("production_notes"),
+                                    actor_id=get_user_id())
     if result == "not_owned":
-        return jsonify({"error": "That location is not in this production owner's directory"}), 404
+        return jsonify({"error": "That location is not in your or this production owner's directory"}), 404
     if result == "exists":
         return jsonify({"error": "That location is already linked to this production"}), 409
     return jsonify({"location": result}), 201

@@ -9,15 +9,22 @@ _LOC_FIELDS = ("name", "address", "lat", "lng", "geocode_status", "permit_status
                "parking_notes", "loadin_notes", "restrictions", "primary_contact_id")
 
 
-def _location_owned_by(supabase, location_id, owner_id):
+def _location_owned_by(supabase, location_id, *owner_ids):
+    owners = [o for o in owner_ids if o]
+    if not owners:
+        return None
     res = (supabase.table("locations").select("*")
-           .eq("id", location_id).eq("owner_id", owner_id).limit(1).execute())
+           .eq("id", location_id).in_("owner_id", owners).limit(1).execute())
     return res.data[0] if res.data else None
 
 
-def link_location(production_id, location_id, owner_id, notes=None):
+def link_location(production_id, location_id, owner_id, notes=None, actor_id=None):
+    """Link a location owned by the production owner, the acting admin, or any
+    fellow production admin (address books pool inside a production)."""
     supabase = get_supabase_admin()
-    if not _location_owned_by(supabase, location_id, owner_id):
+    from services.production_sharing import production_circle_ids
+    circle = production_circle_ids(supabase, production_id, "can_edit_production")
+    if not _location_owned_by(supabase, location_id, owner_id, actor_id, *circle):
         return "not_owned"
     dup = (supabase.table("production_locations").select("id")
            .eq("production_id", production_id).eq("location_id", location_id)

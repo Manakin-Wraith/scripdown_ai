@@ -61,13 +61,13 @@ export default function CrewAssignmentModal({ productionId, initial, departments
         if (!q) { setResults([]); return undefined; }
         searchTimer.current = setTimeout(() => {
             setSearching(true);
-            listContacts({ q })
+            listContacts({ q, production_id: productionId })
                 .then((data) => setResults(data.contacts || []))
                 .catch(() => setResults([]))
                 .finally(() => setSearching(false));
         }, 300);
         return () => searchTimer.current && clearTimeout(searchTimer.current);
-    }, [query, isEdit]);
+    }, [query, isEdit, productionId]);
 
     const pickContact = (c) => {
         setContactId(c.id);

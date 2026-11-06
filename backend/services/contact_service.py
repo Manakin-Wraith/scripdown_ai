@@ -1,9 +1,11 @@
 """Account-level contacts directory (build-sequence step 2a).
 
-Owner-scoped: every query filters owner_id == caller. Contacts have no
+Owner-scoped, plus contacts on a production crew the caller manages
+(see production_sharing). Contacts have no
 script axis, so get_script_role is not involved.
 """
 from db.supabase_client import get_supabase_admin
+from services.production_sharing import shared_contact_ids, pooled_owner_ids
 
 NOT_FOUND = object()
 
@@ -22,28 +24,54 @@ def _normalize_role_tags(value):
 
 
 def _get(supabase, user_id, contact_id):
+    """The contact if the caller owns it OR it is on a crew they manage."""
     res = (supabase.table("contacts").select("*")
            .eq("id", contact_id).eq("owner_id", user_id).limit(1).execute())
-    return res.data[0] if res.data else None
+    if res.data:
+        return res.data[0]
+    if contact_id in shared_contact_ids(supabase, user_id):
+        res = (supabase.table("contacts").select("*")
+               .eq("id", contact_id).limit(1).execute())
+        return res.data[0] if res.data else None
+    return None
 
 
 def _user_owns_contact(user_id, contact_id):
     return _get(get_supabase_admin(), user_id, contact_id) is not None
 
 
-def list_contacts(user_id, q=None, kind=None):
+def list_contacts(user_id, q=None, kind=None, production_id=None):
+    """Caller's own contacts; with `production_id`, the pooled contacts of that
+    production's owner and admins (when the caller is one of them)."""
     supabase = get_supabase_admin()
-    query = supabase.table("contacts").select("*").eq("owner_id", user_id)
-    if kind:
-        query = query.eq("kind", kind)
-    if q:
-        # Server-side substring search; strip PostgREST filter metacharacters
-        # so a stray %/, can't break out of the or_ expression.
-        needle = q.strip().replace("%", "").replace(",", "")
-        if needle:
-            query = query.or_(
-                f"name.ilike.%{needle}%,company_name.ilike.%{needle}%,email.ilike.%{needle}%")
-    return query.order("name").execute().data or []
+
+    def _filtered(query):
+        if kind:
+            query = query.eq("kind", kind)
+        if q:
+            # Server-side substring search; strip PostgREST filter metacharacters
+            # so a stray %/, can't break out of the or_ expression.
+            needle = q.strip().replace("%", "").replace(",", "")
+            if needle:
+                query = query.or_(
+                    f"name.ilike.%{needle}%,company_name.ilike.%{needle}%,email.ilike.%{needle}%")
+        return query.order("name").execute().data or []
+
+    rows = _filtered(supabase.table("contacts").select("*").eq("owner_id", user_id))
+    if production_id:
+        # Pool every production admin's address book, plus any attached crew contact.
+        circle = pooled_owner_ids(supabase, user_id, production_id, "can_edit_crew")
+        if circle:
+            seen = {r["id"] for r in rows}
+            extra = _filtered(supabase.table("contacts").select("*").in_("owner_id", list(circle)))
+            extra += _filtered(supabase.table("contacts").select("*").in_(
+                "id", list(shared_contact_ids(supabase, user_id, production_id)) or ["-"]))
+            for r in extra:
+                if r["id"] not in seen:
+                    seen.add(r["id"])
+                    rows.append(r)
+            rows.sort(key=lambda r: (r.get("name") or "").lower())
+    return rows
 
 
 def create_contact(user_id, fields):
@@ -102,8 +130,7 @@ def update_contact(user_id, contact_id, fields):
         patch["name"] = (patch["name"] or "").strip()
     if not patch:
         return _get(supabase, user_id, contact_id)
-    res = (supabase.table("contacts").update(patch)
-           .eq("id", contact_id).eq("owner_id", user_id).execute())
+    res = supabase.table("contacts").update(patch).eq("id", contact_id).execute()
     return res.data[0] if res.data else NOT_FOUND
 
 

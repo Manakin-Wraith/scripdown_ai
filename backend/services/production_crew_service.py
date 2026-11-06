@@ -98,9 +98,11 @@ def add_crew(production_id, user_id, fields, *, can_view_sensitive=True):
         fields = {k: v for k, v in fields.items() if k != "job_rate"}
     owner_uid = _production_owner_id(supabase, production_id)
     contact_id = fields.get("contact_id")
-    # Admin members pick from their OWN address book (the picker lists the caller's
-    # contacts), so accept the owner's or the acting user's contacts.
-    if not contact_id or not _contact_owned_by(supabase, contact_id, owner_uid, user_id):
+    # Address books pool inside a production: accept a contact from the owner,
+    # the acting user, or any fellow production admin.
+    from services.production_sharing import production_circle_ids
+    circle = production_circle_ids(supabase, production_id, "can_edit_crew")
+    if not contact_id or not _contact_owned_by(supabase, contact_id, owner_uid, user_id, *circle):
         return "bad_contact"
     dept = fields.get("department_code")
     if dept and dept not in valid_department_codes():
