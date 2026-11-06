@@ -10,6 +10,7 @@ const RATE_UNITS = [
     { value: '', label: '—' },
     { value: 'day', label: 'day' },
     { value: 'week', label: 'week' },
+    { value: 'month', label: 'month' },
     { value: 'flat', label: 'flat' },
 ];
 

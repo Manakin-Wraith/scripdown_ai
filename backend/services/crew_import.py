@@ -4,7 +4,7 @@ import io
 
 RECOGNIZED_HEADERS = {"name", "email", "phone", "company_name", "role",
                       "department", "rate", "rate_unit", "notes"}
-_VALID_RATE_UNITS = {"day", "week", "flat"}
+_VALID_RATE_UNITS = {"day", "week", "month", "flat"}
 
 
 def _norm_header(h):
@@ -57,7 +57,7 @@ def parse_crew_csv(text, valid_codes, name_to_code):
 
         rate_unit = cell.get("rate_unit", "").strip().lower() or None
         if rate_unit and rate_unit not in _VALID_RATE_UNITS:
-            errors.append({"line": line, "reason": f"rate_unit '{rate_unit}' ignored (use day/week/flat)"})
+            errors.append({"line": line, "reason": f"rate_unit '{rate_unit}' ignored (use day/week/month/flat)"})
             rate_unit = None
 
         rows.append({

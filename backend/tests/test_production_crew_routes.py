@@ -234,7 +234,7 @@ def test_patch_crew_bad_rate_unit_is_400(monkeypatch):
     store = _store(production_crew=[
         {"id": "w1", "production_id": "p1", "contact_id": "c1", "role": "Gaffer"}])
     _patch(monkeypatch, store)
-    resp = _client().patch("/api/productions/p1/crew/w1", json={"job_rate_unit": "month"})
+    resp = _client().patch("/api/productions/p1/crew/w1", json={"job_rate_unit": "hour"})
     assert resp.status_code == 400
     assert store["production_crew"][0].get("job_rate_unit") is None
 
@@ -520,3 +520,12 @@ def test_add_crew_rejects_contact_owned_by_third_party(monkeypatch):
     _patch(monkeypatch, store)
     resp = _client().post("/api/productions/p1/crew", json={"contact_id": "c9"})
     assert resp.status_code == 400
+
+
+def test_add_crew_accepts_month_rate_unit(monkeypatch):
+    store = _store()
+    _patch(monkeypatch, store)
+    resp = _client().post("/api/productions/p1/crew",
+                          json={"contact_id": "c1", "job_rate": 9000, "job_rate_unit": "month"})
+    assert resp.status_code == 201
+    assert resp.get_json()["crew"]["job_rate_unit"] == "month"

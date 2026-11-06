@@ -14,7 +14,7 @@ def _field_error(data):
     if data.get("kind") not in (None, *VALID_KINDS):
         return "kind must be 'person' or 'company'"
     if data.get("rate_unit") not in (None, *VALID_RATE_UNITS):
-        return "rate_unit must be one of: day, week, flat"
+        return "rate_unit must be one of: day, week, month, flat"
     return None
 
 

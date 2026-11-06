@@ -13,7 +13,7 @@ FIELDS = ("kind", "name", "company_name", "role_tags", "phone", "email",
           "agent_contact", "standard_rate", "rate_unit", "notes")
 
 VALID_KINDS = frozenset(("person", "company"))
-VALID_RATE_UNITS = frozenset(("day", "week", "flat"))
+VALID_RATE_UNITS = frozenset(("day", "week", "month", "flat"))
 
 
 def _normalize_role_tags(value):

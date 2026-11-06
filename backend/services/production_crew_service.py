@@ -12,7 +12,7 @@ from services import department_service
 ASSIGN_FIELDS = ("role", "department_code", "job_rate", "job_rate_unit",
                  "start_date", "end_date", "notes")
 
-VALID_RATE_UNITS = frozenset(("day", "week", "flat"))
+VALID_RATE_UNITS = frozenset(("day", "week", "month", "flat"))
 
 
 def _validate_assignment(fields):

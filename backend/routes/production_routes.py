@@ -226,7 +226,7 @@ def add_production_crew(production_id):
         if result == "bad_department":
             return jsonify({"error": "Unknown department_code"}), 400
         if result == "bad_rate_unit":
-            return jsonify({"error": "job_rate_unit must be one of: day, week, flat"}), 400
+            return jsonify({"error": "job_rate_unit must be one of: day, week, month, flat"}), 400
         if result == "bad_dates":
             return jsonify({"error": "end_date must be on or after start_date"}), 400
         return jsonify({"crew": result}), 201
@@ -249,7 +249,7 @@ def update_production_crew(production_id, crew_id):
         if result == "bad_department":
             return jsonify({"error": "Unknown department_code"}), 400
         if result == "bad_rate_unit":
-            return jsonify({"error": "job_rate_unit must be one of: day, week, flat"}), 400
+            return jsonify({"error": "job_rate_unit must be one of: day, week, month, flat"}), 400
         if result == "bad_dates":
             return jsonify({"error": "end_date must be on or after start_date"}), 400
         return jsonify({"crew": result})
