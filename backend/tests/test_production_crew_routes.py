@@ -493,3 +493,30 @@ def test_owner_still_sees_everything(monkeypatch):
     _patch(monkeypatch, store)
     row = _client().get("/api/productions/p1/crew").get_json()["crew"][0]
     assert row["job_rate"] == 4000 and row["contact"]["phone"] == "0821112222"
+
+
+def test_add_crew_accepts_acting_admins_own_contact(monkeypatch):
+    """A non-owner admin picks from their own address book; crew rows read
+    contacts by id, so this must be accepted alongside the owner's contacts."""
+    store = _store(
+        productions=[{"id": "p1", "owner_id": "real-owner", "title": "Video Village"}],
+        production_members=[{"production_id": "p1", "user_id": DEV_USER_ID, "role": "admin",
+                             "can_edit_crew": True}],
+        contacts=[{"id": "c1", "owner_id": DEV_USER_ID, "name": "Josh Levi", "kind": "person"}],
+    )
+    _patch(monkeypatch, store)
+    resp = _client().post("/api/productions/p1/crew", json={"contact_id": "c1", "role": "DOP"})
+    assert resp.status_code == 201
+    assert resp.get_json()["crew"]["contact"]["name"] == "Josh Levi"
+
+
+def test_add_crew_rejects_contact_owned_by_third_party(monkeypatch):
+    store = _store(
+        productions=[{"id": "p1", "owner_id": "real-owner", "title": "Video Village"}],
+        production_members=[{"production_id": "p1", "user_id": DEV_USER_ID, "role": "admin",
+                             "can_edit_crew": True}],
+        contacts=[{"id": "c9", "owner_id": "stranger", "name": "X", "kind": "person"}],
+    )
+    _patch(monkeypatch, store)
+    resp = _client().post("/api/productions/p1/crew", json={"contact_id": "c9"})
+    assert resp.status_code == 400

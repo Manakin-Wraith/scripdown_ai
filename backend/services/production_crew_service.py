@@ -82,9 +82,13 @@ def _production_owner_id(supabase, production_id):
     return get_production_owner_id(production_id)
 
 
-def _contact_owned_by(supabase, contact_id, user_id):
+def _contact_owned_by(supabase, contact_id, *user_ids):
+    """True if the contact belongs to any of `user_ids`."""
+    owners = [u for u in user_ids if u]
+    if not owners:
+        return False
     res = (supabase.table("contacts").select("id")
-           .eq("id", contact_id).eq("owner_id", user_id).limit(1).execute())
+           .eq("id", contact_id).in_("owner_id", owners).limit(1).execute())
     return bool(res.data)
 
 
@@ -94,7 +98,9 @@ def add_crew(production_id, user_id, fields, *, can_view_sensitive=True):
         fields = {k: v for k, v in fields.items() if k != "job_rate"}
     owner_uid = _production_owner_id(supabase, production_id)
     contact_id = fields.get("contact_id")
-    if not contact_id or not _contact_owned_by(supabase, contact_id, owner_uid):
+    # Admin members pick from their OWN address book (the picker lists the caller's
+    # contacts), so accept the owner's or the acting user's contacts.
+    if not contact_id or not _contact_owned_by(supabase, contact_id, owner_uid, user_id):
         return "bad_contact"
     dept = fields.get("department_code")
     if dept and dept not in valid_department_codes():
