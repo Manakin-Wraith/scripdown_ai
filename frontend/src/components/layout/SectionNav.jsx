@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { List, ClipboardList, LayoutGrid, FileText, CalendarDays, Contact, History } from 'lucide-react';
+import { List, ClipboardList, LayoutGrid, FileText, CalendarDays, Users, History } from 'lucide-react';
 import './SectionNav.css';
 
 // `group` pairs consecutive tabs into a bordered segment (Board + Schedule
@@ -9,7 +9,7 @@ import './SectionNav.css';
 const SECTIONS = [
   { key: 'scenes', label: 'Scenes', icon: List, to: (id) => `/scenes/${id}` },
   { key: 'manage', label: 'Revisions', icon: History, to: (id) => `/scripts/${id}/manage` },
-  { key: 'cast', label: 'Cast', icon: Contact, to: (id) => `/scripts/${id}/cast` },
+  { key: 'cast', label: 'Cast', icon: Users, to: (id) => `/scripts/${id}/cast` },
   { key: 'stripboard', label: 'Stripboard', icon: ClipboardList, to: (id) => `/scripts/${id}/stripboard` },
   { key: 'board', label: 'Board', icon: LayoutGrid, to: (id) => `/scripts/${id}/board`, group: 'plan' },
   { key: 'schedule', label: 'Schedule', icon: CalendarDays, to: (id) => `/scripts/${id}/schedule`, group: 'plan' },
