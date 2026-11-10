@@ -26,7 +26,7 @@ export default function SeriesListPage() {
     const handleDelete = async (s) => {
         const confirmed = await confirm({
             title: `Delete "${s.title}"?`,
-            message: 'All of its seasons will be removed. Episode scripts are not deleted — they stay in My Scripts as standalone scripts.',
+            message: 'All of its seasons will be removed. Episode scripts are not deleted — they stay in Scripts as standalone scripts.',
             variant: 'danger',
         });
         if (!confirmed) return;
@@ -66,7 +66,7 @@ export default function SeriesListPage() {
                             <Layers size={28} className="series-empty-icon" />
                         </div>
                         <h2>No series yet</h2>
-                        <p>Group related episodes together by assigning a series when you upload a script, or from the "Series" action on an existing script in My Scripts.</p>
+                        <p>Group related episodes together by assigning a series when you upload a script, or from the "Series" action on an existing script in Scripts.</p>
                         <Link to="/upload" className="series-empty-cta">
                             <Plus size={16} />
                             Upload a Script

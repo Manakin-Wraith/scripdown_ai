@@ -10,7 +10,6 @@ import {
   Film,
   LogIn,
   Shield,
-  Layers,
   Clapperboard,
   Contact,
   MapPin
@@ -68,28 +67,20 @@ const TopBar = () => {
         </Link>
 
         <nav className="topbar-nav">
-          <NavLink 
-            to="/scripts" 
-            className={({ isActive }) => `topbar-nav-item ${isActive ? 'active' : ''}`}
-          >
-            <Library size={18} />
-            <span>My Scripts</span>
-          </NavLink>
-
-          <NavLink
-            to="/series"
-            className={({ isActive }) => `topbar-nav-item ${isActive ? 'active' : ''}`}
-          >
-            <Layers size={18} />
-            <span>Series</span>
-          </NavLink>
-
           <NavLink
             to="/productions"
             className={({ isActive }) => `topbar-nav-item ${isActive ? 'active' : ''}`}
           >
             <Clapperboard size={18} />
             <span>Productions</span>
+          </NavLink>
+
+          <NavLink 
+            to="/scripts" 
+            className={({ isActive }) => `topbar-nav-item ${isActive ? 'active' : ''}`}
+          >
+            <Library size={18} />
+            <span>Scripts</span>
           </NavLink>
 
           <NavLink
@@ -108,16 +99,6 @@ const TopBar = () => {
             <span>Locations</span>
           </NavLink>
 
-          {/* Admin Button - only show for superusers */}
-          {isSuperuser && (
-            <NavLink 
-              to="/admin" 
-              className={({ isActive }) => `topbar-nav-item ${isActive ? 'active' : ''}`}
-            >
-              <Shield size={18} />
-              <span>Admin</span>
-            </NavLink>
-          )}
           
         </nav>
       </div>
@@ -160,6 +141,15 @@ const TopBar = () => {
                   </div>
                 </div>
                 <div className="dropdown-divider"></div>
+                {isSuperuser && (
+                  <button
+                    className="dropdown-item"
+                    onClick={() => { navigate('/admin'); setUserMenuOpen(false); }}
+                  >
+                    <Shield size={16} />
+                    <span>Admin</span>
+                  </button>
+                )}
                 <button
                   className="dropdown-item"
                   onClick={() => { navigate('/profile'); setUserMenuOpen(false); }}

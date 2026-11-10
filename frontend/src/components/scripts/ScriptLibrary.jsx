@@ -183,13 +183,20 @@ const ScriptLibrary = () => {
     return (
         <div className="library-container page-container">
             <PageHeader
-                title="My Scripts"
-                subtitle="Manage your screenplays and breakdowns"
+                title="Scripts"
+                subtitle="All screenplays you own or have been shared on"
                 actions={scripts.length > 0 && (
-                    <button className="upload-new-btn" onClick={() => navigate('/upload')}>
-                        <Plus size={18} />
-                        Upload New
-                    </button>
+                    <>
+                        {scripts.some((s) => s.series_id) && (
+                            <button className="upload-new-btn" onClick={() => navigate('/series')}>
+                                View series
+                            </button>
+                        )}
+                        <button className="upload-new-btn" onClick={() => navigate('/upload')}>
+                            <Plus size={18} />
+                            Upload New
+                        </button>
+                    </>
                 )}
             />
 

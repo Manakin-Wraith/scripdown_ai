@@ -70,7 +70,7 @@ function App() {
                       <MainLayout />
                     </ProtectedRoute>
                   }>
-                    {/* Redirect root to scripts (My Scripts is the landing page) */}
+                    {/* Redirect root to scripts (Scripts is the landing page) */}
                     <Route index element={<Navigate to="/scripts" replace />} />
                     <Route path="upload" element={<ScriptUpload />} />
                     <Route path="scripts" element={<ScriptLibrary />} />

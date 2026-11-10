@@ -46,7 +46,7 @@ export default function SeasonPage() {
         const episodeCount = `${episodes.length} episode script${episodes.length === 1 ? '' : 's'}`;
         const confirmed = await confirm({
             title: `Delete ${label}?`,
-            message: `The ${episodeCount} in this season will not be deleted — they stay in My Scripts as standalone scripts.`,
+            message: `The ${episodeCount} in this season will not be deleted — they stay in Scripts as standalone scripts.`,
             variant: 'danger',
         });
         if (!confirmed) return;
@@ -101,7 +101,7 @@ export default function SeasonPage() {
                                 <Film size={28} className="series-empty-icon" />
                             </div>
                             <h2>No episodes yet</h2>
-                            <p>Assign a script to this season from My Scripts to see it here.</p>
+                            <p>Assign a script to this season from Scripts to see it here.</p>
                         </div>
                     </div>
                 ) : (
