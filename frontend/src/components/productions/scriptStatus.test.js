@@ -29,3 +29,17 @@ test('attention list holds only analysing and failed scripts, in input order', (
   assert.deepEqual(scriptsNeedingAttention(scripts).map((s) => s.id), ['b', 'd']);
   assert.deepEqual(scriptsNeedingAttention([]), []);
 });
+
+test('script-level in_progress counts as analysing', () => {
+  assert.deepEqual(scriptStatusInfo('in_progress'), { label: 'Analysing', tone: 'info' });
+});
+
+test('partial (some scenes failed) is labelled and needs attention', () => {
+  assert.deepEqual(scriptStatusInfo('partial'), { label: 'Partly analysed', tone: 'warn' });
+  const flagged = scriptsNeedingAttention([
+    { id: 'a', analysis_status: 'in_progress' },
+    { id: 'b', analysis_status: 'partial' },
+    { id: 'c', analysis_status: 'cancelled' },
+  ]);
+  assert.deepEqual(flagged.map((s) => s.id), ['a', 'b']);
+});

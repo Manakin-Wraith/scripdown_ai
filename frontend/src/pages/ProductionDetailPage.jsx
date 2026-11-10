@@ -6,6 +6,7 @@ import {
     addScriptToProduction, removeScriptFromProduction, listProductionMembers,
 } from '../services/apiService';
 import { Spinner } from '../components/ui';
+import { announceProductionUpdated } from '../hooks/useScriptProduction';
 import ProductionOverviewTab from '../components/productions/ProductionOverviewTab';
 import ProductionCrewTab from '../components/productions/ProductionCrewTab';
 import ProductionLocationsTab from '../components/productions/ProductionLocationsTab';
@@ -84,6 +85,7 @@ export default function ProductionDetailPage() {
             };
             const { production: updated } = await updateProduction(productionId, payload);
             setProduction(updated);
+            announceProductionUpdated(updated);
             setError(null);
         } catch (err) {
             if (err.response?.status === 403) setError('You do not have permission to edit this.');
