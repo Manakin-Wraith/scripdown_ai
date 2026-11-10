@@ -4,6 +4,7 @@
 export const PRODUCTION_TAB_LABELS = {
   overview: 'Overview',
   crew: 'Crew',
+  cast: 'Cast',
   locations: 'Locations',
   callsheet: 'Call Sheet',
   members: 'Members',
@@ -34,6 +35,15 @@ const scriptRoot = (production) =>
  */
 export function buildTrail({ pathname, script = null, production = null }) {
   let m;
+
+  if ((m = pathname.match(/^\/productions\/([^/]+)\/cast\/[^/]+$/))) {
+    return [
+      crumb('Productions', '/productions'),
+      crumb(production?.title || 'Production', `/productions/${m[1]}`),
+      crumb('Cast', `/productions/${m[1]}/cast`),
+      crumb(script?.title || 'Script'),
+    ];
+  }
 
   if ((m = pathname.match(/^\/productions\/([^/]+)(?:\/([^/]+))?$/))) {
     const [, id, tab] = m;

@@ -36,8 +36,10 @@ function TierSection({ id, title, rows, collapsed, onToggle, openRow }) {
     );
 }
 
-export default function CastPage() {
-    const { scriptId } = useParams();
+// `scriptId` is passed by the production Cast tab; script-level routes read it from the URL.
+export default function CastPage({ scriptId: scriptIdProp = null }) {
+    const params = useParams();
+    const scriptId = scriptIdProp ?? params.scriptId;
     const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
