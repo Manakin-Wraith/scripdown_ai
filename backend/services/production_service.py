@@ -96,13 +96,33 @@ def _accessible_scripts(supabase, production_id, user_id, is_owner):
     return visible
 
 
+def attach_scene_counts(supabase, scripts):
+    """Add scene_count / analyzed_scenes / analyzing_scenes / failed_scenes to each script.
+
+    scripts.analysis_status is not maintained, so progress comes from the
+    scenes themselves (same source as the script library). One query per
+    script: a production holds few scripts, and a single IN query would hit
+    PostgREST's default row cap on long scripts.
+    """
+    for script in scripts:
+        rows = (supabase.table("scenes").select("id, analysis_status")
+                .eq("script_id", script["id"]).execute().data) or []
+        statuses = [r.get("analysis_status") for r in rows]
+        script["scene_count"] = len(rows)
+        script["analyzed_scenes"] = statuses.count("complete")
+        script["analyzing_scenes"] = statuses.count("analyzing")
+        script["failed_scenes"] = statuses.count("failed")
+    return scripts
+
+
 def get_production_for_viewer(production_id, user_id):
     supabase = get_supabase_admin()
     prod = _get_production(supabase, production_id)
     if not prod:
         return NOT_FOUND
     is_owner = prod.get("owner_id") == user_id
-    scripts = _accessible_scripts(supabase, production_id, user_id, is_owner)
+    scripts = attach_scene_counts(
+        supabase, _accessible_scripts(supabase, production_id, user_id, is_owner))
 
     access = get_production_access(production_id, user_id)
     if access in (None, PRODUCTION_NOT_FOUND):

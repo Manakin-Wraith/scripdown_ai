@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Trash2, Plus, X } from 'lucide-react';
 import ProductionScriptPicker from './ProductionScriptPicker';
-import { scriptStatusInfo, scriptsNeedingAttention } from './scriptStatus';
+import { scriptProgress, scriptsNeedingAttention } from './scriptStatus';
 
 const STATUSES = ['development', 'prep', 'shooting', 'wrapped', 'archived'];
 const STATUS_LABELS = {
@@ -84,7 +84,7 @@ export default function ProductionOverviewTab({
                 ) : (
                     <ul className="production-script-grid">
                         {scripts.map((s) => {
-                            const info = scriptStatusInfo(s.analysis_status);
+                            const info = scriptProgress(s);
                             return (
                                 <li key={s.id} className="production-script-card">
                                     <div className="production-script-card-top">
@@ -101,6 +101,7 @@ export default function ProductionOverviewTab({
                                     <div className="production-script-meta">
                                         {s.episode_number != null && <span>Ep {s.episode_number}</span>}
                                         {Number(s.total_pages) > 0 && <span>{s.total_pages} pp</span>}
+                                        {s.scene_count > 0 && <span>{s.scene_count} scenes</span>}
                                         <span className={`production-script-status tone-${info.tone}`}>{info.label}</span>
                                     </div>
                                     <nav className="production-script-links" aria-label={`${s.title || 'Script'} sections`}>
