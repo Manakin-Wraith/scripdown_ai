@@ -26,6 +26,43 @@ crew + call sheets + sides, auto-scheduling, department workspaces.
 Ranked view of everything open below. Billing lifecycle stays deferred by
 the 2026-08-27 decision; the active thrust is production-management depth.
 
+**Production-first navigation — Phase 1 SHIPPED 2026-11-10 (merged + pushed to
+`main`, frontend live on Vercel prod).** Trigger: Looped Pictures (multi-script
+team) found navigation clumsy. Spec
+`docs/superpowers/specs/2026-11-10-production-first-navigation-design.md`
+(audit + 3-phase proposal), plan
+`docs/superpowers/plans/2026-11-10-production-first-navigation-phase1.md`.
+Shipped: pure tested `breadcrumbTrail.js` + production-aware `Breadcrumb`
+(`useScriptProduction` / `useProductionTitle` hooks, `announceProductionUpdated`
+event); production tabs as URLs (`/productions/:id/:tab?`, legacy `?tab=`
+redirects); top bar = Productions · Scripts · Contacts · Locations, Admin in
+the avatar menu, "My Scripts" → "Scripts", Series demoted to a "View series"
+button in the Scripts header; production chip / "Shared · {production}" on
+script rows; production Overview as a dashboard (summary strip, needs-attention
+line, script cards, settings collapsed); production pages centred. Backend:
+`production_service.attach_scene_counts` adds `scene_count` / `analyzed_scenes`
+/ `analyzing_scenes` / `failed_scenes` per script to `GET /api/productions/:id`.
+**Gotcha:** `scripts.analysis_status` is NOT maintained (all rows stay
+`pending`); derive progress from scenes. Verified by tests + build only — never
+clicked through in a browser after Phase 1.
+
+**NEXT — navigation Phase 2 (frontend, ~3-5 days):** production shell with
+left sidebar grouped Prep / Plan / Output / Admin, production switcher in the
+top bar, nested routes under `/productions/:id/...` with redirects from
+`/scenes/:id` and `/scripts/:id/*`, a `ProductionContext`, one place for team
+management (script Team drawer → production Members), production-aware upload,
+and solo-tier (Tier 1) keeps the simple script-library shell. **Phase 3
+(needs backend, own spec):** production-wide schedule/stripboard across scripts
+(`shooting_schedules.production_id`), production-level reports and cast.
+Open product decisions in the spec §5 (my recommendations were taken as
+defaults). Deferred Phase 1 minors: duplicate `getProduction` fetch on
+production pages; redundant "← Productions" back link under the breadcrumb;
+empty breadcrumb bar on mobile for single-crumb pages (`/profile`, `/billing`);
+"View series" hidden when no script has a series (empty series unreachable);
+settings `<details>` auto-open is likely dead code and closes on tab switch;
+small cleanups (unused `search` param, `Series › Series` crumb,
+`/contacts/new` labelled "Contact").
+
 **Production data model — DIRECTION DECIDED 2026-08-31.** Umbrella
 brainstorm complete → `docs/superpowers/specs/2026-08-31-production-data-model-design.md`:
 a top-level `production` entity (independent axis from series/seasons),

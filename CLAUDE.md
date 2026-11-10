@@ -35,6 +35,10 @@ pytest tests/test_screenplay_parser.py::TestClassName::test_name   # single test
 
 Backend refuses to start unless required env vars are set (`utils/env_validator.py`): `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_KEY`, `RESEND_API_KEY`; `GEMINI_API_KEY`/`OPENAI_API_KEY` recommended for AI analysis. Frontend needs `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and optionally `VITE_API_URL` (defaults to `http://localhost:5000`).
 
+Frontend has no test framework. Pure logic lives in `.js` modules (no JSX/CSS imports) tested with Node's runner: `cd frontend && node --test src/components/layout/breadcrumbTrail.test.js src/components/productions/scriptStatus.test.js`. Gate frontend changes on those plus `npm run build`.
+
+Deploying the frontend: run `vercel deploy [--prod]` from the **repo root** (the Vercel project's root directory is already `frontend`; running it inside `frontend/` fails). Backend (Railway) deploy mechanism is unconfirmed — check before assuming a push to `main` ships it.
+
 Setting `FLASK_ENV=development` enables an auth bypass in the backend (`DEV_USER_ID`).
 
 ## Architecture
@@ -51,6 +55,7 @@ Setting `FLASK_ENV=development` enables an auth bypass in the backend (`DEV_USER
   1. **Upload (synchronous):** parse PDF per page → store in `script_pages` (content-hashed for idempotency) → regex-detect scene headers → create `scene_candidates` → return `script_id` immediately.
   2. **Analysis (background, resumable):** a threading-based job queue (`services/analysis_queue_service.py`, `analysis_worker.py`) processes each scene with AI (Gemini primary, OpenAI alternative via `gemini_service.py`), then runs aggregate jobs (characters, locations, story arc). Scene numbers come from the script text, never invented by the AI; failed scenes retry independently.
 - Supporting parse layers: `screenplay_parser.py` (grammar parse with regex fallback), `text_normalizer.py`, `entity_resolver.py` (duplicate character-name merging), `utils/pdf_parser.py`, `utils/scene_calculations.py` (scene eighths/page math).
+- `scripts.analysis_status` is unmaintained (every row stays `pending`); derive analysis progress from `scenes.analysis_status` counts (see `production_service.attach_scene_counts`, `get_scripts`).
 - Report generation (`services/report_service.py`) renders production PDFs with WeasyPrint; transactional email goes through Resend (`email_service.py`, templates in `email_templates/`).
 
 ### Frontend structure
