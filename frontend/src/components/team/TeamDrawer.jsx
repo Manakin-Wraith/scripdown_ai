@@ -303,7 +303,7 @@ const TeamDrawer = ({
                             <p>
                                 Access for this script is managed in{' '}
                                 {canManageProductionMembers ? (
-                                    <Link to={`/productions/${productionId}?tab=members`} onClick={onClose}>
+                                    <Link to={`/productions/${productionId}/members`} onClick={onClose}>
                                         <strong>{productionTitle || 'its production'} → Members</strong>
                                     </Link>
                                 ) : (

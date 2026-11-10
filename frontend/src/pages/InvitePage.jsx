@@ -128,7 +128,7 @@ const InvitePage = () => {
                     <h2>Invite Not Valid</h2>
                     <p>{error}</p>
                     <Link to="/scripts" className="btn-primary">
-                        Go to My Scripts
+                        Go to Scripts
                     </Link>
                 </div>
             </div>

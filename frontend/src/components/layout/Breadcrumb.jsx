@@ -1,101 +1,59 @@
 import React from 'react';
-import { Link, useLocation, useParams } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { ChevronRight, ArrowLeft } from 'lucide-react';
 import { useScript } from '../../context/ScriptContext';
+import { useScriptProduction, useProductionTitle } from '../../hooks/useScriptProduction';
+import { buildTrail } from './breadcrumbTrail';
 import './Breadcrumb.css';
 
-/**
- * Route configuration for breadcrumbs
- * Maps route patterns to their display labels
- */
-const ROUTE_CONFIG = {
-    '/scripts': { label: 'My Scripts', parent: null },
-    '/scenes/:scriptId': { label: 'Scene Breakdown', parent: '/scripts' },
-    '/scripts/:scriptId/cast': { label: 'Cast', parent: '/scripts' },
-    '/scripts/:scriptId/stripboard': { label: 'Stripboard', parent: '/scripts' },
-    '/scripts/:scriptId/board': { label: 'Board', parent: '/scripts' },
-    '/scripts/:scriptId/reports': { label: 'Reports', parent: '/scripts' },
-    '/scripts/:scriptId/schedule': { label: 'Schedule', parent: '/scripts' },
-    '/upload': { label: 'Upload Script', parent: '/scripts' },
-    '/profile': { label: 'Profile', parent: null },
-    '/billing': { label: 'Billing', parent: null },
+// This component renders in the layout route, above the matched child, so
+// useParams() is empty here; ids are read from the pathname instead.
+const scriptIdFromPath = (pathname) => {
+    const m = pathname.match(/^\/scenes\/([^/]+)$/) || pathname.match(/^\/scripts\/([^/]+)\/[^/]+$/);
+    return m ? m[1] : null;
 };
-
-/**
- * Match current path to route config
- */
-const matchRoute = (pathname) => {
-    for (const [pattern, config] of Object.entries(ROUTE_CONFIG)) {
-        const regex = new RegExp(
-            '^' + pattern.replace(/:[^/]+/g, '[^/]+') + '$'
-        );
-        if (regex.test(pathname)) {
-            return { pattern, ...config };
-        }
-    }
-    return null;
+const productionIdFromPath = (pathname) => {
+    const m = pathname.match(/^\/productions\/([^/]+)/);
+    return m ? m[1] : null;
 };
 
 const Breadcrumb = () => {
-    const location = useLocation();
-    const params = useParams();
+    const { pathname, search } = useLocation();
     const { currentScript } = useScript();
-    
-    const routeConfig = matchRoute(location.pathname);
-    
-    // Don't show breadcrumb on root pages
-    if (!routeConfig || location.pathname === '/scripts') {
-        return null;
-    }
 
-    // Build breadcrumb trail
-    const crumbs = [];
-    
-    // Always start with "My Scripts"
-    crumbs.push({
-        label: 'My Scripts',
-        path: '/scripts',
-        isLink: true
+    const scriptId = scriptIdFromPath(pathname);
+    const { production: scriptProduction, scriptTitle, loading } = useScriptProduction(scriptId);
+    const viewedProduction = useProductionTitle(productionIdFromPath(pathname));
+
+    const script = scriptId
+        ? { id: scriptId, title: (currentScript?.id === scriptId && currentScript.title) || scriptTitle }
+        : null;
+
+    let trail = buildTrail({
+        pathname,
+        search,
+        script,
+        production: viewedProduction || scriptProduction,
     });
 
-    // Add script name if we have a scriptId in the route
-    const scriptId = params.scriptId;
-    const isSceneBreakdown = location.pathname === `/scenes/${scriptId}`;
-    
-    if (scriptId && !isSceneBreakdown) {
-        // Only add script link if we're NOT on the scene breakdown page itself
-        const scriptTitle = currentScript?.title || 'Script';
-        crumbs.push({
-            label: scriptTitle,
-            path: `/scenes/${scriptId}`,
-            isLink: true
-        });
+    // While a script's production is still unknown, don't flash "Scripts › Script":
+    // show a neutral placeholder followed by the current page only.
+    if (loading && trail.length > 1) {
+        trail = [{ label: '…', to: null }, trail[trail.length - 1]];
     }
 
-    // Add current page (not a link)
-    crumbs.push({
-        label: isSceneBreakdown ? (currentScript?.title || routeConfig.label) : routeConfig.label,
-        path: location.pathname,
-        isLink: false
-    });
+    if (trail.length === 0) return null;
 
-    // Mobile: Show simplified back navigation
-    const backPath = scriptId ? `/scenes/${scriptId}` : '/scripts';
-    const backLabel = scriptId ? (currentScript?.title || 'Script') : 'My Scripts';
+    const back = trail.length > 1 ? trail[trail.length - 2] : null;
 
     return (
         <nav className="breadcrumb-bar" aria-label="Breadcrumb">
-            {/* Desktop breadcrumbs */}
             <ol className="breadcrumb-list desktop-only">
-                {crumbs.map((crumb, index) => (
-                    <li key={crumb.path} className="breadcrumb-item">
-                        {index > 0 && (
-                            <ChevronRight size={14} className="breadcrumb-separator" />
-                        )}
-                        {crumb.isLink ? (
-                            <Link to={crumb.path} className="breadcrumb-link">
-                                {crumb.label}
-                            </Link>
+                {trail.map((crumb, index) => (
+                    <li key={`${index}-${crumb.label}`} className="breadcrumb-item">
+                        {index > 0 && <ChevronRight size={14} className="breadcrumb-separator" />}
+                        {crumb.to ? (
+                            <Link to={crumb.to} className="breadcrumb-link">{crumb.label}</Link>
                         ) : (
                             <span className="breadcrumb-current">{crumb.label}</span>
                         )}
@@ -103,11 +61,12 @@ const Breadcrumb = () => {
                 ))}
             </ol>
 
-            {/* Mobile back link */}
-            <Link to={backPath} className="breadcrumb-back mobile-only">
-                <ArrowLeft size={16} />
-                <span>Back to {backLabel}</span>
-            </Link>
+            {back?.to && (
+                <Link to={back.to} className="breadcrumb-back mobile-only">
+                    <ArrowLeft size={16} />
+                    <span>Back to {back.label}</span>
+                </Link>
+            )}
         </nav>
     );
 };

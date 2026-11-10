@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
+import { useParams, useNavigate, Link, Navigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import {
     getProduction, updateProduction, deleteProduction,
     addScriptToProduction, removeScriptFromProduction, listProductionMembers,
 } from '../services/apiService';
 import { Spinner } from '../components/ui';
+import { announceProductionUpdated } from '../hooks/useScriptProduction';
 import ProductionOverviewTab from '../components/productions/ProductionOverviewTab';
 import ProductionCrewTab from '../components/productions/ProductionCrewTab';
 import ProductionLocationsTab from '../components/productions/ProductionLocationsTab';
@@ -23,7 +24,7 @@ const NO_ACCESS = {
 const TAB_IDS = ['overview', 'crew', 'locations', 'callsheet', 'members'];
 
 export default function ProductionDetailPage() {
-    const { productionId } = useParams();
+    const { productionId, tab } = useParams();
     const navigate = useNavigate();
 
     const [production, setProduction] = useState(null);
@@ -35,10 +36,7 @@ export default function ProductionDetailPage() {
     const [picking, setPicking] = useState(false);
     const [access, setAccess] = useState(NO_ACCESS);
     const [searchParams] = useSearchParams();
-    const [activeTab, setActiveTab] = useState(() => {
-        const t = searchParams.get('tab');
-        return TAB_IDS.includes(t) ? t : 'overview';
-    });
+    const activeTab = tab || 'overview';
     const [detaching, setDetaching] = useState(null);
 
     const isOwner = access.role === 'owner';
@@ -68,13 +66,13 @@ export default function ProductionDetailPage() {
 
     useEffect(load, [load]);
 
+    // Legacy links used /productions/:id?tab=crew; send them to the tab's own URL.
+    const legacyTab = searchParams.get('tab');
     useEffect(() => {
-        if (loading) return;
-        if (activeTab === 'crew' && !isMember) setActiveTab('overview');
-        if (activeTab === 'locations' && !isMember) setActiveTab('overview');
-        if (activeTab === 'callsheet' && !isMember) setActiveTab('overview');
-        if (activeTab === 'members' && !canManageMembers) setActiveTab('overview');
-    }, [activeTab, isMember, canManageMembers, loading]);
+        if (!tab && TAB_IDS.includes(legacyTab)) {
+            navigate(`/productions/${productionId}/${legacyTab}`, { replace: true });
+        }
+    }, [tab, legacyTab, productionId, navigate]);
 
     const save = async (e) => {
         e.preventDefault();
@@ -87,6 +85,7 @@ export default function ProductionDetailPage() {
             };
             const { production: updated } = await updateProduction(productionId, payload);
             setProduction(updated);
+            announceProductionUpdated(updated);
             setError(null);
         } catch (err) {
             if (err.response?.status === 403) setError('You do not have permission to edit this.');
@@ -140,6 +139,11 @@ export default function ProductionDetailPage() {
     if (isMember) tabs.push({ id: 'callsheet', label: 'Call Sheet' });
     if (canManageMembers) tabs.push({ id: 'members', label: 'Members' });
 
+    // Unknown tab, or one this viewer may not see: back to Overview.
+    if (tab && !tabs.some((t) => t.id === tab)) {
+        return <Navigate to={`/productions/${productionId}`} replace />;
+    }
+
     return (
         <div className="production-page">
             <Link to="/productions" className="production-back"><ArrowLeft size={16} /> Productions</Link>
@@ -147,13 +151,13 @@ export default function ProductionDetailPage() {
 
             <div className="production-tabs">
                 {tabs.map((t) => (
-                    <button
+                    <Link
                         key={t.id}
+                        to={t.id === 'overview' ? `/productions/${productionId}` : `/productions/${productionId}/${t.id}`}
                         className={`production-tab ${activeTab === t.id ? 'active' : ''}`}
-                        onClick={() => setActiveTab(t.id)}
                     >
                         {t.label}
-                    </button>
+                    </Link>
                 ))}
             </div>
 

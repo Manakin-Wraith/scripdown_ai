@@ -42,7 +42,7 @@ export default function SeriesDetailPage() {
         const seasonCount = `${seasons.length} season${seasons.length === 1 ? '' : 's'}`;
         const confirmed = await confirm({
             title: `Delete "${title}"?`,
-            message: `Its ${seasonCount} will be removed. Episode scripts are not deleted — they stay in My Scripts as standalone scripts.`,
+            message: `Its ${seasonCount} will be removed. Episode scripts are not deleted — they stay in Scripts as standalone scripts.`,
             variant: 'danger',
         });
         if (!confirmed) return;
@@ -61,7 +61,7 @@ export default function SeriesDetailPage() {
     const handleDeleteSeason = async (season) => {
         const confirmed = await confirm({
             title: `Delete ${seasonLabel(season)}?`,
-            message: 'Episode scripts in this season are not deleted — they stay in My Scripts as standalone scripts.',
+            message: 'Episode scripts in this season are not deleted — they stay in Scripts as standalone scripts.',
             variant: 'danger',
         });
         if (!confirmed) return;
@@ -115,7 +115,7 @@ export default function SeriesDetailPage() {
                             <Layers size={28} className="series-empty-icon" />
                         </div>
                         <h2>No seasons yet</h2>
-                        <p>This series doesn't have any seasons yet. Assign an episode to it from My Scripts to create one.</p>
+                        <p>This series doesn't have any seasons yet. Assign an episode to it from Scripts to create one.</p>
                         <Link to="/series" className="series-empty-cta">
                             Back to Series
                         </Link>

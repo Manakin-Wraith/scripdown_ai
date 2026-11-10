@@ -202,7 +202,15 @@ const ScriptTable = ({ scripts, onView, onDelete, onRename, onUpdateWriter, onAs
                                     ? `Shared via ${script.production_title || 'a production'}${script.membership?.role ? ` — role: ${script.membership.role}` : ''}`
                                     : (script.membership?.role ? `Shared with you — role: ${script.membership.role}` : 'Shared with you')}
                             >
-                                <Users size={12} /> Shared
+                                <Users size={12} />
+                                {script.membership?.via_production && script.production_title
+                                    ? <span className="shared-badge-text">Shared · {script.production_title}</span>
+                                    : 'Shared'}
+                            </span>
+                        )}
+                        {script.is_owner !== false && script.production_title && (
+                            <span className="script-production-chip" title={`Production: ${script.production_title}`}>
+                                {script.production_title}
                             </span>
                         )}
                         {locationHealthCounts[script.script_id] > 0 && (

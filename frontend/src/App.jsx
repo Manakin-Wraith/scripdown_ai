@@ -70,7 +70,7 @@ function App() {
                       <MainLayout />
                     </ProtectedRoute>
                   }>
-                    {/* Redirect root to scripts (My Scripts is the landing page) */}
+                    {/* Redirect root to scripts (Scripts is the landing page) */}
                     <Route index element={<Navigate to="/scripts" replace />} />
                     <Route path="upload" element={<ScriptUpload />} />
                     <Route path="scripts" element={<ScriptLibrary />} />
@@ -87,7 +87,7 @@ function App() {
                     <Route path="series/:seriesId" element={<SeriesDetailPage />} />
                     <Route path="series/:seriesId/seasons/:seasonId" element={<SeasonPage />} />
                     <Route path="productions" element={<ProductionsListPage />} />
-                    <Route path="productions/:productionId" element={<ProductionDetailPage />} />
+                    <Route path="productions/:productionId/:tab?" element={<ProductionDetailPage />} />
                     <Route path="contacts" element={<ContactsListPage />}>
                       <Route path="new" element={<ContactPane mode="new" />} />
                       <Route path=":contactId" element={<ContactPane mode="view" />} />

@@ -186,6 +186,7 @@
 .production-tab {
     background: none; border: none; padding: 10px 16px; color: #9fb0c9;
     cursor: pointer; border-bottom: 2px solid transparent; font-size: 14px;
+    text-decoration: none; white-space: nowrap;
 }
 .production-tab.active { color: #e6ecf5; border-bottom-color: #f5b301; }
 
@@ -422,3 +423,91 @@
 .production-attach-list li { padding: 4px 0; }
 .production-attach-list span { color: #6b7a94; }
 .production-attach-note { color: #6b7a94; font-size: 13px; }
+
+/* Overview dashboard */
+.production-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1px;
+    background: var(--gray-700);
+    border: 1px solid var(--gray-700);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-bottom: var(--space-4);
+}
+.production-summary > div {
+    background: var(--bg-secondary, var(--gray-800));
+    padding: var(--space-3) var(--space-4);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-1);
+    min-width: 0;
+}
+.production-summary-label {
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+.production-summary-value { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.production-attention {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-4);
+    padding: var(--space-3) var(--space-4);
+    margin-bottom: var(--space-4);
+    border: 1px solid var(--warning, #e8b13a);
+    border-radius: var(--radius-lg);
+    color: var(--warning, #e8b13a);
+}
+.production-attention p { margin: 0; }
+.production-attention-links { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-left: auto; }
+.production-attention-links a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+
+.production-script-grid {
+    list-style: none;
+    padding: 0;
+    margin: var(--space-3) 0 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: var(--space-3);
+}
+.production-script-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    background: var(--bg-secondary, var(--gray-800));
+    border: 1px solid var(--gray-700);
+    border-radius: var(--radius-lg);
+    min-width: 0;
+}
+.production-script-card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-2); }
+.production-script-title { font-weight: 600; color: var(--text-primary, #e6ecf5); text-decoration: none; overflow-wrap: anywhere; }
+.production-script-title:hover { color: var(--primary-500); }
+.production-script-meta {
+    display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3);
+    font-size: 0.8125rem; color: var(--text-secondary); font-variant-numeric: tabular-nums;
+}
+.production-script-status { font-weight: 600; }
+.production-script-status.tone-good { color: var(--success, #3fb97f); }
+.production-script-status.tone-info { color: var(--info, #5b9cf5); }
+.production-script-status.tone-warn { color: var(--warning, #e8b13a); }
+.production-script-status.tone-bad { color: var(--danger); }
+.production-script-links {
+    display: flex; flex-wrap: wrap; gap: var(--space-2);
+    margin-top: auto; padding-top: var(--space-3); border-top: 1px solid var(--gray-700);
+}
+.production-script-links a {
+    padding: 4px 10px; border-radius: var(--radius-md); font-size: 0.8125rem;
+    color: var(--text-secondary); background: var(--gray-700); text-decoration: none;
+}
+.production-script-links a:hover { color: var(--text-primary, #e6ecf5); }
+
+.production-settings { margin-top: var(--space-6); border: 1px solid var(--gray-700); border-radius: var(--radius-lg); }
+.production-settings > summary { cursor: pointer; padding: var(--space-3) var(--space-4); font-weight: 600; }
+.production-settings .production-overview { padding: 0 var(--space-4) var(--space-4); margin-bottom: 0; }
