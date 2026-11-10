@@ -36,7 +36,7 @@
 
 ### 7. Cast & Casting
 - **Per-Character Casting Record:** Capture actor name, engagement status (wishlist, offer, booked, declined, released), contact details (phone, email, agent), and production notes for every named character in the script.
-- **Cast Tiers & Role Organization:** Organize cast by role weight — leads, supporting, featured, and background — with collapsible tier grouping on the Cast tab, persistence per script, and tier-aware conflict detection.
+- **Cast Tiers & Role Organization:** Organize cast by role weight — leads, supporting, featured, and background — with collapsible tier grouping on the Cast tab (under the production page for scripts in a production, on the script itself for standalone scripts), persistence per script, and tier-aware conflict detection.
 - **Multi-Photo Gallery:** Upload and manage multiple reference photos per cast member (headshots, full-body shots, continuity references) with kind-tagging, primary-selection, and 1-hour signed URLs for secure Supabase storage.
 - **Background Talent as Groups:** Track background artists by headcount and scene assignment rather than one row per individual (12 pedestrians, 4 restaurant patrons, etc.), with status, day rates, and multi-scene targeting.
 - **Availability Blackout Dates:** Define date ranges when a cast member is unavailable (location shoots, other projects, unavailable dates), automatically flagged against the production schedule.

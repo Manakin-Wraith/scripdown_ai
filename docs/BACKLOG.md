@@ -46,6 +46,23 @@ line, script cards, settings collapsed); production pages centred. Backend:
 `pending`); derive progress from scenes. Verified by tests + build only — never
 clicked through in a browser after Phase 1.
 
+**Cast tab moved into the production page — SHIPPED 2026-11-10 (merged + pushed
+to `main`; frontend not yet deployed).** Trigger: Looped Pictures could only reach
+cast by opening a script first. Cast is still stored per script (`casting` keyed
+on `script_id`; no migration, no backend change). Scripts in a production reach
+cast via a new production **Cast** tab: `/productions/:id/cast` lists one card per
+accessible script (characters / booked / offers), and
+`/productions/:id/cast/:scriptId` renders the existing `CastPage` in place
+(`ProductionCastTab`; `CastPage` takes an optional `scriptId` prop). The script
+tab bar hides Cast for scripts in a production (`SectionNav` via
+`useScriptProduction`) and `/scripts/:id/cast` redirects there (`CastRoute`);
+standalone scripts keep the script-level Cast tab. Breadcrumbs follow the
+production path. Verified by `node --test` + `npm run build` only — not clicked
+through in a browser. **Still open (own specs):** a merged cast list / shared
+actor identity across scripts, and conflict detection across a production's
+scripts (needs the Phase 3 production-wide schedule); today the same actor on two
+scripts is two unrelated `casting` rows.
+
 **NEXT — navigation Phase 2 (frontend, ~3-5 days):** production shell with
 left sidebar grouped Prep / Plan / Output / Admin, production switcher in the
 top bar, nested routes under `/productions/:id/...` with redirects from
