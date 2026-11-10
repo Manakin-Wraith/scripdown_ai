@@ -12,6 +12,7 @@ import ProductionCrewTab from '../components/productions/ProductionCrewTab';
 import ProductionLocationsTab from '../components/productions/ProductionLocationsTab';
 import ProductionMembersTab from '../components/productions/ProductionMembersTab';
 import ProductionCallSheetTab from '../components/productions/ProductionCallSheetTab';
+import ProductionCastTab from '../components/productions/ProductionCastTab';
 import DetachScriptModal from '../components/productions/DetachScriptModal';
 import './ProductionPages.css';
 
@@ -21,10 +22,10 @@ const NO_ACCESS = {
     script_access: 'none',
 };
 
-const TAB_IDS = ['overview', 'crew', 'locations', 'callsheet', 'members'];
+const TAB_IDS = ['overview', 'crew', 'cast', 'locations', 'callsheet', 'members'];
 
 export default function ProductionDetailPage() {
-    const { productionId, tab } = useParams();
+    const { productionId, tab, subId } = useParams();
     const navigate = useNavigate();
 
     const [production, setProduction] = useState(null);
@@ -135,6 +136,7 @@ export default function ProductionDetailPage() {
 
     const tabs = [{ id: 'overview', label: 'Overview' }];
     if (isMember) tabs.push({ id: 'crew', label: 'Crew' });
+    if (isMember) tabs.push({ id: 'cast', label: 'Cast' });
     if (isMember) tabs.push({ id: 'locations', label: 'Locations' });
     if (isMember) tabs.push({ id: 'callsheet', label: 'Call Sheet' });
     if (canManageMembers) tabs.push({ id: 'members', label: 'Members' });
@@ -180,6 +182,9 @@ export default function ProductionDetailPage() {
             )}
             {activeTab === 'crew' && isMember && (
                 <ProductionCrewTab productionId={productionId} access={access} />
+            )}
+            {activeTab === 'cast' && isMember && (
+                <ProductionCastTab productionId={productionId} scripts={scripts} scriptId={subId} />
             )}
             {activeTab === 'locations' && isMember && (
                 <ProductionLocationsTab productionId={productionId} access={access} />

@@ -284,6 +284,15 @@ call-sheet parse.
     also declares `color-scheme: dark` since 2026-09-23). Either remove the
     toggle or build a real light theme (token overrides under
     `[data-theme="light"]` + `color-scheme: light`). Decide first.
+15. **Page loading slower than normal — investigate (logged 2026-11-10).**
+    Pages are taking noticeably longer to load than usual. Cause unknown; not
+    yet diagnosed. Start by measuring rather than guessing: check the Network
+    tab / Vercel runtime logs for slow `/api/*` calls (Railway backend latency
+    or cold starts), and look at the production pages touched by nav Phase 1 —
+    `GET /api/productions/:id` now runs `attach_scene_counts` per script, and
+    production pages fetch `getProduction` twice (known duplicate fetch, see
+    Phase 1 deferred minors). Also rule out Supabase query latency, bundle
+    size growth, and the auth/JWT fetch path in `apiService.js`.
 
 **Deferred by decision — revisit at scale:** renewal automation,
 failed-renewal downgrade, Teams→Solo downgrade, live PayFast ITN inbound

@@ -9,7 +9,8 @@ import './Breadcrumb.css';
 // This component renders in the layout route, above the matched child, so
 // useParams() is empty here; ids are read from the pathname instead.
 const scriptIdFromPath = (pathname) => {
-    const m = pathname.match(/^\/scenes\/([^/]+)$/) || pathname.match(/^\/scripts\/([^/]+)\/[^/]+$/);
+    const m = pathname.match(/^\/scenes\/([^/]+)$/) || pathname.match(/^\/scripts\/([^/]+)\/[^/]+$/)
+        || pathname.match(/^\/productions\/[^/]+\/cast\/([^/]+)$/);
     return m ? m[1] : null;
 };
 const productionIdFromPath = (pathname) => {

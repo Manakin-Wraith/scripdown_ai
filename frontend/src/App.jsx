@@ -43,7 +43,7 @@ import InvitePage from './pages/InvitePage';
 import ProductionInviteAccept from './pages/ProductionInviteAccept';
 import BillingPage from './pages/BillingPage';
 import PaymentResultPage from './pages/PaymentResultPage';
-import CastPage from './components/cast/CastPage';
+import CastRoute from './components/cast/CastRoute';
 import SeriesListPage from './pages/SeriesListPage';
 import SeriesDetailPage from './pages/SeriesDetailPage';
 import SeasonPage from './pages/SeasonPage';
@@ -80,14 +80,14 @@ function App() {
                     <Route path="scripts/:scriptId/board" element={<ZoomableStripboard />} />
                     <Route path="scripts/:scriptId/manage" element={<SceneManager />} />
                     <Route path="scripts/:scriptId/schedule" element={<ShootingSchedulePage />} />
-                    <Route path="scripts/:scriptId/cast" element={<CastPage />} />
+                    <Route path="scripts/:scriptId/cast" element={<CastRoute />} />
                     <Route path="profile" element={<ProfilePage />} />
                     <Route path="billing" element={<BillingPage />} />
                     <Route path="series" element={<SeriesListPage />} />
                     <Route path="series/:seriesId" element={<SeriesDetailPage />} />
                     <Route path="series/:seriesId/seasons/:seasonId" element={<SeasonPage />} />
                     <Route path="productions" element={<ProductionsListPage />} />
-                    <Route path="productions/:productionId/:tab?" element={<ProductionDetailPage />} />
+                    <Route path="productions/:productionId/:tab?/:subId?" element={<ProductionDetailPage />} />
                     <Route path="contacts" element={<ContactsListPage />}>
                       <Route path="new" element={<ContactPane mode="new" />} />
                       <Route path=":contactId" element={<ContactPane mode="view" />} />

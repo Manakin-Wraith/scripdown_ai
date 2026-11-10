@@ -81,3 +81,16 @@ test('contact and location detail', () => {
   assert.deepEqual(buildTrail({ pathname: '/contacts/abc' }), [c('Contacts', '/contacts'), c('Contact')]);
   assert.deepEqual(buildTrail({ pathname: '/locations/abc/edit' }), [c('Locations', '/locations'), c('Location')]);
 });
+
+test('production cast list', () => {
+  assert.deepEqual(buildTrail({ pathname: '/productions/p1/cast', production: prod }), [
+    c('Productions', '/productions'), c('Looped Feature', '/productions/p1'), c('Cast'),
+  ]);
+});
+
+test('production cast for one script links back to the cast list', () => {
+  assert.deepEqual(buildTrail({ pathname: '/productions/p1/cast/s1', production: prod, script }), [
+    c('Productions', '/productions'), c('Looped Feature', '/productions/p1'),
+    c('Cast', '/productions/p1/cast'), c('Pilot'),
+  ]);
+});

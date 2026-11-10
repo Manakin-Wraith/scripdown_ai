@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { List, ClipboardList, LayoutGrid, FileText, CalendarDays, Users, History } from 'lucide-react';
+import { useScriptProduction } from '../../hooks/useScriptProduction';
 import './SectionNav.css';
 
 // `group` pairs consecutive tabs into a bordered segment (Board + Schedule
@@ -49,12 +50,16 @@ const renderTab = ({ key, label, icon: Icon, to }, scriptId, active) => (
 
 const SectionNav = ({ scriptId }) => {
   const { pathname } = useLocation();
+  const { production, loading } = useScriptProduction(scriptId);
   if (!scriptId) return null;
   const active = activeKey(pathname);
+  // Scripts in a production reach cast through the production's Cast tab; the
+  // tab stays here only for standalone scripts (hidden while that is unknown).
+  const sections = SECTIONS.filter((s) => s.key !== 'cast' || (!loading && !production));
 
   return (
     <nav className="section-nav" aria-label="Script sections">
-      {groupSections(SECTIONS).map((run) =>
+      {groupSections(sections).map((run) =>
         run.group ? (
           <div key={run.group} className="section-nav-group">
             {run.items.map((section) => renderTab(section, scriptId, active))}
