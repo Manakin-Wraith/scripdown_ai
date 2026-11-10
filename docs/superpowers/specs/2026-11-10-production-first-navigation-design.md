@@ -1,7 +1,7 @@
 # Production-First Navigation — UX Audit & Redesign Proposal
 
 **Date:** 2026-11-10
-**Status:** Proposal, not approved. Nothing built.
+**Status:** Phase 1 implemented on branch `feat/production-first-nav-phase1` (not yet merged). Phases 2 and 3 are proposals.
 **Trigger:** Looped Pictures (multi-script production company, working with a team) reports clumsy navigation.
 **Basis:** Code audit of `frontend/src` (routes, `TopBar`, `SectionNav`, `Breadcrumb`, production/series/script pages). The app was **not** run live, and Looped's specific complaints were not collected, so the pain points below are inferred from the code. Check them against what Looped actually says.
 
