@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Drawer } from '../ui';
 import {
-    createCasting, updateCasting, deleteCasting, uploadHeadshot,
+    createCasting, updateCasting, deleteCasting, uploadHeadshot, renameCharacter,
 } from '../../services/apiService';
 import UnavailabilityEditor from './UnavailabilityEditor';
 import PhotoGallery from './PhotoGallery';
@@ -14,7 +14,7 @@ const TIERS = ['lead', 'supporting', 'featured', 'background'];
 const TIER_LABEL = { lead: 'Lead', supporting: 'Supporting', featured: 'Featured', background: 'Background' };
 
 export default function CastingDetailPanel({
-    scriptId, casting, characterName, conflicts, onClose, onChanged, onCreated,
+    scriptId, casting, characterName, originalName, conflicts, onClose, onChanged, onCreated, onRenamed,
 }) {
     const [row, setRow] = useState(casting);
     const [saveState, setSaveState] = useState('idle'); // idle | saving | error
@@ -93,9 +93,34 @@ export default function CastingDetailPanel({
         onClose();
     };
 
-    const subtitle = row?.orphaned
-        ? 'Not in the latest breakdown — details are kept.'
-        : (row ? null : 'Not cast yet.');
+    const [renaming, setRenaming] = useState(false);
+    const [newName, setNewName] = useState('');
+    const [renameError, setRenameError] = useState('');
+    const [renameBusy, setRenameBusy] = useState(false);
+    const currentName = row?.character_name || characterName;
+
+    const startRename = () => { setNewName(currentName || ''); setRenameError(''); setRenaming(true); };
+    const submitRename = async (e) => {
+        e.preventDefault();
+        const next = newName.trim();
+        if (!next || next.toUpperCase() === (currentName || '').toUpperCase()) { setRenaming(false); return; }
+        setRenameBusy(true); setRenameError('');
+        try {
+            await renameCharacter(scriptId, currentName, next);
+            setRenaming(false);
+            onRenamed?.(next.toUpperCase());
+            onChanged();
+        } catch (err) {
+            setRenameError(err?.response?.data?.error || 'Couldn’t rename. Try again.');
+        } finally {
+            setRenameBusy(false);
+        }
+    };
+
+    const subtitle = [
+        originalName ? `Originally ${originalName}` : null,
+        row?.orphaned ? 'Not in the latest breakdown — details are kept.' : (row ? null : 'Not cast yet.'),
+    ].filter(Boolean).join(' · ') || null;
 
     return (
         <Drawer
@@ -116,6 +141,26 @@ export default function CastingDetailPanel({
                 : null}
         >
             {!canEdit && <p className="cd-muted">Only the owner and admins can edit casting.</p>}
+
+            {canEdit && (renaming ? (
+                <form className="cd-rename" onSubmit={submitRename}>
+                    <label className="cd-label" htmlFor="cd-rename-input">New character name</label>
+                    <input
+                        id="cd-rename-input" type="text" value={newName} autoFocus
+                        onChange={(e) => setNewName(e.target.value)} disabled={renameBusy}
+                    />
+                    <p className="cd-muted">Changes the name everywhere in the app. The script itself is not edited.</p>
+                    {renameError && <p className="cd-rename-error" role="alert">{renameError}</p>}
+                    <div className="cd-rename-actions">
+                        <button type="submit" disabled={renameBusy || !newName.trim()}>
+                            {renameBusy ? 'Renaming…' : 'Rename'}
+                        </button>
+                        <button type="button" onClick={() => setRenaming(false)} disabled={renameBusy}>Cancel</button>
+                    </div>
+                </form>
+            ) : (
+                <button type="button" className="cd-rename-link" onClick={startRename}>Rename character</button>
+            ))}
 
             {myConflicts.length > 0 && (
                 <div className="cd-conflict-callout">

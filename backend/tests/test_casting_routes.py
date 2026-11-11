@@ -17,6 +17,7 @@ def _client():
 def _bypass_auth(monkeypatch):
     monkeypatch.setattr("middleware.auth.DEV_MODE", True)
     monkeypatch.setattr(cr, "get_user_id", lambda: "u1")
+    monkeypatch.setattr(cr.rename_service, "original_names", lambda sid: {})
 
 
 def _as_role(monkeypatch, role):
@@ -40,7 +41,7 @@ def test_list_ok_for_viewer(monkeypatch):
     resp = _client().get("/api/scripts/s1/casting")
     assert resp.status_code == 200
     body = resp.get_json()
-    assert body["characters"] == [{"name": "JOHN", "scene_count": 3, "casting_id": None}]
+    assert body["characters"] == [{"name": "JOHN", "scene_count": 3, "casting_id": None, "original_name": None}]
     assert body["casting"] == []
 
 

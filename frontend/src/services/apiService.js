@@ -2181,6 +2181,14 @@ export const mergeCharacters = async (scriptId, canonicalName, aliases) => {
     return response.data;
 };
 
+export const renameCharacter = async (scriptId, oldName, newName) => {
+    const response = await api.post(`/api/scripts/${scriptId}/characters/rename`, {
+        old_name: oldName,
+        new_name: newName,
+    });
+    return response.data;
+};
+
 export const getCharacterAliases = async (scriptId) => {
     const response = await api.get(`/api/scripts/${scriptId}/characters/aliases`);
     return response.data;
