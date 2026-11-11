@@ -40,6 +40,8 @@ function TierSection({ id, title, rows, collapsed, onToggle, openRow }) {
 export default function CastPage({ scriptId: scriptIdProp = null }) {
     const params = useParams();
     const scriptId = scriptIdProp ?? params.scriptId;
+    // Inside a production the page sits in the production's container already.
+    const pageClass = scriptIdProp != null ? 'cast-page cast-page--embedded' : 'cast-page';
     const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -190,7 +192,7 @@ export default function CastPage({ scriptId: scriptIdProp = null }) {
 
     if (loading) {
         return (
-            <div className="cast-page">
+            <div className={pageClass}>
                 <div className="cast-page-head"><h1>Cast</h1></div>
                 <SkeletonList count={6} />
             </div>
@@ -199,7 +201,7 @@ export default function CastPage({ scriptId: scriptIdProp = null }) {
 
     if (error) {
         return (
-            <div className="cast-page">
+            <div className={pageClass}>
                 <div className="cast-page-head"><h1>Cast</h1></div>
                 <div className="cast-error">
                     {error} <button onClick={load}>Retry</button>
@@ -210,7 +212,7 @@ export default function CastPage({ scriptId: scriptIdProp = null }) {
 
     if (characters.length === 0 && casting.length === 0) {
         return (
-            <div className="cast-page">
+            <div className={pageClass}>
                 <div className="cast-page-head"><h1>Cast</h1></div>
                 <EmptyState
                     icon={Users}
@@ -228,7 +230,7 @@ export default function CastPage({ scriptId: scriptIdProp = null }) {
     const backgroundEmptyAfterFilter = bgIndividuals.length === 0 && visibleGroups.length === 0 && groups.length > 0;
 
     return (
-        <div className="cast-page">
+        <div className={pageClass}>
             <div className="cast-page-head">
                 <h1>Cast</h1>
                 <p className="cast-summary">

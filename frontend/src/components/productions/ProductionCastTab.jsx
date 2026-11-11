@@ -3,7 +3,7 @@
 // each opening that script's cast page in place under the production.
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Users, ChevronRight } from 'lucide-react';
+import { Users, ChevronRight } from 'lucide-react';
 import { getCasting } from '../../services/apiService';
 import { EmptyState } from '../ui';
 import CastPage from '../cast/CastPage';
@@ -63,14 +63,8 @@ export default function ProductionCastTab({ productionId, scripts, scriptId }) {
                 />
             );
         }
-        return (
-            <>
-                <Link to={`/productions/${productionId}/cast`} className="production-cast-back">
-                    <ArrowLeft size={14} /> All scripts
-                </Link>
-                <CastPage key={scriptId} scriptId={scriptId} />
-            </>
-        );
+        // The breadcrumb (Productions › Production › Cast › Script) is the way back.
+        return <CastPage key={scriptId} scriptId={scriptId} />;
     }
 
     if (scripts.length === 0) {
