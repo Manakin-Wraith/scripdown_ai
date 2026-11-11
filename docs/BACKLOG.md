@@ -2691,8 +2691,23 @@ spec. All three are downstream of DPR — analytics charts DPR data,
 offline mode syncs DPR/department logs, wrap reports compile DPRs. Don't
 scope until DPR is real.
 
+### Character rename follow-ups
+Rename shipped 2026-11-11 (`docs/superpowers/specs/2026-11-11-character-rename-design.md`).
+Known gaps, none blocking:
+- **No Rename in the Characters view.** It lives only in the Cast drawer
+  (which opens for any breakdown character, cast or not). The merge screen
+  in `ScriptSummary.jsx` has no rename button.
+- **Not atomic.** supabase-py has no transactions. Alias and scene writes
+  raise on failure; the department-items and casting updates don't, so a
+  failure there can leave them out of sync. Fix with a Postgres RPC.
+- **Merge doesn't repoint existing aliases** (suspected, unverified).
+  `merge_characters` stores `alias -> canonical` but doesn't repoint aliases
+  that already target a name being merged away, so after
+  MARCUS -> COLE and then merging COLE into X, re-analysis may map MARCUS
+  back to the now-gone COLE. Rename repoints correctly; merge needs the
+  same.
+- **Script viewer** still shows original dialogue cues (by design).
+
 ### Docs debt
-`docs/SLATEONE_FEATURES.md` is missing a "Cast & Casting" section (Cast &
-Casting v1 shipped 2026-08-28) — add it the way Series was added after it
-shipped. `docs/landing-faq.md` still describes the deprecated flat
-"$49/month" model.
+`docs/landing-faq.md` still describes the deprecated flat "$49/month"
+model.
