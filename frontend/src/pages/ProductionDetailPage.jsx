@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link, Navigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
 import {
     getProduction, updateProduction, deleteProduction,
     addScriptToProduction, removeScriptFromProduction, listProductionMembers,
@@ -148,7 +147,6 @@ export default function ProductionDetailPage() {
 
     return (
         <div className="production-page">
-            <Link to="/productions" className="production-back"><ArrowLeft size={16} /> Productions</Link>
             {error && <p className="production-page-error">{error}</p>}
 
             <div className="production-tabs">

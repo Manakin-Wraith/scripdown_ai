@@ -82,3 +82,6 @@
     letter-spacing: 0.06em; cursor: pointer; }
 .cast-tier-count { color: var(--text-muted); }
 .cast-newgroup { margin-top: var(--space-3); background: none; border: none; color: var(--primary-400); cursor: pointer; font-size: var(--text-sm); }
+
+/* Inside a production the page already sits in the production's container. Keep last: beats the mobile .cast-page rule. */
+.cast-page--embedded { max-width: none; margin: 0; padding: var(--space-2) 0 var(--space-8); }
