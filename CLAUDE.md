@@ -37,7 +37,7 @@ Backend refuses to start unless required env vars are set (`utils/env_validator.
 
 Frontend has no test framework. Pure logic lives in `.js` modules (no JSX/CSS imports) tested with Node's runner: `cd frontend && node --test src/components/layout/breadcrumbTrail.test.js src/components/productions/scriptStatus.test.js`. Gate frontend changes on those plus `npm run build`.
 
-Deploying the frontend: run `vercel deploy [--prod]` from the **repo root** (the Vercel project's root directory is already `frontend`; running it inside `frontend/` fails). Backend (Railway) deploy mechanism is unconfirmed — check before assuming a push to `main` ships it.
+Deploying the frontend: run `vercel deploy [--prod]` from the **repo root** (the Vercel project's root directory is already `frontend`; running it inside `frontend/` fails). Backend (Railway): a push to `main` appears to auto-deploy it (2026-11-11: a new route went live after a push, observed by probing the API; the Railway CLI wasn't logged in so the setting itself wasn't inspected). Backend changes need that deploy before a frontend that depends on them is useful; DB migrations are applied manually (Supabase MCP `apply_migration` or SQL editor) *before* pushing code that needs them.
 
 Setting `FLASK_ENV=development` enables an auth bypass in the backend (`DEV_USER_ID`).
 
