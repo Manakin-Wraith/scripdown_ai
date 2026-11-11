@@ -21,7 +21,10 @@ export default function CastRow({ row, onOpen }) {
             <span className="cast-row-main">
                 <span className="cast-row-name">{row.name}</span>
                 {row.scene_count != null && (
-                    <span className="cast-row-sub">{row.scene_count} scenes</span>
+                    <span className="cast-row-sub">
+                        {row.scene_count} scenes
+                        {row.original_name && <> &middot; originally {row.original_name}</>}
+                    </span>
                 )}
             </span>
             <TierBadge tier={row.casting?.tier} />

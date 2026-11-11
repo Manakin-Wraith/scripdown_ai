@@ -9,6 +9,7 @@ from middleware.authorization import (
 )
 import services.casting_service as casting_service
 import services.casting_group_service as group_service
+import services.character_rename_service as rename_service
 
 casting_bp = Blueprint("casting", __name__)
 
@@ -29,16 +30,36 @@ def list_casting(script_id):
     counts = casting_service.breakdown_characters(script_id)
     names = set(counts) | {r["character_name"] for r in rows}
     inc = _include_contact()
+    originals = rename_service.original_names(script_id)
     serialized = [
-        casting_service.serialize(r, include_contact=inc, breakdown_names=set(counts))
+        {**casting_service.serialize(r, include_contact=inc, breakdown_names=set(counts)),
+         "original_name": originals.get(r["character_name"])}
         for r in rows
     ]
     casting_by_name = {r["character_name"]: r["id"] for r in rows}
     characters = [
-        {"name": n, "scene_count": counts[n], "casting_id": casting_by_name.get(n)}
+        {"name": n, "scene_count": counts[n], "casting_id": casting_by_name.get(n),
+         "original_name": originals.get(n)}
         for n in sorted(counts, key=lambda k: (-counts[k], k))
     ]
     return jsonify({"casting": serialized, "characters": characters}), 200
+
+
+@casting_bp.route("/api/scripts/<script_id>/characters/rename", methods=["POST"])
+@require_auth
+@require_script_role("admin", resolver=from_script)
+def rename_character(script_id):
+    data = request.get_json(silent=True) or {}
+    try:
+        result = rename_service.rename_character(
+            script_id, data.get("old_name"), data.get("new_name"), get_user_id())
+    except rename_service.NameTaken:
+        return jsonify({"error": "That name is already used by another character. Use Merge to combine them."}), 409
+    except rename_service.CharacterNotFound:
+        return jsonify({"error": "Character not found in this script"}), 404
+    except rename_service.RenameError as e:
+        return jsonify({"error": str(e)}), 400
+    return jsonify(result), 200
 
 
 @casting_bp.route("/api/scripts/<script_id>/casting", methods=["POST"])

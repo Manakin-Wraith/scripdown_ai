@@ -127,6 +127,7 @@ export default function CastPage({ scriptId: scriptIdProp = null }) {
         const base = characters.map((c) => ({
             name: c.name,
             scene_count: c.scene_count,
+            original_name: c.original_name || null,
             casting: castingByName[c.name] || null,
             conflicts: conflictsByName[c.name] || [],
             orphaned: false,
@@ -136,6 +137,7 @@ export default function CastPage({ scriptId: scriptIdProp = null }) {
             .map((c) => ({
                 name: c.character_name,
                 scene_count: null,
+                original_name: c.original_name || null,
                 casting: c,
                 conflicts: conflictsByName[c.character_name] || [],
                 orphaned: true,
@@ -343,9 +345,16 @@ export default function CastPage({ scriptId: scriptIdProp = null }) {
                         : casting.find((c) => c.id === openId) || null}
                     characterName={openId.startsWith('new:') ? openId.slice(4)
                         : (casting.find((c) => c.id === openId)?.character_name)}
+                    originalName={openId.startsWith('new:')
+                        ? characters.find((c) => c.name === openId.slice(4))?.original_name
+                        : casting.find((c) => c.id === openId)?.original_name}
                     conflicts={conflicts}
                     onClose={() => setOpenId(null)}
                     onChanged={refresh}
+                    onRenamed={(newName) => {
+                        // A casting-less panel is keyed by name; follow the rename.
+                        if (openId.startsWith('new:')) setOpenId(`new:${newName}`);
+                    }}
                     onCreated={(id) => setOpenId(id)}
                 />
             ) : null}

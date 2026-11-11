@@ -64,3 +64,13 @@
 .cd-rate { display: flex; align-items: center; gap: 4px; }
 .cd-rate > span { color: var(--text-muted); }
 .cd-rate input { flex: 1; }
+
+.cd-rename-link { background: none; border: none; padding: 0 0 var(--space-3); color: var(--primary-400); cursor: pointer; font-size: var(--text-sm); }
+.cd-rename-link:hover { text-decoration: underline; }
+.cd-rename { margin-bottom: var(--space-4); }
+.cd-rename-error { color: var(--danger); font-size: var(--text-xs); margin: var(--space-1) 0 0; }
+.cd-rename-actions { display: flex; gap: var(--space-2); margin-top: var(--space-2); }
+.cd-rename-actions button { padding: var(--space-1) var(--space-3); background: var(--bg-app); border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm); color: var(--text-secondary); cursor: pointer; font-size: var(--text-sm); }
+.cd-rename-actions button[type="submit"] { background: var(--primary-alpha-15); border-color: var(--primary-500); color: var(--primary-300); }
+.cd-rename-actions button:disabled { opacity: 0.5; cursor: default; }
