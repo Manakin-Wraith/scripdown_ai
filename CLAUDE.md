@@ -62,3 +62,13 @@ Setting `FLASK_ENV=development` enables an auth bypass in the backend (`DEV_USER
 - `src/pages/` for routed pages, `src/components/` grouped by domain (breakdown, schedule, reports, team, editor, etc.).
 - Global state via React contexts in `src/context/`: `AuthContext`, `ScriptContext`, `AnalysisContext` (polls background analysis progress), `StoryDayContext`, plus `ToastContext`/`ConfirmDialogContext` for UI feedback.
 - All backend calls go through the single `apiService.js`; don't create per-feature axios instances.
+
+## Status doc (read by the Bridge OS dashboard)
+
+At the end of every work session, update `docs/STATUS.md`. A dashboard reads it live, so keep this shape:
+
+- `## Current state (YYYY-MM-DD)`: the first bullet is a one-line headline of where things stand.
+- `## Next steps`: a numbered list, most important first (the top 3 are shown).
+- `## Backlog board`: `### Now`, `### Next`, `### Later`, `### Deferred`, one line per item as `- **Title** — short note`. Move lines between columns as work changes. Optionally add `(2026-12-01 to 2026-12-15)` for a dated bar or `(by 2026-12-01)` for a milestone to a line.
+- Changelog: add a dated line starting `- **YYYY-MM-DD (topic):**` under `## Changelog`. Long-form entries for each backlog item live in `docs/BACKLOG.md`; keep `STATUS.md` short.
+- Commit `docs/STATUS.md` together with the code it describes.
