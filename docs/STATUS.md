@@ -25,9 +25,9 @@ Read by the Bridge board. Four columns, one line per item. The long-form entry f
 
 ### Now
 
-- **Slow page loads** — measure first, cause unknown (logged 2026-11-10)
-- **Browser click-through of nav Phase 1 and the production Cast tab** — never verified by hand
-- **Navigation Phase 2** — production shell, sidebar, switcher, nested routes
+- **Slow page loads** (2026-11-18 to 2026-11-20) — measure first, cause unknown (logged 2026-11-10)
+- **Browser click-through of nav Phase 1 and the production Cast tab** (by 2026-11-20) — never verified by hand
+- **Navigation Phase 2** (2026-11-23 to 2026-12-01) — production shell, sidebar, switcher, nested routes
 - **Character rename follow-ups** — merge alias repoint, atomic writes, rename in Characters view
 - **First real PayFast payment check** — confirm the inbound ITN row goes `complete` and the grant lands
 
