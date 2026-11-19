@@ -1,11 +1,16 @@
-"""CORS allowlist: production + local dev + this team's Vercel previews only."""
+"""CORS allowlist: production + local dev + exact origins from CORS_EXTRA_ORIGINS only."""
+import importlib
+
 import pytest
 
-import app as app_module
+PREVIEW = "https://frontend-3cuarud79-manakin-wraiths-projects.vercel.app"
 
 
 @pytest.fixture
-def client():
+def client(monkeypatch):
+    monkeypatch.setenv("CORS_EXTRA_ORIGINS", f" {PREVIEW} , ")
+    import app as app_module
+    app_module = importlib.reload(app_module)
     return app_module.app.test_client()
 
 
@@ -20,18 +25,18 @@ def _acao(client, origin):
 @pytest.mark.parametrize("origin", [
     "https://app.slateone.studio",
     "http://localhost:5173",
-    "https://frontend-3cuarud79-manakin-wraiths-projects.vercel.app",
-    "https://frontend-git-perf-page-load-audit-manakin-wraiths-projects.vercel.app",
+    PREVIEW,
 ])
 def test_allowed_origins(client, origin):
     assert _acao(client, origin) == origin
 
 
 @pytest.mark.parametrize("origin", [
-    "https://frontend-abc-someone-elses-projects.vercel.app",
-    "https://frontend-abc-manakin-wraiths-projects.vercel.app.evil.com",
-    "https://evil.com/frontend-abc-manakin-wraiths-projects.vercel.app",
-    "http://frontend-abc-manakin-wraiths-projects.vercel.app",
+    # lookalike an outside Vercel account could produce (scope "wraiths", project "frontend-x-manakin")
+    "https://frontend-x-manakin-wraiths-projects.vercel.app",
+    "https://frontend-other111-manakin-wraiths-projects.vercel.app",
+    PREVIEW + ".evil.com",
+    "http://frontend-3cuarud79-manakin-wraiths-projects.vercel.app",
 ])
 def test_rejected_origins(client, origin):
     assert _acao(client, origin) is None

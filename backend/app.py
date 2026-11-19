@@ -47,13 +47,13 @@ Compress(app)
 
 # Configure CORS for production - allow all origins for now
 # Flask-CORS handles preflight OPTIONS requests automatically
-# Vercel preview deployments (frontend-<hash>-<team>.vercel.app and branch aliases) for
-# this team only, so a PR/branch preview can talk to the API. The team slug in the
-# pattern means other Vercel accounts' previews don't match.
-VERCEL_PREVIEW_ORIGIN = r"^https://frontend-[a-z0-9-]+-manakin-wraiths-projects\.vercel\.app$"
+# Extra exact origins (comma-separated), e.g. a Vercel preview URL while testing a branch.
+# Deliberately NOT a pattern: *.vercel.app hostnames are partly attacker-controllable
+# (anyone can pick a project name), and this CORS config allows credentials.
+_extra_origins = [o.strip() for o in os.environ.get("CORS_EXTRA_ORIGINS", "").split(",") if o.strip()]
 
 CORS(app, 
-     origins=["http://localhost:5173", "http://localhost:3000", "https://app.slateone.studio", VERCEL_PREVIEW_ORIGIN],
+     origins=["http://localhost:5173", "http://localhost:3000", "https://app.slateone.studio"] + _extra_origins,
      methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
      allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
      supports_credentials=True,
