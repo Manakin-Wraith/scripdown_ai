@@ -43,8 +43,13 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1)
 
 # Configure CORS for production - allow all origins for now
 # Flask-CORS handles preflight OPTIONS requests automatically
+# Extra exact origins (comma-separated), e.g. a Vercel preview URL while testing a branch.
+# Deliberately NOT a pattern: *.vercel.app hostnames are partly attacker-controllable
+# (anyone can pick a project name), and this CORS config allows credentials.
+_extra_origins = [o.strip() for o in os.environ.get("CORS_EXTRA_ORIGINS", "").split(",") if o.strip()]
+
 CORS(app, 
-     origins=["http://localhost:5173", "http://localhost:3000", "https://app.slateone.studio"],
+     origins=["http://localhost:5173", "http://localhost:3000", "https://app.slateone.studio"] + _extra_origins,
      methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
      allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
      supports_credentials=True,
