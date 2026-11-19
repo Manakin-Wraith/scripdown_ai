@@ -221,12 +221,14 @@ export const AnalysisProvider = ({ children }) => {
         if (pollingRef.current) return; // Already polling
         
         pollingRef.current = setInterval(async () => {
-            await fetchGlobalStatus();
-            
-            // Also refresh detailed status for scripts we're tracking
-            for (const scriptId of Object.keys(detailedStatus)) {
-                await fetchScriptStatus(scriptId);
-            }
+            // Don't burn requests while the tab is in the background
+            if (document.hidden) return;
+
+            // Fetch global + per-script status concurrently
+            await Promise.all([
+                fetchGlobalStatus(),
+                ...Object.keys(detailedStatus).map((scriptId) => fetchScriptStatus(scriptId)),
+            ]);
         }, POLL_INTERVAL);
     }, [fetchGlobalStatus, fetchScriptStatus, detailedStatus]);
 

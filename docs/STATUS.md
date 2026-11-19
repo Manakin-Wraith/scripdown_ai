@@ -2,19 +2,20 @@
 
 Living progress doc. Update it at the end of each work session: Current state, Next steps, the Backlog board and a dated Changelog line. Full detail for every backlog entry lives in `docs/BACKLOG.md` (the long-form file this was split from on 2026-11-18).
 
-## Current state (2026-11-11)
+## Current state (2026-11-19)
 
+- **Page-load fixes are on branch `perf/page-load-audit` (2026-11-19), not yet deployed or measured.** Route-level code splitting (initial JS 632 kB to about 142 kB gzip, from build output), scoped `get_scenes` schedule query, gzip on API responses, gthread gunicorn, polling pauses on hidden tabs. No real-user baseline exists yet.
 - **Checkout is live.** PayFast live credentials are set and outbound checkout is verified (2026-08-27). The inbound payment notification (ITN) has not been exercised on a real transaction yet. Renewals and cancellations are handled by hand while volume is low.
 - **Production-first navigation, Phase 1, is on `main` and live on Vercel (2026-11-10).** Production tabs are URLs, the top bar is Productions, Scripts, Contacts and Locations, and the production Overview is a dashboard. Verified by tests and build only; never clicked through in a browser.
 - **Cast tab now lives inside the production page (2026-11-10).** Cast is still stored per script, so the same actor on two scripts is two unrelated rows. Also verified by tests and build only.
 - **Character rename shipped (2026-11-11).** Known gaps: no Rename in the Characters view, writes are not atomic, and merge may not repoint existing aliases.
 - **Production data model is in place:** productions, crew and contacts, members with permissions, locations, call sheets with per-production templates, and production-level script access (all shipped Aug to Sept 2026).
-- **Known problem:** pages are loading slower than usual (logged 2026-11-10, not yet diagnosed).
+- **Known problem:** pages are loading slower than usual (logged 2026-11-10). A bundle and query audit found the causes above; still needs a Lighthouse before/after.
 - **Deploy:** frontend on Vercel, backend on Railway, both from `main`. The latest check on `main` (merge of `docs/character-rename`, 2026-11-11) passed on both.
 
 ## Next steps
 
-1. **Diagnose slow page loads (logged 2026-11-10).** Measure first: slow `/api/*` calls, `attach_scene_counts` on `GET /api/productions/:id`, the duplicate `getProduction` fetch, Supabase latency, bundle size, the auth fetch in `apiService.js`.
+1. **Finish slow page loads.** Merge `perf/page-load-audit` (Flask-Compress needs the Railway deploy, which now builds the new Dockerfile CMD), then run Lighthouse against app.slateone.studio. Remaining from the audit: Supabase advisors and index review, `select('*')` trimming, `/api` caching headers, polling backoff.
 2. **Click through navigation Phase 1 and the production Cast tab in a real browser.** Neither was ever run by hand.
 3. **Navigation Phase 2 (~3 to 5 days, frontend):** production shell with a Prep / Plan / Output / Admin sidebar, a production switcher, nested routes under `/productions/:id/...`, and one place for team management.
 4. **Character rename follow-ups:** repoint aliases on merge (unverified), make the writes atomic with a Postgres RPC, add Rename to the Characters view.
@@ -25,7 +26,7 @@ Read by the Bridge board. Four columns, one line per item. The long-form entry f
 
 ### Now
 
-- **Slow page loads** (2026-11-18 to 2026-11-20) — measure first, cause unknown (logged 2026-11-10)
+- **Slow page loads** (2026-11-18 to 2026-11-20) — fixes on `perf/page-load-audit`; needs deploy and Lighthouse baseline
 - **Browser click-through of nav Phase 1 and the production Cast tab** (by 2026-11-20) — never verified by hand
 - **Navigation Phase 2** (2026-11-23 to 2026-12-01) — production shell, sidebar, switcher, nested routes
 - **Character rename follow-ups** — merge alias repoint, atomic writes, rename in Characters view
@@ -69,6 +70,7 @@ Read by the Bridge board. Four columns, one line per item. The long-form entry f
 
 ## Changelog
 
+- **2026-11-19 (page-load audit fixes):** lazy-loaded all routes except login and layout, vendor chunks for react and supabase, `get_scenes` schedule query scoped to the script (was reading every script's rows), Flask-Compress, gunicorn gthread x4 in Dockerfile and Procfile, polling skips hidden tabs and fetches in parallel, supabase preconnect, `profile_pic.png` 3 MB to 107 kB (kept, a live email links to it).
 - **2026-11-11 (character rename):** Rename a character from the Cast drawer. Spec `docs/superpowers/specs/2026-11-11-character-rename-design.md`. Follow-ups are in the Now column.
 - **2026-11-10 (cast tab in the production page):** New production Cast tab at `/productions/:id/cast` and `/productions/:id/cast/:scriptId`; the script-level Cast tab is hidden for scripts in a production. Merged to `main`.
 - **2026-11-10 (navigation Phase 1):** Production-first navigation shipped and live on Vercel: breadcrumb, production tabs as URLs, new top bar, production dashboard, `scene_count` fields on `GET /api/productions/:id`. Gotcha: `scripts.analysis_status` is not maintained, so derive progress from scenes.

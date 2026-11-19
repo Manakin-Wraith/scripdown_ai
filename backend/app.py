@@ -1,5 +1,6 @@
 from flask import Flask
 from flask_cors import CORS
+from flask_compress import Compress
 from werkzeug.middleware.proxy_fix import ProxyFix
 import os
 from dotenv import load_dotenv
@@ -40,6 +41,9 @@ app = Flask(__name__)
 # which silently breaks any IP-based check (see payfast_routes.py's PayFast
 # source-IP validation on the ITN webhook).
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1)
+
+# gzip/brotli JSON responses (scene payloads carry full scene_text).
+Compress(app)
 
 # Configure CORS for production - allow all origins for now
 # Flask-CORS handles preflight OPTIONS requests automatically

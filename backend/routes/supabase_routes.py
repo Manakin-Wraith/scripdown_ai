@@ -1160,7 +1160,8 @@ def get_scenes(script_id):
         scheduled_map = {}  # { scene_id: "Day 3" }
         try:
             sds_result = supabase.table('shooting_day_scenes') \
-                .select('scene_id, shooting_days(day_number)') \
+                .select('scene_id, shooting_days!inner(day_number, shooting_schedules!inner(script_id))') \
+                .eq('shooting_days.shooting_schedules.script_id', script_id) \
                 .execute()
             for row in (sds_result.data or []):
                 sid = row.get('scene_id')

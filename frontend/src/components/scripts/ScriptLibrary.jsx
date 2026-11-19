@@ -64,6 +64,7 @@ const ScriptLibrary = () => {
         
         // Poll every 3 seconds while analysis is active
         const interval = setInterval(() => {
+            if (document.hidden) return; // Skip while tab is in the background
             fetchScripts(false); // Silent refresh
         }, 3000);
         

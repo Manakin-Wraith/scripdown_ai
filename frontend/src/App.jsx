@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { AnalysisProvider } from './context/AnalysisContext';
@@ -7,31 +7,12 @@ import { ConfirmDialogProvider } from './context/ConfirmDialogContext';
 import { ScriptProvider } from './context/ScriptContext';
 import { StoryDayProvider } from './context/StoryDayContext';
 import MainLayout from './components/layout/MainLayout';
-import ScriptUpload from './components/script/ScriptUpload';
-import SceneViewer from './components/scenes/SceneViewer';
-import ScriptLibrary from './components/scripts/ScriptLibrary';
-import Stripboard from './components/reports/Stripboard';
-import ZoomableStripboard from './components/board/ZoomableStripboard';
-import ResetPasswordPage from './pages/ResetPasswordPage';
 import LoginPage from './pages/LoginPage';
-import ProfilePage from './pages/ProfilePage';
-import AuthCallbackPage from './pages/AuthCallbackPage';
-import ConfirmEmailPage from './pages/ConfirmEmailPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import AdminRoute from './components/auth/AdminRoute';
-import AdminTestPage from './pages/Admin/AdminTestPage';
-import AnalyticsDashboard from './pages/Admin/AnalyticsDashboard';
-import UserActivityPage from './pages/Admin/UserActivityPage';
-import ScriptAnalyticsPage from './pages/Admin/ScriptAnalyticsPage';
-import PaymentVerification from './components/admin/PaymentVerification';
-import EmailCampaignsPage from './pages/Admin/EmailCampaignsPage';
 import './App.css';
 
 // Active imports
-import ReportStudio from './components/reports/ReportStudio';
-import ShootingSchedulePage from './components/schedule/ShootingSchedulePage';
-import SharedReportView from './components/reports/SharedReportView';
-import SceneManager from './components/scenes/SceneManager';
 
 // Phase 2+ imports (deferred)
 // import CharacterProfile from './components/characters/CharacterProfile';
@@ -39,20 +20,45 @@ import SceneManager from './components/scenes/SceneManager';
 // import ShootingScriptPreview from './components/scripts/ShootingScriptPreview';
 // import DepartmentWorkspace from './components/workspace/DepartmentWorkspace';
 // import SettingsPage from './pages/SettingsPage';
-import InvitePage from './pages/InvitePage';
-import ProductionInviteAccept from './pages/ProductionInviteAccept';
-import BillingPage from './pages/BillingPage';
-import PaymentResultPage from './pages/PaymentResultPage';
-import CastRoute from './components/cast/CastRoute';
-import SeriesListPage from './pages/SeriesListPage';
-import SeriesDetailPage from './pages/SeriesDetailPage';
-import SeasonPage from './pages/SeasonPage';
-import ProductionsListPage from './pages/ProductionsListPage';
-import ProductionDetailPage from './pages/ProductionDetailPage';
-import ContactsListPage from './pages/ContactsListPage';
-import LocationsListPage from './pages/LocationsListPage';
-import ContactPane from './components/contacts/ContactPane';
-import LocationPane from './components/locations/LocationPane';
+
+// Route-level code splitting: each page loads on demand.
+const ScriptUpload = lazy(() => import('./components/script/ScriptUpload'));
+const SceneViewer = lazy(() => import('./components/scenes/SceneViewer'));
+const ScriptLibrary = lazy(() => import('./components/scripts/ScriptLibrary'));
+const Stripboard = lazy(() => import('./components/reports/Stripboard'));
+const ZoomableStripboard = lazy(() => import('./components/board/ZoomableStripboard'));
+const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
+const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+const AuthCallbackPage = lazy(() => import('./pages/AuthCallbackPage'));
+const ConfirmEmailPage = lazy(() => import('./pages/ConfirmEmailPage'));
+const AdminTestPage = lazy(() => import('./pages/Admin/AdminTestPage'));
+const AnalyticsDashboard = lazy(() => import('./pages/Admin/AnalyticsDashboard'));
+const UserActivityPage = lazy(() => import('./pages/Admin/UserActivityPage'));
+const ScriptAnalyticsPage = lazy(() => import('./pages/Admin/ScriptAnalyticsPage'));
+const PaymentVerification = lazy(() => import('./components/admin/PaymentVerification'));
+const EmailCampaignsPage = lazy(() => import('./pages/Admin/EmailCampaignsPage'));
+const ReportStudio = lazy(() => import('./components/reports/ReportStudio'));
+const ShootingSchedulePage = lazy(() => import('./components/schedule/ShootingSchedulePage'));
+const SharedReportView = lazy(() => import('./components/reports/SharedReportView'));
+const SceneManager = lazy(() => import('./components/scenes/SceneManager'));
+const InvitePage = lazy(() => import('./pages/InvitePage'));
+const ProductionInviteAccept = lazy(() => import('./pages/ProductionInviteAccept'));
+const BillingPage = lazy(() => import('./pages/BillingPage'));
+const PaymentResultPage = lazy(() => import('./pages/PaymentResultPage'));
+const CastRoute = lazy(() => import('./components/cast/CastRoute'));
+const SeriesListPage = lazy(() => import('./pages/SeriesListPage'));
+const SeriesDetailPage = lazy(() => import('./pages/SeriesDetailPage'));
+const SeasonPage = lazy(() => import('./pages/SeasonPage'));
+const ProductionsListPage = lazy(() => import('./pages/ProductionsListPage'));
+const ProductionDetailPage = lazy(() => import('./pages/ProductionDetailPage'));
+const ContactsListPage = lazy(() => import('./pages/ContactsListPage'));
+const LocationsListPage = lazy(() => import('./pages/LocationsListPage'));
+const ContactPane = lazy(() => import('./components/contacts/ContactPane'));
+const LocationPane = lazy(() => import('./components/locations/LocationPane'));
+
+function RouteFallback() {
+  return <div style={{ padding: '2rem', textAlign: 'center', opacity: 0.6 }}>Loading…</div>;
+}
 
 function App() {
   return (
@@ -63,6 +69,7 @@ function App() {
             <ScriptProvider>
               <StoryDayProvider>
               <Router>
+                <Suspense fallback={<RouteFallback />}>
                 <Routes>
                   {/* Protected routes (require authentication) */}
                   <Route path="/" element={
@@ -158,6 +165,7 @@ function App() {
                   <Route path="invite/:token" element={<InvitePage />} />
                   <Route path="production-invites/:token" element={<ProductionInviteAccept />} />
                 </Routes>
+                </Suspense>
               </Router>
               </StoryDayProvider>
             </ScriptProvider>

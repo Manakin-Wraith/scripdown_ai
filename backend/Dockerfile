@@ -28,4 +28,4 @@ RUN mkdir -p uploads
 # and Railway discards the deploy, silently keeping the previous build
 # live. Shell form so ${PORT} is expanded; 8080 is only a local-run fallback.
 EXPOSE 8080
-CMD ["sh", "-c", "gunicorn app:app --bind 0.0.0.0:${PORT:-8080} --timeout 120 --workers 2"]
+CMD ["sh", "-c", "gunicorn app:app --bind 0.0.0.0:${PORT:-8080} --timeout 120 --workers 2 --worker-class gthread --threads 4"]
