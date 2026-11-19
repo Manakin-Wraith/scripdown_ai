@@ -4,7 +4,7 @@ Living progress doc. Update it at the end of each work session: Current state, N
 
 ## Current state (2026-11-19)
 
-- **Page-load fixes merged to `main` (2026-11-19).** Route-level code splitting, scoped `get_scenes` schedule query, gzip on API responses, gthread gunicorn, polling pauses on hidden tabs. Lighthouse (mobile, login page, median of 3, preview vs production before the merge): score 84 to 99, LCP 4.5 s to 2.0 s, FCP 1.2 s to 0.8 s, script transfer 629 KB to 145 KB. Logged-in pages and the API-side gains are not yet measured.
+- **Page-load fixes merged to `main` (a4eca72) and pushed (2026-11-19).** Frontend is live on Vercel: production serves the split bundle (Supabase preconnect in the page, only the react and supabase chunks preloaded, `profile_pic.png` 107 KB); preview and production bundle hashes are identical, so the Lighthouse numbers describe live code. Lighthouse (mobile, login page, median of 3): score 84 to 99, LCP 4.5 s to 2.0 s, FCP 1.2 s to 0.8 s, script transfer 629 KB to 145 KB. **Backend on Railway is unconfirmed:** `/health` stayed 200 for 7.5 minutes and CORS works for app.slateone.studio, but no restart was seen, and gzip, gthread and the `get_scenes` fix can't be seen without an authenticated request. Logged-in pages and API response times are not yet measured.
 - **Checkout is live.** PayFast live credentials are set and outbound checkout is verified (2026-08-27). The inbound payment notification (ITN) has not been exercised on a real transaction yet. Renewals and cancellations are handled by hand while volume is low.
 - **Production-first navigation, Phase 1, is on `main` and live on Vercel (2026-11-10).** Production tabs are URLs, the top bar is Productions, Scripts, Contacts and Locations, and the production Overview is a dashboard. Verified by tests and build only; never clicked through in a browser.
 - **Cast tab now lives inside the production page (2026-11-10).** Cast is still stored per script, so the same actor on two scripts is two unrelated rows. Also verified by tests and build only.
@@ -15,10 +15,11 @@ Living progress doc. Update it at the end of each work session: Current state, N
 
 ## Next steps
 
-1. **Finish slow page loads.** Measure `/api/scripts/:id/scenes` before and after (needs an auth token) and watch the gthread workers on Railway. Remaining from the audit: Supabase advisors and index review, `select('*')` trimming, `/api` caching headers, polling backoff.
-2. **Click through navigation Phase 1 and the production Cast tab in a real browser.** Neither was ever run by hand.
-3. **Navigation Phase 2 (~3 to 5 days, frontend):** production shell with a Prep / Plan / Output / Admin sidebar, a production switcher, nested routes under `/productions/:id/...`, and one place for team management.
-4. **Character rename follow-ups:** repoint aliases on merge (unverified), make the writes atomic with a Postgres RPC, add Rename to the Characters view.
+1. **Confirm the page-load backend is live on Railway.** In a logged-in tab, open the network tab and check the `/api/scripts/<id>/scenes` response headers: `content-encoding: gzip` means the new backend is running. If it is missing, check the Railway deploy logs for a build failure; the likely cause is the `Flask-Compress==1.15` pin failing to install. Then remove `CORS_EXTRA_ORIGINS` from Railway (preview testing is done); the preview share link expires about 08:37 on 2026-11-20 and can be revoked sooner.
+2. **Finish slow page loads.** Measure `/api/scripts/:id/scenes` before and after (needs an auth token) and watch the gthread workers on Railway. Remaining from the audit: Supabase advisors and index review, `select('*')` trimming, `/api` caching headers, polling backoff.
+3. **Click through navigation Phase 1 and the production Cast tab in a real browser.** Neither was ever run by hand.
+4. **Navigation Phase 2 (~3 to 5 days, frontend):** production shell with a Prep / Plan / Output / Admin sidebar, a production switcher, nested routes under `/productions/:id/...`, and one place for team management.
+5. **Character rename follow-ups:** repoint aliases on merge (unverified), make the writes atomic with a Postgres RPC, add Rename to the Characters view.
 
 ## Backlog board
 
@@ -26,7 +27,8 @@ Read by the Bridge board. Four columns, one line per item. The long-form entry f
 
 ### Now
 
-- **Slow page loads** (2026-11-18 to 2026-11-20) — main fixes shipped 2026-11-19; remaining: advisors and indexes, `select('*')`, caching headers, polling backoff
+- **Confirm page-load backend on Railway** (by 2026-11-20) — check for gzip on `/scenes`; then remove `CORS_EXTRA_ORIGINS`, revoke preview share link
+- **Slow page loads** (2026-11-18 to 2026-11-20) — merged and pushed 2026-11-19, frontend live; remaining: Supabase advisors and indexes, `select('*')` trimming, `/api` caching headers, polling backoff
 - **Browser click-through of nav Phase 1 and the production Cast tab** (by 2026-11-20) — never verified by hand
 - **Navigation Phase 2** (2026-11-23 to 2026-12-01) — production shell, sidebar, switcher, nested routes
 - **Character rename follow-ups** — merge alias repoint, atomic writes, rename in Characters view
@@ -70,6 +72,7 @@ Read by the Bridge board. Four columns, one line per item. The long-form entry f
 
 ## Changelog
 
+- **2026-11-19 (page-load merge and deploy):** Merged `perf/page-load-audit` to `main` (a4eca72) and pushed. Vercel auto-deployed production; the live bundle matches the one Lighthouse measured. Railway: `/health` 200 throughout, CORS fine, but the new image was not confirmed running (see Next steps 1).
 - **2026-11-19 (CORS extra origins):** `CORS_EXTRA_ORIGINS` env var (comma-separated exact origins) so a Vercel preview can call the API. Exact match only, not a pattern: a `*.vercel.app` regex could be matched by another Vercel account. Remove the Railway variable when not testing a preview.
 - **2026-11-19 (page-load audit fixes):** lazy-loaded all routes except login and layout, vendor chunks for react and supabase, `get_scenes` schedule query scoped to the script (was reading every script's rows), Flask-Compress, gunicorn gthread x4 in Dockerfile and Procfile, polling skips hidden tabs and fetches in parallel, supabase preconnect, `profile_pic.png` 3 MB to 107 kB (kept, a live email links to it).
 - **2026-11-11 (character rename):** Rename a character from the Cast drawer. Spec `docs/superpowers/specs/2026-11-11-character-rename-design.md`. Follow-ups are in the Now column.
